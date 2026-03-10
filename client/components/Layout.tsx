@@ -314,7 +314,7 @@ function LeftQueueRail() {
               : "pointer-events-none -translate-x-3 opacity-0"
           }`}
         >
-          <div className="h-full w-[320px] overflow-y-auto rounded-r-2xl border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
             <QueueOverlayList />
           </div>
         </div>
