@@ -179,7 +179,7 @@ function QueueOverlayList() {
 
             <div className="relative mt-0.5 flex-shrink-0">
               <div
-                className={`flex h-11 w-11 items-center justify-center rounded-full text-[16px] font-semibold ${
+                className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
                   item.isActive
                     ? "bg-[#0D5E8A] text-white"
                     : "border border-black/15 bg-white text-[#0D5E8A]"
@@ -188,7 +188,7 @@ function QueueOverlayList() {
                 {item.initials}
               </div>
               <span
-                className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
+                className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
               >
                 <ItemIcon className="h-3 w-3 text-white" />
               </span>
