@@ -703,7 +703,7 @@ function OverviewField({
 }) {
   return (
     <div>
-      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#333333]">
+      <div className="text-[12px] font-semibold uppercase text-[#333333]">
         {label}
       </div>
       <div className="text-[12px] leading-5 text-[#6B7280]">{value}</div>
