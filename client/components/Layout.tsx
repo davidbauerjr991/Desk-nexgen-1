@@ -116,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
       <header className="flex h-12 shrink-0 items-center justify-between gap-4 px-4">
         <div className="flex min-w-0 items-center gap-4">
           <NiceLogoIcon />
-          <span className="truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333]">
+          <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] min-[800px]:inline">
             Agent Workspace Premium
           </span>
         </div>
