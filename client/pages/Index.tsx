@@ -17,6 +17,8 @@ import {
   PhoneOff,
   GripHorizontal,
   AlertTriangle,
+  Mic,
+  Volume2,
   Lightbulb,
   FileText,
   BookOpen,
@@ -26,6 +28,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -217,7 +220,7 @@ type CallPopunderPosition = {
   y: number;
 };
 
-type CallPopunderMode = "controls" | "disposition";
+type CallPopunderMode = "setup" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
 const CALL_POPUNDER_MARGIN = 16;
@@ -277,6 +280,7 @@ function CallControlsPopunder({
   mode,
   onPositionChange,
   onClose,
+  onLaunchCall,
   onEndCall,
   onSelectDisposition,
 }: {
@@ -284,17 +288,39 @@ function CallControlsPopunder({
   mode: CallPopunderMode;
   onPositionChange: (position: CallPopunderPosition) => void;
   onClose: () => void;
+  onLaunchCall: () => void;
   onEndCall: () => void;
   onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const isDraggingRef = useRef(false);
+  const [accountNumber, setAccountNumber] = useState("");
+  const [isTestingAudio, setIsTestingAudio] = useState(false);
+  const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
+
+  useEffect(() => {
+    if (mode !== "setup") {
+      setIsTestingAudio(false);
+      return;
+    }
+
+    if (!isTestingAudio) return;
+
+    const intervalId = window.setInterval(() => {
+      setAudioLevels({
+        mic: 20 + Math.round(Math.random() * 70),
+        speaker: 25 + Math.round(Math.random() * 65),
+      });
+    }, 350);
+
+    return () => window.clearInterval(intervalId);
+  }, [isTestingAudio, mode]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDraggingRef.current) return;
 
-      const height = mode === "controls" ? 228 : 284;
+      const height = mode === "setup" ? 320 : mode === "controls" ? 228 : 284;
       const nextX = event.clientX - dragOffsetRef.current.x;
       const nextY = event.clientY - dragOffsetRef.current.y;
 
@@ -346,7 +372,7 @@ function CallControlsPopunder({
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
           <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
-          {mode === "controls" ? "Active Call" : "Disposition"}
+          {mode === "setup" ? "Start Call" : mode === "controls" ? "Active Call" : "Disposition"}
         </div>
         <button
           type="button"
@@ -359,7 +385,64 @@ function CallControlsPopunder({
       </div>
 
       <div className="space-y-2 p-3">
-        {mode === "controls" ? (
+        {mode === "setup" ? (
+          <>
+            <div className="space-y-1">
+              <label htmlFor="call-account-number" className="text-xs font-medium text-[#333333]">
+                Account Number
+              </label>
+              <Input
+                id="call-account-number"
+                value={accountNumber}
+                onChange={(event) => setAccountNumber(event.target.value)}
+                placeholder="Enter account number"
+                className="h-9 border-black/10 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-black/10 bg-[#F8F8F9] p-3">
+              <div className="flex items-center justify-between gap-3 text-sm text-[#333333]">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-[#7A7A7A]" />
+                  <span>Microphone volume</span>
+                </div>
+                <span className="text-xs text-[#7A7A7A]">{audioLevels.mic}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1 text-sm text-[#333333]">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4 text-[#7A7A7A]" />
+                  <span>Speaker volume</span>
+                </div>
+                <span className="text-xs text-[#7A7A7A]">{audioLevels.speaker}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTestingAudio((current) => !current)}
+                className="mt-1 w-full justify-center border-black/10 text-[#333333]"
+              >
+                {isTestingAudio ? "Stop Test" : "Test Audio"}
+              </Button>
+            </div>
+
+            <Button
+              type="button"
+              onClick={onLaunchCall}
+              disabled={!accountNumber.trim()}
+              className="w-full bg-[#16A34A] text-white hover:bg-[#15803D]"
+            >
+              Launch Call
+            </Button>
+          </>
+        ) : mode === "controls" ? (
           <>
             <Button
               variant="outline"
@@ -418,7 +501,8 @@ export default function Index() {
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
-  const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("controls");
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
   const callButtonRef = useRef<HTMLButtonElement | null>(null);
   const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
     if (typeof window === "undefined") {
@@ -455,14 +539,14 @@ export default function Index() {
   };
 
   const openCallPopunder = () => {
-    setCallPopunderMode("controls");
+    setCallPopunderMode(isCallActive ? "controls" : "setup");
     setCallPopunderPosition(getAnchoredCallPopunderPosition());
     setIsCallPopunderOpen(true);
   };
 
   const closeCallPopunder = () => {
     setIsCallPopunderOpen(false);
-    setCallPopunderMode("controls");
+    setCallPopunderMode(isCallActive ? "controls" : "setup");
   };
 
   return (
@@ -654,8 +738,16 @@ export default function Index() {
           mode={callPopunderMode}
           onPositionChange={setCallPopunderPosition}
           onClose={closeCallPopunder}
+          onLaunchCall={() => {
+            setIsCallActive(true);
+            setCallPopunderMode("controls");
+          }}
           onEndCall={() => setCallPopunderMode("disposition")}
-          onSelectDisposition={() => closeCallPopunder()}
+          onSelectDisposition={() => {
+            setIsCallActive(false);
+            setIsCallPopunderOpen(false);
+            setCallPopunderMode("setup");
+          }}
         />
       )}
 
