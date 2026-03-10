@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
-  Bot,
   ChevronDown,
   ClipboardList,
-  History,
   MessageSquare,
   Monitor,
   Phone,
@@ -419,21 +417,6 @@ export default function Layout({ children }: LayoutProps) {
             <Monitor className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <HeaderIconButton
-            ariaLabel={layoutContextValue.isInteractionsOpen ? "Hide recent interactions" : "Show recent interactions"}
-            onClick={layoutContextValue.toggleInteractions}
-            isActive={layoutContextValue.isInteractionsOpen}
-          >
-            <History className="h-4 w-4 stroke-[1.8]" />
-          </HeaderIconButton>
-
-          <HeaderIconButton
-            ariaLabel={layoutContextValue.isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-            onClick={layoutContextValue.toggleCopilot}
-            isActive={layoutContextValue.isCopilotOpen}
-          >
-            <Bot className="h-4 w-4 stroke-[1.8]" />
-          </HeaderIconButton>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

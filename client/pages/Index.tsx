@@ -8,6 +8,7 @@ import {
   Paperclip,
   MoreVertical,
   PhoneCall,
+  History,
   Mail,
   Clock,
   X,
@@ -723,11 +724,14 @@ function DeskPanel() {
 export default function Index() {
   const {
     isDeskOpen,
+    isCopilotOpen,
     isInteractionsOpen,
     isAddNewOpen,
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
+    toggleCopilot,
+    toggleInteractions,
     startCallStatus,
     endCallStatus,
   } = useLayoutContext();
@@ -851,6 +855,34 @@ export default function Index() {
             >
               <PhoneCall className="mr-2 h-4 w-4" /> Call
             </Button>
+            <button
+              type="button"
+              aria-label={isInteractionsOpen ? "Hide recent interactions" : "Show recent interactions"}
+              aria-pressed={isInteractionsOpen}
+              onClick={toggleInteractions}
+              className={cn(
+                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
+                isInteractionsOpen
+                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
+                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+              )}
+            >
+              <History className="h-4 w-4 stroke-[1.8]" />
+            </button>
+            <button
+              type="button"
+              aria-label={isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+              aria-pressed={isCopilotOpen}
+              onClick={toggleCopilot}
+              className={cn(
+                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
+                isCopilotOpen
+                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
+                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+              )}
+            >
+              <Bot className="h-4 w-4 stroke-[1.8]" />
+            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="min-[800px]:hidden">
