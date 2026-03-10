@@ -357,7 +357,10 @@ function CallControlsPopunder({
       style={{ left: position.x, top: position.y }}
     >
       <div
-        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing"
+        className={cn(
+          "flex cursor-grab items-center border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing",
+          mode === "setup" ? "justify-between" : "justify-start",
+        )}
         onMouseDown={(event) => {
           const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
           if (!bounds) return;
@@ -374,14 +377,16 @@ function CallControlsPopunder({
           <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
           {mode === "setup" ? "Start Call" : mode === "controls" ? "Active Call" : "Disposition"}
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-          aria-label="Close call controls"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {mode === "setup" && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close call controls"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 p-3">
@@ -608,6 +613,7 @@ export default function Index() {
               size="sm"
               className="hidden sm:flex"
               onClick={openCallPopunder}
+              disabled={isCallActive}
             >
               <PhoneCall className="mr-2 h-4 w-4" /> Call
             </Button>
