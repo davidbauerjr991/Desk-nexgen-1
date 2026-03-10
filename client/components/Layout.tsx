@@ -210,7 +210,7 @@ export default function Layout({ children }: LayoutProps) {
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[9px] font-bold leading-none text-white shadow-[0_2px_6px_rgba(110,0,253,0.2)]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(110,0,253,0.28)]"
                 >
                   JD
                 </span>
@@ -248,13 +248,6 @@ export default function Layout({ children }: LayoutProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <button
-            type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[11px] font-bold text-white shadow-[0_3px_8px_rgba(110,0,253,0.28)] transition-transform hover:scale-[1.02]"
-            aria-label="Agent profile"
-          >
-            JD
-          </button>
         </div>
       </header>
 
