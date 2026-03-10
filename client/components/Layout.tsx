@@ -426,7 +426,7 @@ function LeftQueueRail() {
         <div
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
-          className={`fixed bottom-0 left-0 top-12 z-50 transition-all duration-200 ease-in-out ${
+          className={`fixed bottom-0 left-0 top-0 z-50 transition-all duration-200 ease-in-out ${
             isOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "pointer-events-none -translate-x-3 opacity-0"
