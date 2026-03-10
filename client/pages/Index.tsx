@@ -221,6 +221,7 @@ type CallPopunderMode = "setup" | "controls" | "disposition";
 const CALL_POPUNDER_WIDTH = 272;
 const CALL_POPUNDER_MARGIN = 16;
 const CALL_POPUNDER_GAP = 12;
+const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
@@ -692,7 +693,7 @@ export default function Index() {
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
-  const [isConversationPanelTransitioning, setIsConversationPanelTransitioning] = useState(false);
+  const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
@@ -757,10 +758,14 @@ export default function Index() {
       return;
     }
 
-    setIsConversationPanelTransitioning(true);
+    if (!isConversationPanelOpen) {
+      setIsConversationContentVisible(false);
+      return;
+    }
+
     const timeoutId = window.setTimeout(() => {
-      setIsConversationPanelTransitioning(false);
-    }, 300);
+      setIsConversationContentVisible(true);
+    }, CONVERSATION_CONTENT_DELAY_MS);
 
     return () => window.clearTimeout(timeoutId);
   }, [isConversationPanelOpen]);
@@ -916,91 +921,88 @@ export default function Index() {
                 : "pointer-events-none max-w-0 -translate-x-4 opacity-0 min-[800px]:border-r min-[800px]:border-transparent",
             )}
           >
-            <div
-              className={cn(
-                "flex min-h-0 flex-1 flex-col transition-opacity duration-150",
-                isConversationPanelTransitioning && "pointer-events-none opacity-0",
-              )}
-            >
-              {/* Chat Transcript */}
-              <ScrollArea className="flex-1 p-6">
-                <div className="max-w-3xl mx-auto space-y-6">
-                <div className="text-center">
-                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">{activeConversation.timelineLabel}</span>
-                </div>
+            {isConversationContentVisible && (
+              <div className="flex min-h-0 flex-1 flex-col">
+                {/* Chat Transcript */}
+                <ScrollArea className="flex-1 p-6">
+                  <div className="max-w-3xl mx-auto space-y-6">
+                  <div className="text-center">
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">{activeConversation.timelineLabel}</span>
+                  </div>
 
-                {activeConversation.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex flex-col max-w-[85%]",
-                      msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start"
-                    )}
-                  >
-                    <div className="flex items-end gap-2 mb-1">
-                      {msg.role === "customer" && (
-                        <span className="text-xs font-medium text-muted-foreground ml-1">Alex</span>
-                      )}
-                      {msg.role === "agent" && (
-                        <span className="text-xs font-medium text-muted-foreground mr-1">You</span>
-                      )}
-                    </div>
+                  {activeConversation.messages.map((msg) => (
                     <div
+                      key={msg.id}
                       className={cn(
-                        "px-4 py-3 rounded-2xl text-sm shadow-sm",
-                        msg.role === "agent"
-                          ? "bg-primary text-primary-foreground rounded-br-sm"
-                          : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                        "flex flex-col max-w-[85%]",
+                        msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start"
                       )}
                     >
-                      {msg.content}
-                    </div>
-                    {msg.sentiment === "frustrated" && (
-                      <div className="flex items-center gap-1 mt-1.5 text-xs text-orange-500 font-medium">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Frustrated sentiment detected
+                      <div className="flex items-end gap-2 mb-1">
+                        {msg.role === "customer" && (
+                          <span className="text-xs font-medium text-muted-foreground ml-1">Alex</span>
+                        )}
+                        {msg.role === "agent" && (
+                          <span className="text-xs font-medium text-muted-foreground mr-1">You</span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div
+                        className={cn(
+                          "px-4 py-3 rounded-2xl text-sm shadow-sm",
+                          msg.role === "agent"
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                        )}
+                      >
+                        {msg.content}
+                      </div>
+                      {msg.sentiment === "frustrated" && (
+                        <div className="flex items-center gap-1 mt-1.5 text-xs text-orange-500 font-medium">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          Frustrated sentiment detected
+                        </div>
+                      )}
+                    </div>
+                  ))}
 
-                {/* AI Real-time context indicator */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-4">
-                  <div className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse delay-75"></span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150"></span>
+                  {/* AI Real-time context indicator */}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground pt-4">
+                    <div className="flex gap-1 items-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse delay-75"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150"></span>
+                    </div>
+                    <span>
+                      NexAgent AI is analyzing the {activeConversation.label.toLowerCase()} conversation...
+                    </span>
                   </div>
-                  <span>
-                    NexAgent AI is analyzing the {activeConversation.label.toLowerCase()} conversation...
-                  </span>
+                </div>
+              </ScrollArea>
+
+                {/* Input Area */}
+                <div className="p-4 bg-background border-t border-border">
+                  <div className="flex gap-3 items-end relative">
+                    <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
+                      <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
+                    </div>
+                    <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
+                      <Paperclip className="w-5 h-5" />
+                    </Button>
+                    <div className="flex-1 relative">
+                      <Textarea
+                        key={activeChannel}
+                        placeholder="Type your message..."
+                        className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
+                        defaultValue={activeConversation.draft}
+                      />
+                    </div>
+                    <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </ScrollArea>
-
-              {/* Input Area */}
-              <div className="p-4 bg-background border-t border-border">
-                <div className="flex gap-3 items-end relative">
-                  <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
-                    <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
-                  </div>
-                  <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
-                    <Paperclip className="w-5 h-5" />
-                  </Button>
-                  <div className="flex-1 relative">
-                    <Textarea
-                      key={activeChannel}
-                      placeholder="Type your message..."
-                      className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
-                      defaultValue={activeConversation.draft}
-                    />
-                  </div>
-                  <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Customer Data tabs */}
