@@ -271,7 +271,7 @@ function LeftQueueRail() {
               </HoverCardContent>
             </HoverCard>
 
-            <div className="relative" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+            <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
                 {queuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
@@ -301,21 +301,23 @@ function LeftQueueRail() {
                   );
                 })}
               </div>
-
-              <div
-                className={`absolute left-0 top-[58px] z-50 transition-all duration-200 ease-in-out ${
-                  isOpen
-                    ? "pointer-events-auto translate-x-0 opacity-100"
-                    : "pointer-events-none -translate-x-3 opacity-0"
-                }`}
-              >
-                <div className="h-[calc(100vh-48px-24px-58px)] w-[320px] overflow-y-auto rounded-r-2xl border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
-                  <QueueOverlayList />
-                </div>
-              </div>
             </div>
           </div>
         </aside>
+
+        <div
+          onMouseEnter={() => setIsOpen(true)}
+          onMouseLeave={() => setIsOpen(false)}
+          className={`absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+            isOpen
+              ? "pointer-events-auto translate-x-0 opacity-100"
+              : "pointer-events-none -translate-x-3 opacity-0"
+          }`}
+        >
+          <div className="h-full w-[320px] overflow-y-auto rounded-r-2xl border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+            <QueueOverlayList />
+          </div>
+        </div>
       </div>
     </div>
   );
