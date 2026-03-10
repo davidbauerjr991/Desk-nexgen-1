@@ -12,7 +12,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const insights = {
   sentiment: "Frustrated",
@@ -31,7 +30,7 @@ export default function CopilotPopunder() {
         </div>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-5 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <div className="space-y-6 pb-1">
           <Card className="border-border bg-background shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-4">
@@ -140,7 +139,7 @@ export default function CopilotPopunder() {
             </ul>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

@@ -219,7 +219,7 @@ function AddNewPopoverContent() {
         <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-5 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <div className="space-y-5">
           <div className="space-y-2">
             <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
@@ -267,7 +267,7 @@ function AddNewPopoverContent() {
             ))}
           </div>
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
         <Button type="button" variant="outline" className="rounded-xl" onClick={clearForm}>
