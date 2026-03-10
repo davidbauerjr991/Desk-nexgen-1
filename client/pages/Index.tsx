@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Bot,
   Sparkles,
-  ThumbsUp,
-  ThumbsDown,
   Send,
   Paperclip,
   MoreVertical,
@@ -21,16 +18,11 @@ import {
   Mic,
   Volume2,
   ChevronDown,
-  Lightbulb,
-  FileText,
-  BookOpen,
   MessageCircle,
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -192,13 +184,6 @@ const conversationsByChannel: Record<
       },
     ],
   },
-};
-
-const insights = {
-  sentiment: "Frustrated",
-  sentimentScore: 35, // out of 100
-  intent: "Subscription Upgrade / Payment Failure",
-  churnRisk: "Medium",
 };
 
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -724,13 +709,11 @@ function DeskPanel() {
 export default function Index() {
   const {
     isDeskOpen,
-    isCopilotOpen,
     isInteractionsOpen,
     isAddNewOpen,
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
-    toggleCopilot,
     toggleInteractions,
     startCallStatus,
     endCallStatus,
@@ -868,20 +851,6 @@ export default function Index() {
               )}
             >
               <History className="h-4 w-4 stroke-[1.8]" />
-            </button>
-            <button
-              type="button"
-              aria-label={isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-              aria-pressed={isCopilotOpen}
-              onClick={toggleCopilot}
-              className={cn(
-                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
-                isCopilotOpen
-                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-              )}
-            >
-              <Bot className="h-4 w-4 stroke-[1.8]" />
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -1114,132 +1083,7 @@ export default function Index() {
             <AddNewPanel />
           ) : isDeskOpen ? (
             <DeskPanel />
-          ) : (
-            <>
-              <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
-                <Bot className="w-5 h-5 text-primary" />
-                <h3 className="text-sm font-semibold tracking-tight">NexAgent Copilot</h3>
-              </div>
-
-              <ScrollArea className="flex-1 p-5">
-                <div className="space-y-6">
-            
-            {/* Live Context Card */}
-            <Card className="border-border shadow-sm bg-background">
-              <CardHeader className="pb-3 pt-4 px-4 flex flex-row items-center justify-between">
-                <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Live Interaction Context
-                </CardTitle>
-                <div className="flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 space-y-4">
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Detected Intent</div>
-                  <div className="font-medium text-sm flex items-center gap-2">
-                    {insights.intent}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Sentiment</div>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 font-medium">
-                        {insights.sentiment}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-muted-foreground mb-1">Churn Risk</div>
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
-                      <AlertTriangle className="w-4 h-4" /> Medium
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Suggested Response */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <h4 className="text-sm font-semibold text-foreground">Suggested Response</h4>
-              </div>
-              <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 relative group transition-colors hover:bg-primary/10">
-                <p className="text-sm text-foreground/90 leading-relaxed">
-                  "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. I've just cleared that flag for you. You should be able to process the upgrade now."
-                </p>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                      <ThumbsDown className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
-                  <Button size="sm" variant="secondary" className="h-7 text-xs font-medium bg-background shadow-sm border border-border hover:bg-accent">
-                    Apply to chat
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Next Best Actions */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-foreground">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
-                <h4 className="text-sm font-semibold">Next Best Actions</h4>
-              </div>
-              <div className="space-y-2">
-                <button className="w-full text-left p-3 rounded-lg border border-border bg-background hover:border-primary/50 transition-colors flex items-start gap-3 group">
-                  <div className="p-1.5 rounded-md bg-green-100 text-green-700 mt-0.5">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium group-hover:text-primary transition-colors">Clear Security Flag</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Removes the hold on card ending in 4092</div>
-                  </div>
-                </button>
-                <button className="w-full text-left p-3 rounded-lg border border-border bg-background hover:border-primary/50 transition-colors flex items-start gap-3 group">
-                  <div className="p-1.5 rounded-md bg-blue-100 text-blue-700 mt-0.5">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium group-hover:text-primary transition-colors">Send Payment Link</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">Generate a secure one-time payment link</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Knowledge Base Articles */}
-            <div className="space-y-3 pt-2 border-t border-border">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Relevant Articles</h4>
-              <ul className="space-y-2">
-                <li>
-                  <a href="#" className="text-sm text-primary hover:underline flex items-center gap-2">
-                    <BookOpen className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-                    <span className="truncate">Troubleshooting failed payments</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-sm text-primary hover:underline flex items-center gap-2">
-                    <BookOpen className="w-3.5 h-3.5 flex-shrink-0 text-muted-foreground" />
-                    <span className="truncate">Manual clearance of security flags</span>
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-                </div>
-              </ScrollArea>
-            </>
-          )}
+          ) : null}
         </div>
       </div>
 

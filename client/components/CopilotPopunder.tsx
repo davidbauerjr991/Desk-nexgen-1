@@ -1,0 +1,146 @@
+import {
+  AlertTriangle,
+  BookOpen,
+  Bot,
+  CheckCircle2,
+  FileText,
+  Lightbulb,
+  Sparkles,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const insights = {
+  sentiment: "Frustrated",
+  intent: "Subscription Upgrade / Payment Failure",
+  churnRisk: "Medium",
+};
+
+export default function CopilotPopunder() {
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white">
+      <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
+        <Bot className="h-5 w-5 text-primary" />
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
+          <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
+        </div>
+      </div>
+
+      <ScrollArea className="h-[min(70vh,560px)] px-5 py-5">
+        <div className="space-y-6 pb-1">
+          <Card className="border-border bg-background shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-4">
+              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Live Interaction Context
+              </CardTitle>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+              </span>
+            </CardHeader>
+            <CardContent className="space-y-4 px-4 pb-4">
+              <div>
+                <div className="mb-1 text-xs text-muted-foreground">Detected Intent</div>
+                <div className="text-sm font-medium text-foreground">{insights.intent}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="mb-1 text-xs text-muted-foreground">Sentiment</div>
+                  <Badge variant="outline" className="border-orange-200 bg-orange-50 font-medium text-orange-600">
+                    {insights.sentiment}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="mb-1 text-xs text-muted-foreground">Churn Risk</div>
+                  <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
+                    <AlertTriangle className="h-4 w-4" />
+                    {insights.churnRisk}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h4 className="text-sm font-semibold text-foreground">Suggested Response</h4>
+            </div>
+            <div className="group rounded-xl border border-primary/20 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
+              <p className="text-sm leading-relaxed text-foreground/90">
+                "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. I've just cleared that flag for you. You should be able to process the upgrade now."
+              </p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                    <ThumbsUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                    <ThumbsDown className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 border border-border bg-background text-xs font-medium shadow-sm hover:bg-accent"
+                >
+                  Apply to chat
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-foreground">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              <h4 className="text-sm font-semibold">Next Best Actions</h4>
+            </div>
+            <div className="space-y-2">
+              <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
+                <div className="mt-0.5 rounded-md bg-green-100 p-1.5 text-green-700">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium transition-colors group-hover:text-primary">Clear Security Flag</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">Removes the hold on card ending in 4092</div>
+                </div>
+              </button>
+              <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
+                <div className="mt-0.5 rounded-md bg-blue-100 p-1.5 text-blue-700">
+                  <FileText className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium transition-colors group-hover:text-primary">Send Payment Link</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">Generate a secure one-time payment link</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3 border-t border-border pt-2">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Relevant Articles</h4>
+            <ul className="space-y-2">
+              <li>
+                <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="truncate">Troubleshooting failed payments</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="truncate">Manual clearance of security flags</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}

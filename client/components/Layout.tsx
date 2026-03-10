@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
+  Bot,
   ChevronDown,
   ClipboardList,
   MessageSquare,
@@ -28,25 +29,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import CopilotPopunder from "@/components/CopilotPopunder";
 import { toast } from "sonner";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "desk" | "copilot" | "interactions" | null;
+type RightPanelView = "desk" | "interactions" | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
   isDeskOpen: boolean;
-  isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
   isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   toggleDesk: () => void;
-  toggleCopilot: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
   startCallStatus: () => void;
@@ -462,6 +462,7 @@ export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("desk");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
+  const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -494,7 +495,6 @@ export default function Layout({ children }: LayoutProps) {
       activeRightPanel,
       isRightPanelOpen: activeRightPanel !== null,
       isDeskOpen: activeRightPanel === "desk",
-      isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
       isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
@@ -502,11 +502,6 @@ export default function Layout({ children }: LayoutProps) {
       toggleDesk: () => {
         setActiveRightPanel((current) =>
           current === "desk" ? null : "desk",
-        );
-      },
-      toggleCopilot: () => {
-        setActiveRightPanel((current) =>
-          current === "copilot" ? null : "copilot",
         );
       },
       toggleInteractions: () => {
@@ -604,6 +599,27 @@ export default function Layout({ children }: LayoutProps) {
             <Monitor className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
+          <Popover open={isCopilotPopoverOpen} onOpenChange={setIsCopilotPopoverOpen}>
+            <PopoverTrigger asChild>
+              <div>
+                <HeaderIconButton
+                  ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+                  ariaExpanded={isCopilotPopoverOpen}
+                  isActive={isCopilotPopoverOpen}
+                >
+                  <Bot className="h-4 w-4 stroke-[1.8]" />
+                </HeaderIconButton>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent
+              align="end"
+              side="bottom"
+              sideOffset={10}
+              className="w-[360px] rounded-2xl border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+            >
+              <CopilotPopunder />
+            </PopoverContent>
+          </Popover>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
