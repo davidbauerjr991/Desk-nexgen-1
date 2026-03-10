@@ -5,6 +5,7 @@ import {
   Paperclip,
   MoreVertical,
   PhoneCall,
+  Info,
   FileText,
   History,
   Mail,
@@ -693,18 +694,43 @@ function AddNewPanel() {
   );
 }
 
+function InfoPanel() {
+  return (
+    <div className="flex h-full min-w-full flex-col lg:min-w-[380px]">
+      <div className="border-b border-border bg-background/50 px-5 py-4">
+        <div>
+          <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
+            <span>Customer Information</span>
+          </div>
+          <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
+        </div>
+      </div>
+
+      <ScrollArea className="flex-1 px-4 py-4">
+        <img
+          src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F5619f86fa9f240eba2c5166c615ce474?format=webp&width=800&height=1200"
+          alt="Customer information"
+          className="w-full rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+        />
+      </ScrollArea>
+    </div>
+  );
+}
+
 function DeskPanel({ addNoteTrigger }: { addNoteTrigger: number }) {
   return <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />;
 }
 
 export default function Index() {
   const {
+    isInfoOpen,
     isDeskOpen,
     isInteractionsOpen,
     isAddNewOpen,
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
+    toggleInfo,
     toggleDesk,
     toggleInteractions,
     startCallStatus,
@@ -873,6 +899,20 @@ export default function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label={isInfoOpen ? "Hide customer information" : "Show customer information"}
+              aria-pressed={isInfoOpen}
+              onClick={toggleInfo}
+              className={cn(
+                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
+                isInfoOpen
+                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
+                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+              )}
+            >
+              <Info className="h-4 w-4 stroke-[1.8]" />
+            </button>
             <button
               type="button"
               aria-label={isDeskOpen ? "Hide notes panel" : "Show notes panel"}
@@ -1157,6 +1197,8 @@ export default function Index() {
                 <RecentInteractionsPanel injectedInteractions={recentInteractions} />
               ) : isAddNewOpen ? (
                 <AddNewPanel />
+              ) : isInfoOpen ? (
+                <InfoPanel />
               ) : isDeskOpen ? (
                 <DeskPanel addNoteTrigger={addNoteTrigger} />
               ) : null}

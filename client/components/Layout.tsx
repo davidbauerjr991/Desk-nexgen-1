@@ -36,16 +36,18 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "desk" | "interactions" | null;
+type RightPanelView = "info" | "desk" | "interactions" | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
+  isInfoOpen: boolean;
   isDeskOpen: boolean;
   isInteractionsOpen: boolean;
   isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
+  toggleInfo: () => void;
   toggleDesk: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
@@ -550,7 +552,7 @@ function formatStatusDuration(totalSeconds: number) {
 
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
-  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("interactions");
+  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("info");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
@@ -606,11 +608,17 @@ export default function Layout({ children }: LayoutProps) {
     () => ({
       activeRightPanel,
       isRightPanelOpen: activeRightPanel !== null,
+      isInfoOpen: activeRightPanel === "info",
       isDeskOpen: activeRightPanel === "desk",
       isInteractionsOpen: activeRightPanel === "interactions",
       isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
+      toggleInfo: () => {
+        setActiveRightPanel((current) =>
+          current === "info" ? null : "info",
+        );
+      },
       toggleDesk: () => {
         setActiveRightPanel((current) =>
           current === "desk" ? null : "desk",
