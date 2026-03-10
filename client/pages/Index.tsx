@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
+import CustomerInfoPanel from "@/components/CustomerInfoPanel";
+import NotesPanel from "@/components/NotesPanel";
 
 const messages = [
   {
@@ -59,12 +61,7 @@ export default function Index() {
   return (
     <div className="relative flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
-      <div
-        className={cn(
-          "flex-1 flex min-w-0 flex-col bg-card",
-          isCopilotOpen && "lg:border-r lg:border-border",
-        )}
-      >
+      <div className="flex min-w-0 flex-1 flex-col bg-card">
         
         {/* Customer Context Banner */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card/50">
@@ -94,80 +91,100 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Chat Transcript */}
-        <ScrollArea className="flex-1 p-6">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="text-center">
-              <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">Today, 10:24 AM</span>
-            </div>
-            
-            {messages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={cn(
-                  "flex flex-col max-w-[80%]",
-                  msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start"
-                )}
-              >
-                <div className="flex items-end gap-2 mb-1">
-                  {msg.role === "customer" && (
-                    <span className="text-xs font-medium text-muted-foreground ml-1">Alex</span>
-                  )}
-                  {msg.role === "agent" && (
-                    <span className="text-xs font-medium text-muted-foreground mr-1">You</span>
-                  )}
-                </div>
-                <div 
-                  className={cn(
-                    "px-4 py-3 rounded-2xl text-sm shadow-sm",
-                    msg.role === "agent" 
-                      ? "bg-primary text-primary-foreground rounded-br-sm" 
-                      : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
-                  )}
-                >
-                  {msg.content}
-                </div>
-                {msg.sentiment === "frustrated" && (
-                  <div className="flex items-center gap-1 mt-1.5 text-xs text-orange-500 font-medium">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    Frustrated sentiment detected
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {/* AI Real-time context indicator */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-4">
-              <div className="flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse delay-75"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150"></span>
-              </div>
-              NexAgent AI is analyzing the conversation...
-            </div>
-          </div>
-        </ScrollArea>
+        {/* Content row: Conversation + Customer Data panels */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
 
-        {/* Input Area */}
-        <div className="p-4 bg-background border-t border-border">
-          <div className="max-w-3xl mx-auto flex gap-3 items-end relative">
-            <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
-              <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
+          {/* Conversation column */}
+          <div className="flex w-[420px] flex-shrink-0 flex-col border-r border-border">
+            {/* Chat Transcript */}
+            <ScrollArea className="flex-1 p-6">
+              <div className="max-w-3xl mx-auto space-y-6">
+                <div className="text-center">
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">Today, 10:24 AM</span>
+                </div>
+
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex flex-col max-w-[85%]",
+                      msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start"
+                    )}
+                  >
+                    <div className="flex items-end gap-2 mb-1">
+                      {msg.role === "customer" && (
+                        <span className="text-xs font-medium text-muted-foreground ml-1">Alex</span>
+                      )}
+                      {msg.role === "agent" && (
+                        <span className="text-xs font-medium text-muted-foreground mr-1">You</span>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "px-4 py-3 rounded-2xl text-sm shadow-sm",
+                        msg.role === "agent"
+                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                          : "bg-muted text-foreground border border-border/50 rounded-bl-sm"
+                      )}
+                    >
+                      {msg.content}
+                    </div>
+                    {msg.sentiment === "frustrated" && (
+                      <div className="flex items-center gap-1 mt-1.5 text-xs text-orange-500 font-medium">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Frustrated sentiment detected
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {/* AI Real-time context indicator */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-4">
+                  <div className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse delay-75"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150"></span>
+                  </div>
+                  NexAgent AI is analyzing the conversation...
+                </div>
+              </div>
+            </ScrollArea>
+
+            {/* Input Area */}
+            <div className="p-4 bg-background border-t border-border">
+              <div className="flex gap-3 items-end relative">
+                <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
+                  <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
+                </div>
+                <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+                <div className="flex-1 relative">
+                  <Textarea
+                    placeholder="Type your message..."
+                    className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
+                    defaultValue="I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you."
+                  />
+                </div>
+                <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
-            <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
-              <Paperclip className="w-5 h-5" />
-            </Button>
-            <div className="flex-1 relative">
-              <Textarea 
-                placeholder="Type your message..." 
-                className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
-                defaultValue="I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you."
-              />
-            </div>
-            <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
-              <Send className="w-4 h-4" />
-            </Button>
           </div>
+
+          {/* Customer Data panels (General Info + Notes) */}
+          <div className="hidden flex-1 min-w-0 overflow-hidden xl:flex">
+            {/* General Information + Scope */}
+            <div className="w-[280px] flex-shrink-0 overflow-hidden">
+              <CustomerInfoPanel />
+            </div>
+            {/* Notes / Tabs */}
+            <div className="flex-1 min-w-0 border-l border-[rgba(0,0,0,0.1)] overflow-hidden">
+              <NotesPanel />
+            </div>
+          </div>
+
         </div>
       </div>
 

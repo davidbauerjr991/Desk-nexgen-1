@@ -1,0 +1,166 @@
+import { useState } from "react";
+import { ChevronUp } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF] mb-1">
+      {children}
+    </span>
+  );
+}
+
+function TextInput({ placeholder }: { placeholder?: string }) {
+  return (
+    <input
+      type="text"
+      placeholder={placeholder}
+      className="w-full rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] placeholder:text-transparent focus:border-[#6E00FD] focus:outline-none focus:ring-1 focus:ring-[#6E00FD]/30"
+    />
+  );
+}
+
+function SelectInput() {
+  return (
+    <div className="relative w-full">
+      <select className="w-full appearance-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#6E00FD] focus:outline-none focus:ring-1 focus:ring-[#6E00FD]/30 pr-7">
+        <option value=""></option>
+      </select>
+      <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF]">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  title,
+  isOpen,
+  onToggle,
+}: {
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between py-3"
+    >
+      <span className="text-sm font-semibold text-[#333]">{title}</span>
+      <ChevronUp
+        className={cn(
+          "h-4 w-4 text-[#6B7280] transition-transform duration-200",
+          !isOpen && "rotate-180",
+        )}
+      />
+    </button>
+  );
+}
+
+export default function CustomerInfoPanel() {
+  const [isGeneralOpen, setIsGeneralOpen] = useState(true);
+  const [isScopeOpen, setIsScopeOpen] = useState(true);
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto border-r border-[rgba(0,0,0,0.1)]">
+      <div className="flex-1 px-4 py-1">
+        {/* General Information */}
+        <div className="border-b border-[rgba(0,0,0,0.08)]">
+          <SectionHeader
+            title="General Information"
+            isOpen={isGeneralOpen}
+            onToggle={() => setIsGeneralOpen((v) => !v)}
+          />
+          {isGeneralOpen && (
+            <div className="pb-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Account</FieldLabel>
+                  <TextInput />
+                </div>
+                <div>
+                  <FieldLabel>Contact</FieldLabel>
+                  <SelectInput />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Phone 1</FieldLabel>
+                  <TextInput />
+                </div>
+                <div>
+                  <FieldLabel>Phone 2</FieldLabel>
+                  <TextInput />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Email</FieldLabel>
+                  <TextInput />
+                </div>
+                <div>
+                  <FieldLabel>SLA Due Date</FieldLabel>
+                  <TextInput />
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Description</FieldLabel>
+                <textarea
+                  rows={2}
+                  className="w-full resize-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#6E00FD] focus:outline-none focus:ring-1 focus:ring-[#6E00FD]/30"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Scope */}
+        <div>
+          <SectionHeader
+            title="Scope"
+            isOpen={isScopeOpen}
+            onToggle={() => setIsScopeOpen((v) => !v)}
+          />
+          {isScopeOpen && (
+            <div className="pb-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Subject</FieldLabel>
+                  <TextInput />
+                </div>
+                <div>
+                  <FieldLabel>Type</FieldLabel>
+                  <SelectInput />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Status</FieldLabel>
+                  <SelectInput />
+                </div>
+                <div>
+                  <FieldLabel>Priority</FieldLabel>
+                  <SelectInput />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <FieldLabel>Agent</FieldLabel>
+                  <SelectInput />
+                </div>
+                <div>
+                  <FieldLabel>Agent Team</FieldLabel>
+                  <SelectInput />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
