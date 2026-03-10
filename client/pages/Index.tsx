@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
-import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
+import RecentInteractionsPanel, { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -225,6 +225,24 @@ const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+
+function formatRecentInteractionTimestamp(date: Date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const year = date.getFullYear().toString().slice(-2);
+  const hours = date.getHours();
+  const hours12 = hours % 12 || 12;
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
+  const meridiem = hours >= 12 ? "PM" : "AM";
+
+  return `${month}/${day}/${year} ${hours12}:${minutes} ${meridiem}`;
+}
+
+function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) {
+  if (disposition === "Resolved") return "bg-[#2CB770]";
+  if (disposition === "Escalated") return "bg-[#D0021B]";
+  return "bg-[#F59E0B]";
+}
 
 function ChannelToggleButton({
   channel,
@@ -696,6 +714,7 @@ export default function Index() {
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
+  const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [addNoteTrigger, setAddNoteTrigger] = useState(0);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
@@ -1034,7 +1053,21 @@ export default function Index() {
             setCallPopunderMode("controls");
           }}
           onEndCall={() => setCallPopunderMode("disposition")}
-          onSelectDisposition={() => {
+          onSelectDisposition={(disposition) => {
+            setRecentInteractions((current) => [
+              {
+                id: Date.now(),
+                direction: "outbound",
+                type: "voice",
+                createdAt: formatRecentInteractionTimestamp(new Date()),
+                status: disposition,
+                customerName: "Alex Kowalski",
+                customerId: "CST-10482",
+                channel: "Outbound Voice - Agent Workspace",
+                statusColor: getDispositionStatusColor(disposition),
+              },
+              ...current,
+            ]);
             setIsCallActive(false);
             endCallStatus();
             setIsCallPopunderOpen(false);
@@ -1121,7 +1154,7 @@ export default function Index() {
               </Button>
 
               {isInteractionsOpen ? (
-                <RecentInteractionsPanel />
+                <RecentInteractionsPanel injectedInteractions={recentInteractions} />
               ) : isAddNewOpen ? (
                 <AddNewPanel />
               ) : isDeskOpen ? (

@@ -11,7 +11,19 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-const alexInteractions = [
+export type RecentInteractionItem = {
+  id: number;
+  direction: "inbound" | "outbound";
+  type: "sms" | "email" | "voice" | "ai-agent";
+  createdAt: string;
+  status: string;
+  customerName: string;
+  customerId: string;
+  channel: string;
+  statusColor: string;
+};
+
+const alexInteractions: RecentInteractionItem[] = [
   {
     id: 1,
     direction: "inbound",
@@ -113,76 +125,6 @@ const alexInteractions = [
   },
 ] as const;
 
-const allAgentInteractions = [
-  ...alexInteractions,
-  {
-    id: 10,
-    direction: "inbound",
-    type: "voice",
-    createdAt: "03/11/26 8:14 AM",
-    status: "Pending",
-    customerName: "Maya Chen",
-    customerId: "CST-11834",
-    channel: "Voice - Premier Support",
-    statusColor: "bg-[#1991D2]",
-  },
-  {
-    id: 11,
-    direction: "outbound",
-    type: "email",
-    createdAt: "03/10/26 2:48 PM",
-    status: "Resolved",
-    customerName: "Jordan Alvarez",
-    customerId: "CST-10927",
-    channel: "CXi SME Email",
-    statusColor: "bg-[#2CB770]",
-  },
-  {
-    id: 12,
-    direction: "inbound",
-    type: "sms",
-    createdAt: "03/08/26 11:05 AM",
-    status: "Closed",
-    customerName: "Priya Raman",
-    customerId: "CST-12306",
-    channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#D0021B]",
-  },
-  {
-    id: 13,
-    direction: "outbound",
-    type: "ai-agent",
-    createdAt: "03/07/26 4:21 PM",
-    status: "Resolved",
-    customerName: "Daniel Brooks",
-    customerId: "CST-11602",
-    channel: "AI Agent - Returns Triage",
-    statusColor: "bg-[#2CB770]",
-  },
-  {
-    id: 14,
-    direction: "inbound",
-    type: "email",
-    createdAt: "03/06/26 9:40 AM",
-    status: "Pending",
-    customerName: "Sofia Martinez",
-    customerId: "CST-11291",
-    channel: "CXi SME Email",
-    statusColor: "bg-[#1991D2]",
-  },
-  {
-    id: 15,
-    direction: "outbound",
-    type: "voice",
-    createdAt: "03/05/26 6:02 PM",
-    status: "Closed",
-    customerName: "Marcus Hill",
-    customerId: "CST-12114",
-    channel: "Outbound Voice - Renewal Desk",
-    statusColor: "bg-[#D0021B]",
-  },
-] as const;
-
 const FILTER_CHIPS = [
   { label: "All", value: "all" },
   { label: "SMS", value: "sms" },
@@ -195,8 +137,8 @@ function InteractionTypeIcon({
   type,
   direction,
 }: {
-  type: (typeof allAgentInteractions)[number]["type"];
-  direction: (typeof allAgentInteractions)[number]["direction"];
+  type: RecentInteractionItem["type"];
+  direction: RecentInteractionItem["direction"];
 }) {
   const isEmail = type === "email";
   const isVoice = type === "voice";
@@ -222,7 +164,7 @@ function InteractionTypeIcon({
 function InteractionRow({
   interaction,
 }: {
-  interaction: (typeof allAgentInteractions)[number];
+  interaction: RecentInteractionItem;
 }) {
   return (
     <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
@@ -276,16 +218,22 @@ function InteractionRow({
   );
 }
 
-export default function RecentInteractionsPanel() {
+export default function RecentInteractionsPanel({
+  injectedInteractions = [],
+}: {
+  injectedInteractions?: RecentInteractionItem[];
+}) {
   const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email" | "voice" | "ai-agent">("all");
 
   const filteredInteractions = useMemo(() => {
+    const interactions = [...injectedInteractions, ...alexInteractions];
+
     if (activeFilter === "all") {
-      return alexInteractions;
+      return interactions;
     }
 
-    return alexInteractions.filter((interaction) => interaction.type === activeFilter);
-  }, [activeFilter]);
+    return interactions.filter((interaction) => interaction.type === activeFilter);
+  }, [activeFilter, injectedInteractions]);
 
   return (
     <div className="flex h-full min-w-full flex-col bg-[#F8F8F9] lg:min-w-[380px]">
