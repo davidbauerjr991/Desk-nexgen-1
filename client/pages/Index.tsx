@@ -1001,10 +1001,21 @@ export default function Index() {
       >
         <div
           className={cn(
-            "flex h-full min-w-full flex-col transition-transform duration-300 ease-out lg:min-w-[380px] lg:transition-opacity",
+            "relative flex h-full min-w-full flex-col transition-transform duration-300 ease-out lg:min-w-[380px] lg:transition-opacity",
             isRightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0 lg:translate-x-0",
           )}
         >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close right panel"
+            onClick={closeRightPanel}
+            className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+
           {isInteractionsOpen ? (
             <RecentInteractionsPanel />
           ) : isAddNewOpen ? (
