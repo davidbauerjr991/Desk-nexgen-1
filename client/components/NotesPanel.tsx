@@ -87,7 +87,7 @@ interface NotesPanelProps {
   initialTab?: string;
 }
 
-export default function NotesPanel({ initialTab = "Notes" }: NotesPanelProps) {
+export default function NotesPanel({ initialTab = "Details" }: NotesPanelProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
 
