@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   Bell,
   Bot,
@@ -101,9 +101,37 @@ function HeaderIconButton({
   );
 }
 
+function formatStatusDuration(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  return `${minutes.toString().padStart(2, "0")}:${seconds
+    .toString()
+    .padStart(2, "0")}`;
+}
+
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("copilot");
+  const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    setElapsedSeconds(0);
+
+    const interval = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - statusStartedAt) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [statusStartedAt]);
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -178,11 +206,16 @@ export default function Layout({ children }: LayoutProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-8 items-center gap-2 rounded-lg px-3 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
+                className="flex min-h-8 items-center gap-2 rounded-lg px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
               >
                 <span className={`h-3 w-3 rounded-full ${activeStatus.dotClassName}`} />
-                <span className={`hidden text-[15px] font-semibold leading-none tracking-[-0.02em] sm:inline ${activeStatus.textClassName}`}>
-                  {activeStatus.label}
+                <span className="hidden min-w-0 flex-col items-start sm:flex">
+                  <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
+                    {activeStatus.label}
+                  </span>
+                  <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
+                    {formatStatusDuration(elapsedSeconds)}
+                  </span>
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
               </button>
@@ -196,7 +229,10 @@ export default function Layout({ children }: LayoutProps) {
                 {statusOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.label}
-                    onClick={() => setStatus(option.label)}
+                    onClick={() => {
+                      setStatus(option.label);
+                      setStatusStartedAt(Date.now());
+                    }}
                     className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
                   >
                     <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
