@@ -319,9 +319,7 @@ function CallControlsPopunder({
   }, [isTestingAudio, mode]);
 
   useEffect(() => {
-    if (mode !== "controls") {
-      setIsTranscriptExpanded(false);
-    }
+    setIsTranscriptExpanded(mode === "controls");
   }, [mode]);
 
   useEffect(() => {
