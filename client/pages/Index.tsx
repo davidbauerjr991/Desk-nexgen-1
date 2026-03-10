@@ -761,6 +761,11 @@ export default function Index() {
   };
 
   const openCallPopunder = () => {
+    if (!isCallActive && isCallPopunderOpen) {
+      closeCallPopunder();
+      return;
+    }
+
     setCallPopunderMode(isCallActive ? "controls" : "setup");
     setCallPopunderPosition(getAnchoredCallPopunderPosition());
     setIsCallPopunderOpen(true);
