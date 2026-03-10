@@ -1,10 +1,11 @@
-import { 
-  Bot, 
-  Sparkles, 
-  ThumbsUp, 
-  ThumbsDown, 
-  Send, 
-  Paperclip, 
+import { useState } from "react";
+import {
+  Bot,
+  Sparkles,
+  ThumbsUp,
+  ThumbsDown,
+  Send,
+  Paperclip,
   MoreVertical,
   PhoneCall,
   Mail,
@@ -13,7 +14,9 @@ import {
   AlertTriangle,
   Lightbulb,
   FileText,
-  BookOpen
+  BookOpen,
+  MessageCircle,
+  MessageSquare,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,27 +29,116 @@ import { useLayoutContext } from "@/components/Layout";
 import NotesPanel from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 
-const messages = [
+type ChannelType = "chat" | "sms" | "whatsapp";
+
+type ConversationMessage = {
+  id: number;
+  role: "customer" | "agent";
+  content: string;
+  time: string;
+  sentiment?: "frustrated";
+};
+
+const conversationsByChannel: Record<
+  ChannelType,
   {
-    id: 1,
-    role: "customer",
-    content: "Hi, I'm trying to upgrade my subscription to the Pro tier, but my credit card keeps getting declined even though I know I have sufficient funds.",
-    time: "10:24 AM",
-    sentiment: "frustrated"
-  },
-  {
-    id: 2,
-    role: "agent",
-    content: "Hello Alex! I'm sorry to hear you're experiencing issues upgrading your account. I can certainly help you look into this right away.",
-    time: "10:25 AM",
-  },
-  {
-    id: 3,
-    role: "customer",
-    content: "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
-    time: "10:26 AM",
+    label: string;
+    timelineLabel: string;
+    draft: string;
+    messages: ConversationMessage[];
   }
-];
+> = {
+  chat: {
+    label: "Chat",
+    timelineLabel: "Web chat · Today, 10:24 AM",
+    draft:
+      "I can see the upgrade failure in your live chat session. I’m clearing the billing mismatch now so you can retry without leaving this window.",
+    messages: [
+      {
+        id: 1,
+        role: "customer",
+        content:
+          "Hi, I'm on the pricing page and the upgrade button keeps failing after I submit my card details.",
+        time: "10:24 AM",
+      },
+      {
+        id: 2,
+        role: "agent",
+        content:
+          "Thanks for flagging it. I’m reviewing the failed checkout event from your session now.",
+        time: "10:25 AM",
+      },
+      {
+        id: 3,
+        role: "customer",
+        content:
+          "It says the payment details don't match, but everything is copied directly from my profile.",
+        time: "10:26 AM",
+        sentiment: "frustrated",
+      },
+    ],
+  },
+  sms: {
+    label: "SMS",
+    timelineLabel: "SMS · Today, 10:24 AM",
+    draft:
+      "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you.",
+    messages: [
+      {
+        id: 1,
+        role: "customer",
+        content:
+          "Hi, I'm trying to upgrade my subscription to the Pro tier, but my credit card keeps getting declined even though I know I have sufficient funds.",
+        time: "10:24 AM",
+        sentiment: "frustrated",
+      },
+      {
+        id: 2,
+        role: "agent",
+        content:
+          "Hello Alex! I'm sorry to hear you're experiencing issues upgrading your account. I can certainly help you look into this right away.",
+        time: "10:25 AM",
+      },
+      {
+        id: 3,
+        role: "customer",
+        content:
+          "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
+        time: "10:26 AM",
+      },
+    ],
+  },
+  whatsapp: {
+    label: "WhatsApp",
+    timelineLabel: "WhatsApp · Today, 10:24 AM",
+    draft:
+      "Thanks for sending that over on WhatsApp. I’ve cleared the payment security flag, so please try the upgrade once more and let me know what you see.",
+    messages: [
+      {
+        id: 1,
+        role: "customer",
+        content:
+          "Hey team, my upgrade still isn't going through. I tried again from my phone and it failed immediately.",
+        time: "10:24 AM",
+      },
+      {
+        id: 2,
+        role: "agent",
+        content:
+          "I’ve got your account open now. Give me a moment to review the latest payment attempt.",
+        time: "10:25 AM",
+      },
+      {
+        id: 3,
+        role: "customer",
+        content:
+          "Appreciate it — I need the Pro features enabled before my meeting starts.",
+        time: "10:27 AM",
+        sentiment: "frustrated",
+      },
+    ],
+  },
+};
 
 const insights = {
   sentiment: "Frustrated",
@@ -55,13 +147,78 @@ const insights = {
   churnRisk: "Medium",
 };
 
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.25C7.163 3.25 3.25 7.119 3.25 11.882C3.25 13.549 3.734 15.149 4.638 16.529L3.75 20.75L8.097 19.9C9.406 20.647 10.898 21.042 12.421 21.042C17.258 21.042 21.171 17.172 21.171 12.41C21.171 7.647 16.837 3.25 12 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.428 8.867C9.206 8.373 8.97 8.362 8.761 8.354C8.59 8.347 8.394 8.347 8.198 8.347C8.002 8.347 7.683 8.421 7.413 8.715C7.143 9.009 6.389 9.703 6.389 11.117C6.389 12.531 7.438 13.897 7.585 14.093C7.732 14.289 9.634 17.287 12.611 18.437C15.086 19.392 15.589 19.203 16.123 19.154C16.657 19.105 17.839 18.485 18.084 17.815C18.329 17.144 18.329 16.566 18.255 16.444C18.182 16.321 17.986 16.248 17.692 16.101C17.397 15.954 15.957 15.235 15.687 15.137C15.417 15.039 15.22 14.99 15.024 15.284C14.828 15.578 14.27 16.248 14.098 16.444C13.926 16.64 13.754 16.665 13.459 16.518C13.165 16.37 12.218 16.061 11.095 15.059C10.221 14.28 9.632 13.319 9.46 13.025C9.289 12.731 9.442 12.571 9.589 12.424C9.722 12.292 9.883 12.081 10.03 11.91C10.177 11.738 10.226 11.615 10.324 11.419C10.422 11.223 10.373 11.052 10.299 10.905C10.226 10.758 9.679 9.312 9.428 8.867Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function ChannelToggleButton({
+  channel,
+  activeChannel,
+  onClick,
+}: {
+  channel: ChannelType;
+  activeChannel: ChannelType;
+  onClick: () => void;
+}) {
+  const isActive = activeChannel === channel;
+  const commonClassName = cn(
+    "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
+    isActive
+      ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
+      : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+  );
+
+  if (channel === "chat") {
+    return (
+      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show chat conversation" aria-pressed={isActive}>
+        <MessageCircle className="h-4 w-4 stroke-[1.8]" />
+      </button>
+    );
+  }
+
+  if (channel === "sms") {
+    return (
+      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show SMS conversation" aria-pressed={isActive}>
+        <MessageSquare className="h-4 w-4 stroke-[1.8]" />
+      </button>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={commonClassName} aria-label="Show WhatsApp conversation" aria-pressed={isActive}>
+      <WhatsAppIcon className="h-4 w-4" />
+    </button>
+  );
+}
+
 export default function Index() {
   const {
-    isCopilotOpen,
     isInteractionsOpen,
     isRightPanelOpen,
     closeRightPanel,
   } = useLayoutContext();
+  const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
+  const activeConversation = conversationsByChannel[activeChannel];
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
@@ -76,11 +233,27 @@ export default function Index() {
               <AvatarFallback>AK</AvatarFallback>
             </Avatar>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">Alex Kowalski</h2>
-                <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/20">Pro User</Badge>
+                <div className="flex items-center gap-1.5">
+                  <ChannelToggleButton
+                    channel="chat"
+                    activeChannel={activeChannel}
+                    onClick={() => setActiveChannel("chat")}
+                  />
+                  <ChannelToggleButton
+                    channel="sms"
+                    activeChannel={activeChannel}
+                    onClick={() => setActiveChannel("sms")}
+                  />
+                  <ChannelToggleButton
+                    channel="whatsapp"
+                    activeChannel={activeChannel}
+                    onClick={() => setActiveChannel("whatsapp")}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+              <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> alex.k@example.com</span>
                 <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Customer since 2021</span>
               </div>
@@ -105,10 +278,10 @@ export default function Index() {
             <ScrollArea className="flex-1 p-6">
               <div className="max-w-3xl mx-auto space-y-6">
                 <div className="text-center">
-                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">Today, 10:24 AM</span>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">{activeConversation.timelineLabel}</span>
                 </div>
 
-                {messages.map((msg) => (
+                {activeConversation.messages.map((msg) => (
                   <div
                     key={msg.id}
                     className={cn(
@@ -150,7 +323,9 @@ export default function Index() {
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse delay-75"></span>
                     <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse delay-150"></span>
                   </div>
-                  NexAgent AI is analyzing the conversation...
+                  <span>
+                    NexAgent AI is analyzing the {activeConversation.label.toLowerCase()} conversation...
+                  </span>
                 </div>
               </div>
             </ScrollArea>
@@ -166,9 +341,10 @@ export default function Index() {
                 </Button>
                 <div className="flex-1 relative">
                   <Textarea
+                    key={activeChannel}
                     placeholder="Type your message..."
                     className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
-                    defaultValue="I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you."
+                    defaultValue={activeConversation.draft}
                   />
                 </div>
                 <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
