@@ -327,11 +327,11 @@ function CallControlsPopunder({
 
   return (
     <div
-      className="fixed z-[70] w-[272px] overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed z-[70] w-[272px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{ left: position.x, top: position.y }}
     >
       <div
-        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-5 py-4 active:cursor-grabbing"
+        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing"
         onMouseDown={(event) => {
           const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
           if (!bounds) return;
@@ -344,50 +344,50 @@ function CallControlsPopunder({
           document.body.style.userSelect = "none";
         }}
       >
-        <div className="flex items-center gap-3 text-[18px] font-medium text-[#333333]">
-          <GripHorizontal className="h-5 w-5 text-[#7A7A7A]" />
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
+          <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
           {mode === "controls" ? "Active Call" : "Disposition"}
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="flex h-8 w-8 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
           aria-label="Close call controls"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-3 p-4">
+      <div className="space-y-2 p-3">
         {mode === "controls" ? (
           <>
             <Button
               variant="outline"
-              className="h-16 w-full justify-start gap-3 rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+              className="w-full justify-start gap-2 border-black/10 text-[#333333]"
             >
-              <ArrowRightLeft className="h-5 w-5" />
+              <ArrowRightLeft className="h-4 w-4" />
               Transfer
             </Button>
             <Button
               variant="outline"
-              className="h-16 w-full justify-start gap-3 rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+              className="w-full justify-start gap-2 border-black/10 text-[#333333]"
             >
-              <Pause className="h-5 w-5" />
+              <Pause className="h-4 w-4" />
               Hold
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={onEndCall}
-              className="h-16 w-full justify-start gap-3 rounded-2xl border-[#F04438]/20 px-5 text-[15px] font-normal text-[#F04438] shadow-none hover:bg-[#FFF5F5] hover:text-[#F04438]"
+              className="w-full justify-start gap-2 border-[#F04438]/20 text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
             >
-              <PhoneOff className="h-5 w-5" />
+              <PhoneOff className="h-4 w-4" />
               End Call
             </Button>
           </>
         ) : (
           <>
-            <p className="px-1 text-sm leading-5 text-[#7A7A7A]">
+            <p className="text-xs leading-5 text-[#7A7A7A]">
               Select a disposition to complete the call.
             </p>
             {CALL_DISPOSITION_OPTIONS.map((option) => (
@@ -396,7 +396,7 @@ function CallControlsPopunder({
                 type="button"
                 variant="outline"
                 onClick={() => onSelectDisposition(option)}
-                className="h-14 w-full justify-start rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+                className="w-full justify-start border-black/10 text-[#333333]"
               >
                 {option}
               </Button>
