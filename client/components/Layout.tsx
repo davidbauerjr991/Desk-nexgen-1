@@ -1359,16 +1359,6 @@ export default function Layout({ children }: LayoutProps) {
             </>
           )}
 
-          <HeaderIconButton
-            ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
-            ariaExpanded={isHeaderSearchOpen}
-            ariaControls="header-search-input"
-            onClick={() => setIsHeaderSearchOpen((current) => !current)}
-            isActive={isHeaderSearchOpen}
-          >
-            <Search className="h-4 w-4 stroke-[1.8]" />
-          </HeaderIconButton>
-
           {!isHeaderSearchOpen && (
             <div ref={copilotButtonRef}>
               <HeaderIconButton
@@ -1389,6 +1379,16 @@ export default function Layout({ children }: LayoutProps) {
               </HeaderIconButton>
             </div>
           )}
+
+          <HeaderIconButton
+            ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
+            ariaExpanded={isHeaderSearchOpen}
+            ariaControls="header-search-input"
+            onClick={() => setIsHeaderSearchOpen((current) => !current)}
+            isActive={isHeaderSearchOpen}
+          >
+            <Search className="h-4 w-4 stroke-[1.8]" />
+          </HeaderIconButton>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
