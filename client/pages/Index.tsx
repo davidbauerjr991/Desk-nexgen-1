@@ -720,12 +720,14 @@ export default function Index() {
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
+  const [isConversationPanelTransitioning, setIsConversationPanelTransitioning] = useState(false);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
   const callButtonRef = useRef<HTMLButtonElement | null>(null);
+  const conversationPanelInitializedRef = useRef(false);
   const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
     if (typeof window === "undefined") {
       return { x: 24, y: 24 };
@@ -775,6 +777,20 @@ export default function Index() {
     setIsCallPopunderOpen(false);
     setCallPopunderMode(isCallActive ? "controls" : "setup");
   };
+
+  useEffect(() => {
+    if (!conversationPanelInitializedRef.current) {
+      conversationPanelInitializedRef.current = true;
+      return;
+    }
+
+    setIsConversationPanelTransitioning(true);
+    const timeoutId = window.setTimeout(() => {
+      setIsConversationPanelTransitioning(false);
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isConversationPanelOpen]);
 
   const handleChannelSelection = (channel: ChannelType) => {
     if (channel === activeChannel) {
@@ -900,9 +916,15 @@ export default function Index() {
                 : "pointer-events-none max-w-0 -translate-x-4 opacity-0 min-[800px]:border-r min-[800px]:border-transparent",
             )}
           >
-            {/* Chat Transcript */}
-            <ScrollArea className="flex-1 p-6">
-              <div className="max-w-3xl mx-auto space-y-6">
+            <div
+              className={cn(
+                "flex min-h-0 flex-1 flex-col transition-opacity duration-150",
+                isConversationPanelTransitioning && "pointer-events-none opacity-0",
+              )}
+            >
+              {/* Chat Transcript */}
+              <ScrollArea className="flex-1 p-6">
+                <div className="max-w-3xl mx-auto space-y-6">
                 <div className="text-center">
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">{activeConversation.timelineLabel}</span>
                 </div>
@@ -956,26 +978,27 @@ export default function Index() {
               </div>
             </ScrollArea>
 
-            {/* Input Area */}
-            <div className="p-4 bg-background border-t border-border">
-              <div className="flex gap-3 items-end relative">
-                <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
-                  <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
+              {/* Input Area */}
+              <div className="p-4 bg-background border-t border-border">
+                <div className="flex gap-3 items-end relative">
+                  <div className="absolute right-14 top-2 text-xs text-muted-foreground flex items-center gap-1 bg-background/80 backdrop-blur px-2 py-0.5 rounded-md border border-border">
+                    <Sparkles className="w-3 h-3 text-primary" /> AI writing enabled
+                  </div>
+                  <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
+                    <Paperclip className="w-5 h-5" />
+                  </Button>
+                  <div className="flex-1 relative">
+                    <Textarea
+                      key={activeChannel}
+                      placeholder="Type your message..."
+                      className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
+                      defaultValue={activeConversation.draft}
+                    />
+                  </div>
+                  <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
+                    <Send className="w-4 h-4" />
+                  </Button>
                 </div>
-                <Button variant="ghost" size="icon" className="shrink-0 mb-1 h-10 w-10 text-muted-foreground hover:text-foreground">
-                  <Paperclip className="w-5 h-5" />
-                </Button>
-                <div className="flex-1 relative">
-                  <Textarea
-                    key={activeChannel}
-                    placeholder="Type your message..."
-                    className="min-h-[60px] max-h-32 resize-none pr-12 pb-3 pt-3 rounded-xl focus-visible:ring-1"
-                    defaultValue={activeConversation.draft}
-                  />
-                </div>
-                <Button className="shrink-0 mb-1 h-10 w-10 rounded-xl" size="icon">
-                  <Send className="w-4 h-4" />
-                </Button>
               </div>
             </div>
           </div>
