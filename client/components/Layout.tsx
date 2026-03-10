@@ -321,7 +321,7 @@ function HeaderIconButton({
 
 function QueueOverlayList() {
   return (
-    <div className="min-h-full overflow-hidden bg-white">
+    <div className="min-h-full overflow-hidden bg-[#F3ECFF]">
       {queuePreviewItems.map((item) => {
         const ItemIcon = item.icon;
 
@@ -432,7 +432,7 @@ function LeftQueueRail() {
               : "pointer-events-none -translate-x-3 opacity-0"
           }`}
         >
-          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-[#F3ECFF] shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
             <QueueOverlayList />
           </div>
         </div>
