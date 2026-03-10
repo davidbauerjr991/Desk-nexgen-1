@@ -16,13 +16,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "desk" | "copilot" | "interactions" | "addNew" | null;
+type RightPanelView = "desk" | "copilot" | "interactions" | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -30,13 +42,11 @@ interface LayoutContextValue {
   isDeskOpen: boolean;
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
-  isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   toggleDesk: () => void;
   toggleCopilot: () => void;
   toggleInteractions: () => void;
-  toggleAddNew: () => void;
   closeRightPanel: () => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
@@ -55,6 +65,7 @@ export function useLayoutContext() {
 }
 
 type AgentStatus = "Available" | "Busy" | "Away" | "Offline" | "In a Call";
+type AddNewType = "customer" | "account" | "ticket" | "work-item";
 
 const statusOptions: Array<{
   label: AgentStatus;
@@ -67,6 +78,46 @@ const statusOptions: Array<{
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
   { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
 ];
+
+const addNewFieldConfig: Record<
+  AddNewType,
+  Array<{
+    key: string;
+    label: string;
+    placeholder: string;
+    type: "input" | "textarea";
+  }>
+> = {
+  customer: [
+    { key: "firstName", label: "First Name", placeholder: "Enter first name", type: "input" },
+    { key: "lastName", label: "Last Name", placeholder: "Enter last name", type: "input" },
+    { key: "email", label: "Email", placeholder: "name@example.com", type: "input" },
+    { key: "phone", label: "Phone", placeholder: "(555) 123-4567", type: "input" },
+    { key: "customerId", label: "Customer ID", placeholder: "CST-10482", type: "input" },
+    { key: "notes", label: "Notes", placeholder: "Add customer notes", type: "textarea" },
+  ],
+  account: [
+    { key: "accountName", label: "Account Name", placeholder: "Premier Account", type: "input" },
+    { key: "accountNumber", label: "Account Number", placeholder: "ACC-20391", type: "input" },
+    { key: "owner", label: "Owner", placeholder: "Alex Kowalski", type: "input" },
+    { key: "status", label: "Status", placeholder: "Active", type: "input" },
+    { key: "billingAddress", label: "Billing Address", placeholder: "Add billing address", type: "textarea" },
+  ],
+  ticket: [
+    { key: "title", label: "Ticket Title", placeholder: "Payment mismatch preventing upgrade", type: "input" },
+    { key: "priority", label: "Priority", placeholder: "High", type: "input" },
+    { key: "category", label: "Category", placeholder: "Billing", type: "input" },
+    { key: "customer", label: "Customer", placeholder: "Alex Kowalski", type: "input" },
+    { key: "description", label: "Description", placeholder: "Describe the issue", type: "textarea" },
+  ],
+  "work-item": [
+    { key: "name", label: "Work Item Name", placeholder: "Resolve billing mismatch", type: "input" },
+    { key: "assignee", label: "Assignee", placeholder: "Jordan Doe", type: "input" },
+    { key: "dueDate", label: "Due Date", placeholder: "03/15/26", type: "input" },
+    { key: "relatedTo", label: "Related To", placeholder: "Ticket TCK-2091", type: "input" },
+    { key: "details", label: "Details", placeholder: "Add work item details", type: "textarea" },
+  ],
+};
 
 const queuePreviewItems = [
   {
@@ -135,6 +186,104 @@ const NiceLogoIcon = () => (
     />
   </svg>
 );
+
+function AddNewPopoverContent() {
+  const [selectedType, setSelectedType] = useState<AddNewType>("customer");
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
+
+  const fields = addNewFieldConfig[selectedType];
+  const isSaveDisabled = fields.some((field) => !(formValues[field.key] ?? "").trim());
+
+  const clearForm = () => {
+    setFormValues({});
+  };
+
+  const handleSave = () => {
+    if (isSaveDisabled) {
+      return;
+    }
+
+    clearForm();
+    toast.success("Customer Saved Successfully", {
+      action: {
+        label: "Open Record",
+        onClick: () => undefined,
+      },
+    });
+  };
+
+  return (
+    <div className="flex max-h-[min(720px,80vh)] w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+      <div className="border-b border-border bg-background/50 px-5 py-4">
+        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
+      </div>
+
+      <ScrollArea className="flex-1 px-5 py-5">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
+              Item Type
+            </label>
+            <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
+              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E00FD]/30 focus:ring-offset-0 focus:border-[#6E00FD]">
+                <SelectValue placeholder="Select item type" />
+              </SelectTrigger>
+              <SelectContent className="rounded border border-[#E5E7EB] bg-white">
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="account">Account</SelectItem>
+                <SelectItem value="ticket">Ticket</SelectItem>
+                <SelectItem value="work-item">Work Item</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-4">
+            {fields.map((field) => (
+              <div key={field.key} className="space-y-2">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
+                  {field.label}
+                </label>
+                {field.type === "textarea" ? (
+                  <Textarea
+                    value={formValues[field.key] ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
+                    }
+                    placeholder={field.placeholder}
+                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                  />
+                ) : (
+                  <Input
+                    value={formValues[field.key] ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
+                    }
+                    placeholder={field.placeholder}
+                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </ScrollArea>
+
+      <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
+        <Button type="button" variant="outline" className="rounded-xl" onClick={clearForm}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1] disabled:bg-[#D9CCFF] disabled:text-white"
+          onClick={handleSave}
+          disabled={isSaveDisabled}
+        >
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function HeaderIconButton({
   children,
@@ -305,6 +454,7 @@ function formatStatusDuration(totalSeconds: number) {
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("desk");
+  const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
@@ -331,7 +481,6 @@ export default function Layout({ children }: LayoutProps) {
       isDeskOpen: activeRightPanel === "desk",
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
-      isAddNewOpen: activeRightPanel === "addNew",
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       toggleDesk: () => {
@@ -347,11 +496,6 @@ export default function Layout({ children }: LayoutProps) {
       toggleInteractions: () => {
         setActiveRightPanel((current) =>
           current === "interactions" ? null : "interactions",
-        );
-      },
-      toggleAddNew: () => {
-        setActiveRightPanel((current) =>
-          current === "addNew" ? null : "addNew",
         );
       },
       closeRightPanel: () => setActiveRightPanel(null),
@@ -401,13 +545,21 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </HeaderIconButton>
 
-          <HeaderIconButton
-            ariaLabel={layoutContextValue.isAddNewOpen ? "Hide add new panel" : "Show add new panel"}
-            onClick={layoutContextValue.toggleAddNew}
-            isActive={layoutContextValue.isAddNewOpen}
-          >
-            <Plus className="h-4 w-4 stroke-[1.8]" />
-          </HeaderIconButton>
+          <Popover open={isAddNewPopoverOpen} onOpenChange={setIsAddNewPopoverOpen}>
+            <PopoverTrigger asChild>
+              <div>
+                <HeaderIconButton
+                  ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
+                  isActive={isAddNewPopoverOpen}
+                >
+                  <Plus className="h-4 w-4 stroke-[1.8]" />
+                </HeaderIconButton>
+              </div>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={10} className="w-auto border-0 bg-transparent p-0 shadow-none">
+              <AddNewPopoverContent />
+            </PopoverContent>
+          </Popover>
 
           <HeaderIconButton
             ariaLabel={layoutContextValue.isDeskOpen ? "Hide desk panel" : "Show desk panel"}
