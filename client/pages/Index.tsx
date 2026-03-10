@@ -297,7 +297,7 @@ function CallControlsPopunder({
   const isDraggingRef = useRef(false);
   const [accountNumber, setAccountNumber] = useState("");
   const [isTestingAudio, setIsTestingAudio] = useState(false);
-  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
   const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
 
   useEffect(() => {
