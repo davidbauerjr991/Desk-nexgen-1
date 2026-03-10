@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -29,7 +28,7 @@ import { useLayoutContext } from "@/components/Layout";
 import NotesPanel from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 
-type ChannelType = "chat" | "sms" | "whatsapp";
+type ChannelType = "chat" | "sms" | "whatsapp" | "email";
 
 type ConversationMessage = {
   id: number;
@@ -138,6 +137,36 @@ const conversationsByChannel: Record<
       },
     ],
   },
+  email: {
+    label: "Email",
+    timelineLabel: "Email thread · Today, 10:24 AM",
+    draft:
+      "Hi Alex — I found the billing mismatch that caused the failed upgrade attempts. I’ve removed the security hold, so please try again when convenient and reply if you still see an error.",
+    messages: [
+      {
+        id: 1,
+        role: "customer",
+        content:
+          "Subject: Upgrade payment failing\n\nHi team, I’m trying to move to the Pro plan and the payment form keeps rejecting my card even though the card is valid.",
+        time: "10:24 AM",
+      },
+      {
+        id: 2,
+        role: "agent",
+        content:
+          "Hi Alex, thanks for the details. I’m checking the payment logs and fraud rules tied to your most recent attempt now.",
+        time: "10:25 AM",
+      },
+      {
+        id: 3,
+        role: "customer",
+        content:
+          "Thanks. I retried just before sending this and got the same billing mismatch message.",
+        time: "10:28 AM",
+        sentiment: "frustrated",
+      },
+    ],
+  },
 };
 
 const insights = {
@@ -204,9 +233,17 @@ function ChannelToggleButton({
     );
   }
 
+  if (channel === "whatsapp") {
+    return (
+      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show WhatsApp conversation" aria-pressed={isActive}>
+        <WhatsAppIcon className="h-4 w-4" />
+      </button>
+    );
+  }
+
   return (
-    <button type="button" onClick={onClick} className={commonClassName} aria-label="Show WhatsApp conversation" aria-pressed={isActive}>
-      <WhatsAppIcon className="h-4 w-4" />
+    <button type="button" onClick={onClick} className={commonClassName} aria-label="Show email conversation" aria-pressed={isActive}>
+      <Mail className="h-4 w-4 stroke-[1.8]" />
     </button>
   );
 }
@@ -250,6 +287,11 @@ export default function Index() {
                     channel="whatsapp"
                     activeChannel={activeChannel}
                     onClick={() => setActiveChannel("whatsapp")}
+                  />
+                  <ChannelToggleButton
+                    channel="email"
+                    activeChannel={activeChannel}
+                    onClick={() => setActiveChannel("email")}
                   />
                 </div>
               </div>
