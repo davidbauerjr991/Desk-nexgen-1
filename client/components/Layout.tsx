@@ -576,7 +576,7 @@ export default function Layout({ children }: LayoutProps) {
                 placeholder="Search workspace"
                 aria-label="Search workspace"
                 tabIndex={isHeaderSearchOpen ? 0 : -1}
-                className="h-9 rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:ring-1 focus-visible:ring-[#D9CCFF] focus-visible:ring-offset-0"
+                className="h-9 rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#D9CCFF]"
               />
             </div>
             <HeaderIconButton
