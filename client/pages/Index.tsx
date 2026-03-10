@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
+import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import {
@@ -586,11 +587,25 @@ const addNewFieldConfig: Record<
   ],
 };
 
-function AddNewPanel({ onCancel }: { onCancel: () => void }) {
+function AddNewPanel() {
   const [selectedType, setSelectedType] = useState<AddNewType>("customer");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
 
   const fields = addNewFieldConfig[selectedType];
+
+  const clearForm = () => {
+    setFormValues({});
+  };
+
+  const handleSave = () => {
+    clearForm();
+    toast.success("Customer Saved Successfully", {
+      action: {
+        label: "Open Record",
+        onClick: () => undefined,
+      },
+    });
+  };
 
   return (
     <>
@@ -649,10 +664,10 @@ function AddNewPanel({ onCancel }: { onCancel: () => void }) {
       </ScrollArea>
 
       <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
-        <Button type="button" variant="outline" className="rounded-xl" onClick={onCancel}>
+        <Button type="button" variant="outline" className="rounded-xl" onClick={clearForm}>
           Cancel
         </Button>
-        <Button type="button" className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1]" onClick={onCancel}>
+        <Button type="button" className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1]" onClick={handleSave}>
           Save
         </Button>
       </div>
@@ -983,7 +998,7 @@ export default function Index() {
           {isInteractionsOpen ? (
             <RecentInteractionsPanel />
           ) : isAddNewOpen ? (
-            <AddNewPanel onCancel={closeRightPanel} />
+            <AddNewPanel />
           ) : (
             <>
               <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
