@@ -44,7 +44,7 @@ export default function CopilotPopunder({
   onClose,
 }: CopilotPopunderProps) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
-  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 560 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 720 });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
 

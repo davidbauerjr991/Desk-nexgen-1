@@ -465,7 +465,10 @@ export default function Layout({ children }: LayoutProps) {
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [copilotPopunderPosition, setCopilotPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
-  const [copilotPopunderSize, setCopilotPopunderSize] = useState(() => ({ width: 360, height: 560 }));
+  const [copilotPopunderSize, setCopilotPopunderSize] = useState(() => ({
+    width: 360,
+    height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
+  }));
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
