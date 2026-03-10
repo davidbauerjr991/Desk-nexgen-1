@@ -465,6 +465,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [copilotPopunderPosition, setCopilotPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
+  const [copilotPopunderSize, setCopilotPopunderSize] = useState(() => ({ width: 360, height: 560 }));
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
@@ -493,22 +494,12 @@ export default function Layout({ children }: LayoutProps) {
 
     const margin = 16;
     const gap = 10;
-    const popunderWidth = Math.min(360, window.innerWidth - margin * 2);
+    const popunderWidth = Math.min(copilotPopunderSize.width, window.innerWidth - margin * 2);
     const buttonBounds = copilotButtonRef.current?.getBoundingClientRect();
 
-    if (!buttonBounds) {
-      return {
-        x: Math.max(window.innerWidth - popunderWidth - margin, margin),
-        y: 58,
-      };
-    }
-
     return {
-      x: Math.min(
-        Math.max(margin, buttonBounds.right - popunderWidth),
-        window.innerWidth - popunderWidth - margin,
-      ),
-      y: Math.max(margin, buttonBounds.bottom + gap),
+      x: Math.max(window.innerWidth - popunderWidth - margin, margin),
+      y: Math.max(margin, (buttonBounds?.bottom ?? 48) + gap),
     };
   };
 
@@ -713,7 +704,9 @@ export default function Layout({ children }: LayoutProps) {
       {isCopilotPopoverOpen && (
         <CopilotPopunder
           position={copilotPopunderPosition}
+          size={copilotPopunderSize}
           onPositionChange={setCopilotPopunderPosition}
+          onSizeChange={setCopilotPopunderSize}
           onClose={() => setIsCopilotPopoverOpen(false)}
         />
       )}

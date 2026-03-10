@@ -27,40 +27,62 @@ interface CopilotPopunderProps {
     x: number;
     y: number;
   };
+  size: {
+    width: number;
+    height: number;
+  };
   onPositionChange: (position: { x: number; y: number }) => void;
+  onSizeChange: (size: { width: number; height: number }) => void;
   onClose: () => void;
 }
 
-export default function CopilotPopunder({ position, onPositionChange, onClose }: CopilotPopunderProps) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+export default function CopilotPopunder({
+  position,
+  size,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+}: CopilotPopunderProps) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 560 });
   const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-
-      const bounds = containerRef.current?.getBoundingClientRect();
-      if (!bounds) return;
-
-      const nextX = event.clientX - dragOffsetRef.current.x;
-      const nextY = event.clientY - dragOffsetRef.current.y;
       const margin = 16;
 
-      onPositionChange({
-        x: Math.min(
-          Math.max(margin, nextX),
-          window.innerWidth - bounds.width - margin,
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(Math.max(margin, nextX), window.innerWidth - size.width - margin),
+          y: Math.min(Math.max(margin, nextY), window.innerHeight - size.height - margin),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(320, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - margin,
         ),
-        y: Math.min(
-          Math.max(margin, nextY),
-          window.innerHeight - bounds.height - margin,
+        height: Math.min(
+          Math.max(420, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - margin,
         ),
       });
     };
 
     const handleMouseUp = () => {
       isDraggingRef.current = false;
+      isResizingRef.current = false;
       document.body.style.userSelect = "";
     };
 
@@ -72,24 +94,27 @@ export default function CopilotPopunder({ position, onPositionChange, onClose }:
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [onPositionChange]);
+  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
 
   return (
     <div
-      ref={containerRef}
-      className="fixed z-[70] flex max-h-[calc(100vh-2rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
-      style={{ left: position.x, top: position.y }}
+      className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
     >
       <div
         className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
-          const bounds = containerRef.current?.getBoundingClientRect();
-          if (!bounds) return;
-
           isDraggingRef.current = true;
           dragOffsetRef.current = {
-            x: event.clientX - bounds.left,
-            y: event.clientY - bounds.top,
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
           };
           document.body.style.userSelect = "none";
         }}
@@ -106,6 +131,7 @@ export default function CopilotPopunder({ position, onPositionChange, onClose }:
         </div>
         <button
           type="button"
+          onMouseDown={(event) => event.stopPropagation()}
           onClick={onClose}
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
           aria-label="Close NexAgent Copilot"
@@ -224,6 +250,26 @@ export default function CopilotPopunder({ position, onPositionChange, onClose }:
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        aria-label="Resize NexAgent Copilot"
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
     </div>
   );
 }
