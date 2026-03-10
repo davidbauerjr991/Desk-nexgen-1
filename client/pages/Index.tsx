@@ -686,8 +686,8 @@ function AddNewPanel() {
 }
 
 function DeskPanel() {
-  const tabs = ["Contacts (Active)", "Tickets", "Accounts"] as const;
-  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Contacts (Active)");
+  const tabs = ["Contacts", "Tickets", "Accounts"] as const;
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Contacts");
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-white">
