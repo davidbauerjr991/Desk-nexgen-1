@@ -15,6 +15,7 @@ import {
   Pause,
   PhoneOff,
   GripHorizontal,
+  FilePlus2,
   AlertTriangle,
   Mic,
   Volume2,
@@ -674,8 +675,8 @@ function AddNewPanel() {
   );
 }
 
-function DeskPanel() {
-  return <NotesPanel notesOnly />;
+function DeskPanel({ addNoteTrigger }: { addNoteTrigger: number }) {
+  return <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />;
 }
 
 export default function Index() {
@@ -695,6 +696,7 @@ export default function Index() {
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
+  const [addNoteTrigger, setAddNoteTrigger] = useState(0);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -1095,6 +1097,18 @@ export default function Index() {
         <div className="relative flex h-full min-w-full flex-col lg:min-w-[380px]">
           {isRightPanelContentVisible && (
             <>
+              {isDeskOpen && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Add note"
+                  onClick={() => setAddNoteTrigger((current) => current + 1)}
+                  className="absolute right-12 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+                >
+                  <FilePlus2 className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="ghost"
@@ -1111,7 +1125,7 @@ export default function Index() {
               ) : isAddNewOpen ? (
                 <AddNewPanel />
               ) : isDeskOpen ? (
-                <DeskPanel />
+                <DeskPanel addNoteTrigger={addNoteTrigger} />
               ) : null}
             </>
           )}
