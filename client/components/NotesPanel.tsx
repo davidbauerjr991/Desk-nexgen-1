@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronUp, Eye, FileDown, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 
 const TABS = ["Details", "Notes", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
+
+export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
 
 const notes = [
   {
@@ -81,9 +83,17 @@ function NoteItem({ note }: { note: (typeof notes)[0] }) {
   );
 }
 
-export default function NotesPanel() {
-  const [activeTab, setActiveTab] = useState("Notes");
+interface NotesPanelProps {
+  initialTab?: string;
+}
+
+export default function NotesPanel({ initialTab = "Notes" }: NotesPanelProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

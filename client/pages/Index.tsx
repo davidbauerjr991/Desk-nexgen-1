@@ -10,6 +10,7 @@ import {
   PhoneCall,
   Mail,
   Clock,
+  X,
   CheckCircle2,
   AlertTriangle,
   Lightbulb,
@@ -26,8 +27,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
-import NotesPanel from "@/components/NotesPanel";
+import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ChannelType = "chat" | "sms" | "whatsapp" | "email";
 
@@ -256,6 +263,8 @@ export default function Index() {
     closeRightPanel,
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
+  const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
+  const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const activeConversation = conversationsByChannel[activeChannel];
 
   return (
@@ -306,9 +315,31 @@ export default function Index() {
             <Button variant="outline" size="sm" className="hidden sm:flex">
               <PhoneCall className="w-4 h-4 mr-2" /> Call
             </Button>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="min-[800px]:hidden">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className="min-[800px]:hidden w-44 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+              >
+                {NOTES_PANEL_MENU_ITEMS.map((item) => (
+                  <DropdownMenuItem
+                    key={item}
+                    onSelect={() => {
+                      setMobileDetailsTab(item);
+                      setIsMobileDetailsOpen(true);
+                    }}
+                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    {item}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -398,7 +429,7 @@ export default function Index() {
           </div>
 
           {/* Customer Data tabs */}
-          <div className="hidden flex-1 min-w-0 overflow-hidden xl:flex">
+          <div className="hidden flex-1 min-w-0 overflow-hidden min-[800px]:flex">
             <div className="flex-1 min-w-0 overflow-hidden">
               <NotesPanel />
             </div>
@@ -406,6 +437,37 @@ export default function Index() {
 
         </div>
       </div>
+
+      {isMobileDetailsOpen && (
+        <div className="absolute inset-0 z-40 min-[800px]:hidden">
+          <button
+            type="button"
+            aria-label="Close customer details overlay"
+            onClick={() => setIsMobileDetailsOpen(false)}
+            className="absolute inset-0 bg-black/20"
+          />
+          <div className="absolute inset-x-4 top-4 bottom-4 flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#333333]">Customer Details</h3>
+                <p className="text-xs text-[#7A7A7A]">{mobileDetailsTab}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMobileDetailsOpen(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <NotesPanel initialTab={mobileDetailsTab} />
+            </div>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
