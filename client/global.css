@@ -1,5 +1,5 @@
 /** @import must precede all other statements */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -7,83 +7,45 @@
 
 @layer base {
   :root {
-    --background: 240 10% 98%;
-    --foreground: 222 47% 11%;
+    --background: 240 10% 97%;
+    --foreground: 0 0% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 20%;
 
-    --primary: 256 65% 50%;
+    /* #6E00FD => hsl(266, 100%, 50%) */
+    --primary: 266 100% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 10% 92%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary-foreground: 0 0% 20%;
 
     --muted: 240 10% 94%;
-    --muted-foreground: 240 10% 40%;
+    --muted-foreground: 240 5% 50%;
 
-    --accent: 256 65% 96%;
-    --accent-foreground: 256 65% 45%;
+    --accent: 266 100% 97%;
+    --accent-foreground: 266 100% 45%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 10% 90%;
-    --input: 240 10% 90%;
-    --ring: 256 65% 50%;
+    --border: 0 0% 84%;
+    --input: 0 0% 85%;
+    --ring: 266 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 256 65% 50%;
+    --sidebar-foreground: 0 0% 20%;
+    --sidebar-primary: 266 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 256 65% 96%;
-    --sidebar-accent-foreground: 256 65% 45%;
-    --sidebar-border: 240 10% 90%;
-    --sidebar-ring: 256 65% 50%;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 0 0% 98%;
-
-    --card: 222 47% 11%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 256 80% 70%;
-    --primary-foreground: 222 47% 11%;
-
-    --secondary: 222 47% 16%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 222 47% 16%;
-    --muted-foreground: 240 10% 65%;
-
-    --accent: 222 47% 16%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 222 47% 16%;
-    --input: 222 47% 16%;
-    --ring: 256 80% 70%;
-
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 256 80% 70%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent: 222 47% 16%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 222 47% 16%;
-    --sidebar-ring: 256 80% 70%;
+    --sidebar-accent: 266 100% 97%;
+    --sidebar-accent-foreground: 266 100% 45%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 266 100% 50%;
   }
 }
 
@@ -94,12 +56,13 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Noto Sans', -apple-system, Roboto, Helvetica, sans-serif;
   }
 
   :where(p, span, li, h1, h2, h3, h4, h5, h6, a, button, label, td, th) {
     overflow-wrap: anywhere;
     word-break: break-word;
+    font-family: 'Noto Sans', -apple-system, Roboto, Helvetica, sans-serif;
   }
 
   pre,
