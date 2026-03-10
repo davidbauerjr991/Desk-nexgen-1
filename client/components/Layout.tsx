@@ -22,11 +22,12 @@ type AgentStatus = "Available" | "Busy" | "Away" | "Offline";
 const statusOptions: Array<{
   label: AgentStatus;
   dotClassName: string;
+  textClassName: string;
 }> = [
-  { label: "Available", dotClassName: "bg-[#2CC84D]" },
-  { label: "Busy", dotClassName: "bg-[#F04438]" },
-  { label: "Away", dotClassName: "bg-[#F59E0B]" },
-  { label: "Offline", dotClassName: "bg-[#A3A3A3]" },
+  { label: "Available", dotClassName: "bg-[#2CC84D]", textClassName: "text-[#2CC84D]" },
+  { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
+  { label: "Away", dotClassName: "bg-[#F59E0B]", textClassName: "text-[#F59E0B]" },
+  { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
 ];
 
 const NiceLogoIcon = () => (
@@ -100,7 +101,7 @@ export default function Layout({ children }: LayoutProps) {
                 className="flex h-8 items-center gap-2 rounded-lg px-3 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
               >
                 <span className={`h-3 w-3 rounded-full ${activeStatus.dotClassName}`} />
-                <span className="hidden text-[15px] font-semibold leading-none tracking-[-0.02em] text-[#4F189F] sm:inline">
+                <span className={`hidden text-[15px] font-semibold leading-none tracking-[-0.02em] sm:inline ${activeStatus.textClassName}`}>
                   {activeStatus.label}
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
