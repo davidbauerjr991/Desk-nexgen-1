@@ -794,12 +794,15 @@ export default function Layout({ children }: LayoutProps) {
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
       <header className="flex h-12 shrink-0 items-center gap-4 px-4">
-        <div className="flex min-w-0 items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-4">
           <NiceLogoIcon />
           <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] min-[800px]:inline">
             Agent Workspace Premium
           </span>
-          <nav className="hidden items-center gap-1 rounded-full border border-black/10 bg-white/80 p-1 min-[1100px]:flex">
+        </div>
+
+        <div className="hidden flex-1 justify-center min-[1100px]:flex">
+          <nav className="flex items-center gap-1 rounded-full border border-black/10 bg-white/80 p-1">
             {[
               "Activity",
               "Desk",
@@ -817,9 +820,7 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
 
-        <div className="flex-1" />
-
-        <div className="relative flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="relative flex flex-1 shrink-0 justify-end items-center gap-1 sm:gap-1.5">
           <div className="flex items-center gap-1.5">
             <div
               id="header-search-input"
