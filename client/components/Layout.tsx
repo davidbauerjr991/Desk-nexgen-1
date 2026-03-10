@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CopilotPopunder from "@/components/CopilotPopunder";
+import WorkspaceTabs from "@/components/WorkspaceTabs";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -802,22 +803,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         <div className="hidden flex-1 justify-center min-[1100px]:flex">
-          <nav className="flex items-center gap-1 rounded-full border border-black/10 bg-white/80 p-1">
-            {[
-              "Activity",
-              "Desk",
-              "Schedule",
-              "Settings",
-            ].map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className="rounded-full px-3 py-1 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
+          <WorkspaceTabs />
         </div>
 
         <div className="relative flex flex-1 shrink-0 justify-end items-center gap-1 sm:gap-1.5">

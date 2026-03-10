@@ -5,12 +5,15 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PhoneCall, Users, BookOpen, Settings, MessageSquare } from "lucide-react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { PhoneCall, Users, BookOpen, MessageSquare } from "lucide-react";
 
-import Index from "./pages/Index";
+import Activity from "./pages/Activity";
+import Desk from "./pages/Desk";
 import NotFound from "./pages/NotFound";
 import Placeholder from "./pages/Placeholder";
+import Schedule from "./pages/Schedule";
+import SettingsPage from "./pages/SettingsPage";
 import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -23,7 +26,11 @@ const App = () => (
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Navigate to="/activity" replace />} />
+            <Route path="/activity" element={<Activity />} />
+            <Route path="/desk" element={<Desk />} />
+            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/settings" element={<SettingsPage />} />
             
             <Route path="/calls" element={
               <Placeholder 
@@ -53,14 +60,6 @@ const App = () => (
                 icon={BookOpen} 
               />
             } />
-            <Route path="/settings" element={
-              <Placeholder 
-                title="Agent Settings" 
-                description="Configure your workspace, notification preferences, and integrations." 
-                icon={Settings} 
-              />
-            } />
-
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
