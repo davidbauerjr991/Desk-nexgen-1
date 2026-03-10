@@ -227,11 +227,7 @@ function QueueOverlayList() {
 
 function LeftQueueRail() {
   return (
-    <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-4 rounded-[24px] bg-[#F0F1F3] py-4 min-[800px]:flex">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(16,24,40,0.08)]">
-        <NiceLogoIcon />
-      </div>
-
+    <aside className="hidden w-[56px] shrink-0 flex-col items-center py-3 min-[800px]:flex">
       <div className="flex flex-col items-center gap-4 pt-1">
         {queuePreviewItems.map((item) => {
           const ItemIcon = item.icon;
@@ -452,7 +448,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-0">
+      <div className="flex min-h-0 flex-1 gap-2 px-4 pb-4 pt-0">
         <LeftQueueRail />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
           {children}
