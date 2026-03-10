@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useLayoutContext } from "@/components/Layout";
 
 const messages = [
   {
@@ -53,10 +54,17 @@ const insights = {
 };
 
 export default function Index() {
+  const { isCopilotOpen } = useLayoutContext();
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
-      <div className="flex-1 flex flex-col min-w-0 border-r border-border bg-card">
+      <div
+        className={cn(
+          "flex-1 flex min-w-0 flex-col bg-card",
+          isCopilotOpen && "border-r border-border",
+        )}
+      >
         
         {/* Customer Context Banner */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card/50">
@@ -164,7 +172,8 @@ export default function Index() {
       </div>
 
       {/* AI Copilot Panel */}
-      <div className="w-[380px] flex-shrink-0 flex flex-col bg-muted/20 border-l border-border hidden lg:flex">
+      {isCopilotOpen && (
+        <div className="hidden w-[380px] flex-shrink-0 flex-col border-l border-border bg-muted/20 lg:flex">
         <div className="px-5 py-4 border-b border-border bg-background/50 flex items-center gap-2">
           <Bot className="w-5 h-5 text-primary" />
           <h3 className="font-semibold text-sm tracking-tight">NexAgent Copilot</h3>
@@ -287,7 +296,8 @@ export default function Index() {
 
           </div>
         </ScrollArea>
-      </div>
+        </div>
+      )}
 
     </div>
   );

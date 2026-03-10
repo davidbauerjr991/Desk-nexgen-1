@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 import {
   Bell,
   ChevronDown,
@@ -15,6 +15,23 @@ import {
 
 interface LayoutProps {
   children: React.ReactNode;
+}
+
+interface LayoutContextValue {
+  isCopilotOpen: boolean;
+  toggleCopilot: () => void;
+}
+
+const LayoutContext = createContext<LayoutContextValue | null>(null);
+
+export function useLayoutContext() {
+  const context = useContext(LayoutContext);
+
+  if (!context) {
+    throw new Error("useLayoutContext must be used within Layout");
+  }
+
+  return context;
 }
 
 type AgentStatus = "Available" | "Busy" | "Away" | "Offline";
@@ -47,11 +64,72 @@ const NiceLogoIcon = () => (
   </svg>
 );
 
-function HeaderIconButton({ children }: { children: React.ReactNode }) {
+function AgentToggleIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M6.214 3.375V2.652C6.214 1.855 6.86 1.208 7.657 1.208H10.344C11.141 1.208 11.787 1.855 11.787 2.652V3.375"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2.766 7.179C2.766 6.101 3.64 5.227 4.718 5.227H13.282C14.36 5.227 15.234 6.101 15.234 7.179V12.533C15.234 13.611 14.36 14.485 13.282 14.485H4.718C3.64 14.485 2.766 13.611 2.766 12.533V7.179Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M1.5 7.781H16.5"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M8.999 7.781V10.534"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.621 9.157H10.378"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function HeaderIconButton({
+  children,
+  onClick,
+  ariaLabel,
+  isActive = false,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  ariaLabel?: string;
+  isActive?: boolean;
+}) {
   return (
     <button
       type="button"
-      className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white/70 hover:text-[#333333]"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={isActive}
+      className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+        isActive
+          ? "text-[#6E00FD] hover:bg-[#F3ECFF]"
+          : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+      }`}
     >
       {children}
     </button>
@@ -60,14 +138,24 @@ function HeaderIconButton({ children }: { children: React.ReactNode }) {
 
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
     [status],
   );
 
+  const layoutContextValue = useMemo(
+    () => ({
+      isCopilotOpen,
+      toggleCopilot: () => setIsCopilotOpen((current) => !current),
+    }),
+    [isCopilotOpen],
+  );
+
   return (
-    <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
+    <LayoutContext.Provider value={layoutContextValue}>
+      <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
       <header className="flex h-12 shrink-0 items-center justify-between gap-4 px-4">
         <div className="flex min-w-0 items-center gap-4">
           <NiceLogoIcon />
@@ -88,8 +176,16 @@ export default function Layout({ children }: LayoutProps) {
             <CircleHelp className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <HeaderIconButton>
+          <HeaderIconButton ariaLabel="Settings">
             <Settings className="h-4 w-4 stroke-[1.8]" />
+          </HeaderIconButton>
+
+          <HeaderIconButton
+            ariaLabel={isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+            onClick={() => setIsCopilotOpen((current) => !current)}
+            isActive={isCopilotOpen}
+          >
+            <AgentToggleIcon />
           </HeaderIconButton>
 
           <DropdownMenu>
@@ -141,5 +237,6 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </div>
     </div>
+    </LayoutContext.Provider>
   );
 }
