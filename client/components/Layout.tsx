@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   Bot,
@@ -28,9 +28,12 @@ interface LayoutContextValue {
   isRightPanelOpen: boolean;
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
+  isAgentInCall: boolean;
   toggleCopilot: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
+  startCallStatus: () => void;
+  endCallStatus: () => void;
 }
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
@@ -45,7 +48,7 @@ export function useLayoutContext() {
   return context;
 }
 
-type AgentStatus = "Available" | "Busy" | "Away" | "Offline";
+type AgentStatus = "Available" | "Busy" | "Away" | "Offline" | "In a Call";
 
 const statusOptions: Array<{
   label: AgentStatus;
@@ -56,6 +59,7 @@ const statusOptions: Array<{
   { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
   { label: "Away", dotClassName: "bg-[#F59E0B]", textClassName: "text-[#F59E0B]" },
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
+  { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
 ];
 
 const NiceLogoIcon = () => (
@@ -124,6 +128,7 @@ export default function Layout({ children }: LayoutProps) {
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("copilot");
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
 
   useEffect(() => {
     setElapsedSeconds(0);
@@ -146,6 +151,7 @@ export default function Layout({ children }: LayoutProps) {
       isRightPanelOpen: activeRightPanel !== null,
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
+      isAgentInCall: status === "In a Call",
       toggleCopilot: () => {
         setActiveRightPanel((current) =>
           current === "copilot" ? null : "copilot",
@@ -157,8 +163,19 @@ export default function Layout({ children }: LayoutProps) {
         );
       },
       closeRightPanel: () => setActiveRightPanel(null),
+      startCallStatus: () => {
+        if (status !== "In a Call") {
+          previousAgentStatusRef.current = status;
+        }
+        setStatus("In a Call");
+        setStatusStartedAt(Date.now());
+      },
+      endCallStatus: () => {
+        setStatus(previousAgentStatusRef.current);
+        setStatusStartedAt(Date.now());
+      },
     }),
-    [activeRightPanel],
+    [activeRightPanel, status],
   );
 
   return (
@@ -245,7 +262,7 @@ export default function Layout({ children }: LayoutProps) {
               className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
             >
               <div className="space-y-1">
-                {statusOptions.map((option) => (
+                {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
                   <DropdownMenuItem
                     key={option.label}
                     onClick={() => {

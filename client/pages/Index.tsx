@@ -496,6 +496,8 @@ export default function Index() {
     isInteractionsOpen,
     isRightPanelOpen,
     closeRightPanel,
+    startCallStatus,
+    endCallStatus,
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
@@ -740,11 +742,13 @@ export default function Index() {
           onClose={closeCallPopunder}
           onLaunchCall={() => {
             setIsCallActive(true);
+            startCallStatus();
             setCallPopunderMode("controls");
           }}
           onEndCall={() => setCallPopunderMode("disposition")}
           onSelectDisposition={() => {
             setIsCallActive(false);
+            endCallStatus();
             setIsCallPopunderOpen(false);
             setCallPopunderMode("setup");
           }}
