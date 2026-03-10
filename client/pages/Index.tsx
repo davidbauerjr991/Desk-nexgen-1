@@ -217,6 +217,13 @@ type CallPopunderPosition = {
   y: number;
 };
 
+type CallPopunderMode = "controls" | "disposition";
+
+const CALL_POPUNDER_WIDTH = 272;
+const CALL_POPUNDER_MARGIN = 16;
+const CALL_POPUNDER_GAP = 12;
+const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+
 function ChannelToggleButton({
   channel,
   activeChannel,
@@ -267,12 +274,18 @@ function ChannelToggleButton({
 
 function CallControlsPopunder({
   position,
+  mode,
   onPositionChange,
   onClose,
+  onEndCall,
+  onSelectDisposition,
 }: {
   position: CallPopunderPosition;
+  mode: CallPopunderMode;
   onPositionChange: (position: CallPopunderPosition) => void;
   onClose: () => void;
+  onEndCall: () => void;
+  onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const isDraggingRef = useRef(false);
@@ -281,14 +294,19 @@ function CallControlsPopunder({
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDraggingRef.current) return;
 
-      const width = 272;
-      const height = 196;
+      const height = mode === "controls" ? 228 : 284;
       const nextX = event.clientX - dragOffsetRef.current.x;
       const nextY = event.clientY - dragOffsetRef.current.y;
 
       onPositionChange({
-        x: Math.min(Math.max(16, nextX), window.innerWidth - width - 16),
-        y: Math.min(Math.max(16, nextY), window.innerHeight - height - 16),
+        x: Math.min(
+          Math.max(CALL_POPUNDER_MARGIN, nextX),
+          window.innerWidth - CALL_POPUNDER_WIDTH - CALL_POPUNDER_MARGIN,
+        ),
+        y: Math.min(
+          Math.max(CALL_POPUNDER_MARGIN, nextY),
+          window.innerHeight - height - CALL_POPUNDER_MARGIN,
+        ),
       });
     };
 
@@ -305,15 +323,15 @@ function CallControlsPopunder({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [onPositionChange]);
+  }, [mode, onPositionChange]);
 
   return (
     <div
-      className="fixed z-[70] w-[272px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed z-[70] w-[272px] overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{ left: position.x, top: position.y }}
     >
       <div
-        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing"
+        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
           const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
           if (!bounds) return;
@@ -326,33 +344,65 @@ function CallControlsPopunder({
           document.body.style.userSelect = "none";
         }}
       >
-        <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
-          <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
-          Active Call
+        <div className="flex items-center gap-3 text-[18px] font-medium text-[#333333]">
+          <GripHorizontal className="h-5 w-5 text-[#7A7A7A]" />
+          {mode === "controls" ? "Active Call" : "Disposition"}
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
           aria-label="Close call controls"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5" />
         </button>
       </div>
 
-      <div className="space-y-2 p-3">
-        <Button variant="outline" className="w-full justify-start gap-2 border-black/10 text-[#333333]">
-          <ArrowRightLeft className="h-4 w-4" />
-          Transfer
-        </Button>
-        <Button variant="outline" className="w-full justify-start gap-2 border-black/10 text-[#333333]">
-          <Pause className="h-4 w-4" />
-          Hold
-        </Button>
-        <Button variant="outline" className="w-full justify-start gap-2 border-[#F04438]/20 text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]">
-          <PhoneOff className="h-4 w-4" />
-          End Call
-        </Button>
+      <div className="space-y-3 p-4">
+        {mode === "controls" ? (
+          <>
+            <Button
+              variant="outline"
+              className="h-16 w-full justify-start gap-3 rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+            >
+              <ArrowRightLeft className="h-5 w-5" />
+              Transfer
+            </Button>
+            <Button
+              variant="outline"
+              className="h-16 w-full justify-start gap-3 rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+            >
+              <Pause className="h-5 w-5" />
+              Hold
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onEndCall}
+              className="h-16 w-full justify-start gap-3 rounded-2xl border-[#F04438]/20 px-5 text-[15px] font-normal text-[#F04438] shadow-none hover:bg-[#FFF5F5] hover:text-[#F04438]"
+            >
+              <PhoneOff className="h-5 w-5" />
+              End Call
+            </Button>
+          </>
+        ) : (
+          <>
+            <p className="px-1 text-sm leading-5 text-[#7A7A7A]">
+              Select a disposition to complete the call.
+            </p>
+            {CALL_DISPOSITION_OPTIONS.map((option) => (
+              <Button
+                key={option}
+                type="button"
+                variant="outline"
+                onClick={() => onSelectDisposition(option)}
+                className="h-14 w-full justify-start rounded-2xl border-black/10 px-5 text-[15px] font-normal text-[#333333] shadow-none hover:bg-[#F8F8F9]"
+              >
+                {option}
+              </Button>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -368,17 +418,52 @@ export default function Index() {
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
+  const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("controls");
+  const callButtonRef = useRef<HTMLButtonElement | null>(null);
   const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
     if (typeof window === "undefined") {
       return { x: 24, y: 24 };
     }
 
     return {
-      x: Math.max(window.innerWidth - 296, 16),
-      y: Math.max(window.innerHeight - 236, 16),
+      x: Math.max(window.innerWidth - (CALL_POPUNDER_WIDTH + 24), CALL_POPUNDER_MARGIN),
+      y: CALL_POPUNDER_MARGIN,
     };
   });
   const activeConversation = conversationsByChannel[activeChannel];
+
+  const getAnchoredCallPopunderPosition = (): CallPopunderPosition => {
+    if (typeof window === "undefined") {
+      return { x: 24, y: 24 };
+    }
+
+    const buttonBounds = callButtonRef.current?.getBoundingClientRect();
+    if (!buttonBounds) {
+      return {
+        x: Math.max(window.innerWidth - (CALL_POPUNDER_WIDTH + 24), CALL_POPUNDER_MARGIN),
+        y: CALL_POPUNDER_MARGIN,
+      };
+    }
+
+    return {
+      x: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, buttonBounds.right - CALL_POPUNDER_WIDTH),
+        window.innerWidth - CALL_POPUNDER_WIDTH - CALL_POPUNDER_MARGIN,
+      ),
+      y: Math.max(CALL_POPUNDER_MARGIN, buttonBounds.bottom + CALL_POPUNDER_GAP),
+    };
+  };
+
+  const openCallPopunder = () => {
+    setCallPopunderMode("controls");
+    setCallPopunderPosition(getAnchoredCallPopunderPosition());
+    setIsCallPopunderOpen(true);
+  };
+
+  const closeCallPopunder = () => {
+    setIsCallPopunderOpen(false);
+    setCallPopunderMode("controls");
+  };
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
@@ -432,12 +517,13 @@ export default function Index() {
           </div>
           <div className="flex items-center gap-2">
             <Button
+              ref={callButtonRef}
               variant="outline"
               size="sm"
               className="hidden sm:flex"
-              onClick={() => setIsCallPopunderOpen(true)}
+              onClick={openCallPopunder}
             >
-              <PhoneCall className="w-4 h-4 mr-2" /> Call
+              <PhoneCall className="mr-2 h-4 w-4" /> Call
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -565,8 +651,11 @@ export default function Index() {
       {isCallPopunderOpen && (
         <CallControlsPopunder
           position={callPopunderPosition}
+          mode={callPopunderMode}
           onPositionChange={setCallPopunderPosition}
-          onClose={() => setIsCallPopunderOpen(false)}
+          onClose={closeCallPopunder}
+          onEndCall={() => setCallPopunderMode("disposition")}
+          onSelectDisposition={() => closeCallPopunder()}
         />
       )}
 
