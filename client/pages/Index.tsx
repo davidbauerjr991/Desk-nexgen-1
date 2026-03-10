@@ -273,14 +273,14 @@ export default function Index() {
       <div className="flex min-w-0 flex-1 flex-col bg-card">
         
         {/* Customer Context Banner */}
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card/50">
-          <div className="flex items-center gap-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border bg-card/50 px-6 py-4">
+          <div className="flex min-w-0 flex-1 items-start gap-4">
             <Avatar className="h-12 w-12 ring-2 ring-background">
               <AvatarImage src="https://i.pravatar.cc/150?u=a04258114e29026702d" />
               <AvatarFallback>AK</AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">Alex Kowalski</h2>
                 <div className="flex items-center gap-1.5">
                   <ChannelToggleButton
@@ -305,9 +305,15 @@ export default function Index() {
                   />
                 </div>
               </div>
-              <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> alex.k@example.com</span>
-                <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Customer since 2021</span>
+              <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
+                <span className="flex min-w-0 items-start gap-1.5 leading-tight">
+                  <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                  <span className="break-words">alex.k@example.com</span>
+                </span>
+                <span className="flex items-start gap-1.5 leading-tight">
+                  <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Customer since 2021</span>
+                </span>
               </div>
             </div>
           </div>
