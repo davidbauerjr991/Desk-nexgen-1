@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 
-const TABS = ["Details", "Notes", "Accounts", "Tickets", "Directory"];
+const TABS = ["Details", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 
 export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
