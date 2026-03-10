@@ -707,11 +707,16 @@ function InfoPanel() {
       </div>
 
       <ScrollArea className="flex-1 px-4 py-4">
-        <img
-          src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F5619f86fa9f240eba2c5166c615ce474?format=webp&width=800&height=1200"
-          alt="Customer information"
-          className="w-full rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
-        />
+        <div className="relative">
+          <img
+            src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F5619f86fa9f240eba2c5166c615ce474?format=webp&width=800&height=1200"
+            alt="Customer overview"
+            className="w-full rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+          />
+          <div className="pointer-events-none absolute left-[4.5%] top-[5.25%] rounded-md bg-white/95 px-[2%] py-[1%] pr-[17%] text-[clamp(18px,3.4vw,22px)] font-semibold tracking-tight text-[#333333]">
+            Overview
+          </div>
+        </div>
       </ScrollArea>
     </div>
   );
