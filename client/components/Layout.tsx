@@ -197,21 +197,21 @@ function QueueOverlayList() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[16px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#0D5E8A]">
+                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#0D5E8A]">
                     {item.name}
                   </div>
-                  <div className="mt-1 truncate text-[14px] leading-5 text-[#6B6B6B]">
+                  <div className="mt-0.5 truncate text-[13px] leading-[18px] text-[#6B6B6B]">
                     {item.preview}
                   </div>
                 </div>
-                <span className="flex-shrink-0 pt-0.5 text-[14px] font-medium leading-5 text-[#6B6B6B]">
+                <span className="flex-shrink-0 pt-0.5 text-[12px] font-medium leading-[18px] text-[#6B6B6B]">
                   {item.time}
                 </span>
               </div>
 
-              <div className="mt-2.5">
+              <div className="mt-2">
                 <span
-                  className={`inline-flex rounded-full border px-3 py-0.5 text-[13px] font-medium ${item.sentimentClassName}`}
+                  className={`inline-flex rounded-full border px-3 py-0.5 text-[12px] font-medium ${item.sentimentClassName}`}
                 >
                   {item.sentiment}
                 </span>
