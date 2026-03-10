@@ -713,7 +713,8 @@ function InfoPanel() {
             alt="Customer overview"
             className="w-full rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
           />
-          <div className="pointer-events-none absolute left-[4.5%] top-[5.25%] rounded-md bg-white/95 px-[2%] py-[1%] pr-[17%] text-[clamp(18px,3.4vw,22px)] font-semibold tracking-tight text-[#333333]">
+          <div className="pointer-events-none absolute left-[3.5%] top-[3.75%] h-[11.5%] w-[60%] rounded-tl-xl bg-white" />
+          <div className="pointer-events-none absolute left-[5.2%] top-[5.4%] text-[clamp(18px,3.4vw,22px)] font-semibold tracking-tight text-[#333333]">
             Overview
           </div>
         </div>
