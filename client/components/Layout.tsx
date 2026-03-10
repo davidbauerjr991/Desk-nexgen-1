@@ -177,7 +177,7 @@ function QueueOverlayList() {
           >
             {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#1991D2]" />}
 
-            <div className="relative mt-0.5 flex-shrink-0">
+            <div className="relative mt-0.5 h-11 w-11 flex-shrink-0 self-start">
               <div
                 className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
                   item.isActive
