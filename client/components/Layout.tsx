@@ -97,18 +97,18 @@ export default function Layout({ children }: LayoutProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-8 items-center gap-2 rounded-full px-2.5 text-[#333333] transition-colors hover:bg-white/70 focus:outline-none"
+                className="flex h-10 items-center gap-3 rounded-xl bg-[#F3ECFF] px-4 text-[#333333] transition-colors hover:bg-[#EEE4FF] focus:outline-none"
               >
-                <span className={`h-2.5 w-2.5 rounded-full ${activeStatus.dotClassName}`} />
-                <span className="hidden text-xs font-semibold leading-none sm:inline">
+                <span className={`h-3.5 w-3.5 rounded-full ${activeStatus.dotClassName}`} />
+                <span className="hidden text-[17px] font-semibold leading-none tracking-[-0.02em] text-[#4F189F] sm:inline">
                   {activeStatus.label}
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
+                <ChevronDown className="h-4 w-4 text-[#666666]" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              sideOffset={10}
+              sideOffset={8}
               className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
             >
               <div className="space-y-1">
