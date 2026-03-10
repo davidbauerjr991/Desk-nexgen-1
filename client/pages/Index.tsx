@@ -732,6 +732,7 @@ export default function Index() {
     endCallStatus,
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
+  const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -783,6 +784,16 @@ export default function Index() {
     setCallPopunderMode(isCallActive ? "controls" : "setup");
   };
 
+  const handleChannelSelection = (channel: ChannelType) => {
+    if (channel === activeChannel) {
+      setIsConversationPanelOpen((current) => !current);
+      return;
+    }
+
+    setActiveChannel(channel);
+    setIsConversationPanelOpen(true);
+  };
+
   return (
     <div className="relative flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
@@ -798,22 +809,22 @@ export default function Index() {
                   <ChannelToggleButton
                     channel="chat"
                     activeChannel={activeChannel}
-                    onClick={() => setActiveChannel("chat")}
+                    onClick={() => handleChannelSelection("chat")}
                   />
                   <ChannelToggleButton
                     channel="sms"
                     activeChannel={activeChannel}
-                    onClick={() => setActiveChannel("sms")}
+                    onClick={() => handleChannelSelection("sms")}
                   />
                   <ChannelToggleButton
                     channel="whatsapp"
                     activeChannel={activeChannel}
-                    onClick={() => setActiveChannel("whatsapp")}
+                    onClick={() => handleChannelSelection("whatsapp")}
                   />
                   <ChannelToggleButton
                     channel="email"
                     activeChannel={activeChannel}
-                    onClick={() => setActiveChannel("email")}
+                    onClick={() => handleChannelSelection("email")}
                   />
                 </div>
               </div>
@@ -872,7 +883,14 @@ export default function Index() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
 
           {/* Conversation column */}
-          <div className="flex min-w-0 w-full flex-col min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:border-r min-[800px]:border-border">
+          <div
+            className={cn(
+              "min-w-0 flex-col overflow-hidden",
+              isConversationPanelOpen
+                ? "flex w-full min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:border-r min-[800px]:border-border"
+                : "hidden",
+            )}
+          >
             {/* Chat Transcript */}
             <ScrollArea className="flex-1 p-6">
               <div className="max-w-3xl mx-auto space-y-6">
@@ -954,7 +972,12 @@ export default function Index() {
           </div>
 
           {/* Customer Data tabs */}
-          <div className="hidden flex-1 min-w-0 overflow-hidden min-[800px]:flex">
+          <div
+            className={cn(
+              "flex-1 min-w-0 overflow-hidden",
+              isConversationPanelOpen ? "hidden min-[800px]:flex" : "flex",
+            )}
+          >
             <div className="flex-1 min-w-0 overflow-hidden">
               <NotesPanel />
             </div>
