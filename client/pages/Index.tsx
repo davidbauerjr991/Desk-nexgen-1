@@ -599,7 +599,7 @@ function CallControlsPopunder({
                     </div>
                     <p className="mt-3">Agent: Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.</p>
                     <p className="mt-2 text-[#7A7A7A]">
-                      Customer: I need help getting my subscription upgraded today.
+                      Customer: thanks - I just need to switch from Premium to Extended but they said I am not allowed to
                     </p>
                   </div>
                 )}
