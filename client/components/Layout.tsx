@@ -1292,7 +1292,7 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        <div className="hidden flex-1 justify-center min-[1100px]:flex">
+        <div className="flex min-w-0 flex-1 justify-center px-2">
           <WorkspaceTabs />
         </div>
 
