@@ -152,18 +152,13 @@ export default function RecentInteractionsPanel() {
   return (
     <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
-              Recent Interactions
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Switch context quickly without leaving the current customer view.
-            </p>
-          </div>
-          <div className="rounded-full bg-[#F3ECFF] px-2.5 py-1 text-[11px] font-semibold text-[#6E00FD]">
-            {interactions.length} recent
-          </div>
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
+            Recent Interactions
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Switch context quickly without leaving the current customer view.
+          </p>
         </div>
 
         <div className="relative mt-4">
