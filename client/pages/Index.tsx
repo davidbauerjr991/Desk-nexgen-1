@@ -815,29 +815,31 @@ export default function Index() {
                   />
                 </div>
               </div>
-              <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
-                <span className="flex min-w-0 items-start gap-1.5 leading-tight">
-                  <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="break-words">alex.k@example.com</span>
-                </span>
-                <span className="flex items-start gap-1.5 leading-tight">
-                  <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                  <span>Customer since 2021</span>
-                </span>
+              <div className="mt-1 flex flex-col gap-2 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    ref={callButtonRef}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-full border-black/10 px-3"
+                    onClick={openCallPopunder}
+                    disabled={isCallActive || !isAgentAvailable}
+                  >
+                    <PhoneCall className="mr-2 h-4 w-4" /> Call
+                  </Button>
+                  <span className="flex min-w-0 items-start gap-1.5 leading-tight">
+                    <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="break-words">alex.k@example.com</span>
+                  </span>
+                  <span className="flex items-start gap-1.5 leading-tight">
+                    <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Customer since 2021</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              ref={callButtonRef}
-              variant="outline"
-              size="sm"
-              className="hidden sm:flex"
-              onClick={openCallPopunder}
-              disabled={isCallActive || !isAgentAvailable}
-            >
-              <PhoneCall className="mr-2 h-4 w-4" /> Call
-            </Button>
             <button
               type="button"
               aria-label={isInteractionsOpen ? "Hide recent interactions" : "Show recent interactions"}
