@@ -210,7 +210,7 @@ export default function Layout({ children }: LayoutProps) {
               >
                 <span
                   aria-hidden="true"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(110,0,253,0.28)]"
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
                 >
                   JD
                 </span>
