@@ -92,8 +92,6 @@ export default function Layout({ children }: LayoutProps) {
             <Settings className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <div className="mx-1 hidden h-6 w-px bg-black/12 sm:block" />
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -126,8 +124,6 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <div className="mx-1 hidden h-6 w-px bg-black/12 sm:block" />
 
           <button
             type="button"
