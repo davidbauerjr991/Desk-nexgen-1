@@ -288,7 +288,7 @@ export default function RecentInteractionsPanel() {
   }, [activeFilter]);
 
   return (
-    <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
+    <div className="flex h-full min-w-full flex-col bg-[#F8F8F9] lg:min-w-[380px]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
         <div>
           <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
@@ -320,7 +320,7 @@ export default function RecentInteractionsPanel() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-4">
+      <ScrollArea className="flex-1 bg-[#F8F8F9] px-4 py-4">
         <div className="space-y-3 pb-2">
           {filteredInteractions.map((interaction) => (
             <InteractionRow key={interaction.id} interaction={interaction} />
