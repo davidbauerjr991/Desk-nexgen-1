@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  ArrowRightLeft,
   ArrowUpDown,
   Bell,
   Bot,
@@ -8,9 +9,14 @@ import {
   ClipboardList,
   GripHorizontal,
   MessageSquare,
+  Mic,
+  Pause,
   Phone,
+  PhoneOff,
   Plus,
   Search,
+  Sparkles,
+  Volume2,
   X,
 } from "lucide-react";
 
@@ -33,6 +39,8 @@ import {
 } from "@/components/ui/select";
 import CopilotPopunder from "@/components/CopilotPopunder";
 import WorkspaceTabs from "@/components/WorkspaceTabs";
+import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -51,11 +59,13 @@ interface LayoutContextValue {
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   selectedAssignment: QueuePreviewItem;
+  recentInteractions: RecentInteractionItem[];
   toggleInfo: () => void;
   toggleDesk: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  toggleCallPopunder: (anchorRect?: DOMRect | null) => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
 }
@@ -202,6 +212,400 @@ const queuePreviewItems: QueuePreviewItem[] = [
     updatedAt: "2026-03-11T10:00:00",
   },
 ];
+
+type CallPopunderPosition = {
+  x: number;
+  y: number;
+};
+
+type CallPopunderSize = {
+  width: number;
+  height: number;
+};
+
+type CallPopunderMode = "setup" | "controls" | "disposition";
+
+const CALL_POPUNDER_WIDTH = 272;
+const CALL_POPUNDER_MARGIN = 16;
+const CALL_POPUNDER_GAP = 12;
+const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+const assignmentCallDetails = {
+  alex: { customerId: "CST-10482" },
+  sarah: { customerId: "CST-10591" },
+  emily: { customerId: "CST-10814" },
+  david: { customerId: "CST-10363" },
+} as const;
+
+function formatRecentInteractionTimestamp(date: Date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const year = date.getFullYear().toString().slice(-2);
+  const hours = date.getHours();
+  const hours12 = hours % 12 || 12;
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
+  const meridiem = hours >= 12 ? "PM" : "AM";
+
+  return `${month}/${day}/${year} ${hours12}:${minutes} ${meridiem}`;
+}
+
+function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) {
+  if (disposition === "Resolved") return "bg-[#2CB770]";
+  if (disposition === "Escalated") return "bg-[#D0021B]";
+  return "bg-[#F59E0B]";
+}
+
+function CallControlsPopunder({
+  position,
+  size,
+  mode,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+  onLaunchCall,
+  onEndCall,
+  onSelectDisposition,
+}: {
+  position: CallPopunderPosition;
+  size: CallPopunderSize;
+  mode: CallPopunderMode;
+  onPositionChange: (position: CallPopunderPosition) => void;
+  onSizeChange: (size: CallPopunderSize) => void;
+  onClose: () => void;
+  onLaunchCall: () => void;
+  onEndCall: () => void;
+  onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
+}) {
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+  const [accountNumber, setAccountNumber] = useState("");
+  const [isTestingAudio, setIsTestingAudio] = useState(false);
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
+  const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
+
+  useEffect(() => {
+    if (mode !== "setup") {
+      setIsTestingAudio(false);
+      return;
+    }
+
+    if (!isTestingAudio) return;
+
+    const intervalId = window.setInterval(() => {
+      setAudioLevels({
+        mic: 20 + Math.round(Math.random() * 70),
+        speaker: 25 + Math.round(Math.random() * 65),
+      });
+    }, 350);
+
+    return () => window.clearInterval(intervalId);
+  }, [isTestingAudio, mode]);
+
+  useEffect(() => {
+    setIsTranscriptExpanded(mode === "controls");
+  }, [mode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
+    const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
+    const nextPosition = {
+      x: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, position.x),
+        window.innerWidth - width - CALL_POPUNDER_MARGIN,
+      ),
+      y: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, position.y),
+        window.innerHeight - height - CALL_POPUNDER_MARGIN,
+      ),
+    };
+
+    if (nextPosition.x !== position.x || nextPosition.y !== position.y) {
+      onPositionChange(nextPosition);
+    }
+  }, [mode, onPositionChange, position.x, position.y, size.height, size.width]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
+      const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
+
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(
+            Math.max(CALL_POPUNDER_MARGIN, nextX),
+            window.innerWidth - width - CALL_POPUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(CALL_POPUNDER_MARGIN, nextY),
+            window.innerHeight - height - CALL_POPUNDER_MARGIN,
+          ),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current || mode !== "controls") return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(320, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - CALL_POPUNDER_MARGIN,
+        ),
+        height: Math.min(
+          Math.max(360, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - CALL_POPUNDER_MARGIN,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [mode, onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+
+  return (
+    <div
+      className="fixed z-[70] flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: mode === "controls" ? size.width : CALL_POPUNDER_WIDTH,
+        height: mode === "controls" ? size.height : undefined,
+      }}
+    >
+      <div
+        className={cn(
+          "flex cursor-grab items-center border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing",
+          mode === "setup" ? "justify-between" : "justify-start",
+        )}
+        onMouseDown={(event) => {
+          const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+          if (!bounds) return;
+
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
+          <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
+          {mode === "setup" ? "Start Call" : mode === "controls" ? "Active Call" : "Disposition"}
+        </div>
+        {mode === "setup" && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close call controls"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      <div className={cn("space-y-2 p-3", mode === "controls" && "flex min-h-0 flex-1 flex-col")}>
+        {mode === "setup" ? (
+          <>
+            <div className="space-y-1">
+              <label htmlFor="call-account-number" className="text-xs font-medium text-[#333333]">
+                Account Number
+              </label>
+              <Input
+                id="call-account-number"
+                value={accountNumber}
+                onChange={(event) => setAccountNumber(event.target.value)}
+                placeholder="Enter account number"
+                className="h-9 border-black/10 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-black/10 bg-[#F8F8F9] p-3">
+              <div className="flex items-center justify-between gap-3 text-sm text-[#333333]">
+                <div className="flex items-center gap-2">
+                  <Mic className="h-4 w-4 text-[#7A7A7A]" />
+                  <span>Microphone volume</span>
+                </div>
+                <span className="text-xs text-[#7A7A7A]">{audioLevels.mic}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-1 text-sm text-[#333333]">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4 text-[#7A7A7A]" />
+                  <span>Speaker volume</span>
+                </div>
+                <span className="text-xs text-[#7A7A7A]">{audioLevels.speaker}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-black/10">
+                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsTestingAudio((current) => !current)}
+                className="mt-1 w-full justify-center border-black/10 text-[#333333]"
+              >
+                {isTestingAudio ? "Stop Test" : "Test Audio"}
+              </Button>
+            </div>
+
+            <Button
+              type="button"
+              onClick={onLaunchCall}
+              disabled={!accountNumber.trim()}
+              className="w-full bg-[#16A34A] text-white hover:bg-[#15803D]"
+            >
+              Launch Call
+            </Button>
+          </>
+        ) : mode === "controls" ? (
+          <>
+            <div className="flex flex-shrink-0 items-stretch gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                Transfer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+              >
+                <Pause className="h-4 w-4" />
+                Hold
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onEndCall}
+                className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+              >
+                <PhoneOff className="h-4 w-4" />
+                End Call
+              </Button>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              <div className="rounded-xl border border-[#D9CCFF] bg-[#FCFAFF] p-3">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI Guidance
+                </div>
+                <p className="mt-2 text-xs leading-5 text-[#333333]">
+                  Acknowledge the prior assistant handoff, confirm the beverage package upgrade request, and keep the customer from repeating details.
+                </p>
+                <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6B7280]">
+                  <li>• Pronunciation: Kowalski (“Koah-wall-skee”)</li>
+                  <li>• Confirm whether the customer needs the upgrade completed today.</li>
+                  <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
+                </ul>
+              </div>
+
+              <div className="rounded-xl border border-black/10 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setIsTranscriptExpanded((current) => !current)}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-[#333333]"
+                >
+                  <span>Transcript</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-[#7A7A7A] transition-transform",
+                      isTranscriptExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {isTranscriptExpanded && (
+                  <div className="border-t border-black/10 px-3 py-3 text-xs leading-5 text-[#333333]">
+                    <div className="rounded-lg border border-[#D7E7D4] bg-[#F4FAF2] px-3 py-2.5 text-[13px] leading-6 text-[#355E3B]">
+                      <p>Your call is connected. Please greet the customer and confirm the requested beverage package upgrade.</p>
+                      <p className="mt-2">
+                        Suggested opening: “Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.”
+                      </p>
+                    </div>
+                    <p className="mt-3">Agent: Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.</p>
+                    <p className="mt-2 text-[#7A7A7A]">
+                      Customer: thanks - I just need to switch from Premium to Extended but they said I am not allowed to
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xs leading-5 text-[#7A7A7A]">
+              Select a disposition to complete the call.
+            </p>
+            {CALL_DISPOSITION_OPTIONS.map((option) => (
+              <Button
+                key={option}
+                type="button"
+                variant="outline"
+                onClick={() => onSelectDisposition(option)}
+                className="w-full justify-start border-black/10 text-[#333333]"
+              >
+                {option}
+              </Button>
+            ))}
+          </>
+        )}
+      </div>
+
+      {mode === "controls" && (
+        <button
+          type="button"
+          aria-label="Resize call controls"
+          className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            isResizingRef.current = true;
+            resizeStartRef.current = {
+              mouseX: event.clientX,
+              mouseY: event.clientY,
+              width: size.width,
+              height: size.height,
+            };
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+        </button>
+      )}
+    </div>
+  );
+}
 
 const NiceLogoIcon = () => (
   <svg
@@ -720,6 +1124,20 @@ export default function Layout({ children }: LayoutProps) {
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
     () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
   );
+  const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
+  const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
+  const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
+  const [callPopunderSize, setCallPopunderSize] = useState<CallPopunderSize>({ width: 360, height: 520 });
+  const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
+    if (typeof window === "undefined") {
+      return { x: 24, y: 24 };
+    }
+
+    return {
+      x: Math.max(window.innerWidth - (CALL_POPUNDER_WIDTH + 24), CALL_POPUNDER_MARGIN),
+      y: CALL_POPUNDER_MARGIN,
+    };
+  });
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
@@ -743,6 +1161,29 @@ export default function Layout({ children }: LayoutProps) {
     () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
     [selectedAssignmentId],
   );
+  const selectedAssignmentCallDetail =
+    assignmentCallDetails[selectedAssignment.id as keyof typeof assignmentCallDetails] ?? assignmentCallDetails.alex;
+
+  const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
+    if (typeof window === "undefined") {
+      return { x: 24, y: 24 };
+    }
+
+    if (!anchorRect) {
+      return {
+        x: Math.max(window.innerWidth - (CALL_POPUNDER_WIDTH + 24), CALL_POPUNDER_MARGIN),
+        y: CALL_POPUNDER_MARGIN,
+      };
+    }
+
+    return {
+      x: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, anchorRect.right - CALL_POPUNDER_WIDTH),
+        window.innerWidth - CALL_POPUNDER_WIDTH - CALL_POPUNDER_MARGIN,
+      ),
+      y: Math.max(CALL_POPUNDER_MARGIN, anchorRect.bottom + CALL_POPUNDER_GAP),
+    };
+  };
 
   const getAnchoredAddNewPopunderPosition = () => {
     if (typeof window === "undefined") {
@@ -793,6 +1234,7 @@ export default function Layout({ children }: LayoutProps) {
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       selectedAssignment,
+      recentInteractions,
       toggleInfo: () => {
         setActiveRightPanel((current) =>
           current === "info" ? null : "info",
@@ -813,6 +1255,17 @@ export default function Layout({ children }: LayoutProps) {
         setSelectedAssignmentId(assignmentId);
         navigate("/activity");
       },
+      toggleCallPopunder: (anchorRect) => {
+        if (status !== "In a Call" && isCallPopunderOpen) {
+          setIsCallPopunderOpen(false);
+          setCallPopunderMode("setup");
+          return;
+        }
+
+        setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
+        setCallPopunderPosition(getAnchoredCallPopunderPosition(anchorRect));
+        setIsCallPopunderOpen(true);
+      },
       startCallStatus: () => {
         if (status !== "In a Call") {
           previousAgentStatusRef.current = status;
@@ -825,7 +1278,7 @@ export default function Layout({ children }: LayoutProps) {
         setStatusStartedAt(Date.now());
       },
     }),
-    [activeRightPanel, isAddNewPopoverOpen, navigate, selectedAssignment, status],
+    [activeRightPanel, isAddNewPopoverOpen, isCallPopunderOpen, navigate, recentInteractions, selectedAssignment, status],
   );
 
   return (
@@ -974,6 +1427,44 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </div>
+
+      {isCallPopunderOpen && (
+        <CallControlsPopunder
+          position={callPopunderPosition}
+          size={callPopunderSize}
+          mode={callPopunderMode}
+          onPositionChange={setCallPopunderPosition}
+          onSizeChange={setCallPopunderSize}
+          onClose={() => {
+            setIsCallPopunderOpen(false);
+            setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
+          }}
+          onLaunchCall={() => {
+            layoutContextValue.startCallStatus();
+            setCallPopunderMode("controls");
+          }}
+          onEndCall={() => setCallPopunderMode("disposition")}
+          onSelectDisposition={(disposition) => {
+            setRecentInteractions((current) => [
+              {
+                id: Date.now(),
+                direction: "outbound",
+                type: "voice",
+                createdAt: formatRecentInteractionTimestamp(new Date()),
+                status: disposition,
+                customerName: selectedAssignment.name,
+                customerId: selectedAssignmentCallDetail.customerId,
+                channel: "Outbound Voice - Agent Workspace",
+                statusColor: getDispositionStatusColor(disposition),
+              },
+              ...current,
+            ]);
+            layoutContextValue.endCallStatus();
+            setIsCallPopunderOpen(false);
+            setCallPopunderMode("setup");
+          }}
+        />
+      )}
 
       {isAddNewPopoverOpen && (
         <AddNewPopoverContent
