@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   Sparkles,
   Send,
@@ -694,6 +694,23 @@ function AddNewPanel() {
   );
 }
 
+function OverviewField({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div>
+      <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#333333]">
+        {label}
+      </div>
+      <div className="mt-1 text-[12px] leading-5 text-[#6B7280]">{value}</div>
+    </div>
+  );
+}
+
 function InfoPanel() {
   return (
     <div className="flex h-full min-w-full flex-col lg:min-w-[380px]">
@@ -707,15 +724,20 @@ function InfoPanel() {
       </div>
 
       <ScrollArea className="flex-1 px-4 py-4">
-        <div className="relative">
-          <img
-            src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F5619f86fa9f240eba2c5166c615ce474?format=webp&width=800&height=1200"
-            alt="Customer overview"
-            className="w-full rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
-          />
-          <div className="pointer-events-none absolute left-[3.5%] top-[3.75%] h-[11.5%] w-[60%] rounded-tl-xl bg-white" />
-          <div className="pointer-events-none absolute left-[5.2%] top-[5.4%] text-[clamp(18px,3.4vw,22px)] font-semibold tracking-tight text-[#333333]">
-            Overview
+        <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <div className="flex items-center justify-center border-b border-black/10 px-5 py-5">
+            <span className="text-sm font-semibold tracking-tight text-[#333333]">Overview</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-6">
+            <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
+            <OverviewField label="Contact #" value="2457" />
+            <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
+            <OverviewField label="Balance" value="$5,005.65" />
+            <OverviewField label="Address" value="1 SmartReach Rd" />
+            <OverviewField label="City" value="Buffalo" />
+            <OverviewField label="State" value="New York" />
+            <OverviewField label="Zip Code" value="14217" />
           </div>
         </div>
       </ScrollArea>
