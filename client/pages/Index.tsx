@@ -597,7 +597,7 @@ function CallControlsPopunder({
                         Suggested opening: “Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.”
                       </p>
                     </div>
-                    <p className="mt-3">Agent: Thank you for calling. I have your account open now.</p>
+                    <p className="mt-3">Agent: Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.</p>
                     <p className="mt-2 text-[#7A7A7A]">
                       Customer: I need help getting my subscription upgraded today.
                     </p>
