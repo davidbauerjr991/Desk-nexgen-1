@@ -754,7 +754,6 @@ export default function Index() {
     isInfoOpen,
     isDeskOpen,
     isInteractionsOpen,
-    isAddNewOpen,
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
@@ -1223,8 +1222,6 @@ export default function Index() {
 
               {isInteractionsOpen ? (
                 <RecentInteractionsPanel injectedInteractions={recentInteractions} />
-              ) : isAddNewOpen ? (
-                <AddNewPanel />
               ) : isInfoOpen ? (
                 <InfoPanel />
               ) : isDeskOpen ? (
