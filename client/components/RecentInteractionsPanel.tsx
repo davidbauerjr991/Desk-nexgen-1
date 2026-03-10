@@ -3,7 +3,6 @@ import {
   ArrowDown,
   ArrowUp,
   Bot,
-  ChevronDown,
   Mail,
   MoreVertical,
   MessageSquare,
@@ -279,62 +278,23 @@ function InteractionRow({
 
 export default function RecentInteractionsPanel() {
   const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email" | "voice" | "ai-agent">("all");
-  const [selectedScope, setSelectedScope] = useState<"Alex Kowalski" | "All Recent Interactions">("Alex Kowalski");
-  const [isScopeMenuOpen, setIsScopeMenuOpen] = useState(false);
 
   const filteredInteractions = useMemo(() => {
-    const scopedInteractions =
-      selectedScope === "All Recent Interactions"
-        ? allAgentInteractions
-        : alexInteractions;
-
     if (activeFilter === "all") {
-      return scopedInteractions;
+      return alexInteractions;
     }
 
-    return scopedInteractions.filter((interaction) => interaction.type === activeFilter);
-  }, [activeFilter, selectedScope]);
+    return alexInteractions.filter((interaction) => interaction.type === activeFilter);
+  }, [activeFilter]);
 
   return (
     <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsScopeMenuOpen((current) => !current)}
-            className="group text-left"
-          >
-            <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
-              <span>Recent Interactions</span>
-              <ChevronDown className={cn("h-4 w-4 text-[#7A7A7A] transition-transform", isScopeMenuOpen && "rotate-180")} />
-            </div>
-            <div className="mt-0.5 text-xs text-[#6B7280] transition-colors group-hover:text-[#333333]">
-              {selectedScope}
-            </div>
-          </button>
-
-          {isScopeMenuOpen && (
-            <div className="absolute left-0 top-full z-10 mt-2 w-52 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
-              {(["Alex Kowalski", "All Recent Interactions"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    setSelectedScope(option);
-                    setIsScopeMenuOpen(false);
-                  }}
-                  className={cn(
-                    "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                    selectedScope === option
-                      ? "bg-[#F3ECFF] text-[#6E00FD]"
-                      : "text-[#333333] hover:bg-[#F8F8F9]",
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          )}
+        <div>
+          <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
+            <span>Recent Interactions</span>
+          </div>
+          <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">

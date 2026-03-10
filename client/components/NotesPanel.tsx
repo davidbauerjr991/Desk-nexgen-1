@@ -155,7 +155,6 @@ export default function NotesPanel({ initialTab = "Details", notesOnly = false }
             <div className="border-b border-border bg-background/50 px-5 py-4">
               <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
                 <span>Notes</span>
-                <ChevronDown className="h-4 w-4 text-[#7A7A7A]" />
               </div>
               <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
             </div>
