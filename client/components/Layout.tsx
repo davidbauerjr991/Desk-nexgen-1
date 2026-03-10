@@ -18,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
@@ -226,49 +225,60 @@ function QueueOverlayList() {
 }
 
 function LeftQueueRail() {
-  return (
-    <aside className="hidden w-[56px] shrink-0 flex-col items-center py-3 min-[800px]:flex">
-      <div className="flex flex-col items-center gap-2.5 pt-1">
-        {queuePreviewItems.map((item) => {
-          const ItemIcon = item.icon;
+  const [isOpen, setIsOpen] = useState(false);
 
-          return (
-            <HoverCard key={item.id} openDelay={100} closeDelay={120}>
-              <HoverCardTrigger asChild>
-                <button
-                  type="button"
-                  className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
-                  aria-label={`${item.name} queue item`}
-                >
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
-                      item.isActive
-                        ? "bg-[#0D5E8A] text-white"
-                        : "border border-black/15 bg-white text-[#0D5E8A]"
-                    }`}
-                  >
-                    {item.initials}
-                  </span>
-                  <span
-                    className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
-                  >
-                    <ItemIcon className="h-3 w-3 text-white" />
-                  </span>
-                </button>
-              </HoverCardTrigger>
-              <HoverCardContent
-                side="right"
-                align="start"
-                sideOffset={16}
-                className="w-[490px] rounded-[20px] border border-black/10 bg-white p-0 shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
+  return (
+    <div
+      className="relative hidden min-[800px]:flex"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      {/* Rail icons */}
+      <aside className="flex w-[56px] shrink-0 flex-col items-center py-3">
+        <div className="flex flex-col items-center gap-2.5 pt-1">
+          {queuePreviewItems.map((item) => {
+            const ItemIcon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                aria-label={`${item.name} queue item`}
               >
-                <QueueOverlayList />
-              </HoverCardContent>
-            </HoverCard>
-          );
-        })}
+                <span
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                    item.isActive
+                      ? "bg-[#0D5E8A] text-white"
+                      : "border border-black/15 bg-white text-[#0D5E8A]"
+                  }`}
+                >
+                  {item.initials}
+                </span>
+                <span
+                  className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
+                >
+                  <ItemIcon className="h-3 w-3 text-white" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Slide-out overlay panel */}
+      <div
+        className={`absolute left-[56px] top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+          isOpen
+            ? "pointer-events-auto translate-x-0 opacity-100"
+            : "pointer-events-none -translate-x-3 opacity-0"
+        }`}
+      >
+        <div className="h-full w-[310px] overflow-y-auto rounded-r-2xl bg-white shadow-[4px_0_32px_rgba(0,0,0,0.14)]">
+          <QueueOverlayList />
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
