@@ -22,7 +22,7 @@ const insights = {
 
 export default function CopilotPopunder() {
   return (
-    <div className="overflow-hidden rounded-2xl bg-white">
+    <div className="flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden rounded-2xl bg-white">
       <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
         <Bot className="h-5 w-5 text-primary" />
         <div>
@@ -31,7 +31,7 @@ export default function CopilotPopunder() {
         </div>
       </div>
 
-      <ScrollArea className="h-[min(70vh,560px)] px-5 py-5">
+      <ScrollArea className="min-h-0 flex-1 px-5 py-5">
         <div className="space-y-6 pb-1">
           <Card className="border-border bg-background shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-4">

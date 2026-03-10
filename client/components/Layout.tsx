@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CopilotPopunder from "@/components/CopilotPopunder";
 import { toast } from "sonner";
 
@@ -214,12 +214,12 @@ function AddNewPopoverContent() {
   };
 
   return (
-    <div className="flex max-h-[min(720px,80vh)] w-[360px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+    <div className="flex max-h-[calc(100vh-5rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
         <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
       </div>
 
-      <ScrollArea className="flex-1 px-5 py-5">
+      <ScrollArea className="min-h-0 flex-1 px-5 py-5">
         <div className="space-y-5">
           <div className="space-y-2">
             <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
@@ -538,7 +538,7 @@ export default function Layout({ children }: LayoutProps) {
 
         <div className="flex-1" />
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        <div className="relative flex shrink-0 items-center gap-1 sm:gap-1.5">
           <div className="flex items-center gap-1.5">
             <div
               id="header-search-input"
@@ -576,6 +576,9 @@ export default function Layout({ children }: LayoutProps) {
           </HeaderIconButton>
 
           <Popover open={isAddNewPopoverOpen} onOpenChange={setIsAddNewPopoverOpen}>
+            <PopoverAnchor asChild>
+              <span className="pointer-events-none absolute right-0 top-0 h-full w-0" aria-hidden="true" />
+            </PopoverAnchor>
             <PopoverTrigger asChild>
               <div>
                 <HeaderIconButton
@@ -586,7 +589,12 @@ export default function Layout({ children }: LayoutProps) {
                 </HeaderIconButton>
               </div>
             </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={10} className="w-auto border-0 bg-transparent p-0 shadow-none">
+            <PopoverContent
+              align="end"
+              sideOffset={10}
+              collisionPadding={{ top: 16, right: 16, bottom: 16, left: 16 }}
+              className="w-auto border-0 bg-transparent p-0 shadow-none"
+            >
               <AddNewPopoverContent />
             </PopoverContent>
           </Popover>
@@ -600,6 +608,9 @@ export default function Layout({ children }: LayoutProps) {
           </HeaderIconButton>
 
           <Popover open={isCopilotPopoverOpen} onOpenChange={setIsCopilotPopoverOpen}>
+            <PopoverAnchor asChild>
+              <span className="pointer-events-none absolute right-0 top-0 h-full w-0" aria-hidden="true" />
+            </PopoverAnchor>
             <PopoverTrigger asChild>
               <div>
                 <HeaderIconButton
@@ -615,7 +626,8 @@ export default function Layout({ children }: LayoutProps) {
               align="end"
               side="bottom"
               sideOffset={10}
-              className="w-[360px] rounded-2xl border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+              collisionPadding={{ top: 16, right: 16, bottom: 16, left: 16 }}
+              className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
             >
               <CopilotPopunder />
             </PopoverContent>
