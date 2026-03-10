@@ -685,8 +685,44 @@ function AddNewPanel() {
   );
 }
 
+function DeskPanel() {
+  const tabs = ["Contacts (Active)", "Tickets", "Accounts"] as const;
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Contacts (Active)");
+
+  return (
+    <div className="flex h-full flex-col overflow-hidden bg-white">
+      <div className="border-b border-border bg-background/50 px-5 py-4">
+        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Desk</h3>
+      </div>
+
+      <div className="border-b border-border px-3">
+        <div className="flex items-center gap-1 overflow-x-auto py-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors",
+                activeTab === tab
+                  ? "bg-[#F3ECFF] text-[#6E00FD]"
+                  : "text-[#6B7280] hover:bg-[#F8F8F9] hover:text-[#333333]",
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 bg-white" />
+    </div>
+  );
+}
+
 export default function Index() {
   const {
+    isDeskOpen,
     isInteractionsOpen,
     isAddNewOpen,
     isRightPanelOpen,
@@ -1020,6 +1056,8 @@ export default function Index() {
             <RecentInteractionsPanel />
           ) : isAddNewOpen ? (
             <AddNewPanel />
+          ) : isDeskOpen ? (
+            <DeskPanel />
           ) : (
             <>
               <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">

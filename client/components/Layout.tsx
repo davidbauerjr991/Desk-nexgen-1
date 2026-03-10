@@ -6,10 +6,10 @@ import {
   ClipboardList,
   History,
   MessageSquare,
+  Monitor,
   Phone,
   Plus,
   Search,
-  Settings,
 } from "lucide-react";
 
 import {
@@ -24,16 +24,18 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "copilot" | "interactions" | "addNew" | null;
+type RightPanelView = "desk" | "copilot" | "interactions" | "addNew" | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
+  isDeskOpen: boolean;
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
   isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
+  toggleDesk: () => void;
   toggleCopilot: () => void;
   toggleInteractions: () => void;
   toggleAddNew: () => void;
@@ -304,7 +306,7 @@ function formatStatusDuration(totalSeconds: number) {
 
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
-  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("copilot");
+  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("desk");
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
@@ -328,11 +330,17 @@ export default function Layout({ children }: LayoutProps) {
     () => ({
       activeRightPanel,
       isRightPanelOpen: activeRightPanel !== null,
+      isDeskOpen: activeRightPanel === "desk",
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
       isAddNewOpen: activeRightPanel === "addNew",
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
+      toggleDesk: () => {
+        setActiveRightPanel((current) =>
+          current === "desk" ? null : "desk",
+        );
+      },
       toggleCopilot: () => {
         setActiveRightPanel((current) =>
           current === "copilot" ? null : "copilot",
@@ -403,8 +411,12 @@ export default function Layout({ children }: LayoutProps) {
             <Plus className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <HeaderIconButton ariaLabel="Settings">
-            <Settings className="h-4 w-4 stroke-[1.8]" />
+          <HeaderIconButton
+            ariaLabel={layoutContextValue.isDeskOpen ? "Hide desk panel" : "Show desk panel"}
+            onClick={layoutContextValue.toggleDesk}
+            isActive={layoutContextValue.isDeskOpen}
+          >
+            <Monitor className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
           <HeaderIconButton
