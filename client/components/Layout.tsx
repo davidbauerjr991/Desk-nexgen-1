@@ -594,7 +594,15 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </HeaderIconButton>
 
-          <Popover open={isAddNewPopoverOpen} onOpenChange={setIsAddNewPopoverOpen}>
+          <Popover
+            open={isAddNewPopoverOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                setIsCopilotPopoverOpen(false);
+              }
+              setIsAddNewPopoverOpen(open);
+            }}
+          >
             <PopoverAnchor asChild>
               <span className="pointer-events-none absolute right-0 top-0 h-full w-0" aria-hidden="true" />
             </PopoverAnchor>
