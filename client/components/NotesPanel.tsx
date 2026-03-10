@@ -3,7 +3,7 @@ import { ChevronUp, Eye, FileDown, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 
-const TABS = ["Notes", "Details", "Accounts", "Tickets", "Directory"];
+const TABS = ["Details", "Notes", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 
 const notes = [
