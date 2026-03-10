@@ -799,6 +799,22 @@ export default function Layout({ children }: LayoutProps) {
           <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] min-[800px]:inline">
             Agent Workspace Premium
           </span>
+          <nav className="hidden items-center gap-1 rounded-full border border-black/10 bg-white/80 p-1 min-[1100px]:flex">
+            {[
+              "Activity",
+              "Desk",
+              "Schedule",
+              "Settings",
+            ].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className="rounded-full px-3 py-1 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
         </div>
 
         <div className="flex-1" />
