@@ -214,7 +214,7 @@ function AddNewPopoverContent() {
   };
 
   return (
-    <div className="flex max-h-[calc(100vh-5rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
+    <div className="flex max-h-[calc(100vh-5rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
         <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
       </div>

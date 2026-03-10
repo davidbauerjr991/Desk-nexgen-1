@@ -98,7 +98,7 @@ export default function CopilotPopunder({
 
   return (
     <div
-      className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{
         left: position.x,
         top: position.y,
