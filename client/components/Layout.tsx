@@ -50,7 +50,7 @@ function HeaderIconButton({ children }: { children: React.ReactNode }) {
   return (
     <button
       type="button"
-      className="flex h-10 w-10 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white/70 hover:text-[#333333]"
+      className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white/70 hover:text-[#333333]"
     >
       {children}
     </button>
@@ -67,7 +67,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
-      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-black/10 px-4 py-2.5 sm:py-3">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-black/10 px-4">
         <div className="flex min-w-0 items-center gap-4">
           <NiceLogoIcon />
           <span className="truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333]">
@@ -75,50 +75,50 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           <HeaderIconButton>
             <div className="relative">
-              <Bell className="h-6 w-6 stroke-[1.8]" />
-              <span className="absolute right-[2px] top-[1px] h-2.5 w-2.5 rounded-full bg-[#6E00FD]" />
+              <Bell className="h-4 w-4 stroke-[1.8]" />
+              <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#6E00FD]" />
             </div>
           </HeaderIconButton>
 
           <HeaderIconButton>
-            <CircleHelp className="h-6 w-6 stroke-[1.8]" />
+            <CircleHelp className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
           <HeaderIconButton>
-            <Settings className="h-6 w-6 stroke-[1.8]" />
+            <Settings className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <div className="mx-1 hidden h-10 w-px bg-black/12 sm:block" />
+          <div className="mx-1 hidden h-6 w-px bg-black/12 sm:block" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-11 items-center gap-2 rounded-full px-3 text-[#333333] transition-colors hover:bg-white/70 focus:outline-none"
+                className="flex h-8 items-center gap-2 rounded-full px-2.5 text-[#333333] transition-colors hover:bg-white/70 focus:outline-none"
               >
-                <span className={`h-4 w-4 rounded-full ${activeStatus.dotClassName}`} />
-                <span className="hidden text-[18px] font-semibold leading-none sm:inline">
+                <span className={`h-2.5 w-2.5 rounded-full ${activeStatus.dotClassName}`} />
+                <span className="hidden text-xs font-semibold leading-none sm:inline">
                   {activeStatus.label}
                 </span>
-                <ChevronDown className="h-5 w-5 text-[#666666]" />
+                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              sideOffset={12}
-              className="w-[232px] rounded-2xl border border-black/10 bg-white p-3 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+              sideOffset={10}
+              className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
             >
               <div className="space-y-1">
                 {statusOptions.map((option) => (
                   <DropdownMenuItem
                     key={option.label}
                     onClick={() => setStatus(option.label)}
-                    className="flex items-center gap-4 rounded-xl px-4 py-3 text-[18px] font-normal text-[#333333] focus:bg-[#F8F8F9]"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
                   >
-                    <span className={`h-4 w-4 rounded-full ${option.dotClassName}`} />
+                    <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
                     <span>{option.label}</span>
                   </DropdownMenuItem>
                 ))}
@@ -126,11 +126,11 @@ export default function Layout({ children }: LayoutProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="mx-1 hidden h-10 w-px bg-black/12 sm:block" />
+          <div className="mx-1 hidden h-6 w-px bg-black/12 sm:block" />
 
           <button
             type="button"
-            className="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[20px] font-bold text-white shadow-[0_4px_10px_rgba(110,0,253,0.35)] transition-transform hover:scale-[1.02]"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[11px] font-bold text-white shadow-[0_3px_8px_rgba(110,0,253,0.28)] transition-transform hover:scale-[1.02]"
             aria-label="Agent profile"
           >
             JD
