@@ -171,18 +171,18 @@ function QueueOverlayList() {
         return (
           <div
             key={item.id}
-            className={`relative flex gap-3 border-b border-black/[0.08] px-4 py-3.5 last:border-b-0 ${
-              item.isActive ? "bg-[#EFF4F8]" : "bg-white"
+            className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
+              item.isActive ? "bg-[#EFF4F8]" : "bg-white hover:bg-[#F5F8FB]"
             }`}
           >
             {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#1991D2]" />}
 
             <div className="relative mt-0.5 h-11 w-11 flex-shrink-0 self-start">
               <div
-                className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors ${
                   item.isActive
                     ? "bg-[#0D5E8A] text-white"
-                    : "border border-black/15 bg-white text-[#0D5E8A]"
+                    : "border border-black/15 bg-white text-[#0D5E8A] group-hover:border-[#0D5E8A]/20 group-hover:bg-[#EAF3F8]"
                 }`}
               >
                 {item.initials}
@@ -197,7 +197,7 @@ function QueueOverlayList() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[16px] font-semibold leading-5 text-[#333333]">
+                  <div className="truncate text-[16px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#0D5E8A]">
                     {item.name}
                   </div>
                   <div className="mt-1 truncate text-[14px] leading-5 text-[#6B6B6B]">
