@@ -1292,19 +1292,30 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        <div className="flex min-w-0 flex-1 justify-start pl-2 lg:flex-none lg:justify-center lg:px-2">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 justify-start pl-2 lg:flex-none lg:justify-center lg:px-2",
+            isHeaderSearchOpen && "hidden",
+          )}
+        >
           <WorkspaceTabs />
         </div>
 
-        <div className="relative flex flex-none shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:min-w-0 lg:flex-1">
-          <div className="flex items-center gap-1.5">
+        <div
+          className={cn(
+            "relative flex flex-none shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:min-w-0 lg:flex-1",
+            isHeaderSearchOpen && "min-w-0 flex-1",
+          )}
+        >
+          <div className={cn("flex items-center gap-1.5", isHeaderSearchOpen && "min-w-0 flex-1") }>
             <div
               id="header-search-input"
-              className={`overflow-hidden transition-all duration-200 ease-out ${
+              className={cn(
+                "overflow-hidden transition-all duration-200 ease-out",
                 isHeaderSearchOpen
-                  ? "w-[220px] opacity-100 sm:w-[280px]"
-                  : "pointer-events-none w-0 opacity-0"
-              }`}
+                  ? "min-w-0 flex-1 opacity-100"
+                  : "pointer-events-none w-0 opacity-0",
+              )}
             >
               <Input
                 ref={headerSearchInputRef}
@@ -1312,7 +1323,7 @@ export default function Layout({ children }: LayoutProps) {
                 placeholder="Search workspace"
                 aria-label="Search workspace"
                 tabIndex={isHeaderSearchOpen ? 0 : -1}
-                className="h-9 rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#D9CCFF]"
+                className="h-9 w-full rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#D9CCFF]"
               />
             </div>
             <HeaderIconButton
@@ -1326,97 +1337,101 @@ export default function Layout({ children }: LayoutProps) {
             </HeaderIconButton>
           </div>
 
-          <HeaderIconButton>
-            <div className="relative">
-              <Bell className="h-4 w-4 stroke-[1.8]" />
-              <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#6E00FD]" />
-            </div>
-          </HeaderIconButton>
+          {!isHeaderSearchOpen && (
+            <>
+              <HeaderIconButton>
+                <div className="relative">
+                  <Bell className="h-4 w-4 stroke-[1.8]" />
+                  <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#6E00FD]" />
+                </div>
+              </HeaderIconButton>
 
-          <div ref={addNewButtonRef}>
-            <HeaderIconButton
-              ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
-              ariaExpanded={isAddNewPopoverOpen}
-              onClick={() => {
-                if (isAddNewPopoverOpen) {
-                  setIsAddNewPopoverOpen(false);
-                  return;
-                }
+                  <div ref={addNewButtonRef}>
+                <HeaderIconButton
+                  ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
+                  ariaExpanded={isAddNewPopoverOpen}
+                  onClick={() => {
+                    if (isAddNewPopoverOpen) {
+                      setIsAddNewPopoverOpen(false);
+                      return;
+                    }
 
-                setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
-                setIsCopilotPopoverOpen(false);
-                setIsAddNewPopoverOpen(true);
-              }}
-              isActive={isAddNewPopoverOpen}
-            >
-              <Plus className="h-4 w-4 stroke-[1.8]" />
-            </HeaderIconButton>
-          </div>
-
-          <div ref={copilotButtonRef}>
-            <HeaderIconButton
-              ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-              ariaExpanded={isCopilotPopoverOpen}
-              onClick={() => {
-                if (isCopilotPopoverOpen) {
-                  setIsCopilotPopoverOpen(false);
-                  return;
-                }
-
-                setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
-                setIsCopilotPopoverOpen(true);
-              }}
-              isActive={isCopilotPopoverOpen}
-            >
-              <Bot className="h-4 w-4 stroke-[1.8]" />
-            </HeaderIconButton>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
+                    setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
+                    setIsCopilotPopoverOpen(false);
+                    setIsAddNewPopoverOpen(true);
+                  }}
+                  isActive={isAddNewPopoverOpen}
                 >
-                  JD
-                </span>
-                <span className="hidden min-w-0 flex-col items-start sm:flex">
-                  <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
-                    {activeStatus.label}
-                  </span>
-                  <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
-                    {formatStatusDuration(elapsedSeconds)}
-                  </span>
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              sideOffset={8}
-              className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-            >
-              <div className="space-y-1">
-                {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
-                  <DropdownMenuItem
-                    key={option.label}
-                    onClick={() => {
-                      setStatus(option.label);
-                      setStatusStartedAt(Date.now());
-                    }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
-                    <span>{option.label}</span>
-                  </DropdownMenuItem>
-                ))}
+                  <Plus className="h-4 w-4 stroke-[1.8]" />
+                </HeaderIconButton>
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+                  <div ref={copilotButtonRef}>
+                <HeaderIconButton
+                  ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+                  ariaExpanded={isCopilotPopoverOpen}
+                  onClick={() => {
+                    if (isCopilotPopoverOpen) {
+                      setIsCopilotPopoverOpen(false);
+                      return;
+                    }
+
+                    setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+                    setIsCopilotPopoverOpen(true);
+                  }}
+                  isActive={isCopilotPopoverOpen}
+                >
+                  <Bot className="h-4 w-4 stroke-[1.8]" />
+                </HeaderIconButton>
+              </div>
+
+                  <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
+                    >
+                      JD
+                    </span>
+                    <span className="hidden min-w-0 flex-col items-start sm:flex">
+                      <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
+                        {activeStatus.label}
+                      </span>
+                      <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
+                        {formatStatusDuration(elapsedSeconds)}
+                      </span>
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                >
+                  <div className="space-y-1">
+                    {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
+                      <DropdownMenuItem
+                        key={option.label}
+                        onClick={() => {
+                          setStatus(option.label);
+                          setStatusStartedAt(Date.now());
+                        }}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
+                      >
+                        <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
+                        <span>{option.label}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
         </div>
       </header>
