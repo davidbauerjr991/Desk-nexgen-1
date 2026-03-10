@@ -85,63 +85,68 @@ function NoteItem({ note }: { note: (typeof notes)[0] }) {
 
 interface NotesPanelProps {
   initialTab?: string;
+  notesOnly?: boolean;
 }
 
-export default function NotesPanel({ initialTab = "Details" }: NotesPanelProps) {
-  const [activeTab, setActiveTab] = useState(initialTab);
+export default function NotesPanel({ initialTab = "Details", notesOnly = false }: NotesPanelProps) {
+  const [activeTab, setActiveTab] = useState(notesOnly ? "Notes" : initialTab);
   const [showMoreTabs, setShowMoreTabs] = useState(false);
 
   useEffect(() => {
-    setActiveTab(initialTab);
-  }, [initialTab]);
+    setActiveTab(notesOnly ? "Notes" : initialTab);
+  }, [initialTab, notesOnly]);
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* Tab bar */}
-      <div className="flex items-center border-b border-[rgba(0,0,0,0.1)] px-1 shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "relative px-3 py-2.5 text-xs font-medium transition-colors whitespace-nowrap",
-              activeTab === tab
-                ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#6E00FD] after:rounded-t"
-                : "text-[#6B7280] hover:text-[#333]",
-            )}
-          >
-            {tab}
-          </button>
-        ))}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setShowMoreTabs((v) => !v)}
-            className="flex items-center gap-0.5 px-3 py-2.5 text-xs font-medium text-[#6B7280] hover:text-[#333] whitespace-nowrap"
-          >
-            5 More
-            <ChevronDown className="h-3 w-3" />
-          </button>
-          {showMoreTabs && (
-            <div className="absolute left-0 top-full z-10 mt-1 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg">
-              {EXTRA_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => {
-                    setActiveTab(tab);
-                    setShowMoreTabs(false);
-                  }}
-                  className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
-                >
-                  {tab}
-                </button>
-              ))}
+      {!notesOnly && (
+        <>
+          {/* Tab bar */}
+          <div className="flex items-center border-b border-[rgba(0,0,0,0.1)] px-1 shrink-0">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={cn(
+                  "relative px-3 py-2.5 text-xs font-medium transition-colors whitespace-nowrap",
+                  activeTab === tab
+                    ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#6E00FD] after:rounded-t"
+                    : "text-[#6B7280] hover:text-[#333]",
+                )}
+              >
+                {tab}
+              </button>
+            ))}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowMoreTabs((v) => !v)}
+                className="flex items-center gap-0.5 px-3 py-2.5 text-xs font-medium text-[#6B7280] hover:text-[#333] whitespace-nowrap"
+              >
+                5 More
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {showMoreTabs && (
+                <div className="absolute left-0 top-full z-10 mt-1 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg">
+                  {EXTRA_TABS.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(tab);
+                        setShowMoreTabs(false);
+                      }}
+                      className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Notes content */}
       {activeTab === "Notes" && (

@@ -673,7 +673,7 @@ function AddNewPanel() {
 }
 
 function DeskPanel() {
-  return <NotesPanel initialTab="Notes" />;
+  return <NotesPanel notesOnly />;
 }
 
 export default function Index() {
