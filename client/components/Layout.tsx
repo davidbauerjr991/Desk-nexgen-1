@@ -359,7 +359,7 @@ function AddNewPopoverContent({
               <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E00FD]/30 focus:ring-offset-0 focus:border-[#6E00FD]">
                 <SelectValue placeholder="Select item type" />
               </SelectTrigger>
-              <SelectContent className="rounded border border-[#E5E7EB] bg-white">
+              <SelectContent className="z-[80] rounded border border-[#E5E7EB] bg-white">
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="account">Account</SelectItem>
                 <SelectItem value="ticket">Ticket</SelectItem>
