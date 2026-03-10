@@ -792,7 +792,7 @@ export default function Index() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">Alex Kowalski</h2>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <ChannelToggleButton
                     channel="chat"
                     activeChannel={isConversationPanelOpen ? activeChannel : null}
@@ -813,10 +813,6 @@ export default function Index() {
                     activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("email")}
                   />
-                </div>
-              </div>
-              <div className="mt-1 flex flex-col gap-2 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
-                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     ref={callButtonRef}
                     variant="outline"
@@ -827,6 +823,10 @@ export default function Index() {
                   >
                     <PhoneCall className="mr-2 h-4 w-4" /> Call
                   </Button>
+                </div>
+              </div>
+              <div className="mt-1 flex flex-col gap-2 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="flex min-w-0 items-start gap-1.5 leading-tight">
                     <Mail className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
                     <span className="break-words">alex.k@example.com</span>
