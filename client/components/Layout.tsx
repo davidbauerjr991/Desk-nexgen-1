@@ -1301,19 +1301,19 @@ export default function Layout({ children }: LayoutProps) {
           <WorkspaceTabs />
         </div>
 
-        <div
-          className={cn(
-            "relative flex flex-none shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:min-w-0 lg:flex-1",
-            isHeaderSearchOpen && "min-w-0 flex-1",
-          )}
-        >
-          <div className={cn("flex items-center gap-1.5", isHeaderSearchOpen && "min-w-0 flex-1") }>
+        <div className="relative flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5">
+          <div
+            className={cn(
+              "flex items-center gap-1.5",
+              isHeaderSearchOpen && "mx-auto min-w-0 flex-1 justify-center",
+            )}
+          >
             <div
               id="header-search-input"
               className={cn(
                 "overflow-hidden transition-all duration-200 ease-out",
                 isHeaderSearchOpen
-                  ? "min-w-0 flex-1 opacity-100"
+                  ? "w-full max-w-[640px] opacity-100"
                   : "pointer-events-none w-0 opacity-0",
               )}
             >
@@ -1346,7 +1346,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </HeaderIconButton>
 
-                  <div ref={addNewButtonRef}>
+              <div ref={addNewButtonRef}>
                 <HeaderIconButton
                   ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
                   ariaExpanded={isAddNewPopoverOpen}
@@ -1366,7 +1366,7 @@ export default function Layout({ children }: LayoutProps) {
                 </HeaderIconButton>
               </div>
 
-                  <div ref={copilotButtonRef}>
+              <div ref={copilotButtonRef}>
                 <HeaderIconButton
                   ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
                   ariaExpanded={isCopilotPopoverOpen}
@@ -1384,54 +1384,54 @@ export default function Layout({ children }: LayoutProps) {
                   <Bot className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
               </div>
-
-                  <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
-                    >
-                      JD
-                    </span>
-                    <span className="hidden min-w-0 flex-col items-start sm:flex">
-                      <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
-                        {activeStatus.label}
-                      </span>
-                      <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
-                        {formatStatusDuration(elapsedSeconds)}
-                      </span>
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  sideOffset={8}
-                  className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                >
-                  <div className="space-y-1">
-                    {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
-                      <DropdownMenuItem
-                        key={option.label}
-                        onClick={() => {
-                          setStatus(option.label);
-                          setStatusStartedAt(Date.now());
-                        }}
-                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
-                      >
-                        <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
-                        <span>{option.label}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </>
           )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
+                >
+                  JD
+                </span>
+                <span className="hidden min-w-0 flex-col items-start sm:flex">
+                  <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
+                    {activeStatus.label}
+                  </span>
+                  <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
+                    {formatStatusDuration(elapsedSeconds)}
+                  </span>
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              sideOffset={8}
+              className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+            >
+              <div className="space-y-1">
+                {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
+                  <DropdownMenuItem
+                    key={option.label}
+                    onClick={() => {
+                      setStatus(option.label);
+                      setStatusStartedAt(Date.now());
+                    }}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
+                    <span>{option.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
         </div>
       </header>
