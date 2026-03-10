@@ -321,7 +321,7 @@ function HeaderIconButton({
 
 function QueueOverlayList() {
   return (
-    <div className="min-h-full overflow-hidden bg-[#F3ECFF]">
+    <div className="min-h-full overflow-hidden bg-white">
       {queuePreviewItems.map((item) => {
         const ItemIcon = item.icon;
 
@@ -329,17 +329,17 @@ function QueueOverlayList() {
           <div
             key={item.id}
             className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
-              item.isActive ? "bg-[#EFF4F8]" : "bg-white hover:bg-[#F5F8FB]"
+              item.isActive ? "bg-[#F3ECFF]" : "bg-white hover:bg-[#FCFAFF]"
             }`}
           >
-            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#1991D2]" />}
+            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#6E00FD]" />}
 
             <div className="relative mt-0.5 h-11 w-11 flex-shrink-0 self-start">
               <div
                 className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors ${
                   item.isActive
-                    ? "bg-[#0D5E8A] text-white"
-                    : "border border-black/15 bg-white text-[#0D5E8A] group-hover:border-[#0D5E8A]/20 group-hover:bg-[#EAF3F8]"
+                    ? "bg-[#6E00FD] text-white"
+                    : "border border-black/15 bg-white text-[#6E00FD] group-hover:border-[#6E00FD]/20 group-hover:bg-[#F3ECFF]"
                 }`}
               >
                 {item.initials}
@@ -354,7 +354,7 @@ function QueueOverlayList() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#0D5E8A]">
+                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#6E00FD]">
                     {item.name}
                   </div>
                   <div className="mt-0.5 truncate text-[13px] leading-[18px] text-[#6B6B6B]">
@@ -432,7 +432,7 @@ function LeftQueueRail() {
               : "pointer-events-none -translate-x-3 opacity-0"
           }`}
         >
-          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-[#F3ECFF] shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
             <QueueOverlayList />
           </div>
         </div>
