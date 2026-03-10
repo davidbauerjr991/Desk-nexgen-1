@@ -42,6 +42,7 @@ interface LayoutContextValue {
   isDeskOpen: boolean;
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
+  isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   toggleDesk: () => void;
@@ -289,11 +290,15 @@ function HeaderIconButton({
   children,
   onClick,
   ariaLabel,
+  ariaExpanded,
+  ariaControls,
   isActive = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   ariaLabel?: string;
+  ariaExpanded?: boolean;
+  ariaControls?: string;
   isActive?: boolean;
 }) {
   return (
@@ -301,6 +306,8 @@ function HeaderIconButton({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
+      aria-expanded={ariaExpanded}
+      aria-controls={ariaControls}
       aria-pressed={isActive}
       className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
         isActive
@@ -455,9 +462,11 @@ export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("desk");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
+  const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
+  const headerSearchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setElapsedSeconds(0);
@@ -474,6 +483,12 @@ export default function Layout({ children }: LayoutProps) {
     [status],
   );
 
+  useEffect(() => {
+    if (isHeaderSearchOpen) {
+      headerSearchInputRef.current?.focus();
+    }
+  }, [isHeaderSearchOpen]);
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -481,6 +496,7 @@ export default function Layout({ children }: LayoutProps) {
       isDeskOpen: activeRightPanel === "desk",
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
+      isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       toggleDesk: () => {
@@ -511,7 +527,7 @@ export default function Layout({ children }: LayoutProps) {
         setStatusStartedAt(Date.now());
       },
     }),
-    [activeRightPanel, status],
+    [activeRightPanel, isAddNewPopoverOpen, status],
   );
 
   return (
@@ -525,19 +541,38 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        <div className="flex min-w-0 flex-1 justify-center">
-          <div className="relative w-full max-w-[420px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A7A7A]" />
-            <Input
-              type="search"
-              placeholder="Omni-search"
-              aria-label="Omni-search"
-              className="h-9 rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:ring-1 focus-visible:ring-[#D9CCFF] focus-visible:ring-offset-0"
-            />
-          </div>
-        </div>
+        <div className="flex-1" />
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <div
+              id="header-search-input"
+              className={`overflow-hidden transition-all duration-200 ease-out ${
+                isHeaderSearchOpen
+                  ? "w-[220px] opacity-100 sm:w-[280px]"
+                  : "pointer-events-none w-0 opacity-0"
+              }`}
+            >
+              <Input
+                ref={headerSearchInputRef}
+                type="search"
+                placeholder="Search workspace"
+                aria-label="Search workspace"
+                tabIndex={isHeaderSearchOpen ? 0 : -1}
+                className="h-9 rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:ring-1 focus-visible:ring-[#D9CCFF] focus-visible:ring-offset-0"
+              />
+            </div>
+            <HeaderIconButton
+              ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
+              ariaExpanded={isHeaderSearchOpen}
+              ariaControls="header-search-input"
+              onClick={() => setIsHeaderSearchOpen((current) => !current)}
+              isActive={isHeaderSearchOpen}
+            >
+              <Search className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
+
           <HeaderIconButton>
             <div className="relative">
               <Bell className="h-4 w-4 stroke-[1.8]" />
