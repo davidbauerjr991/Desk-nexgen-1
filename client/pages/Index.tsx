@@ -347,7 +347,7 @@ export default function Index() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
 
           {/* Conversation column */}
-          <div className="flex w-[420px] flex-shrink-0 flex-col border-r border-border">
+          <div className="flex min-w-0 w-full flex-col min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:border-r min-[800px]:border-border">
             {/* Chat Transcript */}
             <ScrollArea className="flex-1 p-6">
               <div className="max-w-3xl mx-auto space-y-6">
@@ -439,14 +439,14 @@ export default function Index() {
       </div>
 
       {isMobileDetailsOpen && (
-        <div className="absolute inset-0 z-40 min-[800px]:hidden">
+        <div className="absolute inset-0 z-40 animate-in fade-in-0 duration-200 min-[800px]:hidden">
           <button
             type="button"
             aria-label="Close customer details overlay"
             onClick={() => setIsMobileDetailsOpen(false)}
-            className="absolute inset-0 bg-black/20"
+            className="absolute inset-0 bg-black/20 animate-in fade-in-0 duration-200"
           />
-          <div className="absolute inset-x-4 top-4 bottom-4 flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
+          <div className="absolute inset-x-4 top-4 bottom-4 flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <div>
                 <h3 className="text-sm font-semibold text-[#333333]">Customer Details</h3>
