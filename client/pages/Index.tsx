@@ -592,12 +592,17 @@ function AddNewPanel() {
   const [formValues, setFormValues] = useState<Record<string, string>>({});
 
   const fields = addNewFieldConfig[selectedType];
+  const isSaveDisabled = fields.some((field) => !(formValues[field.key] ?? "").trim());
 
   const clearForm = () => {
     setFormValues({});
   };
 
   const handleSave = () => {
+    if (isSaveDisabled) {
+      return;
+    }
+
     clearForm();
     toast.success("Customer Saved Successfully", {
       action: {
@@ -667,7 +672,12 @@ function AddNewPanel() {
         <Button type="button" variant="outline" className="rounded-xl" onClick={clearForm}>
           Cancel
         </Button>
-        <Button type="button" className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1]" onClick={handleSave}>
+        <Button
+          type="button"
+          className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1] disabled:bg-[#D9CCFF] disabled:text-white"
+          onClick={handleSave}
+          disabled={isSaveDisabled}
+        >
           Save
         </Button>
       </div>
