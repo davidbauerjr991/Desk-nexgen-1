@@ -151,28 +151,37 @@ export default function NotesPanel({ initialTab = "Details", notesOnly = false }
       {/* Notes content */}
       {activeTab === "Notes" && (
         <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Notes header */}
-          <div className="flex items-center justify-between border-b border-[rgba(0,0,0,0.08)] px-4 py-2.5 shrink-0">
-            <span className="text-xs font-semibold text-[#333]">
-              Latest Notes
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="text-[#6B7280] hover:text-[#333] transition-colors"
-                aria-label="Export notes"
-              >
-                <FileDown className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="text-[#6B7280] hover:text-[#333] transition-colors"
-                aria-label="View notes"
-              >
-                <Eye className="h-4 w-4" />
-              </button>
+          {notesOnly ? (
+            <div className="border-b border-border bg-background/50 px-5 py-4">
+              <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
+                <span>Notes</span>
+                <ChevronDown className="h-4 w-4 text-[#7A7A7A]" />
+              </div>
+              <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between border-b border-[rgba(0,0,0,0.08)] px-4 py-2.5 shrink-0">
+              <span className="text-xs font-semibold text-[#333]">
+                Latest Notes
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="text-[#6B7280] hover:text-[#333] transition-colors"
+                  aria-label="Export notes"
+                >
+                  <FileDown className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="text-[#6B7280] hover:text-[#333] transition-colors"
+                  aria-label="View notes"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Notes list */}
           <div className="flex-1 overflow-y-auto">
