@@ -4,6 +4,7 @@ import {
   Bot,
   ChevronDown,
   CircleHelp,
+  History,
   Settings,
 } from "lucide-react";
 
@@ -18,9 +19,16 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
+type RightPanelView = "copilot" | "interactions" | null;
+
 interface LayoutContextValue {
+  activeRightPanel: RightPanelView;
+  isRightPanelOpen: boolean;
   isCopilotOpen: boolean;
+  isInteractionsOpen: boolean;
   toggleCopilot: () => void;
+  toggleInteractions: () => void;
+  closeRightPanel: () => void;
 }
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
@@ -95,7 +103,7 @@ function HeaderIconButton({
 
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
-  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("copilot");
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -104,10 +112,23 @@ export default function Layout({ children }: LayoutProps) {
 
   const layoutContextValue = useMemo(
     () => ({
-      isCopilotOpen,
-      toggleCopilot: () => setIsCopilotOpen((current) => !current),
+      activeRightPanel,
+      isRightPanelOpen: activeRightPanel !== null,
+      isCopilotOpen: activeRightPanel === "copilot",
+      isInteractionsOpen: activeRightPanel === "interactions",
+      toggleCopilot: () => {
+        setActiveRightPanel((current) =>
+          current === "copilot" ? null : "copilot",
+        );
+      },
+      toggleInteractions: () => {
+        setActiveRightPanel((current) =>
+          current === "interactions" ? null : "interactions",
+        );
+      },
+      closeRightPanel: () => setActiveRightPanel(null),
     }),
-    [isCopilotOpen],
+    [activeRightPanel],
   );
 
   return (
@@ -138,9 +159,17 @@ export default function Layout({ children }: LayoutProps) {
           </HeaderIconButton>
 
           <HeaderIconButton
-            ariaLabel={isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-            onClick={() => setIsCopilotOpen((current) => !current)}
-            isActive={isCopilotOpen}
+            ariaLabel={layoutContextValue.isInteractionsOpen ? "Hide recent interactions" : "Show recent interactions"}
+            onClick={layoutContextValue.toggleInteractions}
+            isActive={layoutContextValue.isInteractionsOpen}
+          >
+            <History className="h-4 w-4 stroke-[1.8]" />
+          </HeaderIconButton>
+
+          <HeaderIconButton
+            ariaLabel={layoutContextValue.isCopilotOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+            onClick={layoutContextValue.toggleCopilot}
+            isActive={layoutContextValue.isCopilotOpen}
           >
             <Bot className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>

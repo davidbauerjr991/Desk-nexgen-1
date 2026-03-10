@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
 import NotesPanel from "@/components/NotesPanel";
+import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 
 const messages = [
   {
@@ -55,7 +56,12 @@ const insights = {
 };
 
 export default function Index() {
-  const { isCopilotOpen, toggleCopilot } = useLayoutContext();
+  const {
+    isCopilotOpen,
+    isInteractionsOpen,
+    isRightPanelOpen,
+    closeRightPanel,
+  } = useLayoutContext();
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
@@ -184,11 +190,11 @@ export default function Index() {
 
       <button
         type="button"
-        aria-label="Close NexAgent Copilot"
-        onClick={toggleCopilot}
+        aria-label="Close right panel"
+        onClick={closeRightPanel}
         className={cn(
           "absolute inset-0 z-20 bg-black/20 transition-opacity duration-300 lg:hidden",
-          isCopilotOpen ? "opacity-100" : "pointer-events-none opacity-0",
+          isRightPanelOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
 
@@ -196,25 +202,29 @@ export default function Index() {
       <div
         className={cn(
           "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:w-[380px] lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[max-width,opacity,border-color]",
-          isCopilotOpen
+          isRightPanelOpen
             ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:max-w-[380px]"
             : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:max-w-0 lg:translate-x-0",
         )}
-        aria-hidden={!isCopilotOpen}
+        aria-hidden={!isRightPanelOpen}
       >
         <div
           className={cn(
             "flex h-full min-w-full flex-col transition-transform duration-300 ease-out lg:min-w-[380px] lg:transition-opacity",
-            isCopilotOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0 lg:translate-x-0",
+            isRightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0 lg:translate-x-0",
           )}
         >
-          <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
-            <Bot className="w-5 h-5 text-primary" />
-            <h3 className="text-sm font-semibold tracking-tight">NexAgent Copilot</h3>
-          </div>
+          {isInteractionsOpen ? (
+            <RecentInteractionsPanel />
+          ) : (
+            <>
+              <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
+                <Bot className="w-5 h-5 text-primary" />
+                <h3 className="text-sm font-semibold tracking-tight">NexAgent Copilot</h3>
+              </div>
 
-          <ScrollArea className="flex-1 p-5">
-            <div className="space-y-6">
+              <ScrollArea className="flex-1 p-5">
+                <div className="space-y-6">
             
             {/* Live Context Card */}
             <Card className="border-border shadow-sm bg-background">
@@ -328,8 +338,10 @@ export default function Index() {
               </ul>
             </div>
 
-          </div>
-          </ScrollArea>
+                </div>
+              </ScrollArea>
+            </>
+          )}
         </div>
       </div>
 
