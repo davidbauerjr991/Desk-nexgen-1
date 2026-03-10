@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronUp, Eye, FileDown, ChevronDown } from "lucide-react";
+import { Eye, FileDown, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 
@@ -11,74 +11,66 @@ export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
 const notes = [
   {
     id: 1,
-    author: "John Smith",
-    date: "03/22/2024 02:12:11 PM",
-    preview:
-      "It is a long established fact that a reader will be distracted by the readable content...",
-    full: "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
+    agentName: "John Smith",
+    agentId: "AGT-10482",
+    createdAt: "03/22/2024 02:12:11 PM",
+    body: "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
   },
   {
     id: 2,
-    author: "Patrick Johnson",
-    date: "03/22/2024 02:12:11 PM",
-    preview:
-      "Customer is requesting a mortgage but having issues with the online portal...",
-    full: "Customer is requesting a mortgage but having issues with the online portal. Transferred to the mortgage team.",
+    agentName: "Patrick Johnson",
+    agentId: "AGT-11247",
+    createdAt: "03/22/2024 02:12:11 PM",
+    body: "Customer is requesting a mortgage but having issues with the online portal. Transferred to the mortgage team.",
   },
   {
     id: 3,
-    author: "Alex Bogush",
-    date: "03/22/2024 02:12:11 PM",
-    preview:
-      "I have to say this customer is really angry - I think we sho...",
-    full: "I have to say this customer is really angry - I think we should escalate this case immediately.",
+    agentName: "Alex Bogush",
+    agentId: "AGT-11803",
+    createdAt: "03/22/2024 02:12:11 PM",
+    body: "I have to say this customer is really angry - I think we should escalate this case immediately.",
   },
   {
     id: 4,
-    author: "Alex Bogush",
-    date: "03/22/2024 02:12:11 PM",
-    preview:
-      "Talked to them again and I think we are good-to-go. Setti...",
-    full: "Talked to them again and I think we are good-to-go. Setting up a follow-up call for next week.",
+    agentName: "Alex Bogush",
+    agentId: "AGT-11803",
+    createdAt: "03/22/2024 02:12:11 PM",
+    body: "Talked to them again and I think we are good-to-go. Setting up a follow-up call for next week.",
   },
   {
     id: 5,
-    author: "Patrick Johnson",
-    date: "03/22/2024 02:12:11 PM",
-    preview:
-      "Set up a payment plan, the customer is happy and will n...",
-    full: "Set up a payment plan, the customer is happy and will not churn. Case resolved.",
+    agentName: "Patrick Johnson",
+    agentId: "AGT-11247",
+    createdAt: "03/22/2024 02:12:11 PM",
+    body: "Set up a payment plan, the customer is happy and will not churn. Case resolved.",
   },
 ];
 
 function NoteItem({ note }: { note: (typeof notes)[0] }) {
-  const [expanded, setExpanded] = useState(false);
+  const initials = note.agentName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="border-b border-[rgba(0,0,0,0.08)] px-4 py-3">
-      <button
-        type="button"
-        className="flex w-full items-start justify-between gap-2 text-left"
-        onClick={() => setExpanded((v) => !v)}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-xs font-semibold text-[#333]">
-              {note.author}
-            </span>
-            <span className="text-[10px] text-[#9CA3AF]">{note.date}</span>
-          </div>
-          <p className="mt-0.5 text-xs text-[#6B7280] leading-relaxed">
-            {expanded ? note.full : note.preview}
-          </p>
+    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#6E00FD]">
+          {initials}
         </div>
-        <ChevronUp
-          className={cn(
-            "mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#9CA3AF] transition-transform duration-150",
-            !expanded && "rotate-180",
-          )}
-        />
-      </button>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-semibold leading-5 text-[#333333]">{note.createdAt}</div>
+          <div className="mt-2 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
+            <span className="truncate font-medium text-[#333333]">{note.agentName}</span>
+            <span className="flex-shrink-0 text-[#C0C4CC]">•</span>
+            <span className="flex-shrink-0 text-[#6B7280]">{note.agentId}</span>
+          </div>
+          <p className="mt-1 text-[12px] leading-5 text-[#6B7280]">{note.body}</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -183,10 +175,12 @@ export default function NotesPanel({ initialTab = "Details", notesOnly = false }
           )}
 
           {/* Notes list */}
-          <div className="flex-1 overflow-y-auto">
-            {notes.map((note) => (
-              <NoteItem key={note.id} note={note} />
-            ))}
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-3 pb-2">
+              {notes.map((note) => (
+                <NoteItem key={note.id} note={note} />
+              ))}
+            </div>
           </div>
         </div>
       )}
