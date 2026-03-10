@@ -26,7 +26,6 @@ import {
   MessageCircle,
   MessageSquare,
 } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -607,11 +606,7 @@ export default function Index() {
         
         {/* Customer Context Banner */}
         <div className="flex items-start justify-between gap-3 border-b border-border bg-card/50 px-6 py-4">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-            <Avatar className="h-12 w-12 ring-2 ring-background">
-              <AvatarImage src="https://i.pravatar.cc/150?u=a04258114e29026702d" />
-              <AvatarFallback>AK</AvatarFallback>
-            </Avatar>
+          <div className="flex min-w-0 flex-1 items-start">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">Alex Kowalski</h2>
