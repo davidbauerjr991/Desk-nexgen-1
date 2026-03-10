@@ -10,7 +10,7 @@ const workspaceTabs = [
 
 export default function WorkspaceTabs() {
   return (
-    <nav className="flex items-center gap-1 rounded-full border border-black/10 bg-white/80 p-1">
+    <nav className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-black/10 bg-white/80 p-1">
       {workspaceTabs.map((tab) => (
         <NavLink
           key={tab.to}

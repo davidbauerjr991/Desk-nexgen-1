@@ -1287,16 +1287,16 @@ export default function Layout({ children }: LayoutProps) {
       <header className="flex h-12 shrink-0 items-center gap-4 px-4">
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <NiceLogoIcon />
-          <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] min-[800px]:inline">
+          <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] lg:inline">
             Agent Workspace Premium
           </span>
         </div>
 
-        <div className="flex min-w-0 flex-1 justify-center px-2">
+        <div className="flex flex-none justify-center px-2">
           <WorkspaceTabs />
         </div>
 
-        <div className="relative flex flex-1 shrink-0 justify-end items-center gap-1 sm:gap-1.5">
+        <div className="relative flex min-w-0 flex-1 shrink-0 justify-end items-center gap-1 sm:gap-1.5">
           <div className="flex items-center gap-1.5">
             <div
               id="header-search-input"
