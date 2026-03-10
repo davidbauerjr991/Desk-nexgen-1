@@ -68,7 +68,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
-      <header className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-black/10 px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-4 px-4">
         <div className="flex min-w-0 items-center gap-4">
           <NiceLogoIcon />
           <span className="truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333]">
