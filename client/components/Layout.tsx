@@ -5,6 +5,7 @@ import {
   Bot,
   ChevronDown,
   ClipboardList,
+  GripHorizontal,
   MessageSquare,
   Phone,
   Plus,
@@ -28,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import CopilotPopunder from "@/components/CopilotPopunder";
 import { toast } from "sonner";
 
@@ -215,12 +215,80 @@ const NiceLogoIcon = () => (
   </svg>
 );
 
-function AddNewPopoverContent() {
+function AddNewPopoverContent({
+  position,
+  size,
+  onPositionChange,
+  onSizeChange,
+}: {
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onSizeChange: (size: { width: number; height: number }) => void;
+}) {
   const [selectedType, setSelectedType] = useState<AddNewType>("customer");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 720 });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
 
   const fields = addNewFieldConfig[selectedType];
   const isSaveDisabled = fields.some((field) => !(formValues[field.key] ?? "").trim());
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const margin = 16;
+
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(Math.max(margin, nextX), window.innerWidth - size.width - margin),
+          y: Math.min(Math.max(margin, nextY), window.innerHeight - size.height - margin),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(320, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - margin,
+        ),
+        height: Math.min(
+          Math.max(420, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - margin,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
 
   const clearForm = () => {
     setFormValues({});
@@ -241,8 +309,29 @@ function AddNewPopoverContent() {
   };
 
   return (
-    <div className="flex max-h-[calc(100vh-5rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]">
-      <div className="border-b border-border bg-background/50 px-5 py-4">
+    <div
+      className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-center gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
         <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
       </div>
 
@@ -309,6 +398,26 @@ function AddNewPopoverContent() {
           Save
         </Button>
       </div>
+
+      <button
+        type="button"
+        aria-label="Resize Add New popunder"
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
     </div>
   );
 }
@@ -556,6 +665,11 @@ export default function Layout({ children }: LayoutProps) {
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
+  const [addNewPopunderPosition, setAddNewPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
+  const [addNewPopunderSize, setAddNewPopunderSize] = useState(() => ({
+    width: 360,
+    height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
+  }));
   const [copilotPopunderPosition, setCopilotPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [copilotPopunderSize, setCopilotPopunderSize] = useState(() => ({
     width: 360,
@@ -565,6 +679,7 @@ export default function Layout({ children }: LayoutProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
+  const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -581,6 +696,22 @@ export default function Layout({ children }: LayoutProps) {
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
     [status],
   );
+
+  const getAnchoredAddNewPopunderPosition = () => {
+    if (typeof window === "undefined") {
+      return { x: 16, y: 64 };
+    }
+
+    const margin = 16;
+    const gap = 10;
+    const popunderWidth = Math.min(addNewPopunderSize.width, window.innerWidth - margin * 2);
+    const buttonBounds = addNewButtonRef.current?.getBoundingClientRect();
+
+    return {
+      x: Math.max(window.innerWidth - popunderWidth - margin, margin),
+      y: Math.max(margin, (buttonBounds?.bottom ?? 48) + gap),
+    };
+  };
 
   const getAnchoredCopilotPopunderPosition = () => {
     if (typeof window === "undefined") {
@@ -695,37 +826,25 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </HeaderIconButton>
 
-          <Popover
-            open={isAddNewPopoverOpen}
-            onOpenChange={(open) => {
-              if (open) {
+          <div ref={addNewButtonRef}>
+            <HeaderIconButton
+              ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
+              ariaExpanded={isAddNewPopoverOpen}
+              onClick={() => {
+                if (isAddNewPopoverOpen) {
+                  setIsAddNewPopoverOpen(false);
+                  return;
+                }
+
+                setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
                 setIsCopilotPopoverOpen(false);
-              }
-              setIsAddNewPopoverOpen(open);
-            }}
-          >
-            <PopoverAnchor asChild>
-              <span className="pointer-events-none absolute right-0 top-0 h-full w-0" aria-hidden="true" />
-            </PopoverAnchor>
-            <PopoverTrigger asChild>
-              <div>
-                <HeaderIconButton
-                  ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
-                  isActive={isAddNewPopoverOpen}
-                >
-                  <Plus className="h-4 w-4 stroke-[1.8]" />
-                </HeaderIconButton>
-              </div>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              sideOffset={10}
-              collisionPadding={{ top: 16, right: 16, bottom: 16, left: 16 }}
-              className="w-auto border-0 bg-transparent p-0 shadow-none"
+                setIsAddNewPopoverOpen(true);
+              }}
+              isActive={isAddNewPopoverOpen}
             >
-              <AddNewPopoverContent />
-            </PopoverContent>
-          </Popover>
+              <Plus className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
 
           <div ref={copilotButtonRef}>
             <HeaderIconButton
@@ -801,6 +920,15 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </div>
+
+      {isAddNewPopoverOpen && (
+        <AddNewPopoverContent
+          position={addNewPopunderPosition}
+          size={addNewPopunderSize}
+          onPositionChange={setAddNewPopunderPosition}
+          onSizeChange={setAddNewPopunderSize}
+        />
+      )}
 
       {isCopilotPopoverOpen && (
         <CopilotPopunder
