@@ -228,7 +228,7 @@ function QueueOverlayList() {
 function LeftQueueRail() {
   return (
     <aside className="hidden w-[56px] shrink-0 flex-col items-center py-3 min-[800px]:flex">
-      <div className="flex flex-col items-center gap-4 pt-1">
+      <div className="flex flex-col items-center gap-2.5 pt-1">
         {queuePreviewItems.map((item) => {
           const ItemIcon = item.icon;
 
@@ -237,11 +237,11 @@ function LeftQueueRail() {
               <HoverCardTrigger asChild>
                 <button
                   type="button"
-                  className="relative flex h-12 w-12 items-center justify-center rounded-2xl transition-transform hover:scale-[1.03]"
+                  className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
                   aria-label={`${item.name} queue item`}
                 >
                   <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-2xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
                       item.isActive
                         ? "bg-[#0D5E8A] text-white"
                         : "border border-black/15 bg-white text-[#0D5E8A]"
