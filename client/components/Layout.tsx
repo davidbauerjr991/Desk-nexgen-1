@@ -464,10 +464,12 @@ export default function Layout({ children }: LayoutProps) {
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
+  const [copilotPopunderPosition, setCopilotPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
+  const copilotButtonRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setElapsedSeconds(0);
@@ -483,6 +485,32 @@ export default function Layout({ children }: LayoutProps) {
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
     [status],
   );
+
+  const getAnchoredCopilotPopunderPosition = () => {
+    if (typeof window === "undefined") {
+      return { x: 16, y: 64 };
+    }
+
+    const margin = 16;
+    const gap = 10;
+    const popunderWidth = Math.min(360, window.innerWidth - margin * 2);
+    const buttonBounds = copilotButtonRef.current?.getBoundingClientRect();
+
+    if (!buttonBounds) {
+      return {
+        x: Math.max(window.innerWidth - popunderWidth - margin, margin),
+        y: 58,
+      };
+    }
+
+    return {
+      x: Math.min(
+        Math.max(margin, buttonBounds.right - popunderWidth),
+        window.innerWidth - popunderWidth - margin,
+      ),
+      y: Math.max(margin, buttonBounds.bottom + gap),
+    };
+  };
 
   useEffect(() => {
     if (isHeaderSearchOpen) {
@@ -607,31 +635,24 @@ export default function Layout({ children }: LayoutProps) {
             <Monitor className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <Popover open={isCopilotPopoverOpen} onOpenChange={setIsCopilotPopoverOpen}>
-            <PopoverAnchor asChild>
-              <span className="pointer-events-none absolute right-0 top-0 h-full w-0" aria-hidden="true" />
-            </PopoverAnchor>
-            <PopoverTrigger asChild>
-              <div>
-                <HeaderIconButton
-                  ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-                  ariaExpanded={isCopilotPopoverOpen}
-                  isActive={isCopilotPopoverOpen}
-                >
-                  <Bot className="h-4 w-4 stroke-[1.8]" />
-                </HeaderIconButton>
-              </div>
-            </PopoverTrigger>
-            <PopoverContent
-              align="end"
-              side="bottom"
-              sideOffset={10}
-              collisionPadding={{ top: 16, right: 16, bottom: 16, left: 16 }}
-              className="w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+          <div ref={copilotButtonRef}>
+            <HeaderIconButton
+              ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+              ariaExpanded={isCopilotPopoverOpen}
+              onClick={() => {
+                if (isCopilotPopoverOpen) {
+                  setIsCopilotPopoverOpen(false);
+                  return;
+                }
+
+                setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+                setIsCopilotPopoverOpen(true);
+              }}
+              isActive={isCopilotPopoverOpen}
             >
-              <CopilotPopunder />
-            </PopoverContent>
-          </Popover>
+              <Bot className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -688,6 +709,14 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </div>
+
+      {isCopilotPopoverOpen && (
+        <CopilotPopunder
+          position={copilotPopunderPosition}
+          onPositionChange={setCopilotPopunderPosition}
+          onClose={() => setIsCopilotPopoverOpen(false)}
+        />
+      )}
     </div>
     </LayoutContext.Provider>
   );

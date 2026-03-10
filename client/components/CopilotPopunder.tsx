@@ -1,13 +1,16 @@
+import { useEffect, useRef } from "react";
 import {
   AlertTriangle,
   BookOpen,
   Bot,
   CheckCircle2,
   FileText,
+  GripHorizontal,
   Lightbulb,
   Sparkles,
   ThumbsDown,
   ThumbsUp,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,15 +22,96 @@ const insights = {
   churnRisk: "Medium",
 };
 
-export default function CopilotPopunder() {
+interface CopilotPopunderProps {
+  position: {
+    x: number;
+    y: number;
+  };
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onClose: () => void;
+}
+
+export default function CopilotPopunder({ position, onPositionChange, onClose }: CopilotPopunderProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+
+      const bounds = containerRef.current?.getBoundingClientRect();
+      if (!bounds) return;
+
+      const nextX = event.clientX - dragOffsetRef.current.x;
+      const nextY = event.clientY - dragOffsetRef.current.y;
+      const margin = 16;
+
+      onPositionChange({
+        x: Math.min(
+          Math.max(margin, nextX),
+          window.innerWidth - bounds.width - margin,
+        ),
+        y: Math.min(
+          Math.max(margin, nextY),
+          window.innerHeight - bounds.height - margin,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange]);
+
   return (
-    <div className="flex max-h-[calc(100vh-5rem)] flex-col overflow-hidden rounded-2xl bg-white">
-      <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
-        <Bot className="h-5 w-5 text-primary" />
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
-          <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
+    <div
+      ref={containerRef}
+      className="fixed z-[70] flex max-h-[calc(100vh-2rem)] w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div
+        className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          const bounds = containerRef.current?.getBoundingClientRect();
+          if (!bounds) return;
+
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div className="flex items-start gap-2">
+            <Bot className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
+              <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
+            </div>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          aria-label="Close NexAgent Copilot"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
