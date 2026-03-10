@@ -172,7 +172,7 @@ export default function Layout({ children }: LayoutProps) {
           </span>
         </div>
 
-        <div className="hidden min-w-0 flex-1 justify-center md:flex">
+        <div className="flex min-w-0 flex-1 justify-center">
           <div className="relative w-full max-w-[420px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A7A7A]" />
             <Input
