@@ -1284,19 +1284,19 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
-      <header className="flex h-12 shrink-0 items-center gap-4 px-4">
-        <div className="flex min-w-0 flex-1 items-center gap-4">
+      <header className="flex h-12 shrink-0 items-center gap-2 px-4 lg:gap-4">
+        <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-4">
           <NiceLogoIcon />
           <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] lg:inline">
             Agent Workspace Premium
           </span>
         </div>
 
-        <div className="flex flex-none justify-center px-2">
+        <div className="flex min-w-0 flex-1 justify-start pl-2 lg:flex-none lg:justify-center lg:px-2">
           <WorkspaceTabs />
         </div>
 
-        <div className="relative flex min-w-0 flex-1 shrink-0 justify-end items-center gap-1 sm:gap-1.5">
+        <div className="relative flex flex-none shrink-0 items-center justify-end gap-1 sm:gap-1.5 lg:min-w-0 lg:flex-1">
           <div className="flex items-center gap-1.5">
             <div
               id="header-search-input"
