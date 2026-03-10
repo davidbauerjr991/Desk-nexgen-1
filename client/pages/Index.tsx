@@ -221,6 +221,7 @@ type CallPopunderMode = "setup" | "controls" | "disposition";
 const CALL_POPUNDER_WIDTH = 272;
 const CALL_POPUNDER_MARGIN = 16;
 const CALL_POPUNDER_GAP = 12;
+const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function ChannelToggleButton({
@@ -692,6 +693,7 @@ export default function Index() {
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [isConversationPanelTransitioning, setIsConversationPanelTransitioning] = useState(false);
+  const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -762,6 +764,19 @@ export default function Index() {
 
     return () => window.clearTimeout(timeoutId);
   }, [isConversationPanelOpen]);
+
+  useEffect(() => {
+    if (!isRightPanelOpen) {
+      setIsRightPanelContentVisible(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsRightPanelContentVisible(true);
+    }, RIGHT_PANEL_CONTENT_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isRightPanelOpen]);
 
   const handleChannelSelection = (channel: ChannelType) => {
     if (channel === activeChannel) {
@@ -1075,30 +1090,29 @@ export default function Index() {
         )}
         aria-hidden={!isRightPanelOpen}
       >
-        <div
-          className={cn(
-            "relative flex h-full min-w-full flex-col transition-transform duration-300 ease-out lg:min-w-[380px] lg:transition-opacity",
-            isRightPanelOpen ? "translate-x-0 opacity-100" : "translate-x-8 opacity-0 lg:translate-x-0",
-          )}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Close right panel"
-            onClick={closeRightPanel}
-            className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <div className="relative flex h-full min-w-full flex-col lg:min-w-[380px]">
+          {isRightPanelContentVisible && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close right panel"
+                onClick={closeRightPanel}
+                className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+              >
+                <X className="h-4 w-4" />
+              </Button>
 
-          {isInteractionsOpen ? (
-            <RecentInteractionsPanel />
-          ) : isAddNewOpen ? (
-            <AddNewPanel />
-          ) : isDeskOpen ? (
-            <DeskPanel />
-          ) : null}
+              {isInteractionsOpen ? (
+                <RecentInteractionsPanel />
+              ) : isAddNewOpen ? (
+                <AddNewPanel />
+              ) : isDeskOpen ? (
+                <DeskPanel />
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 
