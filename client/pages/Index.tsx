@@ -218,6 +218,11 @@ type CallPopunderPosition = {
   y: number;
 };
 
+type CallPopunderSize = {
+  width: number;
+  height: number;
+};
+
 type CallPopunderMode = "setup" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
@@ -295,23 +300,29 @@ function ChannelToggleButton({
 
 function CallControlsPopunder({
   position,
+  size,
   mode,
   onPositionChange,
+  onSizeChange,
   onClose,
   onLaunchCall,
   onEndCall,
   onSelectDisposition,
 }: {
   position: CallPopunderPosition;
+  size: CallPopunderSize;
   mode: CallPopunderMode;
   onPositionChange: (position: CallPopunderPosition) => void;
+  onSizeChange: (size: CallPopunderSize) => void;
   onClose: () => void;
   onLaunchCall: () => void;
   onEndCall: () => void;
   onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
   const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
   const [accountNumber, setAccountNumber] = useState("");
   const [isTestingAudio, setIsTestingAudio] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
@@ -340,34 +351,68 @@ function CallControlsPopunder({
   }, [mode]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
+    const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
+    const nextPosition = {
+      x: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, position.x),
+        window.innerWidth - width - CALL_POPUNDER_MARGIN,
+      ),
+      y: Math.min(
+        Math.max(CALL_POPUNDER_MARGIN, position.y),
+        window.innerHeight - height - CALL_POPUNDER_MARGIN,
+      ),
+    };
+
+    if (nextPosition.x !== position.x || nextPosition.y !== position.y) {
+      onPositionChange(nextPosition);
+    }
+  }, [mode, onPositionChange, position.x, position.y, size.height, size.width]);
+
+  useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      if (!isDraggingRef.current) return;
+      const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
+      const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
 
-      const height =
-        mode === "setup"
-          ? 320
-          : mode === "controls"
-            ? isTranscriptExpanded
-              ? 332
-              : 228
-            : 284;
-      const nextX = event.clientX - dragOffsetRef.current.x;
-      const nextY = event.clientY - dragOffsetRef.current.y;
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
 
-      onPositionChange({
-        x: Math.min(
-          Math.max(CALL_POPUNDER_MARGIN, nextX),
-          window.innerWidth - CALL_POPUNDER_WIDTH - CALL_POPUNDER_MARGIN,
+        onPositionChange({
+          x: Math.min(
+            Math.max(CALL_POPUNDER_MARGIN, nextX),
+            window.innerWidth - width - CALL_POPUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(CALL_POPUNDER_MARGIN, nextY),
+            window.innerHeight - height - CALL_POPUNDER_MARGIN,
+          ),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current || mode !== "controls") return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(320, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - CALL_POPUNDER_MARGIN,
         ),
-        y: Math.min(
-          Math.max(CALL_POPUNDER_MARGIN, nextY),
-          window.innerHeight - height - CALL_POPUNDER_MARGIN,
+        height: Math.min(
+          Math.max(360, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - CALL_POPUNDER_MARGIN,
         ),
       });
     };
 
     const handleMouseUp = () => {
       isDraggingRef.current = false;
+      isResizingRef.current = false;
       document.body.style.userSelect = "";
     };
 
@@ -379,12 +424,17 @@ function CallControlsPopunder({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [isTranscriptExpanded, mode, onPositionChange]);
+  }, [mode, onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
 
   return (
     <div
-      className="fixed z-[70] w-[272px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
-      style={{ left: position.x, top: position.y }}
+      className="fixed z-[70] flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: mode === "controls" ? size.width : CALL_POPUNDER_WIDTH,
+        height: mode === "controls" ? size.height : undefined,
+      }}
     >
       <div
         className={cn(
@@ -419,7 +469,7 @@ function CallControlsPopunder({
         )}
       </div>
 
-      <div className="space-y-2 p-3">
+      <div className={cn("space-y-2 p-3", mode === "controls" && "min-h-0 flex-1 overflow-y-auto")}>
         {mode === "setup" ? (
           <>
             <div className="space-y-1">
@@ -508,6 +558,21 @@ function CallControlsPopunder({
               </Button>
             </div>
 
+            <div className="rounded-xl border border-[#D9CCFF] bg-[#FCFAFF] p-3">
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Guidance
+              </div>
+              <p className="mt-2 text-xs leading-5 text-[#333333]">
+                Acknowledge the prior assistant handoff, confirm the beverage package upgrade request, and keep the customer from repeating details.
+              </p>
+              <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6B7280]">
+                <li>• Pronunciation: Kowalski (“Koah-wall-skee”)</li>
+                <li>• Confirm whether the customer needs the upgrade completed today.</li>
+                <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
+              </ul>
+            </div>
+
             <div className="rounded-xl border border-black/10 bg-white">
               <button
                 type="button"
@@ -524,8 +589,14 @@ function CallControlsPopunder({
               </button>
 
               {isTranscriptExpanded && (
-                <div className="border-t border-black/10 px-3 py-2 text-xs leading-5 text-[#333333]">
-                  <p>Agent: Thank you for calling. I have your account open now.</p>
+                <div className="border-t border-black/10 px-3 py-3 text-xs leading-5 text-[#333333]">
+                  <div className="rounded-lg border border-[#D7E7D4] bg-[#F4FAF2] px-3 py-2.5 text-[13px] leading-6 text-[#355E3B]">
+                    <p>Your call is connected. Please greet the customer and confirm the requested beverage package upgrade.</p>
+                    <p className="mt-2">
+                      Suggested opening: “Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.”
+                    </p>
+                  </div>
+                  <p className="mt-3">Agent: Thank you for calling. I have your account open now.</p>
                   <p className="mt-2 text-[#7A7A7A]">
                     Customer: I need help getting my subscription upgraded today.
                   </p>
@@ -552,6 +623,28 @@ function CallControlsPopunder({
           </>
         )}
       </div>
+
+      {mode === "controls" && (
+        <button
+          type="button"
+          aria-label="Resize call controls"
+          className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            isResizingRef.current = true;
+            resizeStartRef.current = {
+              mouseX: event.clientX,
+              mouseY: event.clientY,
+              width: size.width,
+              height: size.height,
+            };
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+        </button>
+      )}
     </div>
   );
 }
@@ -774,6 +867,7 @@ export default function Index() {
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
+  const [callPopunderSize, setCallPopunderSize] = useState<CallPopunderSize>({ width: 360, height: 520 });
   const callButtonRef = useRef<HTMLButtonElement | null>(null);
   const conversationPanelInitializedRef = useRef(false);
   const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
@@ -1108,8 +1202,10 @@ export default function Index() {
       {isCallPopunderOpen && (
         <CallControlsPopunder
           position={callPopunderPosition}
+          size={callPopunderSize}
           mode={callPopunderMode}
           onPositionChange={setCallPopunderPosition}
+          onSizeChange={setCallPopunderSize}
           onClose={closeCallPopunder}
           onLaunchCall={() => {
             setIsCallActive(true);
