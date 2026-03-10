@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
+  Bot,
   Mail,
   MoreVertical,
   MessageSquare,
+  Phone,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -40,6 +42,24 @@ const interactions = [
   {
     id: 4,
     direction: "outbound",
+    type: "voice",
+    createdAt: "02/04/26 9:12 AM",
+    status: "Resolved",
+    channel: "Inbound Voice - Mortgage Queue",
+    statusColor: "bg-[#2CB770]",
+  },
+  {
+    id: 5,
+    direction: "inbound",
+    type: "ai-agent",
+    createdAt: "01/30/26 11:03 AM",
+    status: "Closed",
+    channel: "AI Agent - Billing Triage",
+    statusColor: "bg-[#D0021B]",
+  },
+  {
+    id: 6,
+    direction: "outbound",
     type: "email",
     createdAt: "01/27/26 7:18 PM",
     status: "Closed",
@@ -47,7 +67,7 @@ const interactions = [
     statusColor: "bg-[#D0021B]",
   },
   {
-    id: 5,
+    id: 7,
     direction: "outbound",
     type: "email",
     createdAt: "01/21/26 1:57 PM",
@@ -56,7 +76,7 @@ const interactions = [
     statusColor: "bg-[#D0021B]",
   },
   {
-    id: 6,
+    id: 8,
     direction: "outbound",
     type: "email",
     createdAt: "01/21/26 12:51 PM",
@@ -65,7 +85,7 @@ const interactions = [
     statusColor: "bg-[#D0021B]",
   },
   {
-    id: 7,
+    id: 9,
     direction: "inbound",
     type: "sms",
     createdAt: "01/20/26 5:13 PM",
@@ -79,6 +99,8 @@ const FILTER_CHIPS = [
   { label: "All", value: "all" },
   { label: "SMS", value: "sms" },
   { label: "Email", value: "email" },
+  { label: "Voice", value: "voice" },
+  { label: "AI Agent", value: "ai-agent" },
 ] as const;
 
 function InteractionTypeIcon({
@@ -89,9 +111,17 @@ function InteractionTypeIcon({
   direction: (typeof interactions)[number]["direction"];
 }) {
   const isEmail = type === "email";
-  const colorClass = isEmail ? "text-[#E83E8C]" : "text-[#61A60E]";
+  const isVoice = type === "voice";
+  const isAiAgent = type === "ai-agent";
+  const colorClass = isEmail
+    ? "text-[#E83E8C]"
+    : isVoice
+      ? "text-[#2563EB]"
+      : isAiAgent
+        ? "text-[#6E00FD]"
+        : "text-[#61A60E]";
   const DirectionIcon = direction === "inbound" ? ArrowDown : ArrowUp;
-  const BaseIcon = isEmail ? Mail : MessageSquare;
+  const BaseIcon = isEmail ? Mail : isVoice ? Phone : isAiAgent ? Bot : MessageSquare;
 
   return (
     <div className={cn("flex items-center gap-1", colorClass)}>
@@ -154,7 +184,7 @@ function InteractionRow({
 }
 
 export default function RecentInteractionsPanel() {
-  const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email" | "voice" | "ai-agent">("all");
 
   const filteredInteractions = useMemo(() => {
     if (activeFilter === "all") {
