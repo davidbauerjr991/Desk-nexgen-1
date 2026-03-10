@@ -184,10 +184,10 @@ export default function Index() {
       {/* AI Copilot Panel */}
       <div
         className={cn(
-          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[width,opacity,border-color]",
+          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:w-[380px] lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[max-width,opacity,border-color]",
           isCopilotOpen
-            ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:w-[380px] lg:max-w-[380px]"
-            : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:w-0 lg:max-w-0 lg:translate-x-0",
+            ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:max-w-[380px]"
+            : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:max-w-0 lg:translate-x-0",
         )}
         aria-hidden={!isCopilotOpen}
       >
