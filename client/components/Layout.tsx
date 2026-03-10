@@ -267,7 +267,7 @@ function LeftQueueRail() {
         </aside>
 
         <div
-          className={`absolute left-[56px] top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+          className={`absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-in-out ${
             isOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "pointer-events-none -translate-x-3 opacity-0"
