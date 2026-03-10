@@ -234,7 +234,7 @@ function LeftQueueRail() {
   return (
     <div className="fixed bottom-0 left-0 top-12 z-30 hidden min-[800px]:block">
       <div className="relative flex h-full">
-        <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-black/[0.08] bg-[#F8F8F9] py-3">
+        <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
             <HoverCard openDelay={80} closeDelay={120}>
               <HoverCardTrigger asChild>
