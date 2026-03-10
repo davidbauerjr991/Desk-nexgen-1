@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Mic,
   Volume2,
+  ChevronDown,
   Lightbulb,
   FileText,
   BookOpen,
@@ -296,6 +297,7 @@ function CallControlsPopunder({
   const isDraggingRef = useRef(false);
   const [accountNumber, setAccountNumber] = useState("");
   const [isTestingAudio, setIsTestingAudio] = useState(false);
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
   const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
 
   useEffect(() => {
@@ -317,10 +319,23 @@ function CallControlsPopunder({
   }, [isTestingAudio, mode]);
 
   useEffect(() => {
+    if (mode !== "controls") {
+      setIsTranscriptExpanded(false);
+    }
+  }, [mode]);
+
+  useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDraggingRef.current) return;
 
-      const height = mode === "setup" ? 320 : mode === "controls" ? 228 : 284;
+      const height =
+        mode === "setup"
+          ? 320
+          : mode === "controls"
+            ? isTranscriptExpanded
+              ? 332
+              : 228
+            : 284;
       const nextX = event.clientX - dragOffsetRef.current.x;
       const nextY = event.clientY - dragOffsetRef.current.y;
 
@@ -349,7 +364,7 @@ function CallControlsPopunder({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [mode, onPositionChange]);
+  }, [isTranscriptExpanded, mode, onPositionChange]);
 
   return (
     <div
@@ -449,29 +464,59 @@ function CallControlsPopunder({
           </>
         ) : mode === "controls" ? (
           <>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 border-black/10 text-[#333333]"
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Transfer
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 border-black/10 text-[#333333]"
-            >
-              <Pause className="h-4 w-4" />
-              Hold
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onEndCall}
-              className="w-full justify-start gap-2 border-[#F04438]/20 text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
-            >
-              <PhoneOff className="h-4 w-4" />
-              End Call
-            </Button>
+            <div className="flex items-stretch gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+              >
+                <ArrowRightLeft className="h-4 w-4" />
+                Transfer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+              >
+                <Pause className="h-4 w-4" />
+                Hold
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onEndCall}
+                className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+              >
+                <PhoneOff className="h-4 w-4" />
+                End Call
+              </Button>
+            </div>
+
+            <div className="rounded-xl border border-black/10 bg-white">
+              <button
+                type="button"
+                onClick={() => setIsTranscriptExpanded((current) => !current)}
+                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-[#333333]"
+              >
+                <span>Transcript</span>
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 text-[#7A7A7A] transition-transform",
+                    isTranscriptExpanded && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {isTranscriptExpanded && (
+                <div className="border-t border-black/10 px-3 py-2 text-xs leading-5 text-[#333333]">
+                  <p>Agent: Thank you for calling. I have your account open now.</p>
+                  <p className="mt-2 text-[#7A7A7A]">
+                    Customer: I need help getting my subscription upgraded today.
+                  </p>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>
