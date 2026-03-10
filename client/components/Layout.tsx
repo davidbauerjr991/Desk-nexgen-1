@@ -1326,15 +1326,6 @@ export default function Layout({ children }: LayoutProps) {
                 className="h-9 w-full rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#D9CCFF]"
               />
             </div>
-            <HeaderIconButton
-              ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
-              ariaExpanded={isHeaderSearchOpen}
-              ariaControls="header-search-input"
-              onClick={() => setIsHeaderSearchOpen((current) => !current)}
-              isActive={isHeaderSearchOpen}
-            >
-              <Search className="h-4 w-4 stroke-[1.8]" />
-            </HeaderIconButton>
           </div>
 
           {!isHeaderSearchOpen && (
@@ -1365,26 +1356,38 @@ export default function Layout({ children }: LayoutProps) {
                   <Plus className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
               </div>
-
-              <div ref={copilotButtonRef}>
-                <HeaderIconButton
-                  ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-                  ariaExpanded={isCopilotPopoverOpen}
-                  onClick={() => {
-                    if (isCopilotPopoverOpen) {
-                      setIsCopilotPopoverOpen(false);
-                      return;
-                    }
-
-                    setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
-                    setIsCopilotPopoverOpen(true);
-                  }}
-                  isActive={isCopilotPopoverOpen}
-                >
-                  <Bot className="h-4 w-4 stroke-[1.8]" />
-                </HeaderIconButton>
-              </div>
             </>
+          )}
+
+          <HeaderIconButton
+            ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
+            ariaExpanded={isHeaderSearchOpen}
+            ariaControls="header-search-input"
+            onClick={() => setIsHeaderSearchOpen((current) => !current)}
+            isActive={isHeaderSearchOpen}
+          >
+            <Search className="h-4 w-4 stroke-[1.8]" />
+          </HeaderIconButton>
+
+          {!isHeaderSearchOpen && (
+            <div ref={copilotButtonRef}>
+              <HeaderIconButton
+                ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
+                ariaExpanded={isCopilotPopoverOpen}
+                onClick={() => {
+                  if (isCopilotPopoverOpen) {
+                    setIsCopilotPopoverOpen(false);
+                    return;
+                  }
+
+                  setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+                  setIsCopilotPopoverOpen(true);
+                }}
+                isActive={isCopilotPopoverOpen}
+              >
+                <Bot className="h-4 w-4 stroke-[1.8]" />
+              </HeaderIconButton>
+            </div>
           )}
 
           <DropdownMenu>
