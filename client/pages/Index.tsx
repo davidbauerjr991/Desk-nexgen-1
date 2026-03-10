@@ -54,15 +54,15 @@ const insights = {
 };
 
 export default function Index() {
-  const { isCopilotOpen } = useLayoutContext();
+  const { isCopilotOpen, toggleCopilot } = useLayoutContext();
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="relative flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
       <div
         className={cn(
           "flex-1 flex min-w-0 flex-col bg-card",
-          isCopilotOpen && "border-r border-border",
+          isCopilotOpen && "lg:border-r lg:border-border",
         )}
       >
         
@@ -171,19 +171,29 @@ export default function Index() {
         </div>
       </div>
 
+      <button
+        type="button"
+        aria-label="Close NexAgent Copilot"
+        onClick={toggleCopilot}
+        className={cn(
+          "absolute inset-0 z-20 bg-black/20 transition-opacity duration-300 lg:hidden",
+          isCopilotOpen ? "opacity-100" : "pointer-events-none opacity-0",
+        )}
+      />
+
       {/* AI Copilot Panel */}
       <div
         className={cn(
-          "hidden overflow-hidden bg-muted/20 transition-[width,opacity,border-color] duration-300 ease-out lg:flex lg:flex-shrink-0",
+          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-muted/20 shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,border-color,transform] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:z-0 lg:flex lg:flex-shrink-0 lg:shadow-none",
           isCopilotOpen
-            ? "w-[380px] border-l border-border opacity-100"
-            : "w-0 border-l-0 opacity-0 pointer-events-none",
+            ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100"
+            : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:w-0 lg:max-w-none lg:translate-x-0",
         )}
         aria-hidden={!isCopilotOpen}
       >
         <div
           className={cn(
-            "flex h-full min-w-[380px] flex-col transition-transform duration-300 ease-out",
+            "flex h-full min-w-full flex-col transition-transform duration-300 ease-out lg:min-w-[380px]",
             isCopilotOpen ? "translate-x-0" : "translate-x-8",
           )}
         >
