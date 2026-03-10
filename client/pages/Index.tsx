@@ -242,7 +242,7 @@ function ChannelToggleButton({
   onClick,
 }: {
   channel: ChannelType;
-  activeChannel: ChannelType;
+  activeChannel: ChannelType | null;
   onClick: () => void;
 }) {
   const isActive = activeChannel === channel;
@@ -808,22 +808,22 @@ export default function Index() {
                 <div className="flex items-center gap-1.5">
                   <ChannelToggleButton
                     channel="chat"
-                    activeChannel={activeChannel}
+                    activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("chat")}
                   />
                   <ChannelToggleButton
                     channel="sms"
-                    activeChannel={activeChannel}
+                    activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("sms")}
                   />
                   <ChannelToggleButton
                     channel="whatsapp"
-                    activeChannel={activeChannel}
+                    activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("whatsapp")}
                   />
                   <ChannelToggleButton
                     channel="email"
-                    activeChannel={activeChannel}
+                    activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("email")}
                   />
                 </div>
@@ -884,11 +884,12 @@ export default function Index() {
 
           {/* Conversation column */}
           <div
+            aria-hidden={!isConversationPanelOpen}
             className={cn(
-              "min-w-0 flex-col overflow-hidden",
+              "flex w-full min-w-0 flex-col overflow-hidden transition-[max-width,opacity,transform,border-color] duration-300 ease-out",
               isConversationPanelOpen
-                ? "flex w-full min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:border-r min-[800px]:border-border"
-                : "hidden",
+                ? "max-w-full translate-x-0 opacity-100 min-[800px]:w-[420px] min-[800px]:max-w-[420px] min-[800px]:flex-shrink-0 min-[800px]:border-r min-[800px]:border-border"
+                : "pointer-events-none max-w-0 -translate-x-4 opacity-0 min-[800px]:border-r min-[800px]:border-transparent",
             )}
           >
             {/* Chat Transcript */}
@@ -975,7 +976,7 @@ export default function Index() {
           <div
             className={cn(
               "flex-1 min-w-0 overflow-hidden",
-              isConversationPanelOpen ? "hidden min-[800px]:flex" : "flex",
+              isConversationPanelOpen ? "hidden min-[800px]:block" : "block",
             )}
           >
             <div className="flex-1 min-w-0 overflow-hidden">
