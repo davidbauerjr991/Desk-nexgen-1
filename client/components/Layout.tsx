@@ -206,7 +206,7 @@ export default function Layout({ children }: LayoutProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex min-h-8 items-center gap-2 rounded-lg px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
+                className="flex min-h-8 items-center gap-2 rounded-lg bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
               >
                 <span className={`h-3 w-3 rounded-full ${activeStatus.dotClassName}`} />
                 <span className="hidden min-w-0 flex-col items-start sm:flex">
