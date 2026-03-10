@@ -232,7 +232,7 @@ function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-0 left-0 top-12 z-30 hidden min-[800px]:block">
+    <div className="fixed bottom-0 left-0 top-12 z-30 block">
       <div className="relative flex h-full">
         <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
@@ -499,7 +499,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-0 pr-4 pt-0 min-[800px]:pl-[56px]">
+      <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
         <LeftQueueRail />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
           {children}
