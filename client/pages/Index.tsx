@@ -725,7 +725,7 @@ function InfoPanel() {
 
       <ScrollArea className="flex-1 px-4 py-4">
         <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-center border-b border-black/10 px-5 py-5">
+          <div className="flex items-center justify-start border-b border-black/10 px-5 py-5">
             <span className="text-sm font-semibold tracking-tight text-[#333333]">Overview</span>
           </div>
 
