@@ -426,14 +426,19 @@ function LeftQueueRail() {
         <div
           onMouseEnter={() => setIsOpen(true)}
           onMouseLeave={() => setIsOpen(false)}
-          className={`absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+          className={`fixed bottom-0 left-0 top-12 z-50 transition-all duration-200 ease-in-out ${
             isOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "pointer-events-none -translate-x-3 opacity-0"
           }`}
         >
-          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
-            <QueueOverlayList />
+          <div className="flex h-full w-[320px] flex-col border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+            <div className="shrink-0 border-b border-black/[0.08] px-4 py-4">
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <QueueOverlayList />
+            </div>
           </div>
         </div>
       </div>
