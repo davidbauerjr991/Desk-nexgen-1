@@ -184,7 +184,7 @@ export default function Index() {
       {/* AI Copilot Panel */}
       <div
         className={cn(
-          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-muted/20 shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,border-color,transform] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:z-0 lg:flex lg:flex-shrink-0 lg:shadow-none",
+          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,border-color,transform] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none",
           isCopilotOpen
             ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100"
             : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:w-0 lg:max-w-none lg:translate-x-0",
