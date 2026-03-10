@@ -2,6 +2,11 @@ import { useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface CustomerInfoPanelProps {
+  className?: string;
+  bordered?: boolean;
+}
+
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
     <span className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF] mb-1">
@@ -61,12 +66,21 @@ function SectionHeader({
   );
 }
 
-export default function CustomerInfoPanel() {
+export default function CustomerInfoPanel({
+  className,
+  bordered = false,
+}: CustomerInfoPanelProps) {
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
   const [isScopeOpen, setIsScopeOpen] = useState(true);
 
   return (
-    <div className="flex h-full flex-col overflow-y-auto border-r border-[rgba(0,0,0,0.1)]">
+    <div
+      className={cn(
+        "flex h-full flex-col overflow-y-auto",
+        bordered && "border-r border-[rgba(0,0,0,0.1)]",
+        className,
+      )}
+    >
       <div className="flex-1 px-4 py-1">
         {/* General Information */}
         <div className="border-b border-[rgba(0,0,0,0.08)]">

@@ -23,7 +23,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
-import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import NotesPanel from "@/components/NotesPanel";
 
 const messages = [
@@ -173,14 +172,9 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Customer Data panels (General Info + Notes) */}
+          {/* Customer Data tabs */}
           <div className="hidden flex-1 min-w-0 overflow-hidden xl:flex">
-            {/* General Information + Scope */}
-            <div className="w-[280px] flex-shrink-0 overflow-hidden">
-              <CustomerInfoPanel />
-            </div>
-            {/* Notes / Tabs */}
-            <div className="flex-1 min-w-0 border-l border-[rgba(0,0,0,0.1)] overflow-hidden">
+            <div className="flex-1 min-w-0 overflow-hidden">
               <NotesPanel />
             </div>
           </div>

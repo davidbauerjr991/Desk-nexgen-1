@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ChevronUp, Eye, FileDown, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 
-const TABS = ["Notes", "Accounts", "Tickets", "Directory"];
+const TABS = ["Notes", "Details", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 
 const notes = [
@@ -167,7 +168,13 @@ export default function NotesPanel() {
         </div>
       )}
 
-      {activeTab !== "Notes" && (
+      {activeTab === "Details" && (
+        <div className="flex-1 overflow-y-auto">
+          <CustomerInfoPanel className="h-auto" />
+        </div>
+      )}
+
+      {activeTab !== "Notes" && activeTab !== "Details" && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
