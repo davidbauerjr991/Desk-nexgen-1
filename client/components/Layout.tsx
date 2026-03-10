@@ -68,11 +68,11 @@ const statusOptions: Array<{
 
 const queuePreviewItems = [
   {
-    id: "oren",
-    initials: "OP",
-    name: "Oren Petersen",
+    id: "alex",
+    initials: "AK",
+    name: "Alex Kowalski",
     time: "Now",
-    preview: "I need help with my recent order #445...",
+    preview: "Need help resolving a blocked upgrade.",
     sentiment: "Positive",
     sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
     badgeColor: "bg-[#CC2D2D]",
