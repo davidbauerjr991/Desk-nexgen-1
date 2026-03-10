@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ClipboardList,
   MessageSquare,
-  Monitor,
   Phone,
   Plus,
   Search,
@@ -460,7 +459,7 @@ function formatStatusDuration(totalSeconds: number) {
 
 export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Available");
-  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("desk");
+  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("interactions");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
@@ -628,14 +627,6 @@ export default function Layout({ children }: LayoutProps) {
               <AddNewPopoverContent />
             </PopoverContent>
           </Popover>
-
-          <HeaderIconButton
-            ariaLabel={layoutContextValue.isDeskOpen ? "Hide desk panel" : "Show desk panel"}
-            onClick={layoutContextValue.toggleDesk}
-            isActive={layoutContextValue.isDeskOpen}
-          >
-            <Monitor className="h-4 w-4 stroke-[1.8]" />
-          </HeaderIconButton>
 
           <div ref={copilotButtonRef}>
             <HeaderIconButton
