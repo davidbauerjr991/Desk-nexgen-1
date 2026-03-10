@@ -5,6 +5,7 @@ import {
   ChevronDown,
   CircleHelp,
   History,
+  Search,
   Settings,
 } from "lucide-react";
 
@@ -14,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -162,12 +164,24 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
-      <header className="flex h-12 shrink-0 items-center justify-between gap-4 px-4">
+      <header className="flex h-12 shrink-0 items-center gap-4 px-4">
         <div className="flex min-w-0 items-center gap-4">
           <NiceLogoIcon />
           <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] min-[800px]:inline">
             Agent Workspace Premium
           </span>
+        </div>
+
+        <div className="hidden min-w-0 flex-1 justify-center md:flex">
+          <div className="relative w-full max-w-[420px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7A7A7A]" />
+            <Input
+              type="search"
+              placeholder="Omni-search"
+              aria-label="Omni-search"
+              className="h-9 rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:ring-1 focus-visible:ring-[#D9CCFF] focus-visible:ring-offset-0"
+            />
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
