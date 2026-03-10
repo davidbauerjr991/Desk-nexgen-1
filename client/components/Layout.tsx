@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpDown,
   Bell,
   Bot,
   ChevronDown,
@@ -119,7 +120,24 @@ const addNewFieldConfig: Record<
   ],
 };
 
-const queuePreviewItems = [
+type QueueSortOption = "created-desc" | "created-asc" | "updated-desc" | "updated-asc";
+
+type QueuePreviewItem = {
+  id: string;
+  initials: string;
+  name: string;
+  time: string;
+  preview: string;
+  sentiment: string;
+  sentimentClassName: string;
+  badgeColor: string;
+  icon: typeof Phone;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const queuePreviewItems: QueuePreviewItem[] = [
   {
     id: "alex",
     initials: "AK",
@@ -131,6 +149,8 @@ const queuePreviewItems = [
     badgeColor: "bg-[#CC2D2D]",
     icon: Phone,
     isActive: true,
+    createdAt: "2026-03-11T08:30:00",
+    updatedAt: "2026-03-11T10:24:00",
   },
   {
     id: "sarah",
@@ -143,6 +163,8 @@ const queuePreviewItems = [
     badgeColor: "bg-[#2E9B34]",
     icon: Phone,
     isActive: false,
+    createdAt: "2026-03-11T09:02:00",
+    updatedAt: "2026-03-11T10:22:00",
   },
   {
     id: "emily",
@@ -155,6 +177,8 @@ const queuePreviewItems = [
     badgeColor: "bg-[#45C9CF]",
     icon: ClipboardList,
     isActive: false,
+    createdAt: "2026-03-11T08:55:00",
+    updatedAt: "2026-03-11T10:19:00",
   },
   {
     id: "david",
@@ -167,8 +191,10 @@ const queuePreviewItems = [
     badgeColor: "bg-[#8BC34A]",
     icon: MessageSquare,
     isActive: false,
+    createdAt: "2026-03-11T07:40:00",
+    updatedAt: "2026-03-11T10:00:00",
   },
-] as const;
+];
 
 const NiceLogoIcon = () => (
   <svg
@@ -319,10 +345,10 @@ function HeaderIconButton({
   );
 }
 
-function QueueOverlayList() {
+function QueueOverlayList({ items }: { items: QueuePreviewItem[] }) {
   return (
     <div className="min-h-full overflow-hidden bg-white">
-      {queuePreviewItems.map((item) => {
+      {items.map((item) => {
         const ItemIcon = item.icon;
 
         return (
@@ -383,6 +409,23 @@ function QueueOverlayList() {
 
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
+
+  const sortedQueuePreviewItems = useMemo(() => {
+    const items = [...queuePreviewItems];
+
+    items.sort((a, b) => {
+      const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      const updatedDiff = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+
+      if (sortOption === "created-asc") return createdDiff;
+      if (sortOption === "created-desc") return -createdDiff;
+      if (sortOption === "updated-asc") return updatedDiff;
+      return -updatedDiff;
+    });
+
+    return items;
+  }, [sortOption]);
 
   return (
     <div className="fixed bottom-0 left-0 top-12 z-30 block">
@@ -433,11 +476,54 @@ function LeftQueueRail() {
           }`}
         >
           <div className="flex h-full w-[320px] flex-col border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
-            <div className="shrink-0 border-b border-black/[0.08] px-4 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.08] px-4 py-4">
               <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Sort assignments"
+                    className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  sideOffset={8}
+                  className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                >
+                  <DropdownMenuItem
+                    onClick={() => setSortOption("created-asc")}
+                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    Create date ascending
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortOption("created-desc")}
+                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    Create date descending
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortOption("updated-asc")}
+                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    Last updated ascending
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setSortOption("updated-desc")}
+                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                  >
+                    Last updated descending
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <QueueOverlayList />
+              <QueueOverlayList items={sortedQueuePreviewItems} />
             </div>
           </div>
         </div>
