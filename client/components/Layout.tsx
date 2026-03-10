@@ -4,7 +4,10 @@ import {
   Bot,
   ChevronDown,
   CircleHelp,
+  ClipboardList,
   History,
+  MessageSquare,
+  Phone,
   Search,
   Settings,
 } from "lucide-react";
@@ -15,6 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
@@ -63,6 +67,57 @@ const statusOptions: Array<{
   { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
 ];
 
+const queuePreviewItems = [
+  {
+    id: "oren",
+    initials: "OP",
+    name: "Oren Petersen",
+    time: "Now",
+    preview: "I need help with my recent order #445...",
+    sentiment: "Positive",
+    sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
+    badgeColor: "bg-[#CC2D2D]",
+    icon: Phone,
+    isActive: true,
+  },
+  {
+    id: "sarah",
+    initials: "SM",
+    name: "Sarah Miller",
+    time: "2m ago",
+    preview: "Missed flight",
+    sentiment: "Neutral",
+    sentimentClassName: "border-black/20 text-[#333333]",
+    badgeColor: "bg-[#2E9B34]",
+    icon: Phone,
+    isActive: false,
+  },
+  {
+    id: "emily",
+    initials: "EC",
+    name: "Emily Chen",
+    time: "5m ago",
+    preview: "The discount code is not working at ch...",
+    sentiment: "Negative",
+    sentimentClassName: "border-[#A14C49] text-[#87413C]",
+    badgeColor: "bg-[#45C9CF]",
+    icon: ClipboardList,
+    isActive: false,
+  },
+  {
+    id: "david",
+    initials: "DB",
+    name: "David Brown",
+    time: "24m ago",
+    preview: "Can I upgrade my subscription?",
+    sentiment: "Positive",
+    sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
+    badgeColor: "bg-[#8BC34A]",
+    icon: MessageSquare,
+    isActive: false,
+  },
+] as const;
+
 const NiceLogoIcon = () => (
   <svg
     width="24"
@@ -105,6 +160,119 @@ function HeaderIconButton({
     >
       {children}
     </button>
+  );
+}
+
+function QueueOverlayList() {
+  return (
+    <div className="overflow-hidden rounded-[20px] bg-white">
+      {queuePreviewItems.map((item) => {
+        const ItemIcon = item.icon;
+
+        return (
+          <div
+            key={item.id}
+            className={`relative flex gap-4 border-b border-black/[0.08] px-4 py-4 last:border-b-0 ${
+              item.isActive ? "bg-[#EFF4F8]" : "bg-white"
+            }`}
+          >
+            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#1991D2]" />}
+
+            <div className="relative flex-shrink-0">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-full text-[18px] font-semibold ${
+                  item.isActive
+                    ? "bg-[#0D5E8A] text-white"
+                    : "border border-black/15 bg-white text-[#0D5E8A]"
+                }`}
+              >
+                {item.initials}
+              </div>
+              <span
+                className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
+              >
+                <ItemIcon className="h-3.5 w-3.5 text-white" />
+              </span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-[18px] font-semibold leading-6 text-[#333333]">
+                    {item.name}
+                  </div>
+                  <div className="mt-1 truncate text-[16px] leading-6 text-[#6B6B6B]">
+                    {item.preview}
+                  </div>
+                </div>
+                <span className="flex-shrink-0 text-[15px] font-medium text-[#6B6B6B]">
+                  {item.time}
+                </span>
+              </div>
+
+              <div className="mt-3">
+                <span
+                  className={`inline-flex rounded-full border px-4 py-1 text-[14px] font-medium ${item.sentimentClassName}`}
+                >
+                  {item.sentiment}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LeftQueueRail() {
+  return (
+    <aside className="hidden w-[72px] shrink-0 flex-col items-center gap-4 rounded-[24px] bg-[#F0F1F3] py-4 min-[800px]:flex">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-[0_1px_3px_rgba(16,24,40,0.08)]">
+        <NiceLogoIcon />
+      </div>
+
+      <div className="flex flex-col items-center gap-4 pt-1">
+        {queuePreviewItems.map((item) => {
+          const ItemIcon = item.icon;
+
+          return (
+            <HoverCard key={item.id} openDelay={100} closeDelay={120}>
+              <HoverCardTrigger asChild>
+                <button
+                  type="button"
+                  className="relative flex h-12 w-12 items-center justify-center rounded-2xl transition-transform hover:scale-[1.03]"
+                  aria-label={`${item.name} queue item`}
+                >
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-2xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                      item.isActive
+                        ? "bg-[#0D5E8A] text-white"
+                        : "border border-black/15 bg-white text-[#0D5E8A]"
+                    }`}
+                  >
+                    {item.initials}
+                  </span>
+                  <span
+                    className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
+                  >
+                    <ItemIcon className="h-3 w-3 text-white" />
+                  </span>
+                </button>
+              </HoverCardTrigger>
+              <HoverCardContent
+                side="right"
+                align="start"
+                sideOffset={16}
+                className="w-[490px] rounded-[20px] border border-black/10 bg-white p-0 shadow-[0_18px_50px_rgba(0,0,0,0.16)]"
+              >
+                <QueueOverlayList />
+              </HoverCardContent>
+            </HoverCard>
+          );
+        })}
+      </div>
+    </aside>
   );
 }
 
@@ -284,8 +452,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 px-4 pb-4 pt-0">
-        <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
+      <div className="flex min-h-0 flex-1 gap-3 px-4 pb-4 pt-0">
+        <LeftQueueRail />
+        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
           {children}
         </div>
       </div>
