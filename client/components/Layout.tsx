@@ -18,7 +18,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
@@ -68,8 +67,6 @@ const statusOptions: Array<{
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
   { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
 ];
-
-const addNewOptions = ["Customer", "Ticket", "Account", "Note", "Task"] as const;
 
 const queuePreviewItems = [
   {
@@ -237,41 +234,6 @@ function LeftQueueRail() {
       <div className="relative flex h-full">
         <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
-            <HoverCard openDelay={80} closeDelay={120}>
-              <HoverCardTrigger asChild>
-                <button
-                  type="button"
-                  className="flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
-                  aria-label="Add new"
-                >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/15 bg-white text-[#6E00FD] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#6E00FD]/20 hover:bg-[#F3ECFF]">
-                    <Plus className="h-4 w-4 stroke-[2.2]" />
-                  </span>
-                </button>
-              </HoverCardTrigger>
-              <HoverCardContent
-                side="right"
-                align="start"
-                sideOffset={12}
-                className="w-[200px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
-              >
-                <div className="px-2 pb-2 pt-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
-                  Add New
-                </div>
-                <div className="space-y-1">
-                  {addNewOptions.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#333333] transition-colors hover:bg-[#F5F8FB] hover:text-[#0D5E8A]"
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </HoverCardContent>
-            </HoverCard>
-
             <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
                 {queuePreviewItems.map((item) => {
