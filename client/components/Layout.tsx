@@ -8,6 +8,7 @@ import {
   History,
   MessageSquare,
   Phone,
+  Plus,
   Search,
   Settings,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 
 interface LayoutProps {
@@ -65,6 +67,8 @@ const statusOptions: Array<{
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
   { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
 ];
+
+const addNewOptions = ["Customer", "Ticket", "Account", "Note", "Task"] as const;
 
 const queuePreviewItems = [
   {
@@ -228,52 +232,87 @@ function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div
-      className="fixed bottom-0 left-0 top-12 z-30 hidden min-[800px]:block"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-    >
+    <div className="fixed bottom-0 left-0 top-12 z-30 hidden min-[800px]:block">
       <div className="relative flex h-full">
         <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-black/[0.08] bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
-            {queuePreviewItems.map((item) => {
-              const ItemIcon = item.icon;
-
-              return (
+            <HoverCard openDelay={80} closeDelay={120}>
+              <HoverCardTrigger asChild>
                 <button
-                  key={item.id}
                   type="button"
-                  className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
-                  aria-label={`${item.name} queue item`}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                  aria-label="Add new"
                 >
-                  <span
-                    className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
-                      item.isActive
-                        ? "bg-[#0D5E8A] text-white"
-                        : "border border-black/15 bg-white text-[#0D5E8A]"
-                    }`}
-                  >
-                    {item.initials}
-                  </span>
-                  <span
-                    className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
-                  >
-                    <ItemIcon className="h-3 w-3 text-white" />
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-black/15 bg-white text-[#6E00FD] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#6E00FD]/20 hover:bg-[#F3ECFF]">
+                    <Plus className="h-4 w-4 stroke-[2.2]" />
                   </span>
                 </button>
-              );
-            })}
+              </HoverCardTrigger>
+              <HoverCardContent
+                side="right"
+                align="start"
+                sideOffset={12}
+                className="w-[200px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_18px_40px_rgba(15,23,42,0.14)]"
+              >
+                <div className="px-2 pb-2 pt-1 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
+                  Add New
+                </div>
+                <div className="space-y-1">
+                  {addNewOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="flex w-full items-center rounded-xl px-3 py-2 text-left text-[13px] font-medium text-[#333333] transition-colors hover:bg-[#F5F8FB] hover:text-[#0D5E8A]"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+
+            <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+              <div className="flex flex-col items-center gap-2.5">
+                {queuePreviewItems.map((item) => {
+                  const ItemIcon = item.icon;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                      aria-label={`${item.name} queue item`}
+                    >
+                      <span
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                          item.isActive
+                            ? "bg-[#0D5E8A] text-white"
+                            : "border border-black/15 bg-white text-[#0D5E8A]"
+                        }`}
+                      >
+                        {item.initials}
+                      </span>
+                      <span
+                        className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
+                      >
+                        <ItemIcon className="h-3 w-3 text-white" />
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </aside>
 
         <div
-          className={`absolute left-0 top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+          className={`absolute left-0 top-[58px] z-50 transition-all duration-200 ease-in-out ${
             isOpen
               ? "pointer-events-auto translate-x-0 opacity-100"
               : "pointer-events-none -translate-x-3 opacity-0"
           }`}
         >
-          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+          <div className="h-[calc(100vh-48px-24px-58px)] w-[320px] overflow-y-auto rounded-r-2xl border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
             <QueueOverlayList />
           </div>
         </div>
