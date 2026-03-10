@@ -10,6 +10,7 @@ import {
   Phone,
   Plus,
   Search,
+  X,
 } from "lucide-react";
 
 import {
@@ -220,6 +221,7 @@ function AddNewPopoverContent({
   size,
   onPositionChange,
   onSizeChange,
+  onClose,
 }: {
   position: {
     x: number;
@@ -231,6 +233,7 @@ function AddNewPopoverContent({
   };
   onPositionChange: (position: { x: number; y: number }) => void;
   onSizeChange: (size: { width: number; height: number }) => void;
+  onClose: () => void;
 }) {
   const [selectedType, setSelectedType] = useState<AddNewType>("customer");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
@@ -321,7 +324,7 @@ function AddNewPopoverContent({
       }}
     >
       <div
-        className="flex cursor-grab items-center gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
           isDraggingRef.current = true;
           dragOffsetRef.current = {
@@ -331,8 +334,19 @@ function AddNewPopoverContent({
           document.body.style.userSelect = "none";
         }}
       >
-        <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
+        <div className="flex items-center gap-3">
+          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
+        </div>
+        <button
+          type="button"
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={onClose}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          aria-label="Close Add New popunder"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
@@ -927,6 +941,7 @@ export default function Layout({ children }: LayoutProps) {
           size={addNewPopunderSize}
           onPositionChange={setAddNewPopunderPosition}
           onSizeChange={setAddNewPopunderSize}
+          onClose={() => setIsAddNewPopoverOpen(false)}
         />
       )}
 
