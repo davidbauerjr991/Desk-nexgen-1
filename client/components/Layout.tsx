@@ -208,7 +208,12 @@ export default function Layout({ children }: LayoutProps) {
                 type="button"
                 className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
               >
-                <span className={`h-3 w-3 rounded-full ${activeStatus.dotClassName}`} />
+                <span
+                  aria-hidden="true"
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-b from-[#8A2BFF] to-[#6E00FD] text-[9px] font-bold leading-none text-white shadow-[0_2px_6px_rgba(110,0,253,0.2)]"
+                >
+                  JD
+                </span>
                 <span className="hidden min-w-0 flex-col items-start sm:flex">
                   <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
                     {activeStatus.label}
