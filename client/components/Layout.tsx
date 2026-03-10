@@ -404,7 +404,7 @@ function LeftQueueRail() {
                       <span
                         className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
                           item.isActive
-                            ? "bg-[#0D5E8A] text-white"
+                            ? "bg-[#6E00FD] text-white"
                             : "border border-black/15 bg-white text-[#0D5E8A]"
                         }`}
                       >
