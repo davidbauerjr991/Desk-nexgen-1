@@ -544,6 +544,7 @@ export default function Index() {
     isInteractionsOpen,
     isRightPanelOpen,
     closeRightPanel,
+    isAgentAvailable,
     startCallStatus,
     endCallStatus,
   } = useLayoutContext();
@@ -656,7 +657,7 @@ export default function Index() {
               size="sm"
               className="hidden sm:flex"
               onClick={openCallPopunder}
-              disabled={isCallActive}
+              disabled={isCallActive || !isAgentAvailable}
             >
               <PhoneCall className="mr-2 h-4 w-4" /> Call
             </Button>

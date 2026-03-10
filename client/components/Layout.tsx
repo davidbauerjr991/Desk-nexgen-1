@@ -29,6 +29,7 @@ interface LayoutContextValue {
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
   isAgentInCall: boolean;
+  isAgentAvailable: boolean;
   toggleCopilot: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
@@ -152,6 +153,7 @@ export default function Layout({ children }: LayoutProps) {
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
       isAgentInCall: status === "In a Call",
+      isAgentAvailable: status === "Available",
       toggleCopilot: () => {
         setActiveRightPanel((current) =>
           current === "copilot" ? null : "copilot",
