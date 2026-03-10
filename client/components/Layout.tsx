@@ -448,7 +448,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-2 px-4 pb-4 pt-0">
+      <div className="flex min-h-0 flex-1 gap-0 pl-0 pr-4 pb-4 pt-0">
         <LeftQueueRail />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
           {children}
