@@ -97,13 +97,13 @@ export default function Layout({ children }: LayoutProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex h-10 items-center gap-3 rounded-xl bg-[#F3ECFF] px-4 text-[#333333] transition-colors hover:bg-[#EEE4FF] focus:outline-none"
+                className="flex h-8 items-center gap-2 rounded-lg px-3 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
               >
-                <span className={`h-3.5 w-3.5 rounded-full ${activeStatus.dotClassName}`} />
-                <span className="hidden text-[17px] font-semibold leading-none tracking-[-0.02em] text-[#4F189F] sm:inline">
+                <span className={`h-3 w-3 rounded-full ${activeStatus.dotClassName}`} />
+                <span className="hidden text-[15px] font-semibold leading-none tracking-[-0.02em] text-[#4F189F] sm:inline">
                   {activeStatus.label}
                 </span>
-                <ChevronDown className="h-4 w-4 text-[#666666]" />
+                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
