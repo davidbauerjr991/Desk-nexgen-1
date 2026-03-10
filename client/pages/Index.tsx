@@ -231,6 +231,12 @@ const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+const assignmentHeaderDetails = {
+  alex: { customerId: "CST-10482", lastUpdated: "02/23/26 | 04:22 PM" },
+  sarah: { customerId: "CST-10591", lastUpdated: "02/24/26 | 09:18 AM" },
+  emily: { customerId: "CST-10814", lastUpdated: "02/25/26 | 11:47 AM" },
+  david: { customerId: "CST-10363", lastUpdated: "02/26/26 | 03:06 PM" },
+} as const;
 
 function formatRecentInteractionTimestamp(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -852,6 +858,7 @@ export default function Index() {
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
+    selectedAssignment,
     toggleInfo,
     toggleDesk,
     toggleInteractions,
@@ -883,6 +890,9 @@ export default function Index() {
     };
   });
   const activeConversation = conversationsByChannel[activeChannel];
+  const selectedAssignmentHeader =
+    assignmentHeaderDetails[selectedAssignment.id as keyof typeof assignmentHeaderDetails] ??
+    assignmentHeaderDetails.alex;
 
   const getAnchoredCallPopunderPosition = (): CallPopunderPosition => {
     if (typeof window === "undefined") {
@@ -973,7 +983,7 @@ export default function Index() {
           <div className="flex min-w-0 flex-1 items-start">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h2 className="text-lg font-semibold tracking-tight">Alex Kowalski</h2>
+                <h2 className="text-lg font-semibold tracking-tight">{selectedAssignment.name}</h2>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <ChannelToggleButton
                     channel="chat"
@@ -1009,10 +1019,10 @@ export default function Index() {
               </div>
               <div className="mt-1 flex flex-col gap-2 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="break-words leading-tight">CST-10482</span>
+                  <span className="break-words leading-tight">{selectedAssignmentHeader.customerId}</span>
                   <span className="flex items-start gap-1.5 leading-tight">
                     <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Last updated 02/23/26 | 04:22 PM</span>
+                    <span>Last updated {selectedAssignmentHeader.lastUpdated}</span>
                   </span>
                 </div>
               </div>

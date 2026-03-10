@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowUpDown,
   Bell,
@@ -49,10 +50,12 @@ interface LayoutContextValue {
   isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
+  selectedAssignment: QueuePreviewItem;
   toggleInfo: () => void;
   toggleDesk: () => void;
   toggleInteractions: () => void;
   closeRightPanel: () => void;
+  selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
 }
@@ -471,7 +474,13 @@ function HeaderIconButton({
   );
 }
 
-function QueueOverlayList({ items }: { items: QueuePreviewItem[] }) {
+function QueueOverlayList({
+  items,
+  onSelectAssignment,
+}: {
+  items: QueuePreviewItem[];
+  onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+}) {
   return (
     <div className="min-h-full overflow-hidden bg-white">
       {items.map((item) => {
@@ -480,6 +489,7 @@ function QueueOverlayList({ items }: { items: QueuePreviewItem[] }) {
         return (
           <div
             key={item.id}
+            onClick={() => onSelectAssignment(item.id)}
             className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
               item.isActive ? "bg-[#F3ECFF]" : "bg-white hover:bg-[#FCFAFF]"
             }`}
@@ -536,6 +546,7 @@ function QueueOverlayList({ items }: { items: QueuePreviewItem[] }) {
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
+  const { selectedAssignment, selectAssignment } = useLayoutContext();
 
   const sortedQueuePreviewItems = useMemo(() => {
     const items = [...queuePreviewItems];
@@ -550,8 +561,20 @@ function LeftQueueRail() {
       return -updatedDiff;
     });
 
-    return items;
-  }, [sortOption]);
+    return items.map((item) => ({
+      ...item,
+      isActive: item.id === selectedAssignment.id,
+    }));
+  }, [selectedAssignment.id, sortOption]);
+
+  const railQueuePreviewItems = useMemo(
+    () =>
+      queuePreviewItems.map((item) => ({
+        ...item,
+        isActive: item.id === selectedAssignment.id,
+      })),
+    [selectedAssignment.id],
+  );
 
   return (
     <div className="fixed bottom-0 left-0 top-12 z-30 block">
@@ -560,7 +583,7 @@ function LeftQueueRail() {
           <div className="flex flex-col items-center gap-2.5 pt-1">
             <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
-                {queuePreviewItems.map((item) => {
+                {railQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
 
                   return (
@@ -569,6 +592,7 @@ function LeftQueueRail() {
                       type="button"
                       className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
                       aria-label={`${item.name} queue item`}
+                      onClick={() => selectAssignment(item.id)}
                     >
                       <span
                         className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
@@ -649,7 +673,7 @@ function LeftQueueRail() {
               </DropdownMenu>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
-              <QueueOverlayList items={sortedQueuePreviewItems} />
+              <QueueOverlayList items={sortedQueuePreviewItems} onSelectAssignment={selectAssignment} />
             </div>
           </div>
         </div>
@@ -675,6 +699,7 @@ function formatStatusDuration(totalSeconds: number) {
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("info");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
@@ -692,6 +717,9 @@ export default function Layout({ children }: LayoutProps) {
   }));
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
+    () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
+  );
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
@@ -710,6 +738,10 @@ export default function Layout({ children }: LayoutProps) {
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
     [status],
+  );
+  const selectedAssignment = useMemo(
+    () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
+    [selectedAssignmentId],
   );
 
   const getAnchoredAddNewPopunderPosition = () => {
@@ -760,6 +792,7 @@ export default function Layout({ children }: LayoutProps) {
       isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
+      selectedAssignment,
       toggleInfo: () => {
         setActiveRightPanel((current) =>
           current === "info" ? null : "info",
@@ -776,6 +809,10 @@ export default function Layout({ children }: LayoutProps) {
         );
       },
       closeRightPanel: () => setActiveRightPanel(null),
+      selectAssignment: (assignmentId) => {
+        setSelectedAssignmentId(assignmentId);
+        navigate("/activity");
+      },
       startCallStatus: () => {
         if (status !== "In a Call") {
           previousAgentStatusRef.current = status;
@@ -788,7 +825,7 @@ export default function Layout({ children }: LayoutProps) {
         setStatusStartedAt(Date.now());
       },
     }),
-    [activeRightPanel, isAddNewPopoverOpen, status],
+    [activeRightPanel, isAddNewPopoverOpen, navigate, selectedAssignment, status],
   );
 
   return (
