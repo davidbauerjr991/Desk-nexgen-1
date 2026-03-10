@@ -12,7 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-const interactions = [
+const alexInteractions = [
   {
     id: 1,
     direction: "inbound",
@@ -114,6 +114,76 @@ const interactions = [
   },
 ] as const;
 
+const allAgentInteractions = [
+  ...alexInteractions,
+  {
+    id: 10,
+    direction: "inbound",
+    type: "voice",
+    createdAt: "03/11/26 8:14 AM",
+    status: "Pending",
+    customerName: "Maya Chen",
+    customerId: "CST-11834",
+    channel: "Voice - Premier Support",
+    statusColor: "bg-[#1991D2]",
+  },
+  {
+    id: 11,
+    direction: "outbound",
+    type: "email",
+    createdAt: "03/10/26 2:48 PM",
+    status: "Resolved",
+    customerName: "Jordan Alvarez",
+    customerId: "CST-10927",
+    channel: "CXi SME Email",
+    statusColor: "bg-[#2CB770]",
+  },
+  {
+    id: 12,
+    direction: "inbound",
+    type: "sms",
+    createdAt: "03/08/26 11:05 AM",
+    status: "Closed",
+    customerName: "Priya Raman",
+    customerId: "CST-12306",
+    channel: "CXoneSMS_1-833-457-8421",
+    statusColor: "bg-[#D0021B]",
+  },
+  {
+    id: 13,
+    direction: "outbound",
+    type: "ai-agent",
+    createdAt: "03/07/26 4:21 PM",
+    status: "Resolved",
+    customerName: "Daniel Brooks",
+    customerId: "CST-11602",
+    channel: "AI Agent - Returns Triage",
+    statusColor: "bg-[#2CB770]",
+  },
+  {
+    id: 14,
+    direction: "inbound",
+    type: "email",
+    createdAt: "03/06/26 9:40 AM",
+    status: "Pending",
+    customerName: "Sofia Martinez",
+    customerId: "CST-11291",
+    channel: "CXi SME Email",
+    statusColor: "bg-[#1991D2]",
+  },
+  {
+    id: 15,
+    direction: "outbound",
+    type: "voice",
+    createdAt: "03/05/26 6:02 PM",
+    status: "Closed",
+    customerName: "Marcus Hill",
+    customerId: "CST-12114",
+    channel: "Outbound Voice - Renewal Desk",
+    statusColor: "bg-[#D0021B]",
+  },
+] as const;
+
 const FILTER_CHIPS = [
   { label: "All", value: "all" },
   { label: "SMS", value: "sms" },
@@ -126,8 +196,8 @@ function InteractionTypeIcon({
   type,
   direction,
 }: {
-  type: (typeof interactions)[number]["type"];
-  direction: (typeof interactions)[number]["direction"];
+  type: (typeof allAgentInteractions)[number]["type"];
+  direction: (typeof allAgentInteractions)[number]["direction"];
 }) {
   const isEmail = type === "email";
   const isVoice = type === "voice";
@@ -153,7 +223,7 @@ function InteractionTypeIcon({
 function InteractionRow({
   interaction,
 }: {
-  interaction: (typeof interactions)[number];
+  interaction: (typeof allAgentInteractions)[number];
 }) {
   return (
     <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
@@ -213,12 +283,17 @@ export default function RecentInteractionsPanel() {
   const [isScopeMenuOpen, setIsScopeMenuOpen] = useState(false);
 
   const filteredInteractions = useMemo(() => {
+    const scopedInteractions =
+      selectedScope === "All Recent Interactions"
+        ? allAgentInteractions
+        : alexInteractions;
+
     if (activeFilter === "all") {
-      return interactions;
+      return scopedInteractions;
     }
 
-    return interactions.filter((interaction) => interaction.type === activeFilter);
-  }, [activeFilter]);
+    return scopedInteractions.filter((interaction) => interaction.type === activeFilter);
+  }, [activeFilter, selectedScope]);
 
   return (
     <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
