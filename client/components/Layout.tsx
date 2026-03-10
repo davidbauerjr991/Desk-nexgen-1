@@ -164,22 +164,22 @@ function HeaderIconButton({
 
 function QueueOverlayList() {
   return (
-    <div className="overflow-hidden rounded-[20px] bg-white">
+    <div className="min-h-full overflow-hidden bg-white">
       {queuePreviewItems.map((item) => {
         const ItemIcon = item.icon;
 
         return (
           <div
             key={item.id}
-            className={`relative flex gap-4 border-b border-black/[0.08] px-4 py-4 last:border-b-0 ${
+            className={`relative flex gap-3 border-b border-black/[0.08] px-4 py-3.5 last:border-b-0 ${
               item.isActive ? "bg-[#EFF4F8]" : "bg-white"
             }`}
           >
             {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#1991D2]" />}
 
-            <div className="relative flex-shrink-0">
+            <div className="relative mt-0.5 flex-shrink-0">
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full text-[18px] font-semibold ${
+                className={`flex h-11 w-11 items-center justify-center rounded-full text-[16px] font-semibold ${
                   item.isActive
                     ? "bg-[#0D5E8A] text-white"
                     : "border border-black/15 bg-white text-[#0D5E8A]"
@@ -188,30 +188,30 @@ function QueueOverlayList() {
                 {item.initials}
               </div>
               <span
-                className={`absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
+                className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
               >
-                <ItemIcon className="h-3.5 w-3.5 text-white" />
+                <ItemIcon className="h-3 w-3 text-white" />
               </span>
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[18px] font-semibold leading-6 text-[#333333]">
+                  <div className="truncate text-[16px] font-semibold leading-5 text-[#333333]">
                     {item.name}
                   </div>
-                  <div className="mt-1 truncate text-[16px] leading-6 text-[#6B6B6B]">
+                  <div className="mt-1 truncate text-[14px] leading-5 text-[#6B6B6B]">
                     {item.preview}
                   </div>
                 </div>
-                <span className="flex-shrink-0 text-[15px] font-medium text-[#6B6B6B]">
+                <span className="flex-shrink-0 pt-0.5 text-[14px] font-medium leading-5 text-[#6B6B6B]">
                   {item.time}
                 </span>
               </div>
 
-              <div className="mt-3">
+              <div className="mt-2.5">
                 <span
-                  className={`inline-flex rounded-full border px-4 py-1 text-[14px] font-medium ${item.sentimentClassName}`}
+                  className={`inline-flex rounded-full border px-3 py-0.5 text-[13px] font-medium ${item.sentimentClassName}`}
                 >
                   {item.sentiment}
                 </span>
@@ -229,53 +229,53 @@ function LeftQueueRail() {
 
   return (
     <div
-      className="relative hidden min-[800px]:flex"
+      className="fixed bottom-0 left-0 top-12 z-30 hidden min-[800px]:block"
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
     >
-      {/* Rail icons */}
-      <aside className="flex w-[56px] shrink-0 flex-col items-center py-3">
-        <div className="flex flex-col items-center gap-2.5 pt-1">
-          {queuePreviewItems.map((item) => {
-            const ItemIcon = item.icon;
+      <div className="relative flex h-full">
+        <aside className="flex h-full w-[56px] shrink-0 flex-col items-center border-r border-black/[0.08] bg-[#F8F8F9] py-3">
+          <div className="flex flex-col items-center gap-2.5 pt-1">
+            {queuePreviewItems.map((item) => {
+              const ItemIcon = item.icon;
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
-                aria-label={`${item.name} queue item`}
-              >
-                <span
-                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
-                    item.isActive
-                      ? "bg-[#0D5E8A] text-white"
-                      : "border border-black/15 bg-white text-[#0D5E8A]"
-                  }`}
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                  aria-label={`${item.name} queue item`}
                 >
-                  {item.initials}
-                </span>
-                <span
-                  className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
-                >
-                  <ItemIcon className="h-3 w-3 text-white" />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </aside>
+                  <span
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                      item.isActive
+                        ? "bg-[#0D5E8A] text-white"
+                        : "border border-black/15 bg-white text-[#0D5E8A]"
+                    }`}
+                  >
+                    {item.initials}
+                  </span>
+                  <span
+                    className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
+                  >
+                    <ItemIcon className="h-3 w-3 text-white" />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-      {/* Slide-out overlay panel */}
-      <div
-        className={`absolute left-[56px] top-0 z-50 h-full transition-all duration-200 ease-in-out ${
-          isOpen
-            ? "pointer-events-auto translate-x-0 opacity-100"
-            : "pointer-events-none -translate-x-3 opacity-0"
-        }`}
-      >
-        <div className="h-full w-[310px] overflow-y-auto rounded-r-2xl bg-white shadow-[4px_0_32px_rgba(0,0,0,0.14)]">
-          <QueueOverlayList />
+        <div
+          className={`absolute left-[56px] top-0 z-50 h-full transition-all duration-200 ease-in-out ${
+            isOpen
+              ? "pointer-events-auto translate-x-0 opacity-100"
+              : "pointer-events-none -translate-x-3 opacity-0"
+          }`}
+        >
+          <div className="h-full w-[320px] overflow-y-auto border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
+            <QueueOverlayList />
+          </div>
         </div>
       </div>
     </div>
@@ -458,7 +458,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-0 pl-0 pr-4 pb-4 pt-0">
+      <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-0 pr-4 pt-0 min-[800px]:pl-[56px]">
         <LeftQueueRail />
         <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
           {children}
