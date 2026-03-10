@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Bot,
+  ChevronDown,
   Mail,
   MoreVertical,
   MessageSquare,
@@ -18,6 +19,8 @@ const interactions = [
     type: "sms",
     createdAt: "03/09/26 6:36 PM",
     status: "Pending",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
     statusColor: "bg-[#1991D2]",
   },
@@ -27,6 +30,8 @@ const interactions = [
     type: "sms",
     createdAt: "03/02/26 4:32 PM",
     status: "Resolved",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
     statusColor: "bg-[#2CB770]",
   },
@@ -36,6 +41,8 @@ const interactions = [
     type: "sms",
     createdAt: "02/19/26 4:57 PM",
     status: "Resolved",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
     statusColor: "bg-[#2CB770]",
   },
@@ -45,6 +52,8 @@ const interactions = [
     type: "voice",
     createdAt: "02/04/26 9:12 AM",
     status: "Resolved",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "Inbound Voice - Mortgage Queue",
     statusColor: "bg-[#2CB770]",
   },
@@ -54,6 +63,8 @@ const interactions = [
     type: "ai-agent",
     createdAt: "01/30/26 11:03 AM",
     status: "Closed",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "AI Agent - Billing Triage",
     statusColor: "bg-[#D0021B]",
   },
@@ -63,6 +74,8 @@ const interactions = [
     type: "email",
     createdAt: "01/27/26 7:18 PM",
     status: "Closed",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXi SME Email",
     statusColor: "bg-[#D0021B]",
   },
@@ -72,6 +85,8 @@ const interactions = [
     type: "email",
     createdAt: "01/21/26 1:57 PM",
     status: "Closed",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXi SME Email",
     statusColor: "bg-[#D0021B]",
   },
@@ -81,6 +96,8 @@ const interactions = [
     type: "email",
     createdAt: "01/21/26 12:51 PM",
     status: "Closed",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXi SME Email",
     statusColor: "bg-[#D0021B]",
   },
@@ -90,6 +107,8 @@ const interactions = [
     type: "sms",
     createdAt: "01/20/26 5:13 PM",
     status: "Closed",
+    customerName: "Alex Kowalski",
+    customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
     statusColor: "bg-[#D0021B]",
   },
@@ -174,7 +193,12 @@ function InteractionRow({
             </button>
           </div>
 
-          <div className="mt-2 truncate text-[12px] leading-5 text-[#6B7280]">
+          <div className="mt-2 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
+            <span className="truncate font-medium text-[#333333]">{interaction.customerName}</span>
+            <span className="flex-shrink-0 text-[#C0C4CC]">•</span>
+            <span className="flex-shrink-0 text-[#6B7280]">{interaction.customerId}</span>
+          </div>
+          <div className="mt-1 truncate text-[12px] leading-5 text-[#6B7280]">
             {interaction.channel}
           </div>
         </div>
@@ -185,6 +209,8 @@ function InteractionRow({
 
 export default function RecentInteractionsPanel() {
   const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email" | "voice" | "ai-agent">("all");
+  const [selectedScope, setSelectedScope] = useState<"Alex Kowalski" | "All Recent Interactions">("Alex Kowalski");
+  const [isScopeMenuOpen, setIsScopeMenuOpen] = useState(false);
 
   const filteredInteractions = useMemo(() => {
     if (activeFilter === "all") {
@@ -197,9 +223,44 @@ export default function RecentInteractionsPanel() {
   return (
     <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
-        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
-          Recent Interactions
-        </h3>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsScopeMenuOpen((current) => !current)}
+            className="group text-left"
+          >
+            <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
+              <span>Recent Interactions</span>
+              <ChevronDown className={cn("h-4 w-4 text-[#7A7A7A] transition-transform", isScopeMenuOpen && "rotate-180")} />
+            </div>
+            <div className="mt-0.5 text-xs text-[#6B7280] transition-colors group-hover:text-[#333333]">
+              {selectedScope}
+            </div>
+          </button>
+
+          {isScopeMenuOpen && (
+            <div className="absolute left-0 top-full z-10 mt-2 w-52 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+              {(["Alex Kowalski", "All Recent Interactions"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setSelectedScope(option);
+                    setIsScopeMenuOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center rounded-lg px-3 py-2 text-left text-sm transition-colors",
+                    selectedScope === option
+                      ? "bg-[#F3ECFF] text-[#6E00FD]"
+                      : "text-[#333333] hover:bg-[#F8F8F9]",
+                  )}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {FILTER_CHIPS.map((chip) => {
