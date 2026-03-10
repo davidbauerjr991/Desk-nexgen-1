@@ -601,14 +601,14 @@ function AddNewPanel({ onCancel }: { onCancel: () => void }) {
       <ScrollArea className="flex-1 px-5 py-5">
         <div className="space-y-5">
           <div className="space-y-2">
-            <label className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
+            <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
               Item Type
             </label>
             <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
-              <SelectTrigger className="h-10 rounded-xl border-black/10 bg-white text-sm text-[#333333] focus:ring-1 focus:ring-[#D9CCFF] focus:ring-offset-0">
+              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E00FD]/30 focus:ring-offset-0 focus:border-[#6E00FD]">
                 <SelectValue placeholder="Select item type" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl border border-black/10 bg-white">
+              <SelectContent className="rounded border border-[#E5E7EB] bg-white">
                 <SelectItem value="customer">Customer</SelectItem>
                 <SelectItem value="account">Account</SelectItem>
                 <SelectItem value="ticket">Ticket</SelectItem>
@@ -620,7 +620,7 @@ function AddNewPanel({ onCancel }: { onCancel: () => void }) {
           <div className="space-y-4">
             {fields.map((field) => (
               <div key={field.key} className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
+                <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
                   {field.label}
                 </label>
                 {field.type === "textarea" ? (
@@ -630,7 +630,7 @@ function AddNewPanel({ onCancel }: { onCancel: () => void }) {
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="min-h-[96px] rounded-xl border-black/10 text-sm focus-visible:ring-1 focus-visible:ring-[#D9CCFF]"
+                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
                   />
                 ) : (
                   <Input
@@ -639,7 +639,7 @@ function AddNewPanel({ onCancel }: { onCancel: () => void }) {
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="h-10 rounded-xl border-black/10 text-sm focus-visible:ring-1 focus-visible:ring-[#D9CCFF]"
+                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
                   />
                 )}
               </div>
