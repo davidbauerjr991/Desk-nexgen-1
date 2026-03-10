@@ -1,13 +1,12 @@
+import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
   Mail,
   MoreVertical,
-  Search,
   MessageSquare,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const interactions = [
@@ -74,6 +73,12 @@ const interactions = [
     channel: "CXoneSMS_1-833-457-8421",
     statusColor: "bg-[#D0021B]",
   },
+] as const;
+
+const FILTER_CHIPS = [
+  { label: "All", value: "all" },
+  { label: "SMS", value: "sms" },
+  { label: "Email", value: "email" },
 ] as const;
 
 function InteractionTypeIcon({
@@ -149,30 +154,49 @@ function InteractionRow({
 }
 
 export default function RecentInteractionsPanel() {
+  const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email">("all");
+
+  const filteredInteractions = useMemo(() => {
+    if (activeFilter === "all") {
+      return interactions;
+    }
+
+    return interactions.filter((interaction) => interaction.type === activeFilter);
+  }, [activeFilter]);
+
   return (
     <div className="flex h-full min-w-full flex-col bg-white lg:min-w-[380px]">
       <div className="border-b border-border bg-background/50 px-5 py-4">
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
-            Recent Interactions
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Switch context quickly without leaving the current customer view.
-          </p>
-        </div>
+        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
+          Recent Interactions
+        </h3>
 
-        <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]" />
-          <Input
-            placeholder="Search interactions"
-            className="h-9 border-black/10 bg-white pl-9 text-sm shadow-none placeholder:text-[#9CA3AF] focus-visible:ring-1"
-          />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = activeFilter === chip.value;
+
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => setActiveFilter(chip.value)}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  isActive
+                    ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
+                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+                )}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       <ScrollArea className="flex-1 px-4 py-4">
         <div className="space-y-3 pb-2">
-          {interactions.map((interaction) => (
+          {filteredInteractions.map((interaction) => (
             <InteractionRow key={interaction.id} interaction={interaction} />
           ))}
         </div>
