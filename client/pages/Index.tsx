@@ -32,6 +32,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
@@ -44,6 +51,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 type ChannelType = "chat" | "sms" | "whatsapp" | "email";
+type AddNewType = "customer" | "account" | "ticket" | "work-item";
 
 type ConversationMessage = {
   id: number;
@@ -538,9 +546,124 @@ function CallControlsPopunder({
   );
 }
 
+const addNewFieldConfig: Record<
+  AddNewType,
+  Array<{
+    key: string;
+    label: string;
+    placeholder: string;
+    type: "input" | "textarea";
+  }>
+> = {
+  customer: [
+    { key: "firstName", label: "First Name", placeholder: "Enter first name", type: "input" },
+    { key: "lastName", label: "Last Name", placeholder: "Enter last name", type: "input" },
+    { key: "email", label: "Email", placeholder: "name@example.com", type: "input" },
+    { key: "phone", label: "Phone", placeholder: "(555) 123-4567", type: "input" },
+    { key: "customerId", label: "Customer ID", placeholder: "CST-10482", type: "input" },
+    { key: "notes", label: "Notes", placeholder: "Add customer notes", type: "textarea" },
+  ],
+  account: [
+    { key: "accountName", label: "Account Name", placeholder: "Premier Account", type: "input" },
+    { key: "accountNumber", label: "Account Number", placeholder: "ACC-20391", type: "input" },
+    { key: "owner", label: "Owner", placeholder: "Alex Kowalski", type: "input" },
+    { key: "status", label: "Status", placeholder: "Active", type: "input" },
+    { key: "billingAddress", label: "Billing Address", placeholder: "Add billing address", type: "textarea" },
+  ],
+  ticket: [
+    { key: "title", label: "Ticket Title", placeholder: "Payment mismatch preventing upgrade", type: "input" },
+    { key: "priority", label: "Priority", placeholder: "High", type: "input" },
+    { key: "category", label: "Category", placeholder: "Billing", type: "input" },
+    { key: "customer", label: "Customer", placeholder: "Alex Kowalski", type: "input" },
+    { key: "description", label: "Description", placeholder: "Describe the issue", type: "textarea" },
+  ],
+  "work-item": [
+    { key: "name", label: "Work Item Name", placeholder: "Resolve billing mismatch", type: "input" },
+    { key: "assignee", label: "Assignee", placeholder: "Jordan Doe", type: "input" },
+    { key: "dueDate", label: "Due Date", placeholder: "03/15/26", type: "input" },
+    { key: "relatedTo", label: "Related To", placeholder: "Ticket TCK-2091", type: "input" },
+    { key: "details", label: "Details", placeholder: "Add work item details", type: "textarea" },
+  ],
+};
+
+function AddNewPanel({ onCancel }: { onCancel: () => void }) {
+  const [selectedType, setSelectedType] = useState<AddNewType>("customer");
+  const [formValues, setFormValues] = useState<Record<string, string>>({});
+
+  const fields = addNewFieldConfig[selectedType];
+
+  return (
+    <>
+      <div className="border-b border-border bg-background/50 px-5 py-4">
+        <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Add New</h3>
+      </div>
+
+      <ScrollArea className="flex-1 px-5 py-5">
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <label className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
+              Item Type
+            </label>
+            <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
+              <SelectTrigger className="h-10 rounded-xl border-black/10 bg-white text-sm text-[#333333] focus:ring-1 focus:ring-[#D9CCFF] focus:ring-offset-0">
+                <SelectValue placeholder="Select item type" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border border-black/10 bg-white">
+                <SelectItem value="customer">Customer</SelectItem>
+                <SelectItem value="account">Account</SelectItem>
+                <SelectItem value="ticket">Ticket</SelectItem>
+                <SelectItem value="work-item">Work Item</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-4">
+            {fields.map((field) => (
+              <div key={field.key} className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">
+                  {field.label}
+                </label>
+                {field.type === "textarea" ? (
+                  <Textarea
+                    value={formValues[field.key] ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
+                    }
+                    placeholder={field.placeholder}
+                    className="min-h-[96px] rounded-xl border-black/10 text-sm focus-visible:ring-1 focus-visible:ring-[#D9CCFF]"
+                  />
+                ) : (
+                  <Input
+                    value={formValues[field.key] ?? ""}
+                    onChange={(event) =>
+                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
+                    }
+                    placeholder={field.placeholder}
+                    className="h-10 rounded-xl border-black/10 text-sm focus-visible:ring-1 focus-visible:ring-[#D9CCFF]"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </ScrollArea>
+
+      <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
+        <Button type="button" variant="outline" className="rounded-xl" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="button" className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1]" onClick={onCancel}>
+          Save
+        </Button>
+      </div>
+    </>
+  );
+}
+
 export default function Index() {
   const {
     isInteractionsOpen,
+    isAddNewOpen,
     isRightPanelOpen,
     closeRightPanel,
     isAgentAvailable,
@@ -859,6 +982,8 @@ export default function Index() {
         >
           {isInteractionsOpen ? (
             <RecentInteractionsPanel />
+          ) : isAddNewOpen ? (
+            <AddNewPanel onCancel={closeRightPanel} />
           ) : (
             <>
               <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">

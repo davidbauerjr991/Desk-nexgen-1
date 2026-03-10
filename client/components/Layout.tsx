@@ -3,7 +3,6 @@ import {
   Bell,
   Bot,
   ChevronDown,
-  CircleHelp,
   ClipboardList,
   History,
   MessageSquare,
@@ -26,17 +25,19 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "copilot" | "interactions" | null;
+type RightPanelView = "copilot" | "interactions" | "addNew" | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
   isCopilotOpen: boolean;
   isInteractionsOpen: boolean;
+  isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   toggleCopilot: () => void;
   toggleInteractions: () => void;
+  toggleAddNew: () => void;
   closeRightPanel: () => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
@@ -367,6 +368,7 @@ export default function Layout({ children }: LayoutProps) {
       isRightPanelOpen: activeRightPanel !== null,
       isCopilotOpen: activeRightPanel === "copilot",
       isInteractionsOpen: activeRightPanel === "interactions",
+      isAddNewOpen: activeRightPanel === "addNew",
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       toggleCopilot: () => {
@@ -377,6 +379,11 @@ export default function Layout({ children }: LayoutProps) {
       toggleInteractions: () => {
         setActiveRightPanel((current) =>
           current === "interactions" ? null : "interactions",
+        );
+      },
+      toggleAddNew: () => {
+        setActiveRightPanel((current) =>
+          current === "addNew" ? null : "addNew",
         );
       },
       closeRightPanel: () => setActiveRightPanel(null),
@@ -426,8 +433,12 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </HeaderIconButton>
 
-          <HeaderIconButton>
-            <CircleHelp className="h-4 w-4 stroke-[1.8]" />
+          <HeaderIconButton
+            ariaLabel={layoutContextValue.isAddNewOpen ? "Hide add new panel" : "Show add new panel"}
+            onClick={layoutContextValue.toggleAddNew}
+            isActive={layoutContextValue.isAddNewOpen}
+          >
+            <Plus className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
           <HeaderIconButton ariaLabel="Settings">
