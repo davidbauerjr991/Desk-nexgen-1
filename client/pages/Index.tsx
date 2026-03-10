@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Bot,
   Sparkles,
@@ -12,6 +12,10 @@ import {
   Clock,
   X,
   CheckCircle2,
+  ArrowRightLeft,
+  Pause,
+  PhoneOff,
+  GripHorizontal,
   AlertTriangle,
   Lightbulb,
   FileText,
@@ -208,6 +212,11 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
+type CallPopunderPosition = {
+  x: number;
+  y: number;
+};
+
 function ChannelToggleButton({
   channel,
   activeChannel,
@@ -256,6 +265,99 @@ function ChannelToggleButton({
   );
 }
 
+function CallControlsPopunder({
+  position,
+  onPositionChange,
+  onClose,
+}: {
+  position: CallPopunderPosition;
+  onPositionChange: (position: CallPopunderPosition) => void;
+  onClose: () => void;
+}) {
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+
+      const width = 272;
+      const height = 196;
+      const nextX = event.clientX - dragOffsetRef.current.x;
+      const nextY = event.clientY - dragOffsetRef.current.y;
+
+      onPositionChange({
+        x: Math.min(Math.max(16, nextX), window.innerWidth - width - 16),
+        y: Math.min(Math.max(16, nextY), window.innerHeight - height - 16),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange]);
+
+  return (
+    <div
+      className="fixed z-[70] w-[272px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div
+        className="flex cursor-grab items-center justify-between border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+          if (!bounds) return;
+
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - bounds.left,
+            y: event.clientY - bounds.top,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
+          <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
+          Active Call
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          aria-label="Close call controls"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-2 p-3">
+        <Button variant="outline" className="w-full justify-start gap-2 border-black/10 text-[#333333]">
+          <ArrowRightLeft className="h-4 w-4" />
+          Transfer
+        </Button>
+        <Button variant="outline" className="w-full justify-start gap-2 border-black/10 text-[#333333]">
+          <Pause className="h-4 w-4" />
+          Hold
+        </Button>
+        <Button variant="outline" className="w-full justify-start gap-2 border-[#F04438]/20 text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]">
+          <PhoneOff className="h-4 w-4" />
+          End Call
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const {
     isInteractionsOpen,
@@ -265,6 +367,17 @@ export default function Index() {
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
+  const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
+  const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
+    if (typeof window === "undefined") {
+      return { x: 24, y: 24 };
+    }
+
+    return {
+      x: Math.max(window.innerWidth - 296, 16),
+      y: Math.max(window.innerHeight - 236, 16),
+    };
+  });
   const activeConversation = conversationsByChannel[activeChannel];
 
   return (
@@ -318,7 +431,12 @@ export default function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="hidden sm:flex">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden sm:flex"
+              onClick={() => setIsCallPopunderOpen(true)}
+            >
               <PhoneCall className="w-4 h-4 mr-2" /> Call
             </Button>
             <DropdownMenu>
@@ -443,6 +561,14 @@ export default function Index() {
 
         </div>
       </div>
+
+      {isCallPopunderOpen && (
+        <CallControlsPopunder
+          position={callPopunderPosition}
+          onPositionChange={setCallPopunderPosition}
+          onClose={() => setIsCallPopunderOpen(false)}
+        />
+      )}
 
       {isMobileDetailsOpen && (
         <div className="absolute inset-0 z-40 animate-in fade-in-0 duration-200 min-[800px]:hidden">
