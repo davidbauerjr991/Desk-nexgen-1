@@ -172,15 +172,28 @@ export default function Index() {
       </div>
 
       {/* AI Copilot Panel */}
-      {isCopilotOpen && (
-        <div className="hidden w-[380px] flex-shrink-0 flex-col border-l border-border bg-muted/20 lg:flex">
-        <div className="px-5 py-4 border-b border-border bg-background/50 flex items-center gap-2">
-          <Bot className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-sm tracking-tight">NexAgent Copilot</h3>
-        </div>
-        
-        <ScrollArea className="flex-1 p-5">
-          <div className="space-y-6">
+      <div
+        className={cn(
+          "hidden overflow-hidden bg-muted/20 transition-[width,opacity,border-color] duration-300 ease-out lg:flex lg:flex-shrink-0",
+          isCopilotOpen
+            ? "w-[380px] border-l border-border opacity-100"
+            : "w-0 border-l-0 opacity-0 pointer-events-none",
+        )}
+        aria-hidden={!isCopilotOpen}
+      >
+        <div
+          className={cn(
+            "flex h-full min-w-[380px] flex-col transition-transform duration-300 ease-out",
+            isCopilotOpen ? "translate-x-0" : "translate-x-8",
+          )}
+        >
+          <div className="flex items-center gap-2 border-b border-border bg-background/50 px-5 py-4">
+            <Bot className="w-5 h-5 text-primary" />
+            <h3 className="text-sm font-semibold tracking-tight">NexAgent Copilot</h3>
+          </div>
+
+          <ScrollArea className="flex-1 p-5">
+            <div className="space-y-6">
             
             {/* Live Context Card */}
             <Card className="border-border shadow-sm bg-background">
@@ -295,9 +308,9 @@ export default function Index() {
             </div>
 
           </div>
-        </ScrollArea>
+          </ScrollArea>
         </div>
-      )}
+      </div>
 
     </div>
   );

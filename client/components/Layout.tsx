@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import {
   Bell,
+  Bot,
   ChevronDown,
   CircleHelp,
   Settings,
@@ -63,50 +64,6 @@ const NiceLogoIcon = () => (
     />
   </svg>
 );
-
-function AgentToggleIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M6.214 3.375V2.652C6.214 1.855 6.86 1.208 7.657 1.208H10.344C11.141 1.208 11.787 1.855 11.787 2.652V3.375"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M2.766 7.179C2.766 6.101 3.64 5.227 4.718 5.227H13.282C14.36 5.227 15.234 6.101 15.234 7.179V12.533C15.234 13.611 14.36 14.485 13.282 14.485H4.718C3.64 14.485 2.766 13.611 2.766 12.533V7.179Z"
-        stroke="currentColor"
-        strokeWidth="1.7"
-      />
-      <path
-        d="M1.5 7.781H16.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M8.999 7.781V10.534"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.621 9.157H10.378"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 function HeaderIconButton({
   children,
@@ -185,7 +142,7 @@ export default function Layout({ children }: LayoutProps) {
             onClick={() => setIsCopilotOpen((current) => !current)}
             isActive={isCopilotOpen}
           >
-            <AgentToggleIcon />
+            <Bot className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
           <DropdownMenu>
