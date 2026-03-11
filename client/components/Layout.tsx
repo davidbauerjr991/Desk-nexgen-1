@@ -301,6 +301,7 @@ const DOCKED_CONVERSATION_MIN_WIDTH = 320;
 const DOCKED_CONVERSATION_DEFAULT_WIDTH = 420;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
+const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
 const MIN_MAIN_WORKSPACE_WIDTH = 240;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
@@ -949,6 +950,8 @@ function DockedConversationPanel({
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
+  const contentInitializedRef = useRef(false);
+  const [isContentVisible, setIsContentVisible] = useState(isOpen);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -980,6 +983,24 @@ function DockedConversationPanel({
     };
   }, [hasDesktopRightPanel, onWidthChange]);
 
+  useEffect(() => {
+    if (!contentInitializedRef.current) {
+      contentInitializedRef.current = true;
+      return;
+    }
+
+    if (!isOpen) {
+      setIsContentVisible(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsContentVisible(true);
+    }, DOCKED_CONVERSATION_CONTENT_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isOpen]);
+
   const maxWidth = getDockedConversationMaxWidth(hasDesktopRightPanel);
   const decreaseWidth = () =>
     onWidthChange(Math.max(DOCKED_CONVERSATION_MIN_WIDTH, width - 64));
@@ -998,46 +1019,50 @@ function DockedConversationPanel({
       }}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-card/50 px-5 py-4">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-            <p className="truncate text-xs text-[#7A7A7A]">
-              {conversation.customerName} · {conversation.label}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Shrink conversation panel"
-              onClick={decreaseWidth}
-              disabled={width <= DOCKED_CONVERSATION_MIN_WIDTH}
-              className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Expand conversation panel"
-              onClick={increaseWidth}
-              disabled={width >= maxWidth}
-              className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        {isContentVisible && (
+          <>
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card/50 px-5 py-4">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+                <p className="truncate text-xs text-[#7A7A7A]">
+                  {conversation.customerName} · {conversation.label}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Shrink conversation panel"
+                  onClick={decreaseWidth}
+                  disabled={width <= DOCKED_CONVERSATION_MIN_WIDTH}
+                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Expand conversation panel"
+                  onClick={increaseWidth}
+                  disabled={width >= maxWidth}
+                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-        <ConversationPanel
-          conversation={conversation}
-          draftKey={`docked-${conversation.label}-${conversation.customerName}`}
-        />
+            <ConversationPanel
+              conversation={conversation}
+              draftKey={`docked-${conversation.label}-${conversation.customerName}`}
+            />
+          </>
+        )}
       </div>
 
-      {isOpen && (
+      {isOpen && isContentVisible && (
         <button
           type="button"
           aria-label="Resize docked conversation panel"
