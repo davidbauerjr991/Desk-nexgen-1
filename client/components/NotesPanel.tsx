@@ -813,10 +813,10 @@ export default function NotesPanel({
                   type="button"
                   onClick={() => setActiveTab(selectedTicket.id)}
                   className={cn(
-                    "ml-1 flex items-center gap-2 rounded-t-md border border-b-0 px-3 py-2 text-xs font-medium",
+                    "relative ml-1 flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === selectedTicket.id
-                      ? "border-[rgba(0,0,0,0.1)] bg-white text-[#334155]"
-                      : "border-transparent bg-transparent text-[#6B7280] hover:text-[#333]",
+                      ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E00FD]"
+                      : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
                   <Ticket className="h-4 w-4 flex-shrink-0 text-[#111827]" />
