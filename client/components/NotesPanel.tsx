@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import OverviewDashboard from "@/components/OverviewDashboard";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Accounts", "Tickets", "Customer Information", "Recent Interactions", "Directory"];
+const TABS = ["Overview", "Details", "Accounts", "Tickets", "Recent Interactions", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 const TICKET_PAGE_SIZE = 6;
 
@@ -978,11 +979,17 @@ export default function NotesPanel({
         </div>
       )}
 
+      {activeTab === "Details" && (
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          <CustomerInfoPanel className="h-full" />
+        </div>
+      )}
+
       {activeTab === "Tickets" && <TicketsDataGrid onOpenTicket={handleOpenTicket} />}
 
       {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && !activeTicket && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Tickets" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
