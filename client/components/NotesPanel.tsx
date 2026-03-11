@@ -173,34 +173,34 @@ function NoteItem({ note }: { note: (typeof initialNotes)[0] }) {
 function OverviewSummaryCard() {
   return (
     <div className="overflow-hidden rounded-2xl border border-[#D9CCFF] bg-[linear-gradient(135deg,#FCFAFF_0%,#F7F3FF_100%)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#E9DFFF] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6E00FD]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#E9DFFF] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6E00FD]">
             <Sparkles className="h-3.5 w-3.5" />
             AI Auto Summary
           </div>
-          <h3 className="mt-3 text-lg font-semibold tracking-tight text-[#1F2937]">Alex is likely to convert if the billing hold is cleared in-session.</h3>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-[#6B7280]">
+          <h3 className="mt-3 text-base font-semibold tracking-tight text-[#1F2937]">Alex is likely to convert if the billing hold is cleared in-session.</h3>
+          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#6B7280]">
             The account shows healthy payment history and repeated intent to upgrade. Current friction is operational rather than churn-related.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-3 sm:min-w-[220px]">
           <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-[#8B5CF6]">Intent</div>
-            <div className="mt-1 text-sm font-semibold text-[#1F2937]">High to upgrade</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[#8B5CF6]">Intent</div>
+            <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">High to upgrade</div>
           </div>
           <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-            <div className="text-[11px] font-medium uppercase tracking-wide text-[#8B5CF6]">Risk</div>
-            <div className="mt-1 text-sm font-semibold text-[#1F2937]">Medium friction</div>
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[#8B5CF6]">Risk</div>
+            <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">Medium friction</div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 border-t border-[#E9DFFF] bg-white/60 px-5 py-4 lg:grid-cols-3">
+      <div className="grid gap-3 border-t border-[#E9DFFF] bg-white/60 px-4 py-4 lg:grid-cols-3">
         {overviewSummaryBullets.map((item) => (
-          <div key={item} className="rounded-xl border border-white bg-white px-4 py-3 text-sm leading-6 text-[#4B5563] shadow-sm">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
+          <div key={item} className="rounded-xl border border-white bg-white px-4 py-3 text-[13px] leading-5 text-[#4B5563] shadow-sm">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#6E00FD]">
               <Bot className="h-3.5 w-3.5" />
               Insight
             </div>
@@ -217,8 +217,8 @@ function OverviewTimelineCard() {
     <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
         <div>
-          <div className="text-sm font-semibold tracking-tight text-[#333333]">Interaction timeline</div>
-          <div className="mt-0.5 text-xs text-[#6B7280]">Latest events across channels</div>
+          <div className="text-[13px] font-semibold tracking-tight text-[#333333]">Interaction timeline</div>
+          <div className="mt-0.5 text-[11px] text-[#6B7280]">Latest events across channels</div>
         </div>
         <Clock3 className="h-4 w-4 text-[#7A7A7A]" />
       </div>
@@ -241,10 +241,10 @@ function OverviewTimelineCard() {
               />
               <div className="min-w-0 rounded-xl bg-[#F8F8F9] px-4 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-sm font-semibold text-[#333333]">{item.title}</div>
-                  <div className="text-xs text-[#6B7280]">{item.timestamp}</div>
+                  <div className="text-[13px] font-semibold text-[#333333]">{item.title}</div>
+                  <div className="text-[11px] text-[#6B7280]">{item.timestamp}</div>
                 </div>
-                <p className="mt-1 text-sm leading-6 text-[#6B7280]">{item.detail}</p>
+                <p className="mt-1 text-[13px] leading-5 text-[#6B7280]">{item.detail}</p>
               </div>
             </div>
           ))}
@@ -259,8 +259,8 @@ function TicketListCard() {
     <div className="overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
       <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
         <div>
-          <div className="text-sm font-semibold tracking-tight text-[#333333]">Last 5 tickets</div>
-          <div className="mt-0.5 text-xs text-[#6B7280]">Recent customer support cases</div>
+          <div className="text-[13px] font-semibold tracking-tight text-[#333333]">Last 5 tickets</div>
+          <div className="mt-0.5 text-[11px] text-[#6B7280]">Recent customer support cases</div>
         </div>
         <Ticket className="h-4 w-4 text-[#7A7A7A]" />
       </div>
@@ -272,10 +272,10 @@ function TicketListCard() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">{ticket.id}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6E00FD]">{ticket.id}</span>
                     <span
                       className={cn(
-                        "rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+                        "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
                         ticket.status === "Open" && "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
                         ticket.status === "Pending" && "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]",
                         ticket.status === "Resolved" && "border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]",
@@ -285,8 +285,8 @@ function TicketListCard() {
                       {ticket.status}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm font-medium text-[#333333]">{ticket.title}</div>
-                  <div className="mt-1 text-xs text-[#6B7280]">Priority: {ticket.priority} · Updated {ticket.updatedAt}</div>
+                  <div className="mt-1 text-[13px] font-medium text-[#333333]">{ticket.title}</div>
+                  <div className="mt-1 text-[11px] text-[#6B7280]">Priority: {ticket.priority} · Updated {ticket.updatedAt}</div>
                 </div>
                 <ArrowUpRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#9CA3AF]" />
               </div>
@@ -489,8 +489,10 @@ export default function NotesPanel({
       )}
 
       {activeTab === "Overview" && (
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <OverviewDashboard />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-3">
+          <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-black/[0.08] bg-[#F8F8F9] p-3">
+            <OverviewDashboard />
+          </div>
         </div>
       )}
 

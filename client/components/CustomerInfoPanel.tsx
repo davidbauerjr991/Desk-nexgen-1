@@ -16,8 +16,8 @@ function OverviewField({
 }) {
   return (
     <div>
-      <div className="text-[12px] font-semibold uppercase text-[#333333]">{label}</div>
-      <div className="text-[12px] leading-5 text-[#6B7280]">{value}</div>
+      <div className="text-[11px] font-semibold uppercase text-[#333333]">{label}</div>
+      <div className="text-[11px] leading-5 text-[#6B7280]">{value}</div>
     </div>
   );
 }
@@ -25,11 +25,11 @@ function OverviewField({
 export function CustomerOverviewCard() {
   return (
     <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="flex items-center justify-start border-b border-black/10 px-5 py-5">
-        <span className="text-sm font-semibold tracking-tight text-[#333333]">Overview</span>
+      <div className="flex items-center justify-start border-b border-black/10 px-4 py-4">
+        <span className="text-[13px] font-semibold tracking-tight text-[#333333]">Overview</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-6">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-4">
         <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
         <OverviewField label="Contact #" value="2457" />
         <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
