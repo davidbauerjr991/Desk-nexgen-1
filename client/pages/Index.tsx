@@ -527,6 +527,98 @@ export default function Index() {
 
   return (
     <div className="relative flex h-full w-full overflow-hidden">
+      <div
+        aria-hidden={!isConversationPanelOpen}
+        className={cn(
+          "hidden min-h-0 bg-background min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:border-r min-[800px]:border-border min-[800px]:transition-[width,opacity,transform,border-color] min-[800px]:duration-300 min-[800px]:ease-out",
+          isConversationPanelOpen
+            ? "min-[800px]:translate-x-0 min-[800px]:opacity-100"
+            : "pointer-events-none min-[800px]:w-0 min-[800px]:-translate-x-4 min-[800px]:border-r-transparent min-[800px]:opacity-0",
+        )}
+      >
+        {isConversationContentVisible && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <ScrollArea className="flex-1 p-6">
+              <div className="mx-auto max-w-3xl space-y-6">
+                <div className="text-center">
+                  <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {activeConversation.timelineLabel}
+                  </span>
+                </div>
+
+                {activeConversation.messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex max-w-[85%] flex-col",
+                      msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
+                    )}
+                  >
+                    <div className="mb-1 flex items-end gap-2">
+                      {msg.role === "customer" && (
+                        <span className="ml-1 text-xs font-medium text-muted-foreground">Alex</span>
+                      )}
+                      {msg.role === "agent" && (
+                        <span className="mr-1 text-xs font-medium text-muted-foreground">You</span>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                        msg.role === "agent"
+                          ? "rounded-br-sm bg-primary text-primary-foreground"
+                          : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                      )}
+                    >
+                      {msg.content}
+                    </div>
+                    {msg.sentiment === "frustrated" && (
+                      <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Frustrated sentiment detected
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/40"></span>
+                    <span className="delay-75 h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60"></span>
+                    <span className="delay-150 h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
+                  </div>
+                  <span>
+                    NexAgent AI is analyzing the {activeConversation.label.toLowerCase()} conversation...
+                  </span>
+                </div>
+              </div>
+            </ScrollArea>
+
+            <div className="border-t border-border bg-background p-4">
+              <div className="relative flex items-end gap-3">
+                <div className="absolute right-14 top-2 flex items-center gap-1 rounded-md border border-border bg-background/80 px-2 py-0.5 text-xs text-muted-foreground backdrop-blur">
+                  <Sparkles className="h-3 w-3 text-primary" /> AI writing enabled
+                </div>
+                <Button variant="ghost" size="icon" className="mb-1 h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground">
+                  <Paperclip className="h-5 w-5" />
+                </Button>
+                <div className="relative flex-1">
+                  <Textarea
+                    key={`desktop-${activeChannel}`}
+                    placeholder="Type your message..."
+                    className="min-h-[60px] max-h-32 resize-none rounded-xl pb-3 pr-12 pt-3 focus-visible:ring-1"
+                    defaultValue={activeConversation.draft}
+                  />
+                </div>
+                <Button className="mb-1 h-10 w-10 shrink-0 rounded-xl" size="icon">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Main Interaction Area */}
       <div className="flex min-w-0 flex-1 flex-col bg-card">
         
@@ -760,98 +852,6 @@ export default function Index() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div
-        aria-hidden={!isConversationPanelOpen}
-        className={cn(
-          "hidden min-h-0 bg-background min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:border-l min-[800px]:border-border min-[800px]:transition-[width,opacity,transform,border-color] min-[800px]:duration-300 min-[800px]:ease-out",
-          isConversationPanelOpen
-            ? "min-[800px]:translate-x-0 min-[800px]:opacity-100"
-            : "pointer-events-none min-[800px]:w-0 min-[800px]:translate-x-4 min-[800px]:border-l-transparent min-[800px]:opacity-0",
-        )}
-      >
-        {isConversationContentVisible && (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <ScrollArea className="flex-1 p-6">
-              <div className="mx-auto max-w-3xl space-y-6">
-                <div className="text-center">
-                  <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                    {activeConversation.timelineLabel}
-                  </span>
-                </div>
-
-                {activeConversation.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex max-w-[85%] flex-col",
-                      msg.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
-                    )}
-                  >
-                    <div className="mb-1 flex items-end gap-2">
-                      {msg.role === "customer" && (
-                        <span className="ml-1 text-xs font-medium text-muted-foreground">Alex</span>
-                      )}
-                      {msg.role === "agent" && (
-                        <span className="mr-1 text-xs font-medium text-muted-foreground">You</span>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                        msg.role === "agent"
-                          ? "rounded-br-sm bg-primary text-primary-foreground"
-                          : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
-                      )}
-                    >
-                      {msg.content}
-                    </div>
-                    {msg.sentiment === "frustrated" && (
-                      <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Frustrated sentiment detected
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/40"></span>
-                    <span className="delay-75 h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60"></span>
-                    <span className="delay-150 h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
-                  </div>
-                  <span>
-                    NexAgent AI is analyzing the {activeConversation.label.toLowerCase()} conversation...
-                  </span>
-                </div>
-              </div>
-            </ScrollArea>
-
-            <div className="border-t border-border bg-background p-4">
-              <div className="relative flex items-end gap-3">
-                <div className="absolute right-14 top-2 flex items-center gap-1 rounded-md border border-border bg-background/80 px-2 py-0.5 text-xs text-muted-foreground backdrop-blur">
-                  <Sparkles className="h-3 w-3 text-primary" /> AI writing enabled
-                </div>
-                <Button variant="ghost" size="icon" className="mb-1 h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground">
-                  <Paperclip className="h-5 w-5" />
-                </Button>
-                <div className="relative flex-1">
-                  <Textarea
-                    key={`desktop-${activeChannel}`}
-                    placeholder="Type your message..."
-                    className="min-h-[60px] max-h-32 resize-none rounded-xl pb-3 pr-12 pt-3 focus-visible:ring-1"
-                    defaultValue={activeConversation.draft}
-                  />
-                </div>
-                <Button className="mb-1 h-10 w-10 shrink-0 rounded-xl" size="icon">
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {isMobileDetailsOpen && (
