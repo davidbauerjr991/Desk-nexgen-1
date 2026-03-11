@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import OverviewDashboard from "@/components/OverviewDashboard";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Accounts", "Tickets", "Directory"];
+const TABS = ["Overview", "Accounts", "Tickets", "Customer Information", "Recent Interactions", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 const TICKET_PAGE_SIZE = 6;
 
