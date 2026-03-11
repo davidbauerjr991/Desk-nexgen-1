@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Eye, FileDown, ChevronDown } from "lucide-react";
+import { Eye, FileDown, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import OverviewDashboard from "@/components/OverviewDashboard";
 
@@ -92,6 +93,246 @@ function NoteItem({ note }: { note: (typeof initialNotes)[0] }) {
           <p className="mt-1 text-[12px] leading-5 text-[#6B7280]">{note.body}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+type CustomerTicket = {
+  id: string;
+  priority: "Low" | "Medium" | "High" | "Urgent";
+  type: "Complaint" | "Question" | "Task" | "Incident" | "Problem" | "Request";
+  subject: string;
+  status:
+    | "Open"
+    | "Cancelled"
+    | "Closed"
+    | "Duplicate"
+    | "Escalated"
+    | "In Progress"
+    | "On-Hold"
+    | "Pending Customer"
+    | "Needing Attention"
+    | "De-Escalated"
+    | "Training Rescheduled";
+  agent: string;
+  agentTeam: string;
+  modifiedBy: string;
+};
+
+const customerTickets: CustomerTicket[] = [
+  {
+    id: "CASE-56",
+    priority: "Medium",
+    type: "Complaint",
+    subject: "Test Ticket",
+    status: "Open",
+    agent: "David Bauer",
+    agentTeam: "Digital Care",
+    modifiedBy: "DAVID.BAUER",
+  },
+  {
+    id: "CASE-84",
+    priority: "High",
+    type: "Incident",
+    subject: "Mobile app crashes after biometric login",
+    status: "Escalated",
+    agent: "Priya Shah",
+    agentTeam: "Authentication Ops",
+    modifiedBy: "PRIYA.SHAH",
+  },
+  {
+    id: "CASE-112",
+    priority: "Low",
+    type: "Question",
+    subject: "Customer asked how to export monthly statements",
+    status: "Pending Customer",
+    agent: "Marcus Lee",
+    agentTeam: "Billing Support",
+    modifiedBy: "MARCUS.LEE",
+  },
+  {
+    id: "CASE-139",
+    priority: "Urgent",
+    type: "Problem",
+    subject: "Wire transfer locked after fraud screening review",
+    status: "Needing Attention",
+    agent: "Elena Petrova",
+    agentTeam: "Risk Response",
+    modifiedBy: "ELENA.PETROVA",
+  },
+  {
+    id: "CASE-147",
+    priority: "Medium",
+    type: "Request",
+    subject: "Requested address update before policy renewal",
+    status: "In Progress",
+    agent: "Chris Nolan",
+    agentTeam: "Account Services",
+    modifiedBy: "CHRIS.NOLAN",
+  },
+  {
+    id: "CASE-163",
+    priority: "High",
+    type: "Complaint",
+    subject: "Duplicate late fee applied to commercial account",
+    status: "De-Escalated",
+    agent: "Sofia Ramirez",
+    agentTeam: "Enterprise Billing",
+    modifiedBy: "SOFIA.RAMIREZ",
+  },
+  {
+    id: "CASE-188",
+    priority: "Low",
+    type: "Task",
+    subject: "Follow up with customer on document upload status",
+    status: "On-Hold",
+    agent: "Ben Carter",
+    agentTeam: "Document Review",
+    modifiedBy: "BEN.CARTER",
+  },
+  {
+    id: "CASE-204",
+    priority: "Medium",
+    type: "Request",
+    subject: "Reschedule onboarding training for branch admins",
+    status: "Training Rescheduled",
+    agent: "Lina Park",
+    agentTeam: "Enablement Desk",
+    modifiedBy: "LINA.PARK",
+  },
+  {
+    id: "CASE-219",
+    priority: "High",
+    type: "Incident",
+    subject: "Payment processor timeout during checkout confirmation",
+    status: "Closed",
+    agent: "Owen Brooks",
+    agentTeam: "Checkout Operations",
+    modifiedBy: "OWEN.BROOKS",
+  },
+  {
+    id: "CASE-233",
+    priority: "Low",
+    type: "Question",
+    subject: "Asked whether rewards can be pooled across accounts",
+    status: "Cancelled",
+    agent: "Ava Thompson",
+    agentTeam: "Rewards Support",
+    modifiedBy: "AVA.THOMPSON",
+  },
+  {
+    id: "CASE-248",
+    priority: "Medium",
+    type: "Problem",
+    subject: "Submitted claim appears twice in the case timeline",
+    status: "Duplicate",
+    agent: "Noah Kim",
+    agentTeam: "Claims Resolution",
+    modifiedBy: "NOAH.KIM",
+  },
+  {
+    id: "CASE-271",
+    priority: "Urgent",
+    type: "Complaint",
+    subject: "VIP customer unable to access same-day settlement funds",
+    status: "Open",
+    agent: "Mila Fischer",
+    agentTeam: "Premier Support",
+    modifiedBy: "MILA.FISCHER",
+  },
+];
+
+function getPriorityTone(priority: CustomerTicket["priority"]) {
+  switch (priority) {
+    case "Urgent":
+      return "bg-[#F04438]";
+    case "High":
+      return "bg-[#F79009]";
+    case "Medium":
+      return "bg-[#F2C94C]";
+    default:
+      return "bg-[#98A2B3]";
+  }
+}
+
+function getStatusBadgeClasses(status: CustomerTicket["status"]) {
+  switch (status) {
+    case "Open":
+      return "border-[#B8D7F0] bg-[#EEF6FC] text-[#1D4E89]";
+    case "Escalated":
+    case "Needing Attention":
+      return "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]";
+    case "In Progress":
+    case "Pending Customer":
+    case "On-Hold":
+    case "Training Rescheduled":
+      return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]";
+    case "Closed":
+    case "Cancelled":
+    case "Duplicate":
+      return "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]";
+    case "De-Escalated":
+      return "border-[#D9CCFF] bg-[#FCFAFF] text-[#6E00FD]";
+    default:
+      return "border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]";
+  }
+}
+
+function TicketsDataGrid() {
+  return (
+    <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <ScrollArea className="h-full w-full">
+        <div className="min-w-[1080px]">
+          <Table className="text-xs text-[#344054]">
+            <TableHeader className="sticky top-0 z-10 bg-[#F9FAFB]">
+              <TableRow className="border-b border-[rgba(0,0,0,0.08)] hover:bg-[#F9FAFB]">
+                <TableHead className="w-10 px-3 py-3" />
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Priority</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Full Number</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Type</TableHead>
+                <TableHead className="min-w-[280px] px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Subject</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Status</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Agent</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Agent Team</TableHead>
+                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Modified By</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {customerTickets.map((ticket) => (
+                <TableRow key={ticket.id} className="border-b border-[rgba(0,0,0,0.08)] bg-white hover:bg-[#FCFCFD]">
+                  <TableCell className="px-3 py-3 text-[#98A2B3]">
+                    <ChevronRight className="h-4 w-4" />
+                  </TableCell>
+                  <TableCell className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("h-2.5 w-2.5 rounded-full", getPriorityTone(ticket.priority))} />
+                      <span className="font-medium text-[#344054]">{ticket.priority}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="px-3 py-3 font-medium text-[#344054]">{ticket.id}</TableCell>
+                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.type}</TableCell>
+                  <TableCell className="px-3 py-3 text-[#101828]">{ticket.subject}</TableCell>
+                  <TableCell className="px-3 py-3">
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
+                        getStatusBadgeClasses(ticket.status),
+                      )}
+                    >
+                      <span>{ticket.status}</span>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </TableCell>
+                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.agent}</TableCell>
+                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.agentTeam}</TableCell>
+                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.modifiedBy}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
@@ -279,7 +520,9 @@ export default function NotesPanel({
         </div>
       )}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && (
+      {activeTab === "Tickets" && <TicketsDataGrid />}
+
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
