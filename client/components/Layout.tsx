@@ -1350,6 +1350,7 @@ function ConversationToggleIcon({ isOpen, className }: { isOpen: boolean; classN
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
+  const closeTimeoutRef = useRef<number | null>(null);
   const {
     selectedAssignment,
     selectAssignment,
@@ -1387,6 +1388,34 @@ function LeftQueueRail() {
       })),
     [selectedAssignment.id],
   );
+
+  const openAssignmentsPopover = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    setIsOpen(true);
+  };
+
+  const closeAssignmentsPopover = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+    }
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsOpen(false);
+      closeTimeoutRef.current = null;
+    }, 120);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current !== null) {
+        window.clearTimeout(closeTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed bottom-0 left-0 top-12 z-30 block">
@@ -1428,7 +1457,7 @@ function LeftQueueRail() {
               )}
             </Tooltip>
 
-            <div className="relative" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+            <div className="relative" onMouseEnter={openAssignmentsPopover} onMouseLeave={closeAssignmentsPopover}>
               <div className="flex flex-col items-center gap-2.5">
                 {railQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
