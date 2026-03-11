@@ -2207,6 +2207,37 @@ export default function Layout({ children }: LayoutProps) {
         >
           {children}
         </div>
+        {isCopilotPopoverOpen && isCopilotDocked && (
+          <DockedCopilotPanel
+            width={copilotPopunderSize.width}
+            onClose={() => setIsCopilotPopoverOpen(false)}
+            onUndockStart={(event) => {
+              if (typeof window === "undefined") return;
+
+              event.preventDefault();
+
+              const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+              if (!bounds) return;
+
+              const margin = 16;
+              const nextPosition = {
+                x: Math.min(Math.max(margin, bounds.left), window.innerWidth - copilotPopunderSize.width - margin),
+                y: Math.min(Math.max(margin, bounds.top), window.innerHeight - copilotPopunderSize.height - margin),
+              };
+
+              setCopilotPopunderPosition(nextPosition);
+              setIsCopilotDocked(false);
+              setIsCopilotPopoverOpen(true);
+              setCopilotDragActivation({
+                id: Date.now(),
+                offset: {
+                  x: event.clientX - nextPosition.x,
+                  y: event.clientY - nextPosition.y,
+                },
+              });
+            }}
+          />
+        )}
       </div>
 
       {isConversationPopunderOpen && !isConversationPanelOpen && (
@@ -2283,38 +2314,6 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setAddNewPopunderPosition}
           onSizeChange={setAddNewPopunderSize}
           onClose={() => setIsAddNewPopoverOpen(false)}
-        />
-      )}
-
-      {isCopilotPopoverOpen && isCopilotDocked && (
-        <DockedCopilotPanel
-          width={copilotPopunderSize.width}
-          onClose={() => setIsCopilotPopoverOpen(false)}
-          onUndockStart={(event) => {
-            if (typeof window === "undefined") return;
-
-            event.preventDefault();
-
-            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-            if (!bounds) return;
-
-            const margin = 16;
-            const nextPosition = {
-              x: Math.min(Math.max(margin, bounds.left), window.innerWidth - copilotPopunderSize.width - margin),
-              y: Math.min(Math.max(margin, bounds.top), window.innerHeight - copilotPopunderSize.height - margin),
-            };
-
-            setCopilotPopunderPosition(nextPosition);
-            setIsCopilotDocked(false);
-            setIsCopilotPopoverOpen(true);
-            setCopilotDragActivation({
-              id: Date.now(),
-              offset: {
-                x: event.clientX - nextPosition.x,
-                y: event.clientY - nextPosition.y,
-              },
-            });
-          }}
         />
       )}
 
