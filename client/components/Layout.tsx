@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import CopilotPopunder from "@/components/CopilotPopunder";
+import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import WorkspaceTabs from "@/components/WorkspaceTabs";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -52,13 +53,6 @@ interface LayoutProps {
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
 
-type ConversationPreview = {
-  customerName: string;
-  channelLabel: string;
-  timelineLabel: string;
-  latestMessage: string;
-};
-
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
@@ -69,15 +63,18 @@ interface LayoutContextValue {
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
   isConversationPanelOpen: boolean;
+  isConversationPopunderOpen: boolean;
   selectedAssignment: QueuePreviewItem;
   recentInteractions: RecentInteractionItem[];
-  conversationPreview: ConversationPreview;
+  conversationState: SharedConversationData;
   toggleInfo: () => void;
   toggleDesk: () => void;
   toggleInteractions: () => void;
   toggleConversationPanel: () => void;
   openConversationPanel: () => void;
-  setConversationPreview: (preview: ConversationPreview) => void;
+  openConversationPopunder: (anchorRect?: DOMRect | null) => void;
+  closeConversationPopunder: () => void;
+  setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   toggleCallPopunder: (anchorRect?: DOMRect | null) => void;
@@ -124,11 +121,36 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "escalations", name: "Escalation Desk", description: "High-priority and manager-reviewed cases" },
 ];
 
-const defaultConversationPreview: ConversationPreview = {
+const defaultConversationState: SharedConversationData = {
   customerName: "Alex Kowalski",
-  channelLabel: "SMS",
+  label: "SMS",
   timelineLabel: "SMS · Today, 10:24 AM",
-  latestMessage: "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
+  draft:
+    "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you.",
+  messages: [
+    {
+      id: 1,
+      role: "customer",
+      content:
+        "Hi, I'm trying to upgrade my subscription to the Pro tier, but my credit card keeps getting declined even though I know I have sufficient funds.",
+      time: "10:24 AM",
+      sentiment: "frustrated",
+    },
+    {
+      id: 2,
+      role: "agent",
+      content:
+        "Hello Alex! I'm sorry to hear you're experiencing issues upgrading your account. I can certainly help you look into this right away.",
+      time: "10:25 AM",
+    },
+    {
+      id: 3,
+      role: "customer",
+      content:
+        "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
+      time: "10:26 AM",
+    },
+  ],
 };
 
 const addNewFieldConfig: Record<
@@ -257,11 +279,23 @@ type CallPopunderSize = {
   height: number;
 };
 
+type ConversationPopunderPosition = {
+  x: number;
+  y: number;
+};
+
+type ConversationPopunderSize = {
+  width: number;
+  height: number;
+};
+
 type CallPopunderMode = "setup" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
 const CALL_POPUNDER_MARGIN = 16;
 const CALL_POPUNDER_GAP = 12;
+const CONVERSATION_POPOUNDER_MARGIN = 16;
+const CONVERSATION_POPOUNDER_GAP = 12;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 const assignmentCallDetails = {
   alex: { customerId: "CST-10482" },
@@ -878,6 +912,144 @@ function AddNewPopoverContent({
   );
 }
 
+function ConversationPopunder({
+  position,
+  size,
+  conversation,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+}: {
+  position: ConversationPopunderPosition;
+  size: ConversationPopunderSize;
+  conversation: SharedConversationData;
+  onPositionChange: (position: ConversationPopunderPosition) => void;
+  onSizeChange: (size: ConversationPopunderSize) => void;
+  onClose: () => void;
+}) {
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(
+            Math.max(CONVERSATION_POPOUNDER_MARGIN, nextX),
+            window.innerWidth - size.width - CONVERSATION_POPOUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(CONVERSATION_POPOUNDER_MARGIN, nextY),
+            window.innerHeight - size.height - CONVERSATION_POPOUNDER_MARGIN,
+          ),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(360, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - CONVERSATION_POPOUNDER_MARGIN,
+        ),
+        height: Math.min(
+          Math.max(420, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - CONVERSATION_POPOUNDER_MARGIN,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+
+  return (
+    <div
+      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+            <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={onClose}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          aria-label="Close conversation popunder"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <ConversationPanel conversation={conversation} draftKey={`popunder-${conversation.label}-${conversation.customerName}`} />
+
+      <button
+        type="button"
+        aria-label="Resize conversation popunder"
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
+    </div>
+  );
+}
+
 function HeaderIconButton({
   children,
   onClick,
@@ -1004,13 +1176,14 @@ function ConversationToggleIcon({ isOpen, className }: { isOpen: boolean; classN
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
-  const [isConversationToggleHovered, setIsConversationToggleHovered] = useState(false);
   const {
     selectedAssignment,
     selectAssignment,
     isConversationPanelOpen,
     toggleConversationPanel,
-    conversationPreview,
+    openConversationPanel,
+    openConversationPopunder,
+    closeConversationPopunder,
   } = useLayoutContext();
 
   const sortedQueuePreviewItems = useMemo(() => {
@@ -1052,9 +1225,20 @@ function LeftQueueRail() {
                   type="button"
                   aria-label={isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
                   aria-pressed={isConversationPanelOpen}
-                  onClick={toggleConversationPanel}
-                  onMouseEnter={() => setIsConversationToggleHovered(true)}
-                  onMouseLeave={() => setIsConversationToggleHovered(false)}
+                  onClick={() => {
+                    if (isConversationPanelOpen) {
+                      closeConversationPopunder();
+                      toggleConversationPanel();
+                      return;
+                    }
+
+                    openConversationPanel();
+                  }}
+                  onMouseEnter={(event) => {
+                    if (!isConversationPanelOpen) {
+                      openConversationPopunder(event.currentTarget.getBoundingClientRect());
+                    }
+                  }}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white text-[#4B4B4B] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#D9CCFF] hover:text-[#6E00FD]",
                     isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]",
@@ -1069,24 +1253,6 @@ function LeftQueueRail() {
                 </TooltipContent>
               )}
             </Tooltip>
-
-            {!isConversationPanelOpen && isConversationToggleHovered && (
-              <div className="absolute left-[68px] top-3 z-[60] w-[280px] rounded-2xl border border-black/10 bg-white p-4 shadow-[12px_12px_32px_rgba(15,23,42,0.16)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-[#333333]">{conversationPreview.customerName}</div>
-                    <div className="mt-0.5 text-xs font-medium text-[#6E00FD]">{conversationPreview.channelLabel}</div>
-                  </div>
-                  <span className="rounded-full bg-[#F3ECFF] px-2 py-1 text-[11px] font-medium text-[#6E00FD]">
-                    Active
-                  </span>
-                </div>
-                <div className="mt-3 text-xs text-[#6B7280]">{conversationPreview.timelineLabel}</div>
-                <div className="mt-2 line-clamp-3 text-sm leading-5 text-[#333333]">
-                  {conversationPreview.latestMessage}
-                </div>
-              </div>
-            )}
 
             <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
@@ -1228,7 +1394,13 @@ export default function Layout({ children }: LayoutProps) {
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
-  const [conversationPreview, setConversationPreview] = useState<ConversationPreview>(defaultConversationPreview);
+  const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
+  const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
+  const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 420, height: 720 });
+  const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
+    x: 84,
+    y: 72,
+  }));
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
     () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
   );
@@ -1330,6 +1502,33 @@ export default function Layout({ children }: LayoutProps) {
     };
   };
 
+  const getAnchoredConversationPopunderPosition = (anchorRect?: DOMRect | null) => {
+    if (typeof window === "undefined") {
+      return { x: 84, y: 72 };
+    }
+
+    const width = Math.min(conversationPopunderSize.width, window.innerWidth - CONVERSATION_POPOUNDER_MARGIN * 2);
+    const height = Math.min(conversationPopunderSize.height, window.innerHeight - CONVERSATION_POPOUNDER_MARGIN * 2);
+
+    if (!anchorRect) {
+      return {
+        x: CONVERSATION_POPOUNDER_MARGIN + 56 + CONVERSATION_POPOUNDER_GAP,
+        y: 72,
+      };
+    }
+
+    return {
+      x: Math.min(
+        Math.max(CONVERSATION_POPOUNDER_MARGIN, anchorRect.right + CONVERSATION_POPOUNDER_GAP),
+        window.innerWidth - width - CONVERSATION_POPOUNDER_MARGIN,
+      ),
+      y: Math.min(
+        Math.max(CONVERSATION_POPOUNDER_MARGIN, anchorRect.top),
+        window.innerHeight - height - CONVERSATION_POPOUNDER_MARGIN,
+      ),
+    };
+  };
+
   useEffect(() => {
     if (isHeaderSearchOpen) {
       headerSearchInputRef.current?.focus();
@@ -1351,6 +1550,32 @@ export default function Layout({ children }: LayoutProps) {
     });
   };
 
+  const toggleConversationPanel = () => {
+    setIsConversationPanelOpen((current) => {
+      const next = !current;
+      if (next) {
+        setIsConversationPopunderOpen(false);
+      }
+      return next;
+    });
+  };
+
+  const openConversationPanel = () => {
+    setIsConversationPanelOpen(true);
+    setIsConversationPopunderOpen(false);
+  };
+
+  const openConversationPopunder = (anchorRect?: DOMRect | null) => {
+    if (isConversationPanelOpen) return;
+
+    if (!isConversationPopunderOpen) {
+      setConversationPopunderPosition(getAnchoredConversationPopunderPosition(anchorRect));
+    }
+    setIsConversationPopunderOpen(true);
+  };
+
+  const closeConversationPopunder = () => setIsConversationPopunderOpen(false);
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -1362,9 +1587,10 @@ export default function Layout({ children }: LayoutProps) {
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       isConversationPanelOpen,
+      isConversationPopunderOpen,
       selectedAssignment,
       recentInteractions,
-      conversationPreview,
+      conversationState,
       toggleInfo: () => {
         setActiveRightPanel((current) =>
           current === "info" ? null : "info",
@@ -1380,9 +1606,11 @@ export default function Layout({ children }: LayoutProps) {
           current === "interactions" ? null : "interactions",
         );
       },
-      toggleConversationPanel: () => setIsConversationPanelOpen((current) => !current),
-      openConversationPanel: () => setIsConversationPanelOpen(true),
-      setConversationPreview,
+      toggleConversationPanel,
+      openConversationPanel,
+      openConversationPopunder,
+      closeConversationPopunder,
+      setConversationState,
       closeRightPanel: () => setActiveRightPanel(null),
       selectAssignment: (assignmentId) => {
         setSelectedAssignmentId(assignmentId);
@@ -1413,14 +1641,17 @@ export default function Layout({ children }: LayoutProps) {
     }),
     [
       activeRightPanel,
-      conversationPreview,
+      conversationState,
       isAddNewPopoverOpen,
       isCallPopunderOpen,
       isConversationPanelOpen,
+      isConversationPopunderOpen,
       navigate,
+      openConversationPanel,
       recentInteractions,
       selectedAssignment,
       status,
+      toggleConversationPanel,
     ],
   );
 
@@ -1646,6 +1877,22 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
         <LeftQueueRail />
         <div
+          aria-hidden={!isConversationPanelOpen}
+          className={cn(
+            "hidden min-h-0 bg-white min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:transition-[width,opacity,transform] min-[800px]:duration-300 min-[800px]:ease-out",
+            isConversationPanelOpen
+              ? "min-[800px]:translate-x-0 min-[800px]:opacity-100"
+              : "pointer-events-none min-[800px]:w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
+          )}
+        >
+          {isConversationPanelOpen && (
+            <ConversationPanel
+              conversation={conversationState}
+              draftKey={`docked-${conversationState.label}-${conversationState.customerName}`}
+            />
+          )}
+        </div>
+        <div
           className={cn(
             "flex min-w-0 flex-1 flex-col overflow-hidden",
             isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
@@ -1654,6 +1901,17 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </div>
+
+      {isConversationPopunderOpen && !isConversationPanelOpen && (
+        <ConversationPopunder
+          position={conversationPopunderPosition}
+          size={conversationPopunderSize}
+          conversation={conversationState}
+          onPositionChange={setConversationPopunderPosition}
+          onSizeChange={setConversationPopunderSize}
+          onClose={closeConversationPopunder}
+        />
+      )}
 
       {isCallPopunderOpen && (
         <CallControlsPopunder
