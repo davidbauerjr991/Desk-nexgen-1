@@ -10,7 +10,6 @@ import {
   GripHorizontal,
   MessageSquare,
   Mic,
-  Minus,
   Pause,
   Phone,
   PhoneOff,
@@ -941,12 +940,14 @@ function DockedConversationPanel({
   conversation,
   hasDesktopRightPanel,
   onWidthChange,
+  onClose,
 }: {
   isOpen: boolean;
   width: number;
   conversation: SharedConversationData;
   hasDesktopRightPanel: boolean;
   onWidthChange: (width: number) => void;
+  onClose: () => void;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1001,11 +1002,6 @@ function DockedConversationPanel({
     return () => window.clearTimeout(timeoutId);
   }, [isOpen]);
 
-  const maxWidth = getDockedConversationMaxWidth(hasDesktopRightPanel);
-  const decreaseWidth = () =>
-    onWidthChange(Math.max(DOCKED_CONVERSATION_MIN_WIDTH, width - 64));
-  const increaseWidth = () => onWidthChange(Math.min(maxWidth, width + 64));
-
   return (
     <div
       aria-hidden={!isOpen}
@@ -1028,30 +1024,16 @@ function DockedConversationPanel({
                   {conversation.customerName} · {conversation.label}
                 </p>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Shrink conversation panel"
-                  onClick={decreaseWidth}
-                  disabled={width <= DOCKED_CONVERSATION_MIN_WIDTH}
-                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Expand conversation panel"
-                  onClick={increaseWidth}
-                  disabled={width >= maxWidth}
-                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Close conversation panel"
+                onClick={onClose}
+                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333]"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
 
             <ConversationPanel
@@ -2096,6 +2078,7 @@ export default function Layout({ children }: LayoutProps) {
           conversation={conversationState}
           hasDesktopRightPanel={activeRightPanel !== null}
           onWidthChange={setDockedConversationWidth}
+          onClose={() => setIsConversationPanelOpen(false)}
         />
         <div
           className={cn(
