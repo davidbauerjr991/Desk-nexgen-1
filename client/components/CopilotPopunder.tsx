@@ -74,31 +74,31 @@ export function CopilotContent() {
           </CardHeader>
           <CardContent className="space-y-4 px-4 pb-4">
             <div>
-              <div className="mb-1 text-xs text-muted-foreground">Detected Intent</div>
-              <div className="text-sm font-medium text-foreground">{insights.intent}</div>
+              <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">Detected Intent</div>
+              <div className="text-[18px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="mb-1 text-xs text-muted-foreground">Sentiment</div>
+                <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">Sentiment</div>
                 <Badge variant="outline" className="border-orange-200 bg-orange-50 font-medium text-orange-600">
                   {insights.sentiment}
                 </Badge>
               </div>
               <div>
-                <div className="mb-1 text-xs text-muted-foreground">Churn Risk</div>
+                <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">Churn Risk</div>
                 <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
                   <AlertTriangle className="h-4 w-4" />
                   {insights.churnRisk}
                 </div>
               </div>
             </div>
-            <div className="space-y-3 border-t border-border pt-4">
+            <div className="space-y-4 border-t border-border pt-4">
               {customerContextFields.map((field) => (
                 <div key={field.label}>
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#344054]">
+                  <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">
                     {field.label}
                   </div>
-                  <div className="break-all text-sm text-foreground">{field.value}</div>
+                  <div className="break-all text-[18px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
                 </div>
               ))}
             </div>
