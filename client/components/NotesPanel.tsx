@@ -491,11 +491,13 @@ export default function NotesPanel({
 
       {activeTab === "Overview" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-3">
-          <ScrollArea className="h-full min-h-0 flex-1 rounded-2xl border border-black/[0.08] bg-[#F8F8F9]">
-            <div className="p-3">
-              <OverviewDashboard />
-            </div>
-          </ScrollArea>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-black/[0.08] bg-[#F8F8F9]">
+            <ScrollArea className="h-full min-h-0 w-full">
+              <div className="p-3">
+                <OverviewDashboard />
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       )}
 
