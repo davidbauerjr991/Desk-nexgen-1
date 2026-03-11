@@ -1119,7 +1119,7 @@ function DockedCopilotPanel({
 }) {
   return (
     <div
-      className="fixed bottom-4 right-4 top-[72px] z-[65] flex min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="relative ml-4 flex h-full min-h-0 min-w-[320px] flex-shrink-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
       style={{
         width,
         maxWidth: "calc(100vw - 2rem)",
