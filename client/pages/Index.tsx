@@ -415,7 +415,6 @@ export default function Index() {
     selectedAssignment,
     recentInteractions,
     toggleInfo,
-    toggleDesk,
     toggleInteractions,
     toggleCallPopunder,
     isConversationPanelOpen,
@@ -541,20 +540,6 @@ export default function Index() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label={isDeskOpen ? "Hide notes panel" : "Show notes panel"}
-              aria-pressed={isDeskOpen}
-              onClick={toggleDesk}
-              className={cn(
-                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
-                isDeskOpen
-                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-              )}
-            >
-              <FileText className="h-4 w-4 stroke-[1.8]" />
-            </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="min-[800px]:hidden">

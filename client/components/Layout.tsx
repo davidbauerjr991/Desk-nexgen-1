@@ -7,6 +7,8 @@ import {
   Bot,
   ChevronDown,
   ClipboardList,
+  FilePlus2,
+  FileText,
   GripHorizontal,
   MessageSquare,
   Mic,
@@ -42,6 +44,7 @@ import {
 } from "@/components/ui/select";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
+import NotesPanel from "@/components/NotesPanel";
 import WorkspaceTabs from "@/components/WorkspaceTabs";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -1293,6 +1296,153 @@ function ConversationPopunder({
   );
 }
 
+function NotesPopoverContent({
+  position,
+  size,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+}: {
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onSizeChange: (size: { width: number; height: number }) => void;
+  onClose: () => void;
+}) {
+  const [addNoteTrigger, setAddNoteTrigger] = useState(0);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      const margin = 16;
+
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(Math.max(margin, nextX), window.innerWidth - size.width - margin),
+          y: Math.min(Math.max(margin, nextY), window.innerHeight - size.height - margin),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(360, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - margin,
+        ),
+        height: Math.min(
+          Math.max(420, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - margin,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+
+  return (
+    <div
+      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Notes</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => setAddNoteTrigger((current) => current + 1)}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Add note"
+          >
+            <FilePlus2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close notes popunder"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />
+
+      <button
+        type="button"
+        aria-label="Resize notes popunder"
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
+    </div>
+  );
+}
+
 function HeaderIconButton({
   children,
   onClick,
@@ -1646,9 +1796,15 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("info");
+  const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
+  const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
+  const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
+    width: 420,
+    height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
+  }));
   const [addNewPopunderPosition, setAddNewPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [addNewPopunderSize, setAddNewPopunderSize] = useState(() => ({
     width: 360,
@@ -1694,6 +1850,7 @@ export default function Layout({ children }: LayoutProps) {
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const callConnectTimeoutRef = useRef<number | null>(null);
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
+  const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
 
@@ -1749,6 +1906,22 @@ export default function Layout({ children }: LayoutProps) {
         window.innerWidth - CALL_POPUNDER_WIDTH - CALL_POPUNDER_MARGIN,
       ),
       y: Math.max(CALL_POPUNDER_MARGIN, anchorRect.bottom + CALL_POPUNDER_GAP),
+    };
+  };
+
+  const getAnchoredNotesPopunderPosition = () => {
+    if (typeof window === "undefined") {
+      return { x: 16, y: 64 };
+    }
+
+    const margin = 16;
+    const gap = 10;
+    const popunderWidth = Math.min(notesPopunderSize.width, window.innerWidth - margin * 2);
+    const buttonBounds = notesButtonRef.current?.getBoundingClientRect();
+
+    return {
+      x: Math.max(window.innerWidth - popunderWidth - margin, margin),
+      y: Math.max(margin, (buttonBounds?.bottom ?? 48) + gap),
     };
   };
 
@@ -2082,6 +2255,25 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </HeaderIconButton>
 
+              <div ref={notesButtonRef}>
+                <HeaderIconButton
+                  ariaLabel={isNotesPopoverOpen ? "Hide notes popunder" : "Show notes popunder"}
+                  ariaExpanded={isNotesPopoverOpen}
+                  onClick={() => {
+                    if (isNotesPopoverOpen) {
+                      setIsNotesPopoverOpen(false);
+                      return;
+                    }
+
+                    setNotesPopunderPosition(getAnchoredNotesPopunderPosition());
+                    setIsNotesPopoverOpen(true);
+                  }}
+                  isActive={isNotesPopoverOpen}
+                >
+                  <FileText className="h-4 w-4 stroke-[1.8]" />
+                </HeaderIconButton>
+              </div>
+
               <div ref={addNewButtonRef}>
                 <HeaderIconButton
                   ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
@@ -2303,6 +2495,16 @@ export default function Layout({ children }: LayoutProps) {
             setIsCallPopunderOpen(false);
             setCallPopunderMode("setup");
           }}
+        />
+      )}
+
+      {isNotesPopoverOpen && (
+        <NotesPopoverContent
+          position={notesPopunderPosition}
+          size={notesPopunderSize}
+          onPositionChange={setNotesPopunderPosition}
+          onSizeChange={setNotesPopunderSize}
+          onClose={() => setIsNotesPopoverOpen(false)}
         />
       )}
 
