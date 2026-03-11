@@ -1428,7 +1428,7 @@ function LeftQueueRail() {
               )}
             </Tooltip>
 
-            <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
+            <div className="relative" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
                 {railQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
@@ -1459,71 +1459,69 @@ function LeftQueueRail() {
                   );
                 })}
               </div>
+
+              <div
+                className={`absolute left-full top-0 z-50 ml-3 transition-all duration-200 ease-in-out ${
+                  isOpen
+                    ? "pointer-events-auto translate-x-0 opacity-100"
+                    : "pointer-events-none -translate-x-2 opacity-0"
+                }`}
+              >
+                <div className="flex max-h-[calc(100vh-96px)] w-[320px] flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.16)]">
+                  <div className="flex shrink-0 items-center justify-between border-b border-black/[0.08] px-4 py-4">
+                    <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Sort assignments"
+                          className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+                        >
+                          <ArrowUpDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        sideOffset={8}
+                        className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                      >
+                        <DropdownMenuItem
+                          onClick={() => setSortOption("created-asc")}
+                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                        >
+                          Create date ascending
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption("created-desc")}
+                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                        >
+                          Create date descending
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption("updated-asc")}
+                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                        >
+                          Last updated ascending
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setSortOption("updated-desc")}
+                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                        >
+                          Last updated descending
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <QueueOverlayList items={sortedQueuePreviewItems} onSelectAssignment={selectAssignment} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
-
-        <div
-          onMouseEnter={() => setIsOpen(true)}
-          onMouseLeave={() => setIsOpen(false)}
-          className={`fixed bottom-0 left-0 top-0 z-50 transition-all duration-200 ease-in-out ${
-            isOpen
-              ? "pointer-events-auto translate-x-0 opacity-100"
-              : "pointer-events-none -translate-x-3 opacity-0"
-          }`}
-        >
-          <div className="flex h-full w-[320px] flex-col border-r border-black/[0.08] bg-white shadow-[8px_0_28px_rgba(15,23,42,0.10)]">
-            <div className="flex shrink-0 items-center justify-between border-b border-black/[0.08] px-4 py-4">
-              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Sort assignments"
-                    className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  sideOffset={8}
-                  className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                >
-                  <DropdownMenuItem
-                    onClick={() => setSortOption("created-asc")}
-                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    Create date ascending
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortOption("created-desc")}
-                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    Create date descending
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortOption("updated-asc")}
-                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    Last updated ascending
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setSortOption("updated-desc")}
-                    className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    Last updated descending
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <QueueOverlayList items={sortedQueuePreviewItems} onSelectAssignment={selectAssignment} />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
