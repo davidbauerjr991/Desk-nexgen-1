@@ -205,26 +205,6 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-function ConversationToggleIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect x="2" y="3" width="16" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12.5 4.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      {isOpen ? (
-        <path d="M9 7L6 10L9 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      ) : (
-        <path d="M6 7L9 10L6 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </svg>
-  );
-}
-
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const assignmentHeaderDetails = {
@@ -490,9 +470,12 @@ export default function Index() {
     toggleDesk,
     toggleInteractions,
     toggleCallPopunder,
+    isConversationPanelOpen,
+    toggleConversationPanel,
+    openConversationPanel,
+    setConversationPreview,
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
-  const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
   const [addNoteTrigger, setAddNoteTrigger] = useState(0);
@@ -535,14 +518,25 @@ export default function Index() {
     return () => window.clearTimeout(timeoutId);
   }, [isRightPanelOpen]);
 
+  useEffect(() => {
+    const latestMessage = activeConversation.messages[activeConversation.messages.length - 1]?.content ?? activeConversation.draft;
+
+    setConversationPreview({
+      customerName: selectedAssignment.name,
+      channelLabel: activeConversation.label,
+      timelineLabel: activeConversation.timelineLabel,
+      latestMessage,
+    });
+  }, [activeConversation, selectedAssignment.name, setConversationPreview]);
+
   const handleChannelSelection = (channel: ChannelType) => {
     if (channel === activeChannel) {
-      setIsConversationPanelOpen((current) => !current);
+      toggleConversationPanel();
       return;
     }
 
     setActiveChannel(channel);
-    setIsConversationPanelOpen(true);
+    openConversationPanel();
   };
 
   return (
@@ -647,18 +641,6 @@ export default function Index() {
           <div className="flex min-w-0 flex-1 items-start">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  aria-label={isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
-                  aria-pressed={isConversationPanelOpen}
-                  onClick={() => setIsConversationPanelOpen((current) => !current)}
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-md border border-black/10 bg-white text-[#4B4B4B] transition-colors hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-                    isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]",
-                  )}
-                >
-                  <ConversationToggleIcon isOpen={isConversationPanelOpen} className="h-4 w-4" />
-                </button>
                 <h2 className="text-lg font-semibold tracking-tight">{selectedAssignment.name}</h2>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <ChannelToggleButton

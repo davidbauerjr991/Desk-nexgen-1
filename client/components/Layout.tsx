@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,13 @@ interface LayoutProps {
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
 
+type ConversationPreview = {
+  customerName: string;
+  channelLabel: string;
+  timelineLabel: string;
+  latestMessage: string;
+};
+
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
   isRightPanelOpen: boolean;
@@ -60,11 +68,16 @@ interface LayoutContextValue {
   isAddNewOpen: boolean;
   isAgentInCall: boolean;
   isAgentAvailable: boolean;
+  isConversationPanelOpen: boolean;
   selectedAssignment: QueuePreviewItem;
   recentInteractions: RecentInteractionItem[];
+  conversationPreview: ConversationPreview;
   toggleInfo: () => void;
   toggleDesk: () => void;
   toggleInteractions: () => void;
+  toggleConversationPanel: () => void;
+  openConversationPanel: () => void;
+  setConversationPreview: (preview: ConversationPreview) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   toggleCallPopunder: (anchorRect?: DOMRect | null) => void;
@@ -110,6 +123,13 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "vip", name: "VIP Accounts", description: "Priority service for strategic customers" },
   { id: "escalations", name: "Escalation Desk", description: "High-priority and manager-reviewed cases" },
 ];
+
+const defaultConversationPreview: ConversationPreview = {
+  customerName: "Alex Kowalski",
+  channelLabel: "SMS",
+  timelineLabel: "SMS · Today, 10:24 AM",
+  latestMessage: "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
+};
 
 const addNewFieldConfig: Record<
   AddNewType,
@@ -961,10 +981,37 @@ function QueueOverlayList({
   );
 }
 
+function ConversationToggleIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="2" y="3" width="16" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12.5 4.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {isOpen ? (
+        <path d="M9 7L6 10L9 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <path d="M6 7L9 10L6 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
-  const { selectedAssignment, selectAssignment } = useLayoutContext();
+  const [isConversationToggleHovered, setIsConversationToggleHovered] = useState(false);
+  const {
+    selectedAssignment,
+    selectAssignment,
+    isConversationPanelOpen,
+    toggleConversationPanel,
+    conversationPreview,
+  } = useLayoutContext();
 
   const sortedQueuePreviewItems = useMemo(() => {
     const items = [...queuePreviewItems];
@@ -999,6 +1046,48 @@ function LeftQueueRail() {
       <div className="relative flex h-full">
         <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
+                  aria-pressed={isConversationPanelOpen}
+                  onClick={toggleConversationPanel}
+                  onMouseEnter={() => setIsConversationToggleHovered(true)}
+                  onMouseLeave={() => setIsConversationToggleHovered(false)}
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white text-[#4B4B4B] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+                    isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]",
+                  )}
+                >
+                  <ConversationToggleIcon isOpen={isConversationPanelOpen} className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              {isConversationPanelOpen && (
+                <TooltipContent side="right" className="border-black/10 bg-white text-[#333333]">
+                  hide conversation
+                </TooltipContent>
+              )}
+            </Tooltip>
+
+            {!isConversationPanelOpen && isConversationToggleHovered && (
+              <div className="absolute left-[68px] top-3 z-[60] w-[280px] rounded-2xl border border-black/10 bg-white p-4 shadow-[12px_12px_32px_rgba(15,23,42,0.16)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-[#333333]">{conversationPreview.customerName}</div>
+                    <div className="mt-0.5 text-xs font-medium text-[#6E00FD]">{conversationPreview.channelLabel}</div>
+                  </div>
+                  <span className="rounded-full bg-[#F3ECFF] px-2 py-1 text-[11px] font-medium text-[#6E00FD]">
+                    Active
+                  </span>
+                </div>
+                <div className="mt-3 text-xs text-[#6B7280]">{conversationPreview.timelineLabel}</div>
+                <div className="mt-2 line-clamp-3 text-sm leading-5 text-[#333333]">
+                  {conversationPreview.latestMessage}
+                </div>
+              </div>
+            )}
+
             <div onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
               <div className="flex flex-col items-center gap-2.5">
                 {railQueuePreviewItems.map((item) => {
@@ -1138,6 +1227,8 @@ export default function Layout({ children }: LayoutProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
+  const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
+  const [conversationPreview, setConversationPreview] = useState<ConversationPreview>(defaultConversationPreview);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
     () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
   );
@@ -1270,8 +1361,10 @@ export default function Layout({ children }: LayoutProps) {
       isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
+      isConversationPanelOpen,
       selectedAssignment,
       recentInteractions,
+      conversationPreview,
       toggleInfo: () => {
         setActiveRightPanel((current) =>
           current === "info" ? null : "info",
@@ -1287,6 +1380,9 @@ export default function Layout({ children }: LayoutProps) {
           current === "interactions" ? null : "interactions",
         );
       },
+      toggleConversationPanel: () => setIsConversationPanelOpen((current) => !current),
+      openConversationPanel: () => setIsConversationPanelOpen(true),
+      setConversationPreview,
       closeRightPanel: () => setActiveRightPanel(null),
       selectAssignment: (assignmentId) => {
         setSelectedAssignmentId(assignmentId);
@@ -1315,7 +1411,17 @@ export default function Layout({ children }: LayoutProps) {
         setStatusStartedAt(Date.now());
       },
     }),
-    [activeRightPanel, isAddNewPopoverOpen, isCallPopunderOpen, navigate, recentInteractions, selectedAssignment, status],
+    [
+      activeRightPanel,
+      conversationPreview,
+      isAddNewPopoverOpen,
+      isCallPopunderOpen,
+      isConversationPanelOpen,
+      navigate,
+      recentInteractions,
+      selectedAssignment,
+      status,
+    ],
   );
 
   return (
