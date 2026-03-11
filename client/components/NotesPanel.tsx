@@ -10,11 +10,12 @@ import OverviewDashboard from "@/components/OverviewDashboard";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Details", "Accounts", "Tickets", "Interactions", "Directory"];
-const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
+const PRIMARY_TABS = ["Overview", "Details", "Accounts"] as const;
+const SWITCHABLE_TABS = ["Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History"] as const;
+const DEFAULT_SWITCHABLE_TAB = "Tickets";
 const TICKET_PAGE_SIZE = 6;
 
-export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
+export const NOTES_PANEL_MENU_ITEMS = [...PRIMARY_TABS, ...SWITCHABLE_TABS];
 
 const DEFAULT_NOTE_AGENT = {
   name: "Jordan Doe",
@@ -711,6 +712,11 @@ export default function NotesPanel({
   addNoteTrigger = 0,
 }: NotesPanelProps) {
   const [activeTab, setActiveTab] = useState(notesOnly ? "Notes" : initialTab);
+  const [activeSwitchableTab, setActiveSwitchableTab] = useState<string>(
+    !notesOnly && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])
+      ? initialTab
+      : DEFAULT_SWITCHABLE_TAB,
+  );
   const [showMoreTabs, setShowMoreTabs] = useState(false);
   const [notesData, setNotesData] = useState(initialNotes);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -721,6 +727,13 @@ export default function NotesPanel({
 
   useEffect(() => {
     setActiveTab(notesOnly ? "Notes" : initialTab);
+
+    if (!notesOnly && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])) {
+      setActiveSwitchableTab(initialTab);
+      return;
+    }
+
+    setActiveSwitchableTab(DEFAULT_SWITCHABLE_TAB);
   }, [initialTab, notesOnly]);
 
   useEffect(() => {
@@ -776,6 +789,8 @@ export default function NotesPanel({
     setIsComposerOpen(false);
   };
 
+  const visibleTabs = [...PRIMARY_TABS, activeSwitchableTab];
+  const moreTabs = SWITCHABLE_TABS.filter((tab) => tab !== activeSwitchableTab);
   const activeTicket = openTickets.find((ticket) => ticket.id === activeTab) ?? null;
 
   const handleOpenTicket = (ticket: CustomerTicket) => {
@@ -789,7 +804,7 @@ export default function NotesPanel({
 
       setActiveTab((currentTab) => {
         if (currentTab !== ticketId) return currentTab;
-        return nextTickets[nextTickets.length - 1]?.id ?? "Tickets";
+        return nextTickets[nextTickets.length - 1]?.id ?? activeSwitchableTab;
       });
 
       return nextTickets;
@@ -803,11 +818,14 @@ export default function NotesPanel({
           <div className="shrink-0 border-b border-[rgba(0,0,0,0.1)] px-1">
             <div className="overflow-x-auto overflow-y-hidden">
               <div className="flex min-w-max items-center">
-              {TABS.map((tab) => (
+              {visibleTabs.map((tab) => (
                 <button
                   key={tab}
                   type="button"
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setShowMoreTabs(false);
+                  }}
                   className={cn(
                     "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === tab
@@ -885,11 +903,12 @@ export default function NotesPanel({
               className="fixed z-20 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg"
               style={{ left: moreMenuPosition.left, top: moreMenuPosition.top }}
             >
-              {EXTRA_TABS.map((tab) => (
+              {moreTabs.map((tab) => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => {
+                    setActiveSwitchableTab(tab);
                     setActiveTab(tab);
                     setShowMoreTabs(false);
                   }}
