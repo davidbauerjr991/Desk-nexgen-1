@@ -10,6 +10,7 @@ import {
   GripHorizontal,
   MessageSquare,
   Mic,
+  Minus,
   Pause,
   Phone,
   PhoneOff,
@@ -296,7 +297,28 @@ const CALL_POPUNDER_MARGIN = 16;
 const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_POPOUNDER_MARGIN = 16;
 const CONVERSATION_POPOUNDER_GAP = 12;
+const DOCKED_CONVERSATION_MIN_WIDTH = 320;
+const DOCKED_CONVERSATION_DEFAULT_WIDTH = 420;
+const DOCKED_CONVERSATION_MAX_WIDTH = 560;
+const DOCKED_CONVERSATION_GAP = 16;
+const MIN_MAIN_WORKSPACE_WIDTH = 240;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+
+function getDockedConversationMaxWidth(hasDesktopRightPanel: boolean) {
+  if (typeof window === "undefined") {
+    return DOCKED_CONVERSATION_MAX_WIDTH;
+  }
+
+  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
+
+  return Math.max(
+    DOCKED_CONVERSATION_MIN_WIDTH,
+    Math.min(
+      DOCKED_CONVERSATION_MAX_WIDTH,
+      window.innerWidth - 56 - rightPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - DOCKED_CONVERSATION_GAP - 16,
+    ),
+  );
+}
 const assignmentCallDetails = {
   alex: { customerId: "CST-10482" },
   sarah: { customerId: "CST-10591" },
@@ -912,6 +934,133 @@ function AddNewPopoverContent({
   );
 }
 
+function DockedConversationPanel({
+  isOpen,
+  width,
+  conversation,
+  hasDesktopRightPanel,
+  onWidthChange,
+}: {
+  isOpen: boolean;
+  width: number;
+  conversation: SharedConversationData;
+  hasDesktopRightPanel: boolean;
+  onWidthChange: (width: number) => void;
+}) {
+  const resizeStartRef = useRef({ mouseX: 0, width });
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const maxWidth = getDockedConversationMaxWidth(hasDesktopRightPanel);
+
+      onWidthChange(
+        Math.min(
+          maxWidth,
+          Math.max(DOCKED_CONVERSATION_MIN_WIDTH, resizeStartRef.current.width + deltaX),
+        ),
+      );
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [hasDesktopRightPanel, onWidthChange]);
+
+  const maxWidth = getDockedConversationMaxWidth(hasDesktopRightPanel);
+  const decreaseWidth = () =>
+    onWidthChange(Math.max(DOCKED_CONVERSATION_MIN_WIDTH, width - 64));
+  const increaseWidth = () => onWidthChange(Math.min(maxWidth, width + 64));
+
+  return (
+    <div
+      aria-hidden={!isOpen}
+      className={cn(
+        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[800px]:block",
+        isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none min-[800px]:-translate-x-4 min-[800px]:opacity-0",
+      )}
+      style={{
+        width: isOpen ? width : 0,
+        marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
+      }}
+    >
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-card/50 px-5 py-4">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+            <p className="truncate text-xs text-[#7A7A7A]">
+              {conversation.customerName} · {conversation.label}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Shrink conversation panel"
+              onClick={decreaseWidth}
+              disabled={width <= DOCKED_CONVERSATION_MIN_WIDTH}
+              className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
+            >
+              <Minus className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Expand conversation panel"
+              onClick={increaseWidth}
+              disabled={width >= maxWidth}
+              className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333] disabled:opacity-40"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <ConversationPanel
+          conversation={conversation}
+          draftKey={`docked-${conversation.label}-${conversation.customerName}`}
+        />
+      </div>
+
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="Resize docked conversation panel"
+          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[800px]:flex"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            isResizingRef.current = true;
+            resizeStartRef.current = {
+              mouseX: event.clientX,
+              width,
+            };
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
+            <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ConversationPopunder({
   position,
   size,
@@ -1395,6 +1544,7 @@ export default function Layout({ children }: LayoutProps) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
+  const [dockedConversationWidth, setDockedConversationWidth] = useState(DOCKED_CONVERSATION_DEFAULT_WIDTH);
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
   const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 420, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
@@ -1534,6 +1684,18 @@ export default function Layout({ children }: LayoutProps) {
       headerSearchInputRef.current?.focus();
     }
   }, [isHeaderSearchOpen]);
+
+  useEffect(() => {
+    const syncDockedConversationWidth = () => {
+      const maxWidth = getDockedConversationMaxWidth(activeRightPanel !== null);
+      setDockedConversationWidth((current) => Math.min(current, maxWidth));
+    };
+
+    syncDockedConversationWidth();
+    window.addEventListener("resize", syncDockedConversationWidth);
+
+    return () => window.removeEventListener("resize", syncDockedConversationWidth);
+  }, [activeRightPanel]);
 
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
@@ -1876,22 +2038,13 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
         <LeftQueueRail />
-        <div
-          aria-hidden={!isConversationPanelOpen}
-          className={cn(
-            "hidden min-h-0 bg-white min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:transition-[width,opacity,transform] min-[800px]:duration-300 min-[800px]:ease-out",
-            isConversationPanelOpen
-              ? "min-[800px]:translate-x-0 min-[800px]:opacity-100"
-              : "pointer-events-none min-[800px]:w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
-          )}
-        >
-          {isConversationPanelOpen && (
-            <ConversationPanel
-              conversation={conversationState}
-              draftKey={`docked-${conversationState.label}-${conversationState.customerName}`}
-            />
-          )}
-        </div>
+        <DockedConversationPanel
+          isOpen={isConversationPanelOpen}
+          width={dockedConversationWidth}
+          conversation={conversationState}
+          hasDesktopRightPanel={activeRightPanel !== null}
+          onWidthChange={setDockedConversationWidth}
+        />
         <div
           className={cn(
             "flex min-w-0 flex-1 flex-col overflow-hidden",
