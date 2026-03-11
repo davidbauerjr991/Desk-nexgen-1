@@ -270,7 +270,7 @@ export default function NotesPanel({
       )}
 
       {activeTab === "Overview" && (
-        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden py-4">
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
           <div className="min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full min-h-0 w-full">
               <OverviewDashboard />
