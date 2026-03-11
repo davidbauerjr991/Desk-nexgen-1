@@ -714,6 +714,8 @@ export default function NotesPanel({
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [openTickets, setOpenTickets] = useState<CustomerTicket[]>([]);
+  const [moreMenuPosition, setMoreMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const moreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     setActiveTab(notesOnly ? "Notes" : initialTab);
@@ -725,6 +727,29 @@ export default function NotesPanel({
     setActiveTab("Notes");
     setIsComposerOpen(true);
   }, [addNoteTrigger]);
+
+  useEffect(() => {
+    if (!showMoreTabs) return;
+
+    const updateMoreMenuPosition = () => {
+      const rect = moreMenuButtonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      setMoreMenuPosition({
+        left: rect.left,
+        top: rect.bottom + 4,
+      });
+    };
+
+    updateMoreMenuPosition();
+    window.addEventListener("resize", updateMoreMenuPosition);
+    window.addEventListener("scroll", updateMoreMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMoreMenuPosition);
+      window.removeEventListener("scroll", updateMoreMenuPosition, true);
+    };
+  }, [showMoreTabs]);
 
   const handleSaveNote = () => {
     const nextBody = noteDraft.trim();
@@ -791,32 +816,27 @@ export default function NotesPanel({
                   {tab}
                 </button>
               ))}
-              <div className="relative">
+              <div>
                 <button
+                  ref={moreMenuButtonRef}
                   type="button"
-                  onClick={() => setShowMoreTabs((value) => !value)}
+                  onClick={() => {
+                    if (!showMoreTabs) {
+                      const rect = moreMenuButtonRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        setMoreMenuPosition({
+                          left: rect.left,
+                          top: rect.bottom + 4,
+                        });
+                      }
+                    }
+                    setShowMoreTabs((value) => !value);
+                  }}
                   className="flex items-center gap-0.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium text-[#6B7280] hover:text-[#333]"
                 >
                   5 More
                   <ChevronDown className="h-3 w-3" />
                 </button>
-                {showMoreTabs && (
-                  <div className="absolute left-0 top-full z-10 mt-1 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg">
-                    {EXTRA_TABS.map((tab) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => {
-                          setActiveTab(tab);
-                          setShowMoreTabs(false);
-                        }}
-                        className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {openTickets.map((ticket) => (
@@ -857,6 +877,27 @@ export default function NotesPanel({
               </div>
             </div>
           </div>
+
+          {showMoreTabs && moreMenuPosition ? (
+            <div
+              className="fixed z-20 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg"
+              style={{ left: moreMenuPosition.left, top: moreMenuPosition.top }}
+            >
+              {EXTRA_TABS.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab);
+                    setShowMoreTabs(false);
+                  }}
+                  className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </>
       )}
 
