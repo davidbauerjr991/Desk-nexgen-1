@@ -24,6 +24,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -84,6 +86,11 @@ export function useLayoutContext() {
 
 type AgentStatus = "Available" | "Busy" | "Away" | "Offline" | "In a Call";
 type AddNewType = "customer" | "account" | "ticket" | "work-item";
+type WorkspaceOption = {
+  id: string;
+  name: string;
+  description: string;
+};
 
 const statusOptions: Array<{
   label: AgentStatus;
@@ -95,6 +102,13 @@ const statusOptions: Array<{
   { label: "Away", dotClassName: "bg-[#F59E0B]", textClassName: "text-[#F59E0B]" },
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
   { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
+];
+
+const initialWorkspaceOptions: WorkspaceOption[] = [
+  { id: "default", name: "Default Workspace", description: "Primary support workspace" },
+  { id: "billing", name: "Billing Operations", description: "Payments, invoices, and account reviews" },
+  { id: "vip", name: "VIP Accounts", description: "Priority service for strategic customers" },
+  { id: "escalations", name: "Escalation Desk", description: "High-priority and manager-reviewed cases" },
 ];
 
 const addNewFieldConfig: Record<
@@ -1121,6 +1135,8 @@ export default function Layout({ children }: LayoutProps) {
   }));
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
     () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
   );
@@ -1160,6 +1176,10 @@ export default function Layout({ children }: LayoutProps) {
   const selectedAssignment = useMemo(
     () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
     [selectedAssignmentId],
+  );
+  const activeWorkspace = useMemo(
+    () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
+    [activeWorkspaceId, workspaceOptions],
   );
   const selectedAssignmentCallDetail =
     assignmentCallDetails[selectedAssignment.id as keyof typeof assignmentCallDetails] ?? assignmentCallDetails.alex;
@@ -1223,6 +1243,21 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, [isHeaderSearchOpen]);
 
+  const handleCreateWorkspace = () => {
+    const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
+    const newWorkspace: WorkspaceOption = {
+      id: `custom-${Date.now()}`,
+      name: `New Workspace ${nextWorkspaceNumber}`,
+      description: "Custom workspace created from scratch",
+    };
+
+    setWorkspaceOptions((current) => [...current, newWorkspace]);
+    setActiveWorkspaceId(newWorkspace.id);
+    toast.success(`${newWorkspace.name} created`, {
+      description: "You can now tailor this workspace for a new team or workflow.",
+    });
+  };
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -1284,12 +1319,73 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
-      <header className="flex h-12 shrink-0 items-center gap-2 px-4 lg:gap-4">
-        <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-4">
+      <header className="flex min-h-[60px] shrink-0 items-center gap-2 px-4 py-2 lg:gap-4">
+        <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-3">
           <NiceLogoIcon />
-          <span className="hidden truncate text-base font-semibold leading-7 tracking-[-0.02em] text-[#333333] lg:inline">
-            Agent Workspace Premium
-          </span>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                aria-label="Select workspace"
+                className="hidden min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none lg:flex"
+              >
+                <span className="min-w-0">
+                  <span className="block truncate text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
+                    Agent Workspace
+                  </span>
+                  <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-[#7A7A7A]">
+                    {activeWorkspace.name}
+                  </span>
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-[#666666]" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="start"
+              sideOffset={10}
+              className="w-[300px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+            >
+              <DropdownMenuLabel className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A7A7A]">
+                Workspaces
+              </DropdownMenuLabel>
+              <div className="space-y-1">
+                {workspaceOptions.map((workspace) => {
+                  const isActiveWorkspace = workspace.id === activeWorkspace.id;
+
+                  return (
+                    <DropdownMenuItem
+                      key={workspace.id}
+                      onClick={() => setActiveWorkspaceId(workspace.id)}
+                      className="rounded-xl px-3 py-3 focus:bg-[#F8F8F9]"
+                    >
+                      <div className="flex min-w-0 items-start gap-3">
+                        <span
+                          className={cn(
+                            "mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full",
+                            isActiveWorkspace ? "bg-[#6E00FD]" : "bg-black/10",
+                          )}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-[#333333]">{workspace.name}</div>
+                          <div className="mt-0.5 text-xs leading-5 text-[#6B7280]">{workspace.description}</div>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+              <DropdownMenuSeparator className="my-2 bg-black/10" />
+              <DropdownMenuItem
+                onClick={handleCreateWorkspace}
+                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#6E00FD] focus:bg-[#F3ECFF]"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Create new workspace</span>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div
