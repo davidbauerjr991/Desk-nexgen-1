@@ -14,6 +14,9 @@ import NotFound from "./pages/NotFound";
 import Placeholder from "./pages/Placeholder";
 import Schedule from "./pages/Schedule";
 import SettingsPage from "./pages/SettingsPage";
+import SalesforcePage from "./pages/SalesforcePage";
+import ServiceNowPage from "./pages/ServiceNowPage";
+import WemPage from "./pages/WemPage";
 import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -31,7 +34,10 @@ const App = () => (
             <Route path="/desk" element={<Desk />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/settings" element={<SettingsPage />} />
-            
+            <Route path="/salesforce" element={<SalesforcePage />} />
+            <Route path="/service-now" element={<ServiceNowPage />} />
+            <Route path="/wem" element={<WemPage />} />
+
             <Route path="/calls" element={
               <Placeholder 
                 title="Active Calls" 
