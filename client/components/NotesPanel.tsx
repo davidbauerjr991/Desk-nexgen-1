@@ -392,7 +392,7 @@ function reorderTicketColumns(columnOrder: TicketColumnKey[], draggedKey: Ticket
 
 function TicketRecordView({ ticket }: { ticket: CustomerTicket }) {
   return (
-    <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#F8F8F9] p-4">
+    <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-white p-4">
       <ScrollArea className="h-full min-h-0 w-full">
         <div className="space-y-4 pb-4">
           <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
