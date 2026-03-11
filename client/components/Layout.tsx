@@ -1343,8 +1343,8 @@ function QueueOverlayList({
           <div
             key={item.id}
             onClick={() => onSelectAssignment(item.id)}
-            className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
-              item.isActive ? "bg-[#F3ECFF]" : "bg-white hover:bg-[#FCFAFF]"
+            className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] bg-white px-4 py-3.5 transition-colors last:border-b-0 ${
+              item.isActive ? "" : "hover:bg-[#FCFAFF]"
             }`}
           >
             {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#6E00FD]" />}
