@@ -713,7 +713,7 @@ export default function NotesPanel({
   const [notesData, setNotesData] = useState(initialNotes);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
-  const [selectedTicket, setSelectedTicket] = useState<CustomerTicket | null>(null);
+  const [openTickets, setOpenTickets] = useState<CustomerTicket[]>([]);
 
   useEffect(() => {
     setActiveTab(notesOnly ? "Notes" : initialTab);
@@ -749,14 +749,24 @@ export default function NotesPanel({
     setIsComposerOpen(false);
   };
 
+  const activeTicket = openTickets.find((ticket) => ticket.id === activeTab) ?? null;
+
   const handleOpenTicket = (ticket: CustomerTicket) => {
-    setSelectedTicket(ticket);
+    setOpenTickets((current) => (current.some((openTicket) => openTicket.id === ticket.id) ? current : [...current, ticket]));
     setActiveTab(ticket.id);
   };
 
-  const handleCloseTicketTab = () => {
-    setSelectedTicket(null);
-    setActiveTab("Tickets");
+  const handleCloseTicketTab = (ticketId: string) => {
+    setOpenTickets((current) => {
+      const nextTickets = current.filter((ticket) => ticket.id !== ticketId);
+
+      setActiveTab((currentTab) => {
+        if (currentTab !== ticketId) return currentTab;
+        return nextTickets[nextTickets.length - 1]?.id ?? "Tickets";
+      });
+
+      return nextTickets;
+    });
   };
 
   return (
@@ -764,7 +774,8 @@ export default function NotesPanel({
       {!notesOnly && (
         <>
           <div className="shrink-0 border-b border-[rgba(0,0,0,0.1)] px-1">
-            <div className="flex items-center">
+            <div className="overflow-x-auto overflow-y-hidden">
+              <div className="flex min-w-max items-center">
               {TABS.map((tab) => (
                 <button
                   key={tab}
@@ -808,40 +819,42 @@ export default function NotesPanel({
                 )}
               </div>
 
-              {selectedTicket ? (
+              {openTickets.map((ticket) => (
                 <button
+                  key={ticket.id}
                   type="button"
-                  onClick={() => setActiveTab(selectedTicket.id)}
+                  onClick={() => setActiveTab(ticket.id)}
                   className={cn(
                     "relative ml-1 flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
-                    activeTab === selectedTicket.id
+                    activeTab === ticket.id
                       ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E00FD]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
                   <Ticket className="h-4 w-4 flex-shrink-0 text-[#111827]" />
-                  <span className="max-w-[180px] truncate">{selectedTicket.id}</span>
+                  <span className="max-w-[180px] truncate">{ticket.id}</span>
                   <span
                     role="button"
                     tabIndex={0}
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleCloseTicketTab();
+                      handleCloseTicketTab(ticket.id);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
                         event.stopPropagation();
-                        handleCloseTicketTab();
+                        handleCloseTicketTab(ticket.id);
                       }
                     }}
                     className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#CBD5E1] text-[#F8FAFC] transition-colors hover:bg-[#94A3B8]"
-                    aria-label={`Close ${selectedTicket.id}`}
+                    aria-label={`Close ${ticket.id}`}
                   >
                     <X className="h-3 w-3" />
                   </span>
                 </button>
-              ) : null}
+              ))}
+              </div>
             </div>
           </div>
         </>
@@ -926,9 +939,9 @@ export default function NotesPanel({
 
       {activeTab === "Tickets" && <TicketsDataGrid onOpenTicket={handleOpenTicket} />}
 
-      {selectedTicket && activeTab === selectedTicket.id && <TicketRecordView ticket={selectedTicket} />}
+      {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && activeTab !== selectedTicket?.id && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
