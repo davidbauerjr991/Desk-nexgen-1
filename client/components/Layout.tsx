@@ -388,6 +388,7 @@ function CallControlsPopunder({
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [isTestingAudio, setIsTestingAudio] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
@@ -414,6 +415,19 @@ function CallControlsPopunder({
   useEffect(() => {
     setIsTranscriptExpanded(mode === "controls");
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "controls" || !isTranscriptExpanded) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      transcriptScrollRef.current?.scrollTo({
+        top: transcriptScrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isTranscriptExpanded, mode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -643,7 +657,7 @@ function CallControlsPopunder({
               </Button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            <div ref={transcriptScrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
               <CallAIGuidanceCard />
 
               <div className="rounded-xl border border-black/10 bg-white">
