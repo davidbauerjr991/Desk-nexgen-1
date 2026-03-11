@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Eye, FileDown, GripVertical, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, FileDown, GripVertical, Search, Ticket, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -390,7 +390,81 @@ function reorderTicketColumns(columnOrder: TicketColumnKey[], draggedKey: Ticket
   return nextOrder;
 }
 
-function TicketsDataGrid() {
+function TicketRecordView({ ticket }: { ticket: CustomerTicket }) {
+  return (
+    <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-[#F8F8F9] p-4">
+      <ScrollArea className="h-full min-h-0 w-full">
+        <div className="space-y-4 pb-4">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#D9CCFF] bg-[#FCFAFF] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6E00FD]">
+                    <Ticket className="h-3.5 w-3.5" />
+                    {ticket.id}
+                  </span>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-medium text-[#475467]">
+                    <span className={cn("h-2.5 w-2.5 rounded-full", getPriorityTone(ticket.priority))} />
+                    {ticket.priority} Priority
+                  </span>
+                </div>
+                <h3 className="mt-3 text-base font-semibold text-[#111827]">{ticket.subject}</h3>
+                <p className="mt-1 text-sm text-[#667085]">
+                  {ticket.type} case owned by {ticket.agent} in {ticket.agentTeam}.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
+                  getStatusBadgeClasses(ticket.status),
+                )}
+              >
+                <span>{ticket.status}</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Details</div>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[#667085]">Ticket Number</dt>
+                  <dd className="font-medium text-[#111827]">{ticket.id}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[#667085]">Type</dt>
+                  <dd className="font-medium text-[#111827]">{ticket.type}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[#667085]">Modified By</dt>
+                  <dd className="font-medium text-[#111827]">{ticket.modifiedBy}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-3">
+                  <dt className="text-[#667085]">Assigned Team</dt>
+                  <dd className="font-medium text-[#111827]">{ticket.agentTeam}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Summary</div>
+              <p className="mt-4 text-sm leading-6 text-[#475467]">
+                This ticket record was opened directly from the tickets table so agents can review the case without leaving the Customer
+                Record. The tab can be closed with the cancel icon in the tab header at any time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  );
+}
+
+function TicketsDataGrid({ onOpenTicket }: { onOpenTicket: (ticket: CustomerTicket) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [columnOrder, setColumnOrder] = useState<TicketColumnKey[]>(() => [...INITIAL_TICKET_COLUMN_ORDER]);
@@ -560,7 +634,11 @@ function TicketsDataGrid() {
           <tbody>
             {paginatedTickets.length > 0 ? (
               paginatedTickets.map((ticket) => (
-                <tr key={ticket.id} className="border-b border-[rgba(0,0,0,0.08)] bg-white transition-colors hover:bg-[#FCFCFD]">
+                <tr
+                  key={ticket.id}
+                  onClick={() => onOpenTicket(ticket)}
+                  className="cursor-pointer border-b border-[rgba(0,0,0,0.08)] bg-white transition-colors hover:bg-[#FCFCFD]"
+                >
                   <td className="w-11 px-3 py-3 align-middle text-[#98A2B3]">
                     <ChevronRight className="h-4 w-4" />
                   </td>
@@ -635,6 +713,7 @@ export default function NotesPanel({
   const [notesData, setNotesData] = useState(initialNotes);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  const [selectedTicket, setSelectedTicket] = useState<CustomerTicket | null>(null);
 
   useEffect(() => {
     setActiveTab(notesOnly ? "Notes" : initialTab);
@@ -668,6 +747,16 @@ export default function NotesPanel({
   const handleCancelNote = () => {
     setNoteDraft("");
     setIsComposerOpen(false);
+  };
+
+  const handleOpenTicket = (ticket: CustomerTicket) => {
+    setSelectedTicket(ticket);
+    setActiveTab(ticket.id);
+  };
+
+  const handleCloseTicketTab = () => {
+    setSelectedTicket(null);
+    setActiveTab("Tickets");
   };
 
   return (
@@ -718,6 +807,41 @@ export default function NotesPanel({
                   </div>
                 )}
               </div>
+
+              {selectedTicket ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(selectedTicket.id)}
+                  className={cn(
+                    "ml-1 flex items-center gap-2 rounded-t-md border border-b-0 px-3 py-2 text-xs font-medium",
+                    activeTab === selectedTicket.id
+                      ? "border-[rgba(0,0,0,0.1)] bg-white text-[#334155]"
+                      : "border-transparent bg-transparent text-[#6B7280] hover:text-[#333]",
+                  )}
+                >
+                  <Ticket className="h-4 w-4 flex-shrink-0 text-[#111827]" />
+                  <span className="max-w-[180px] truncate">{selectedTicket.id}</span>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleCloseTicketTab();
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleCloseTicketTab();
+                      }
+                    }}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#CBD5E1] text-[#F8FAFC] transition-colors hover:bg-[#94A3B8]"
+                    aria-label={`Close ${selectedTicket.id}`}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </span>
+                </button>
+              ) : null}
             </div>
           </div>
         </>
@@ -800,9 +924,11 @@ export default function NotesPanel({
         </div>
       )}
 
-      {activeTab === "Tickets" && <TicketsDataGrid />}
+      {activeTab === "Tickets" && <TicketsDataGrid onOpenTicket={handleOpenTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && (
+      {selectedTicket && activeTab === selectedTicket.id && <TicketRecordView ticket={selectedTicket} />}
+
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Tickets" && activeTab !== selectedTicket?.id && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
