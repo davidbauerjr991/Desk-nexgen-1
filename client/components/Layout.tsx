@@ -2093,7 +2093,6 @@ export default function Layout({ children }: LayoutProps) {
                     }
 
                     setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
-                    setIsCopilotPopoverOpen(false);
                     setIsAddNewPopoverOpen(true);
                   }}
                   isActive={isAddNewPopoverOpen}
