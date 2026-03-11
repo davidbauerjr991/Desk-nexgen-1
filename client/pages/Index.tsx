@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MoreVertical,
   PhoneCall,
@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
+import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import {
@@ -381,23 +382,6 @@ function AddNewPanel() {
   );
 }
 
-function OverviewField({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
-  return (
-    <div>
-      <div className="text-[12px] font-semibold uppercase text-[#333333]">
-        {label}
-      </div>
-      <div className="text-[12px] leading-5 text-[#6B7280]">{value}</div>
-    </div>
-  );
-}
-
 function InfoPanel() {
   return (
     <div className="flex h-full min-w-full flex-col lg:min-w-[380px]">
@@ -410,24 +394,7 @@ function InfoPanel() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-4 py-4">
-        <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-center justify-start border-b border-black/10 px-5 py-5">
-            <span className="text-sm font-semibold tracking-tight text-[#333333]">Overview</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 px-5 py-6">
-            <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
-            <OverviewField label="Contact #" value="2457" />
-            <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
-            <OverviewField label="Balance" value="$5,005.65" />
-            <OverviewField label="Address" value="1 SmartReach Rd" />
-            <OverviewField label="City" value="Buffalo" />
-            <OverviewField label="State" value="New York" />
-            <OverviewField label="Zip Code" value="14217" />
-          </div>
-        </div>
-      </ScrollArea>
+      <CustomerInfoPanel className="h-auto" />
     </div>
   );
 }
@@ -461,7 +428,7 @@ export default function Index() {
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
   const [addNoteTrigger, setAddNoteTrigger] = useState(0);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
-  const [mobileDetailsTab, setMobileDetailsTab] = useState("Details");
+  const [mobileDetailsTab, setMobileDetailsTab] = useState("Overview");
   const conversationPanelInitializedRef = useRef(false);
   const activeConversation = conversationsByChannel[activeChannel];
   const selectedAssignmentHeader =

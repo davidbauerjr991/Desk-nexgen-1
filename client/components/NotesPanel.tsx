@@ -3,9 +3,9 @@ import { Eye, FileDown, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import CustomerInfoPanel from "@/components/CustomerInfoPanel";
+import { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 
-const TABS = ["Details", "Accounts", "Tickets", "Directory"];
+const TABS = ["Overview", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 
 export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
@@ -102,7 +102,7 @@ interface NotesPanelProps {
 }
 
 export default function NotesPanel({
-  initialTab = "Details",
+  initialTab = "Overview",
   notesOnly = false,
   addNoteTrigger = 0,
 }: NotesPanelProps) {
@@ -268,13 +268,13 @@ export default function NotesPanel({
         </div>
       )}
 
-      {activeTab === "Details" && (
-        <div className="flex-1 overflow-y-auto">
-          <CustomerInfoPanel className="h-auto" />
+      {activeTab === "Overview" && (
+        <div className="flex-1 overflow-y-auto px-4 py-4">
+          <CustomerOverviewCard />
         </div>
       )}
 
-      {activeTab !== "Notes" && activeTab !== "Details" && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
