@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
   ArrowUpDown,
@@ -1118,6 +1118,7 @@ function formatStatusDuration(totalSeconds: number) {
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("info");
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
@@ -1177,6 +1178,7 @@ export default function Layout({ children }: LayoutProps) {
     () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
     [selectedAssignmentId],
   );
+  const isActivityRoute = location.pathname === "/activity";
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
@@ -1537,7 +1539,12 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
         <LeftQueueRail />
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col overflow-hidden",
+            isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
+          )}
+        >
           {children}
         </div>
       </div>

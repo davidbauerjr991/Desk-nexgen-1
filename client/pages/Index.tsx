@@ -620,7 +620,7 @@ export default function Index() {
       </div>
 
       {/* Main Interaction Area */}
-      <div className="flex min-w-0 flex-1 flex-col bg-card">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card">
         
         {/* Customer Context Banner */}
         <div className="flex items-start justify-between gap-3 border-b border-border bg-card/50 px-6 py-4">
@@ -649,6 +649,19 @@ export default function Index() {
                     activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("email")}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-8 rounded-full border-black/10 px-3",
+                      isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD] hover:bg-[#F3ECFF]",
+                    )}
+                    onClick={() => setIsConversationPanelOpen((current) => !current)}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
