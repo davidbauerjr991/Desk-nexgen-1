@@ -23,6 +23,17 @@ const insights = {
   churnRisk: "Medium",
 };
 
+const customerContextFields = [
+  { label: "Account Number", value: "QAE12393" },
+  { label: "Phone Number", value: "(614) 788-0980" },
+  { label: "First Name", value: "James" },
+  { label: "Last Name", value: "Hasselhoffenbrau" },
+  { label: "Empty Field", value: "--" },
+  { label: "Long Field", value: "https://www.thisisalongemailaddress.com" },
+  { label: "Email Address", value: "email@email.com" },
+  { label: "Twitter", value: "@jphoffbrewer" },
+];
+
 export interface CopilotDragActivation {
   id: number;
   offset: {
@@ -80,6 +91,16 @@ export function CopilotContent() {
                   {insights.churnRisk}
                 </div>
               </div>
+            </div>
+            <div className="space-y-3 border-t border-border pt-4">
+              {customerContextFields.map((field) => (
+                <div key={field.label}>
+                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#344054]">
+                    {field.label}
+                  </div>
+                  <div className="break-all text-sm text-foreground">{field.value}</div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
