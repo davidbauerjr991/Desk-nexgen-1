@@ -205,6 +205,26 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
+function ConversationToggleIcon({ isOpen, className }: { isOpen: boolean; className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect x="2" y="3" width="16" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M12.5 4.5V15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      {isOpen ? (
+        <path d="M9 7L6 10L9 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      ) : (
+        <path d="M6 7L9 10L6 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 const assignmentHeaderDetails = {
@@ -530,10 +550,10 @@ export default function Index() {
       <div
         aria-hidden={!isConversationPanelOpen}
         className={cn(
-          "hidden min-h-0 bg-background min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:border-r min-[800px]:border-border min-[800px]:transition-[width,opacity,transform,border-color] min-[800px]:duration-300 min-[800px]:ease-out",
+          "hidden min-h-0 bg-background min-[800px]:flex min-[800px]:w-[420px] min-[800px]:flex-shrink-0 min-[800px]:flex-col min-[800px]:overflow-hidden min-[800px]:transition-[width,opacity,transform] min-[800px]:duration-300 min-[800px]:ease-out",
           isConversationPanelOpen
             ? "min-[800px]:translate-x-0 min-[800px]:opacity-100"
-            : "pointer-events-none min-[800px]:w-0 min-[800px]:-translate-x-4 min-[800px]:border-r-transparent min-[800px]:opacity-0",
+            : "pointer-events-none min-[800px]:w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
         )}
       >
         {isConversationContentVisible && (
@@ -627,6 +647,18 @@ export default function Index() {
           <div className="flex min-w-0 flex-1 items-start">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  aria-label={isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
+                  aria-pressed={isConversationPanelOpen}
+                  onClick={() => setIsConversationPanelOpen((current) => !current)}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-md border border-black/10 bg-white text-[#4B4B4B] transition-colors hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+                    isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]",
+                  )}
+                >
+                  <ConversationToggleIcon isOpen={isConversationPanelOpen} className="h-4 w-4" />
+                </button>
                 <h2 className="text-lg font-semibold tracking-tight">{selectedAssignment.name}</h2>
                 <div className="flex flex-wrap items-center gap-1.5">
                   <ChannelToggleButton
@@ -649,19 +681,6 @@ export default function Index() {
                     activeChannel={isConversationPanelOpen ? activeChannel : null}
                     onClick={() => handleChannelSelection("email")}
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className={cn(
-                      "h-8 rounded-full border-black/10 px-3",
-                      isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD] hover:bg-[#F3ECFF]",
-                    )}
-                    onClick={() => setIsConversationPanelOpen((current) => !current)}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    {isConversationPanelOpen ? "Hide conversation" : "Show conversation"}
-                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
