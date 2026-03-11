@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { useLayoutContext } from "@/components/Layout";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
-import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import {
@@ -382,30 +381,12 @@ function AddNewPanel() {
   );
 }
 
-function InfoPanel() {
-  return (
-    <div className="flex h-full min-w-full flex-col lg:min-w-[380px]">
-      <div className="border-b border-border bg-background/50 px-5 py-4">
-        <div>
-          <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
-            <span>Customer Information</span>
-          </div>
-          <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
-        </div>
-      </div>
-
-      <CustomerInfoPanel className="h-auto" />
-    </div>
-  );
-}
-
 function DeskPanel({ addNoteTrigger }: { addNoteTrigger: number }) {
   return <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />;
 }
 
 export default function Index() {
   const {
-    isInfoOpen,
     isDeskOpen,
     isInteractionsOpen,
     isRightPanelOpen,
@@ -414,7 +395,6 @@ export default function Index() {
     isAgentInCall,
     selectedAssignment,
     recentInteractions,
-    toggleInfo,
     toggleInteractions,
     toggleCallPopunder,
     isConversationPanelOpen,
@@ -653,8 +633,6 @@ export default function Index() {
 
                   {isInteractionsOpen ? (
                     <RecentInteractionsPanel injectedInteractions={recentInteractions} />
-                  ) : isInfoOpen ? (
-                    <InfoPanel />
                   ) : isDeskOpen ? (
                     <DeskPanel addNoteTrigger={addNoteTrigger} />
                   ) : null}

@@ -1795,7 +1795,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [status, setStatus] = useState<AgentStatus>("Available");
-  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>("info");
+  const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
