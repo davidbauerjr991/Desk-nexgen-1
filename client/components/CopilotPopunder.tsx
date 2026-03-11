@@ -75,7 +75,7 @@ export function CopilotContent() {
           <CardContent className="space-y-4 px-4 pb-4">
             <div>
               <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">Detected Intent</div>
-              <div className="text-[18px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
+              <div className="text-[14px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -98,7 +98,7 @@ export function CopilotContent() {
                   <div className="mb-2 text-[11px] font-medium tracking-[0.01em] text-[#667085]">
                     {field.label}
                   </div>
-                  <div className="break-all text-[18px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
+                  <div className="break-all text-[14px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
                 </div>
               ))}
             </div>
