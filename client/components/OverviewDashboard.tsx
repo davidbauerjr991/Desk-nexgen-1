@@ -6,9 +6,6 @@ import { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-import "react-grid-layout/css/styles.css";
-import "react-resizable/css/styles.css";
-
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const overviewSummaryBullets = [
