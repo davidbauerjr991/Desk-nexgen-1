@@ -645,7 +645,7 @@ export default function Index() {
         </div>
 
         {/* Content row: conversation on mobile, notes in the main container */}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative flex min-h-0 flex-1 overflow-hidden">
           {/* Conversation column on mobile */}
           <div
             aria-hidden={!isConversationPanelOpen}
@@ -679,6 +679,63 @@ export default function Index() {
           >
             <div className="flex min-h-0 flex-1 overflow-hidden">
               <NotesPanel />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            aria-label="Close right panel"
+            onClick={closeRightPanel}
+            className={cn(
+              "absolute inset-0 z-20 bg-black/20 transition-opacity duration-300 lg:hidden",
+              isRightPanelOpen ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+          />
+
+          <div
+            className={cn(
+              "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:w-[380px] lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[max-width,opacity,border-color]",
+              isRightPanelOpen
+                ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:max-w-[380px]"
+                : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:max-w-0 lg:translate-x-0",
+            )}
+            aria-hidden={!isRightPanelOpen}
+          >
+            <div className="relative flex h-full min-w-full flex-col lg:min-w-[380px]">
+              {isRightPanelContentVisible && (
+                <>
+                  {isDeskOpen && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Add note"
+                      onClick={() => setAddNoteTrigger((current) => current + 1)}
+                      className="absolute right-12 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+                    >
+                      <FilePlus2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Close right panel"
+                    onClick={closeRightPanel}
+                    className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+
+                  {isInteractionsOpen ? (
+                    <RecentInteractionsPanel injectedInteractions={recentInteractions} />
+                  ) : isInfoOpen ? (
+                    <InfoPanel />
+                  ) : isDeskOpen ? (
+                    <DeskPanel addNoteTrigger={addNoteTrigger} />
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -715,63 +772,6 @@ export default function Index() {
         </div>
       )}
 
-      <button
-        type="button"
-        aria-label="Close right panel"
-        onClick={closeRightPanel}
-        className={cn(
-          "absolute inset-0 z-20 bg-black/20 transition-opacity duration-300 lg:hidden",
-          isRightPanelOpen ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
-      />
-
-      {/* AI Copilot Panel */}
-      <div
-        className={cn(
-          "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:w-[380px] lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[max-width,opacity,border-color]",
-          isRightPanelOpen
-            ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:max-w-[380px]"
-            : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:max-w-0 lg:translate-x-0",
-        )}
-        aria-hidden={!isRightPanelOpen}
-      >
-        <div className="relative flex h-full min-w-full flex-col lg:min-w-[380px]">
-          {isRightPanelContentVisible && (
-            <>
-              {isDeskOpen && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Add note"
-                  onClick={() => setAddNoteTrigger((current) => current + 1)}
-                  className="absolute right-12 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
-                >
-                  <FilePlus2 className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Close right panel"
-                onClick={closeRightPanel}
-                className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-
-              {isInteractionsOpen ? (
-                <RecentInteractionsPanel injectedInteractions={recentInteractions} />
-              ) : isInfoOpen ? (
-                <InfoPanel />
-              ) : isDeskOpen ? (
-                <DeskPanel addNoteTrigger={addNoteTrigger} />
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
 
     </div>
   );
