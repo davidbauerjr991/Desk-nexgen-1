@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import CopilotPopunder from "@/components/CopilotPopunder";
+import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import WorkspaceTabs from "@/components/WorkspaceTabs";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
@@ -1108,6 +1108,53 @@ function DockedConversationPanel({
   );
 }
 
+function DockedCopilotPanel({
+  width,
+  onClose,
+  onUndockStart,
+}: {
+  width: number;
+  onClose: () => void;
+  onUndockStart: (event: React.MouseEvent<HTMLDivElement>) => void;
+}) {
+  return (
+    <div
+      className="fixed bottom-4 right-4 top-[72px] z-[65] flex min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        width,
+        maxWidth: "calc(100vw - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={onUndockStart}
+      >
+        <div className="flex items-start gap-3">
+          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div className="flex items-start gap-2">
+            <Bot className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
+              <p className="text-xs text-[#7A7A7A]">Drag to undock or use the header toggle to hide the panel</p>
+            </div>
+          </div>
+        </div>
+        <button
+          type="button"
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={onClose}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          aria-label="Close docked NexAgent Copilot"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <CopilotContent />
+    </div>
+  );
+}
+
 function ConversationPopunder({
   position,
   size,
@@ -1612,6 +1659,8 @@ export default function Layout({ children }: LayoutProps) {
     width: 360,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
+  const [isCopilotDocked, setIsCopilotDocked] = useState(false);
+  const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
@@ -1767,6 +1816,18 @@ export default function Layout({ children }: LayoutProps) {
       headerSearchInputRef.current?.focus();
     }
   }, [isHeaderSearchOpen]);
+
+  useEffect(() => {
+    if (!copilotDragActivation) return;
+
+    const clearDragActivation = () => {
+      setCopilotDragActivation(null);
+    };
+
+    window.addEventListener("mouseup", clearDragActivation);
+
+    return () => window.removeEventListener("mouseup", clearDragActivation);
+  }, [copilotDragActivation]);
 
   useEffect(() => {
     const syncDockedConversationWidth = () => {
@@ -2054,6 +2115,11 @@ export default function Layout({ children }: LayoutProps) {
                     return;
                   }
 
+                  if (isCopilotDocked) {
+                    setIsCopilotPopoverOpen(true);
+                    return;
+                  }
+
                   setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
                   setIsCopilotPopoverOpen(true);
                 }}
@@ -2220,13 +2286,50 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {isCopilotPopoverOpen && (
+      {isCopilotPopoverOpen && isCopilotDocked && (
+        <DockedCopilotPanel
+          width={copilotPopunderSize.width}
+          onClose={() => setIsCopilotPopoverOpen(false)}
+          onUndockStart={(event) => {
+            if (typeof window === "undefined") return;
+
+            event.preventDefault();
+
+            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+            if (!bounds) return;
+
+            const margin = 16;
+            const nextPosition = {
+              x: Math.min(Math.max(margin, bounds.left), window.innerWidth - copilotPopunderSize.width - margin),
+              y: Math.min(Math.max(margin, bounds.top), window.innerHeight - copilotPopunderSize.height - margin),
+            };
+
+            setCopilotPopunderPosition(nextPosition);
+            setIsCopilotDocked(false);
+            setIsCopilotPopoverOpen(true);
+            setCopilotDragActivation({
+              id: Date.now(),
+              offset: {
+                x: event.clientX - nextPosition.x,
+                y: event.clientY - nextPosition.y,
+              },
+            });
+          }}
+        />
+      )}
+
+      {isCopilotPopoverOpen && !isCopilotDocked && (
         <CopilotPopunder
           position={copilotPopunderPosition}
           size={copilotPopunderSize}
           onPositionChange={setCopilotPopunderPosition}
           onSizeChange={setCopilotPopunderSize}
           onClose={() => setIsCopilotPopoverOpen(false)}
+          onDock={() => {
+            setIsCopilotDocked(true);
+            setIsCopilotPopoverOpen(true);
+          }}
+          dragActivation={copilotDragActivation}
         />
       )}
     </div>
