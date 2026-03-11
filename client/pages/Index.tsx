@@ -543,20 +543,6 @@ export default function Index() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              aria-label={isInfoOpen ? "Hide customer information" : "Show customer information"}
-              aria-pressed={isInfoOpen}
-              onClick={toggleInfo}
-              className={cn(
-                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
-                isInfoOpen
-                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-              )}
-            >
-              <Info className="h-4 w-4 stroke-[1.8]" />
-            </button>
-            <button
-              type="button"
               aria-label={isDeskOpen ? "Hide notes panel" : "Show notes panel"}
               aria-pressed={isDeskOpen}
               onClick={toggleDesk}
@@ -568,20 +554,6 @@ export default function Index() {
               )}
             >
               <FileText className="h-4 w-4 stroke-[1.8]" />
-            </button>
-            <button
-              type="button"
-              aria-label={isInteractionsOpen ? "Hide recent interactions" : "Show recent interactions"}
-              aria-pressed={isInteractionsOpen}
-              onClick={toggleInteractions}
-              className={cn(
-                "hidden h-8 w-8 items-center justify-center rounded-full border transition-colors sm:flex",
-                isInteractionsOpen
-                  ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-                  : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-              )}
-            >
-              <History className="h-4 w-4 stroke-[1.8]" />
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
