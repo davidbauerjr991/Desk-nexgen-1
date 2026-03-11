@@ -85,22 +85,22 @@ const recentTickets = [
 
 const defaultLayouts: ResponsiveLayouts = {
   lg: [
-    { i: "summary", x: 0, y: 0, w: 2, h: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5 },
-    { i: "timeline", x: 1, y: 6, w: 1, h: 5 },
-    { i: "tickets", x: 0, y: 11, w: 2, h: 5 },
+    { i: "summary", x: 0, y: 0, w: 2, h: 6, minW: 1, maxW: 2, minH: 6 },
+    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "timeline", x: 1, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "tickets", x: 0, y: 11, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
   ],
   md: [
-    { i: "summary", x: 0, y: 0, w: 2, h: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5 },
-    { i: "timeline", x: 1, y: 6, w: 1, h: 5 },
-    { i: "tickets", x: 0, y: 11, w: 2, h: 5 },
+    { i: "summary", x: 0, y: 0, w: 2, h: 6, minW: 1, maxW: 2, minH: 6 },
+    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "timeline", x: 1, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "tickets", x: 0, y: 11, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
   ],
   sm: [
-    { i: "summary", x: 0, y: 0, w: 1, h: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5 },
-    { i: "timeline", x: 0, y: 11, w: 1, h: 5 },
-    { i: "tickets", x: 0, y: 16, w: 1, h: 5 },
+    { i: "summary", x: 0, y: 0, w: 1, h: 6, minW: 1, maxW: 1, minH: 6 },
+    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
+    { i: "timeline", x: 0, y: 11, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
+    { i: "tickets", x: 0, y: 16, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
   ],
 };
 
@@ -292,7 +292,8 @@ export default function OverviewDashboard() {
         margin={[16, 16]}
         containerPadding={[0, 0]}
         rowHeight={72}
-        isResizable={false}
+        isResizable
+        resizeHandles={["e", "w", "s", "se", "sw"]}
         draggableHandle=".overview-card-handle"
         compactType="vertical"
         onLayoutChange={(_, allLayouts) =>
