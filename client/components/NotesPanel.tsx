@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
-import { Eye, FileDown, ChevronDown, ChevronRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronRight, Eye, FileDown, GripVertical, Search } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
 import OverviewDashboard from "@/components/OverviewDashboard";
+import { cn } from "@/lib/utils";
 
 const TABS = ["Overview", "Accounts", "Tickets", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
+const TICKET_PAGE_SIZE = 6;
 
 export const NOTES_PANEL_MENU_ITEMS = [...TABS, ...EXTRA_TABS];
 
@@ -55,48 +57,6 @@ const initialNotes = [
   },
 ];
 
-function formatNoteTimestamp(date: Date) {
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  const year = date.getFullYear();
-  const hours = date.getHours();
-  const hours12 = hours % 12 || 12;
-  const minutes = `${date.getMinutes()}`.padStart(2, "0");
-  const seconds = `${date.getSeconds()}`.padStart(2, "0");
-  const meridiem = hours >= 12 ? "PM" : "AM";
-
-  return `${month}/${day}/${year} ${hours12.toString().padStart(2, "0")}:${minutes}:${seconds} ${meridiem}`;
-}
-
-function NoteItem({ note }: { note: (typeof initialNotes)[0] }) {
-  const initials = note.agentName
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
-  return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
-      <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#6E00FD]">
-          {initials}
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-semibold leading-5 text-[#333333]">{note.createdAt}</div>
-          <div className="mt-2 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
-            <span className="truncate font-medium text-[#333333]">{note.agentName}</span>
-            <span className="flex-shrink-0 text-[#C0C4CC]">•</span>
-            <span className="flex-shrink-0 text-[#6B7280]">{note.agentId}</span>
-          </div>
-          <p className="mt-1 text-[12px] leading-5 text-[#6B7280]">{note.body}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 type CustomerTicket = {
   id: string;
   priority: "Low" | "Medium" | "High" | "Urgent";
@@ -117,6 +77,16 @@ type CustomerTicket = {
   agent: string;
   agentTeam: string;
   modifiedBy: string;
+};
+
+type TicketColumnKey = "priority" | "id" | "type" | "subject" | "status" | "agent" | "agentTeam" | "modifiedBy";
+
+type TicketColumn = {
+  key: TicketColumnKey;
+  label: string;
+  minWidth: number;
+  defaultWidth: number;
+  renderCell: (ticket: CustomerTicket) => ReactNode;
 };
 
 const customerTickets: CustomerTicket[] = [
@@ -242,6 +212,19 @@ const customerTickets: CustomerTicket[] = [
   },
 ];
 
+function formatNoteTimestamp(date: Date) {
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours();
+  const hours12 = hours % 12 || 12;
+  const minutes = `${date.getMinutes()}`.padStart(2, "0");
+  const seconds = `${date.getSeconds()}`.padStart(2, "0");
+  const meridiem = hours >= 12 ? "PM" : "AM";
+
+  return `${month}/${day}/${year} ${hours12.toString().padStart(2, "0")}:${minutes}:${seconds} ${meridiem}`;
+}
+
 function getPriorityTone(priority: CustomerTicket["priority"]) {
   switch (priority) {
     case "Urgent":
@@ -278,61 +261,360 @@ function getStatusBadgeClasses(status: CustomerTicket["status"]) {
   }
 }
 
+const TICKET_COLUMNS: TicketColumn[] = [
+  {
+    key: "priority",
+    label: "Priority",
+    minWidth: 120,
+    defaultWidth: 140,
+    renderCell: (ticket) => (
+      <div className="flex items-center gap-2 whitespace-nowrap">
+        <span className={cn("h-2.5 w-2.5 rounded-full", getPriorityTone(ticket.priority))} />
+        <span className="font-medium text-[#344054]">{ticket.priority}</span>
+      </div>
+    ),
+  },
+  {
+    key: "id",
+    label: "Ticket Full Number",
+    minWidth: 150,
+    defaultWidth: 180,
+    renderCell: (ticket) => <span className="block truncate font-medium text-[#344054]">{ticket.id}</span>,
+  },
+  {
+    key: "type",
+    label: "Type",
+    minWidth: 120,
+    defaultWidth: 140,
+    renderCell: (ticket) => <span className="block truncate text-[#475467]">{ticket.type}</span>,
+  },
+  {
+    key: "subject",
+    label: "Subject",
+    minWidth: 280,
+    defaultWidth: 360,
+    renderCell: (ticket) => <span className="block truncate text-[#101828]">{ticket.subject}</span>,
+  },
+  {
+    key: "status",
+    label: "Status",
+    minWidth: 180,
+    defaultWidth: 190,
+    renderCell: (ticket) => (
+      <button
+        type="button"
+        className={cn(
+          "inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
+          getStatusBadgeClasses(ticket.status),
+        )}
+      >
+        <span className="truncate">{ticket.status}</span>
+        <ChevronDown className="h-3.5 w-3.5 flex-shrink-0" />
+      </button>
+    ),
+  },
+  {
+    key: "agent",
+    label: "Agent",
+    minWidth: 150,
+    defaultWidth: 170,
+    renderCell: (ticket) => <span className="block truncate text-[#475467]">{ticket.agent}</span>,
+  },
+  {
+    key: "agentTeam",
+    label: "Agent Team",
+    minWidth: 170,
+    defaultWidth: 190,
+    renderCell: (ticket) => <span className="block truncate text-[#475467]">{ticket.agentTeam}</span>,
+  },
+  {
+    key: "modifiedBy",
+    label: "Modified By",
+    minWidth: 160,
+    defaultWidth: 180,
+    renderCell: (ticket) => <span className="block truncate text-[#475467]">{ticket.modifiedBy}</span>,
+  },
+];
+
+const TICKET_COLUMN_MAP = Object.fromEntries(TICKET_COLUMNS.map((column) => [column.key, column])) as Record<
+  TicketColumnKey,
+  TicketColumn
+>;
+
+const INITIAL_TICKET_COLUMN_ORDER = TICKET_COLUMNS.map((column) => column.key);
+const INITIAL_TICKET_COLUMN_WIDTHS = Object.fromEntries(
+  TICKET_COLUMNS.map((column) => [column.key, column.defaultWidth]),
+) as Record<TicketColumnKey, number>;
+
+function NoteItem({ note }: { note: (typeof initialNotes)[0] }) {
+  const initials = note.agentName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
+      <div className="flex items-start gap-3">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#6E00FD]">
+          {initials}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-semibold leading-5 text-[#333333]">{note.createdAt}</div>
+          <div className="mt-2 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
+            <span className="truncate font-medium text-[#333333]">{note.agentName}</span>
+            <span className="flex-shrink-0 text-[#C0C4CC]">•</span>
+            <span className="flex-shrink-0 text-[#6B7280]">{note.agentId}</span>
+          </div>
+          <p className="mt-1 text-[12px] leading-5 text-[#6B7280]">{note.body}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function reorderTicketColumns(columnOrder: TicketColumnKey[], draggedKey: TicketColumnKey, targetKey: TicketColumnKey) {
+  if (draggedKey === targetKey) return columnOrder;
+
+  const nextOrder = [...columnOrder];
+  const draggedIndex = nextOrder.indexOf(draggedKey);
+  const targetIndex = nextOrder.indexOf(targetKey);
+
+  if (draggedIndex === -1 || targetIndex === -1) return columnOrder;
+
+  nextOrder.splice(draggedIndex, 1);
+  nextOrder.splice(targetIndex, 0, draggedKey);
+
+  return nextOrder;
+}
+
 function TicketsDataGrid() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [columnOrder, setColumnOrder] = useState<TicketColumnKey[]>(() => [...INITIAL_TICKET_COLUMN_ORDER]);
+  const [columnWidths, setColumnWidths] = useState<Record<TicketColumnKey, number>>(() => ({ ...INITIAL_TICKET_COLUMN_WIDTHS }));
+  const draggingColumnRef = useRef<TicketColumnKey | null>(null);
+  const resizeStateRef = useRef<{
+    key: TicketColumnKey;
+    startX: number;
+    startWidth: number;
+  } | null>(null);
+
+  const orderedColumns = useMemo(() => columnOrder.map((key) => TICKET_COLUMN_MAP[key]), [columnOrder]);
+
+  const filteredTickets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    if (!query) return customerTickets;
+
+    return customerTickets.filter((ticket) =>
+      [
+        ticket.priority,
+        ticket.id,
+        ticket.type,
+        ticket.subject,
+        ticket.status,
+        ticket.agent,
+        ticket.agentTeam,
+        ticket.modifiedBy,
+      ].some((value) => value.toLowerCase().includes(query)),
+    );
+  }, [searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / TICKET_PAGE_SIZE));
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!resizeStateRef.current) return;
+
+      const { key, startX, startWidth } = resizeStateRef.current;
+      const minWidth = TICKET_COLUMN_MAP[key].minWidth;
+      const nextWidth = Math.max(minWidth, startWidth + event.clientX - startX);
+
+      setColumnWidths((current) =>
+        current[key] === nextWidth
+          ? current
+          : {
+              ...current,
+              [key]: nextWidth,
+            },
+      );
+    };
+
+    const handleMouseUp = () => {
+      resizeStateRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, []);
+
+  const paginatedTickets = useMemo(() => {
+    const startIndex = (currentPage - 1) * TICKET_PAGE_SIZE;
+    return filteredTickets.slice(startIndex, startIndex + TICKET_PAGE_SIZE);
+  }, [currentPage, filteredTickets]);
+
+  const totalTableWidth = useMemo(
+    () => 44 + orderedColumns.reduce((total, column) => total + columnWidths[column.key], 0),
+    [columnWidths, orderedColumns],
+  );
+
+  const firstVisibleTicket = filteredTickets.length === 0 ? 0 : (currentPage - 1) * TICKET_PAGE_SIZE + 1;
+  const lastVisibleTicket = filteredTickets.length === 0 ? 0 : Math.min(currentPage * TICKET_PAGE_SIZE, filteredTickets.length);
+
+  const handleColumnDrop = (targetKey: TicketColumnKey) => {
+    const draggedKey = draggingColumnRef.current;
+    if (!draggedKey) return;
+
+    setColumnOrder((current) => reorderTicketColumns(current, draggedKey, targetKey));
+    draggingColumnRef.current = null;
+  };
+
+  const handleResizeStart = (event: React.MouseEvent<HTMLButtonElement>, key: TicketColumnKey) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    resizeStateRef.current = {
+      key,
+      startX: event.clientX,
+      startWidth: columnWidths[key],
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
   return (
     <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden bg-white">
-      <ScrollArea className="h-full w-full">
-        <div className="min-w-[1080px]">
-          <Table className="text-xs text-[#344054]">
-            <TableHeader className="sticky top-0 z-10 bg-[#F9FAFB]">
-              <TableRow className="border-b border-[rgba(0,0,0,0.08)] hover:bg-[#F9FAFB]">
-                <TableHead className="w-10 px-3 py-3" />
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Priority</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Full Number</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Type</TableHead>
-                <TableHead className="min-w-[280px] px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Subject</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Status</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Agent</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Agent Team</TableHead>
-                <TableHead className="px-3 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Modified By</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customerTickets.map((ticket) => (
-                <TableRow key={ticket.id} className="border-b border-[rgba(0,0,0,0.08)] bg-white hover:bg-[#FCFCFD]">
-                  <TableCell className="px-3 py-3 text-[#98A2B3]">
-                    <ChevronRight className="h-4 w-4" />
-                  </TableCell>
-                  <TableCell className="px-3 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className={cn("h-2.5 w-2.5 rounded-full", getPriorityTone(ticket.priority))} />
-                      <span className="font-medium text-[#344054]">{ticket.priority}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-3 py-3 font-medium text-[#344054]">{ticket.id}</TableCell>
-                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.type}</TableCell>
-                  <TableCell className="px-3 py-3 text-[#101828]">{ticket.subject}</TableCell>
-                  <TableCell className="px-3 py-3">
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
-                        getStatusBadgeClasses(ticket.status),
-                      )}
-                    >
-                      <span>{ticket.status}</span>
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-                  </TableCell>
-                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.agent}</TableCell>
-                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.agentTeam}</TableCell>
-                  <TableCell className="px-3 py-3 text-[#475467]">{ticket.modifiedBy}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(0,0,0,0.08)] px-4 py-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
+          <Input
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search tickets, status, agents, or subjects"
+            className="h-9 border-black/10 bg-white pl-9 text-xs text-[#111827] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#D9CCFF]"
+          />
         </div>
-      </ScrollArea>
+
+        <div className="text-[11px] text-[#667085]">
+          {filteredTickets.length} tickets · Drag headers to reorder · Drag column edges to resize
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="table-fixed text-xs text-[#344054]" style={{ minWidth: totalTableWidth }}>
+          <thead>
+            <tr>
+              <th className="sticky top-0 z-10 w-11 border-b border-[rgba(0,0,0,0.08)] bg-[#F9FAFB] px-3 py-3 text-left" />
+              {orderedColumns.map((column) => (
+                <th
+                  key={column.key}
+                  style={{ width: columnWidths[column.key], minWidth: column.minWidth }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleColumnDrop(column.key)}
+                  className="group sticky top-0 z-10 border-b border-[rgba(0,0,0,0.08)] bg-[#F9FAFB] px-3 py-3 text-left align-middle"
+                >
+                  <div
+                    draggable
+                    onDragStart={() => {
+                      draggingColumnRef.current = column.key;
+                    }}
+                    onDragEnd={() => {
+                      draggingColumnRef.current = null;
+                    }}
+                    className="flex cursor-grab items-center gap-2 pr-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085] active:cursor-grabbing"
+                  >
+                    <span className="truncate">{column.label}</span>
+                    <GripVertical className="h-3.5 w-3.5 flex-shrink-0 text-[#98A2B3]" />
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={`Resize ${column.label}`}
+                    onMouseDown={(event) => handleResizeStart(event, column.key)}
+                    className="absolute inset-y-0 right-0 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[#D9CCFF]/60 focus-visible:outline-none"
+                  />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedTickets.length > 0 ? (
+              paginatedTickets.map((ticket) => (
+                <tr key={ticket.id} className="border-b border-[rgba(0,0,0,0.08)] bg-white transition-colors hover:bg-[#FCFCFD]">
+                  <td className="w-11 px-3 py-3 align-middle text-[#98A2B3]">
+                    <ChevronRight className="h-4 w-4" />
+                  </td>
+                  {orderedColumns.map((column) => (
+                    <td
+                      key={column.key}
+                      style={{ width: columnWidths[column.key], minWidth: column.minWidth }}
+                      className="px-3 py-3 align-middle"
+                    >
+                      <div className="min-w-0">{column.renderCell(ticket)}</div>
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={orderedColumns.length + 1} className="px-4 py-12 text-center text-sm text-[#98A2B3]">
+                  No tickets match your search.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(0,0,0,0.08)] px-4 py-3 text-xs text-[#667085]">
+        <div>
+          Showing {firstVisibleTicket}-{lastVisibleTicket} of {filteredTickets.length} tickets
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-lg px-3 text-xs"
+            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <span className="min-w-[84px] text-center text-[#475467]">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 rounded-lg px-3 text-xs"
+            onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -392,48 +674,50 @@ export default function NotesPanel({
     <div className="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
       {!notesOnly && (
         <>
-          <div className="flex items-center border-b border-[rgba(0,0,0,0.1)] px-1 shrink-0">
-            {TABS.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={cn(
-                  "relative px-3 py-2.5 text-xs font-medium transition-colors whitespace-nowrap",
-                  activeTab === tab
-                    ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-[#6E00FD] after:rounded-t"
-                    : "text-[#6B7280] hover:text-[#333]",
+          <div className="shrink-0 border-b border-[rgba(0,0,0,0.1)] px-1">
+            <div className="flex items-center">
+              {TABS.map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
+                    activeTab === tab
+                      ? "text-[#6E00FD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E00FD]"
+                      : "text-[#6B7280] hover:text-[#333]",
+                  )}
+                >
+                  {tab}
+                </button>
+              ))}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMoreTabs((value) => !value)}
+                  className="flex items-center gap-0.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium text-[#6B7280] hover:text-[#333]"
+                >
+                  5 More
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+                {showMoreTabs && (
+                  <div className="absolute left-0 top-full z-10 mt-1 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg">
+                    {EXTRA_TABS.map((tab) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(tab);
+                          setShowMoreTabs(false);
+                        }}
+                        className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
                 )}
-              >
-                {tab}
-              </button>
-            ))}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowMoreTabs((v) => !v)}
-                className="flex items-center gap-0.5 px-3 py-2.5 text-xs font-medium text-[#6B7280] hover:text-[#333] whitespace-nowrap"
-              >
-                5 More
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              {showMoreTabs && (
-                <div className="absolute left-0 top-full z-10 mt-1 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg">
-                  {EXTRA_TABS.map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => {
-                        setActiveTab(tab);
-                        setShowMoreTabs(false);
-                      }}
-                      className="block w-full px-3 py-1.5 text-left text-xs text-[#333] hover:bg-[#F8F8F9]"
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </>
@@ -449,21 +733,17 @@ export default function NotesPanel({
               <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
             </div>
           ) : (
-            <div className="flex items-center justify-between border-b border-[rgba(0,0,0,0.08)] px-4 py-2.5 shrink-0">
+            <div className="flex shrink-0 items-center justify-between border-b border-[rgba(0,0,0,0.08)] px-4 py-2.5">
               <span className="text-xs font-semibold text-[#333]">Latest Notes</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="text-[#6B7280] hover:text-[#333] transition-colors"
+                  className="text-[#6B7280] transition-colors hover:text-[#333]"
                   aria-label="Export notes"
                 >
                   <FileDown className="h-4 w-4" />
                 </button>
-                <button
-                  type="button"
-                  className="text-[#6B7280] hover:text-[#333] transition-colors"
-                  aria-label="View notes"
-                >
+                <button type="button" className="text-[#6B7280] transition-colors hover:text-[#333]" aria-label="View notes">
                   <Eye className="h-4 w-4" />
                 </button>
               </div>
