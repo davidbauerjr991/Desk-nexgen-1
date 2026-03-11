@@ -835,10 +835,10 @@ export default function NotesPanel({
                         handleCloseTicketTab();
                       }
                     }}
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#CBD5E1] text-[#F8FAFC] transition-colors hover:bg-[#94A3B8]"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#CBD5E1] text-[#F8FAFC] transition-colors hover:bg-[#94A3B8]"
                     aria-label={`Close ${selectedTicket.id}`}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3 w-3" />
                   </span>
                 </button>
               ) : null}
