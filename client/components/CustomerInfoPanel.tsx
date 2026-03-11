@@ -24,21 +24,15 @@ function OverviewField({
 
 export function CustomerOverviewCard() {
   return (
-    <div className="overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="flex items-center justify-start border-b border-black/10 px-4 py-4">
-        <span className="text-[13px] font-semibold tracking-tight text-[#333333]">Overview</span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-6 gap-y-5 px-4 py-4">
-        <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
-        <OverviewField label="Contact #" value="2457" />
-        <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
-        <OverviewField label="Balance" value="$5,005.65" />
-        <OverviewField label="Address" value="1 SmartReach Rd" />
-        <OverviewField label="City" value="Buffalo" />
-        <OverviewField label="State" value="New York" />
-        <OverviewField label="Zip Code" value="14217" />
-      </div>
+    <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-4">
+      <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
+      <OverviewField label="Contact #" value="2457" />
+      <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
+      <OverviewField label="Balance" value="$5,005.65" />
+      <OverviewField label="Address" value="1 SmartReach Rd" />
+      <OverviewField label="City" value="Buffalo" />
+      <OverviewField label="State" value="New York" />
+      <OverviewField label="Zip Code" value="14217" />
     </div>
   );
 }
