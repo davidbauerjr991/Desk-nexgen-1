@@ -147,7 +147,7 @@ export default function NotesPanel({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
       {!notesOnly && (
         <>
           <div className="flex items-center border-b border-[rgba(0,0,0,0.1)] px-1 shrink-0">
