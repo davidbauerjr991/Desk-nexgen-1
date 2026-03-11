@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Eye, FileDown, ChevronDown, ArrowUpRight, Bot, Clock3, Sparkles, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 
@@ -490,9 +491,11 @@ export default function NotesPanel({
 
       {activeTab === "Overview" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-3">
-          <div className="h-full min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-2xl border border-black/[0.08] bg-[#F8F8F9] p-3">
-            <OverviewDashboard />
-          </div>
+          <ScrollArea className="h-full min-h-0 flex-1 rounded-2xl border border-black/[0.08] bg-[#F8F8F9]">
+            <div className="p-3">
+              <OverviewDashboard />
+            </div>
+          </ScrollArea>
         </div>
       )}
 
