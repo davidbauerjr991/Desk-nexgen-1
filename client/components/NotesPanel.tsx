@@ -7,9 +7,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import OverviewDashboard from "@/components/OverviewDashboard";
+import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 
-const TABS = ["Overview", "Details", "Accounts", "Tickets", "Recent Interactions", "Directory"];
+const TABS = ["Overview", "Details", "Accounts", "Tickets", "Interactions", "Directory"];
 const EXTRA_TABS = ["Cases", "Tasks", "Emails", "Contacts", "History"];
 const TICKET_PAGE_SIZE = 6;
 
@@ -987,9 +988,15 @@ export default function NotesPanel({
 
       {activeTab === "Tickets" && <TicketsDataGrid onOpenTicket={handleOpenTicket} />}
 
+      {activeTab === "Interactions" && (
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          <RecentInteractionsPanel />
+        </div>
+      )}
+
       {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Tickets" && !activeTicket && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Tickets" && activeTab !== "Interactions" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>
