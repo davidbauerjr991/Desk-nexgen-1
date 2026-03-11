@@ -289,7 +289,7 @@ type ConversationPopunderSize = {
   height: number;
 };
 
-type CallPopunderMode = "setup" | "controls" | "disposition";
+type CallPopunderMode = "setup" | "connecting" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
 const CALL_POPUNDER_MARGIN = 16;
@@ -342,6 +342,25 @@ function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS
   if (disposition === "Resolved") return "bg-[#2CB770]";
   if (disposition === "Escalated") return "bg-[#D0021B]";
   return "bg-[#F59E0B]";
+}
+
+function CallAIGuidanceCard() {
+  return (
+    <div className="rounded-xl border border-[#D9CCFF] bg-[#FCFAFF] p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
+        <Sparkles className="h-3.5 w-3.5" />
+        AI Guidance
+      </div>
+      <p className="mt-2 text-xs leading-5 text-[#333333]">
+        Acknowledge the prior assistant handoff, confirm the beverage package upgrade request, and keep the customer from repeating details.
+      </p>
+      <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6B7280]">
+        <li>• Pronunciation: Kowalski (“Koah-wall-skee”)</li>
+        <li>• Confirm whether the customer needs the upgrade completed today.</li>
+        <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
+      </ul>
+    </div>
+  );
 }
 
 function CallControlsPopunder({
@@ -400,7 +419,7 @@ function CallControlsPopunder({
     if (typeof window === "undefined") return;
 
     const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
-    const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
+    const height = mode === "setup" ? 320 : mode === "connecting" ? 296 : mode === "controls" ? size.height : 284;
     const nextPosition = {
       x: Math.min(
         Math.max(CALL_POPUNDER_MARGIN, position.x),
@@ -420,7 +439,7 @@ function CallControlsPopunder({
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       const width = mode === "controls" ? size.width : CALL_POPUNDER_WIDTH;
-      const height = mode === "setup" ? 320 : mode === "controls" ? size.height : 284;
+    const height = mode === "setup" ? 320 : mode === "connecting" ? 296 : mode === "controls" ? size.height : 284;
 
       if (isDraggingRef.current) {
         const nextX = event.clientX - dragOffsetRef.current.x;
@@ -485,7 +504,7 @@ function CallControlsPopunder({
       <div
         className={cn(
           "flex cursor-grab items-center border-b border-black/10 bg-[#F8F8F9] px-3 py-2 active:cursor-grabbing",
-          mode === "setup" ? "justify-between" : "justify-start",
+          mode === "setup" ? "justify-between" : mode === "connecting" ? "justify-between" : "justify-start",
         )}
         onMouseDown={(event) => {
           const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
@@ -501,9 +520,15 @@ function CallControlsPopunder({
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
           <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
-          {mode === "setup" ? "Start Call" : mode === "controls" ? "Active Call" : "Disposition"}
+          {mode === "setup"
+            ? "Start Call"
+            : mode === "connecting"
+              ? "Connecting Call"
+              : mode === "controls"
+                ? "Active Call"
+                : "Disposition"}
         </div>
-        {mode === "setup" && (
+        {(mode === "setup" || mode === "connecting") && (
           <button
             type="button"
             onClick={onClose}
@@ -573,6 +598,20 @@ function CallControlsPopunder({
               Launch Call
             </Button>
           </>
+        ) : mode === "connecting" ? (
+          <>
+            <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#F3ECFF] text-[#6E00FD] animate-pulse">
+                <Phone className="h-5 w-5" />
+              </div>
+              <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
+              <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+                We’re reaching the customer now. AI guidance is ready and the transcript will appear once the call is live.
+              </p>
+            </div>
+
+            <CallAIGuidanceCard />
+          </>
         ) : mode === "controls" ? (
           <>
             <div className="flex flex-shrink-0 items-stretch gap-2">
@@ -605,20 +644,7 @@ function CallControlsPopunder({
             </div>
 
             <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              <div className="rounded-xl border border-[#D9CCFF] bg-[#FCFAFF] p-3">
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  AI Guidance
-                </div>
-                <p className="mt-2 text-xs leading-5 text-[#333333]">
-                  Acknowledge the prior assistant handoff, confirm the beverage package upgrade request, and keep the customer from repeating details.
-                </p>
-                <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6B7280]">
-                  <li>• Pronunciation: Kowalski (“Koah-wall-skee”)</li>
-                  <li>• Confirm whether the customer needs the upgrade completed today.</li>
-                  <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
-                </ul>
-              </div>
+              <CallAIGuidanceCard />
 
               <div className="rounded-xl border border-black/10 bg-white">
                 <button
@@ -1603,6 +1629,7 @@ export default function Layout({ children }: LayoutProps) {
     };
   });
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
+  const callConnectTimeoutRef = useRef<number | null>(null);
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
@@ -1616,6 +1643,14 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.clearInterval(interval);
   }, [statusStartedAt]);
+
+  useEffect(() => {
+    return () => {
+      if (callConnectTimeoutRef.current !== null) {
+        window.clearTimeout(callConnectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -1814,6 +1849,10 @@ export default function Layout({ children }: LayoutProps) {
       },
       toggleCallPopunder: (anchorRect) => {
         if (status !== "In a Call" && isCallPopunderOpen) {
+          if (callConnectTimeoutRef.current !== null) {
+            window.clearTimeout(callConnectTimeoutRef.current);
+            callConnectTimeoutRef.current = null;
+          }
           setIsCallPopunderOpen(false);
           setCallPopunderMode("setup");
           return;
@@ -2109,12 +2148,26 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setCallPopunderPosition}
           onSizeChange={setCallPopunderSize}
           onClose={() => {
+            if (callConnectTimeoutRef.current !== null) {
+              window.clearTimeout(callConnectTimeoutRef.current);
+              callConnectTimeoutRef.current = null;
+            }
             setIsCallPopunderOpen(false);
             setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
           }}
           onLaunchCall={() => {
-            layoutContextValue.startCallStatus();
-            setCallPopunderMode("controls");
+            if (callConnectTimeoutRef.current !== null) {
+              window.clearTimeout(callConnectTimeoutRef.current);
+            }
+
+            setCallPopunderMode("connecting");
+            callConnectTimeoutRef.current = window.setTimeout(() => {
+              layoutContextValue.startCallStatus();
+              setCallPopunderMode("controls");
+              setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+              setIsCopilotPopoverOpen(true);
+              callConnectTimeoutRef.current = null;
+            }, 2000);
           }}
           onEndCall={() => setCallPopunderMode("disposition")}
           onSelectDisposition={(disposition) => {
@@ -2133,6 +2186,10 @@ export default function Layout({ children }: LayoutProps) {
               ...current,
             ]);
             layoutContextValue.endCallStatus();
+            if (callConnectTimeoutRef.current !== null) {
+              window.clearTimeout(callConnectTimeoutRef.current);
+              callConnectTimeoutRef.current = null;
+            }
             setIsCallPopunderOpen(false);
             setCallPopunderMode("setup");
           }}
