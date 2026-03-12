@@ -81,7 +81,7 @@ export default function WorkspaceTabs() {
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="flex h-9 shrink-0 items-center gap-2 rounded-full border border-black/10 bg-white/80 px-3 text-sm font-medium text-[#333333] sm:hidden"
+            className="flex h-9 shrink-0 items-center gap-2 rounded-full border border-black/10 bg-white/80 px-3 text-sm font-medium text-[#333333] min-[800px]:hidden"
             aria-label="Open workspace navigation"
           >
             <span>{activeTab.label}</span>
@@ -91,7 +91,7 @@ export default function WorkspaceTabs() {
         <DropdownMenuContent
           align="start"
           sideOffset={8}
-          className="w-48 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)] sm:hidden"
+          className="w-48 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)] min-[800px]:hidden"
         >
           {visibleTabs.map((tab) => {
             const isActive = tab.to === activeTab.to;
@@ -131,7 +131,7 @@ export default function WorkspaceTabs() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <nav className="hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-black/10 bg-white/80 p-1 sm:flex">
+      <nav className="hidden shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-black/10 bg-white/80 p-1 min-[800px]:flex">
         {visibleTabs.map((tab) => (
           <NavLink
             key={tab.to}
