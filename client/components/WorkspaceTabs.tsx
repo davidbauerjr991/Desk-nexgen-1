@@ -19,7 +19,7 @@ type WorkspaceTab = {
 const PINNED_SECONDARY_TAB_STORAGE_KEY = "workspace-pinned-secondary-tab";
 
 const primaryTabs: WorkspaceTab[] = [
-  { label: "Conversation", to: "/activity" },
+  { label: "Activity", to: "/activity" },
   { label: "Desk", to: "/desk" },
   { label: "Schedule", to: "/schedule" },
 ];
