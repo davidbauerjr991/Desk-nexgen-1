@@ -1118,7 +1118,7 @@ function DockedCopilotPanel({
 }: {
   width: number;
   onClose: () => void;
-  onUndockStart: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
 }) {
   return (
     <div
@@ -1128,6 +1128,17 @@ function DockedCopilotPanel({
         maxWidth: "calc(100vw - 2rem)",
       }}
     >
+      <button
+        type="button"
+        aria-label="Drag docked NexAgent Copilot panel"
+        className="absolute inset-y-0 -left-2 z-10 hidden w-4 cursor-grab items-center justify-center min-[800px]:flex active:cursor-grabbing"
+        onMouseDown={onUndockStart}
+      >
+        <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
+          <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
+        </span>
+      </button>
+
       <div
         className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={onUndockStart}
@@ -1798,7 +1809,7 @@ export default function Layout({ children }: LayoutProps) {
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
-  const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(false);
+  const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
@@ -1815,7 +1826,7 @@ export default function Layout({ children }: LayoutProps) {
     width: 360,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
-  const [isCopilotDocked, setIsCopilotDocked] = useState(false);
+  const [isCopilotDocked, setIsCopilotDocked] = useState(true);
   const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
