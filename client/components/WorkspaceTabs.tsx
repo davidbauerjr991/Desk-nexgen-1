@@ -101,8 +101,8 @@ export default function WorkspaceTabs() {
                 key={tab.to}
                 onClick={() => navigate(tab.to)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-sm focus:bg-[#F3ECFF]",
-                  isActive ? "bg-[#F3ECFF] text-[#6E00FD]" : "text-[#333333]",
+                  "rounded-lg px-3 py-2 text-sm focus:bg-[#E6F3FA]",
+                  isActive ? "bg-[#E6F3FA] text-[#006DAD]" : "text-[#333333]",
                 )}
               >
                 {tab.label}
@@ -120,8 +120,8 @@ export default function WorkspaceTabs() {
                 key={tab.to}
                 onClick={() => handleSecondaryTabClick(tab)}
                 className={cn(
-                  "rounded-lg px-3 py-2 text-sm focus:bg-[#F3ECFF]",
-                  isActive ? "bg-[#F3ECFF] text-[#6E00FD]" : "text-[#333333]",
+                  "rounded-lg px-3 py-2 text-sm focus:bg-[#E6F3FA]",
+                  isActive ? "bg-[#E6F3FA] text-[#006DAD]" : "text-[#333333]",
                 )}
               >
                 {tab.label}
@@ -140,8 +140,8 @@ export default function WorkspaceTabs() {
               cn(
                 "rounded-full px-3 py-1 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-[#F3ECFF] text-[#6E00FD]"
-                  : "text-[#6B7280] hover:bg-[#F3ECFF] hover:text-[#6E00FD]",
+                  ? "bg-[#E6F3FA] text-[#006DAD]"
+                  : "text-[#6B7280] hover:bg-[#E6F3FA] hover:text-[#006DAD]",
               )
             }
           >
@@ -153,7 +153,7 @@ export default function WorkspaceTabs() {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+              className="flex items-center gap-1 rounded-full px-3 py-1 text-sm font-medium text-[#6B7280] transition-colors hover:bg-[#E6F3FA] hover:text-[#006DAD]"
               aria-label="Open more workspace tabs"
             >
               <span>More</span>
@@ -173,8 +173,8 @@ export default function WorkspaceTabs() {
                   key={tab.to}
                   onClick={() => handleSecondaryTabClick(tab)}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-sm focus:bg-[#F3ECFF]",
-                    isActive ? "bg-[#F3ECFF] text-[#6E00FD]" : "text-[#333333]",
+                    "rounded-lg px-3 py-2 text-sm focus:bg-[#E6F3FA]",
+                    isActive ? "bg-[#E6F3FA] text-[#006DAD]" : "text-[#333333]",
                   )}
                 >
                   {tab.label}

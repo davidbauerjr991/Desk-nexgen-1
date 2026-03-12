@@ -374,8 +374,8 @@ function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS
 
 function CallAIGuidanceCard() {
   return (
-    <div className="rounded-xl border border-[#D9CCFF] bg-[#FCFAFF] p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E00FD]">
+    <div className="rounded-xl border border-[#B8D7F0] bg-[#EEF6FC] p-3">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#006DAD]">
         <Sparkles className="h-3.5 w-3.5" />
         AI Guidance
       </div>
@@ -607,7 +607,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.mic}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
+                <div className="h-full rounded-full bg-[#006DAD] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-1 text-sm text-[#333333]">
@@ -618,7 +618,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.speaker}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#6E00FD] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
+                <div className="h-full rounded-full bg-[#006DAD] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
               </div>
 
               <Button
@@ -643,7 +643,7 @@ function CallControlsPopunder({
         ) : mode === "connecting" ? (
           <>
             <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#F3ECFF] text-[#6E00FD] animate-pulse">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E6F3FA] text-[#006DAD] animate-pulse">
                 <Phone className="h-5 w-5" />
               </div>
               <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
@@ -777,7 +777,7 @@ const NiceLogoIcon = () => (
   >
     <path
       d="M23.7188 5.81445C23.8757 5.8146 24.0015 5.94038 24 6.0957C23.8494 15.8179 15.9182 23.6985 6.13379 23.8477C5.97839 23.8493 5.85077 23.7237 5.85059 23.5684V19.3086C5.85059 19.1563 5.97502 19.0335 6.12891 19.0303C13.2448 18.8844 19.0048 13.1599 19.1523 6.08984C19.1556 5.93599 19.2788 5.81255 19.4326 5.8125L23.7188 5.81445ZM12.2559 0.000976562C13.8714 0.00104033 15.1804 1.30219 15.1807 2.90625C15.1807 4.51051 13.8716 5.81244 12.2559 5.8125C10.6401 5.8125 9.33008 4.51055 9.33008 2.90625C9.33031 1.30215 10.6402 0.000976562 12.2559 0.000976562ZM2.92578 0C4.5412 0.000213196 5.85033 1.30132 5.85059 2.90527C5.85059 4.50944 4.54135 5.81131 2.92578 5.81152C1.31003 5.81152 0 4.50957 0 2.90527C0.000253194 1.30119 1.31018 0 2.92578 0Z"
-      fill="#6E00FD"
+      fill="#006DAD"
     />
   </svg>
 );
@@ -922,7 +922,7 @@ function AddNewPopoverContent({
               Item Type
             </label>
             <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
-              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E00FD]/30 focus:ring-offset-0 focus:border-[#6E00FD]">
+              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#006DAD]/30 focus:ring-offset-0 focus:border-[#006DAD]">
                 <SelectValue placeholder="Select item type" />
               </SelectTrigger>
               <SelectContent className="z-[80] rounded border border-[#E5E7EB] bg-white">
@@ -947,7 +947,7 @@ function AddNewPopoverContent({
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
                   />
                 ) : (
                   <Input
@@ -956,7 +956,7 @@ function AddNewPopoverContent({
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
                   />
                 )}
               </div>
@@ -971,7 +971,7 @@ function AddNewPopoverContent({
         </Button>
         <Button
           type="button"
-          className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1] disabled:bg-[#D9CCFF] disabled:text-white"
+          className="rounded-xl bg-[#006DAD] hover:bg-[#5B00D1] disabled:bg-[#B8D7F0] disabled:text-white"
           onClick={handleSave}
           disabled={isSaveDisabled}
         >
@@ -1579,7 +1579,7 @@ function HeaderIconButton({
       aria-pressed={isActive}
       className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
         isActive
-          ? "text-[#6E00FD] hover:bg-[#F3ECFF]"
+          ? "text-[#006DAD] hover:bg-[#E6F3FA]"
           : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
       }`}
     >
@@ -1605,17 +1605,17 @@ function QueueOverlayList({
             key={item.id}
             onClick={() => onSelectAssignment(item.id)}
             className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
-              item.isActive ? "bg-[#F3ECFF]" : "bg-white hover:bg-[#FCFAFF]"
+              item.isActive ? "bg-[#E6F3FA]" : "bg-white hover:bg-[#EEF6FC]"
             }`}
           >
-            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#6E00FD]" />}
+            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#006DAD]" />}
 
             <div className="relative mt-0.5 h-11 w-11 flex-shrink-0 self-start">
               <div
                 className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors ${
                   item.isActive
-                    ? "bg-[#6E00FD] text-white"
-                    : "border border-black/15 bg-white text-[#6E00FD] group-hover:border-[#6E00FD]/20 group-hover:bg-[#F3ECFF]"
+                    ? "bg-[#006DAD] text-white"
+                    : "border border-black/15 bg-white text-[#006DAD] group-hover:border-[#006DAD]/20 group-hover:bg-[#E6F3FA]"
                 }`}
               >
                 {item.initials}
@@ -1630,7 +1630,7 @@ function QueueOverlayList({
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#6E00FD]">
+                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#006DAD]">
                     {item.name}
                   </div>
                   <div className="mt-0.5 truncate text-[13px] leading-[18px] text-[#6B6B6B]">
@@ -1773,8 +1773,8 @@ function LeftQueueRail() {
                     }
                   }}
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white text-[#4B4B4B] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#D9CCFF] hover:text-[#6E00FD]",
-                    isConversationPanelOpen && "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]",
+                    "flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-white text-[#4B4B4B] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#B8D7F0] hover:text-[#006DAD]",
+                    isConversationPanelOpen && "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]",
                   )}
                 >
                   <ConversationToggleIcon isOpen={isConversationPanelOpen} className="h-4 w-4" />
@@ -1803,7 +1803,7 @@ function LeftQueueRail() {
                       <span
                         className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
                           item.isActive
-                            ? "bg-[#6E00FD] text-white"
+                            ? "bg-[#006DAD] text-white"
                             : "border border-black/15 bg-white text-[#0D5E8A]"
                         }`}
                       >
@@ -1836,7 +1836,7 @@ function LeftQueueRail() {
                           variant="ghost"
                           size="icon"
                           aria-label="Sort assignments"
-                          className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+                          className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
                         >
                           <ArrowUpDown className="h-4 w-4" />
                         </Button>
@@ -2344,7 +2344,7 @@ export default function Layout({ children }: LayoutProps) {
                         <span
                           className={cn(
                             "mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full",
-                            isActiveWorkspace ? "bg-[#6E00FD]" : "bg-black/10",
+                            isActiveWorkspace ? "bg-[#006DAD]" : "bg-black/10",
                           )}
                         />
                         <div className="min-w-0 flex-1">
@@ -2359,7 +2359,7 @@ export default function Layout({ children }: LayoutProps) {
               <DropdownMenuSeparator className="my-2 bg-black/10" />
               <DropdownMenuItem
                 onClick={handleCreateWorkspace}
-                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#6E00FD] focus:bg-[#F3ECFF]"
+                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#006DAD] focus:bg-[#E6F3FA]"
               >
                 <div className="flex items-center gap-2">
                   <Plus className="h-4 w-4" />
@@ -2401,7 +2401,7 @@ export default function Layout({ children }: LayoutProps) {
                 placeholder="Search workspace"
                 aria-label="Search workspace"
                 tabIndex={isHeaderSearchOpen ? 0 : -1}
-                className="h-9 w-full rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#D9CCFF]"
+                className="h-9 w-full rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#B8D7F0]"
               />
             </div>
           </div>
@@ -2411,7 +2411,7 @@ export default function Layout({ children }: LayoutProps) {
               <HeaderIconButton>
                 <div className="relative">
                   <Bell className="h-4 w-4 stroke-[1.8]" />
-                  <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#6E00FD]" />
+                  <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />
                 </div>
               </HeaderIconButton>
 
@@ -2495,7 +2495,7 @@ export default function Layout({ children }: LayoutProps) {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#F3ECFF] focus:outline-none"
+                className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E6F3FA] focus:outline-none"
               >
                 <span
                   aria-hidden="true"

@@ -148,7 +148,7 @@ function InteractionTypeIcon({
     : isVoice
       ? "text-[#2563EB]"
       : isAiAgent
-        ? "text-[#6E00FD]"
+        ? "text-[#006DAD]"
         : "text-[#61A60E]";
   const DirectionIcon = direction === "inbound" ? ArrowDown : ArrowUp;
   const BaseIcon = isEmail ? Mail : isVoice ? Phone : isAiAgent ? Bot : MessageSquare;
@@ -167,7 +167,7 @@ function InteractionRow({
   interaction: RecentInteractionItem;
 }) {
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]">
+    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC]">
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9]">
           <InteractionTypeIcon
@@ -197,7 +197,7 @@ function InteractionRow({
 
             <button
               type="button"
-              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#F3ECFF] hover:text-[#6E00FD]"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#E6F3FA] hover:text-[#006DAD]"
               aria-label="Interaction options"
             >
               <MoreVertical className="h-4 w-4" />
@@ -257,8 +257,8 @@ export default function RecentInteractionsPanel({
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                   isActive
-                    ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+                    ? "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]"
+                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#B8D7F0] hover:text-[#006DAD]",
                 )}
               >
                 {chip.label}

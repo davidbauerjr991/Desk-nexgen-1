@@ -136,10 +136,10 @@ function DashboardCard({
 
 function OverviewSummaryCard() {
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#D9CCFF] bg-[linear-gradient(135deg,#FCFAFF_0%,#F7F3FF_100%)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="overview-card-handle flex cursor-grab items-start justify-between gap-3 border-b border-[#E9DFFF] px-4 py-3 active:cursor-grabbing">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#B8D7F0] bg-[linear-gradient(135deg,#EEF6FC_0%,#F0F8FC_100%)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div className="overview-card-handle flex cursor-grab items-start justify-between gap-3 border-b border-[#D7EAF6] px-4 py-3 active:cursor-grabbing">
         <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#E9DFFF] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#6E00FD]">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#D7EAF6] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#006DAD]">
             <Sparkles className="h-3.5 w-3.5" />
             AI Auto Summary
           </div>
@@ -155,22 +155,22 @@ function OverviewSummaryCard() {
 
       <div className="grid gap-3 px-4 py-3 sm:grid-cols-2">
         <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[#8B5CF6]">Intent</div>
+          <div className="text-[10px] font-medium uppercase tracking-wide text-[#1991D2]">Intent</div>
           <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">High to upgrade</div>
         </div>
         <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[#8B5CF6]">Risk</div>
+          <div className="text-[10px] font-medium uppercase tracking-wide text-[#1991D2]">Risk</div>
           <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">Medium friction</div>
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 border-t border-[#E9DFFF] bg-white/60 px-4 py-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-h-0 flex-1 gap-3 border-t border-[#D7EAF6] bg-white/60 px-4 py-3 md:grid-cols-2 xl:grid-cols-3">
         {overviewSummaryBullets.map((item) => (
           <div
             key={item}
             className="rounded-xl border border-white bg-white px-4 py-3 text-[13px] leading-5 text-[#4B5563] shadow-sm"
           >
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#6E00FD]">
+            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#006DAD]">
               <Bot className="h-3.5 w-3.5" />
               Insight
             </div>
@@ -209,7 +209,7 @@ function TimelineCard() {
                   "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm",
                   item.tone === "critical" && "bg-[#F04438]",
                   item.tone === "warning" && "bg-[#F59E0B]",
-                  item.tone === "info" && "bg-[#6E00FD]",
+                  item.tone === "info" && "bg-[#006DAD]",
                   item.tone === "default" && "bg-[#CBD5E1]",
                 )}
               />
@@ -236,12 +236,12 @@ function TicketsCard() {
           {recentTickets.map((ticket) => (
             <div
               key={ticket.id}
-              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#D9CCFF] hover:bg-[#FCFAFF]"
+              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6E00FD]">{ticket.id}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#006DAD]">{ticket.id}</span>
                     <span
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",

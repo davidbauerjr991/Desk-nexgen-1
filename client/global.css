@@ -15,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
 
-    /* #6E00FD => hsl(266, 100%, 50%) */
-    --primary: 266 100% 50%;
+    /* #006DAD => hsl(202, 100%, 34%) */
+    --primary: 202 100% 34%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 10% 92%;
@@ -25,26 +25,26 @@
     --muted: 240 10% 94%;
     --muted-foreground: 240 5% 50%;
 
-    --accent: 266 100% 97%;
-    --accent-foreground: 266 100% 45%;
+    --accent: 202 100% 95%;
+    --accent-foreground: 202 100% 34%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 84%;
     --input: 0 0% 85%;
-    --ring: 266 100% 50%;
+    --ring: 202 100% 34%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 266 100% 50%;
+    --sidebar-primary: 202 100% 34%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 266 100% 97%;
-    --sidebar-accent-foreground: 266 100% 45%;
+    --sidebar-accent: 202 100% 95%;
+    --sidebar-accent-foreground: 202 100% 34%;
     --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 266 100% 50%;
+    --sidebar-ring: 202 100% 34%;
   }
 }
 
@@ -86,8 +86,8 @@
 
   .overview-grid-layout .react-grid-item.react-grid-placeholder {
     border-radius: 1rem;
-    border: 1px dashed rgba(110, 0, 253, 0.28);
-    background: rgba(110, 0, 253, 0.08);
+    border: 1px dashed rgba(0, 109, 173, 0.28);
+    background: rgba(0, 109, 173, 0.08);
   }
 
   .overview-grid-layout .react-grid-item.react-draggable-dragging,
@@ -112,7 +112,7 @@
     position: absolute;
     inset: 0;
     border-radius: 999px;
-    background: rgba(110, 0, 253, 0.16);
+    background: rgba(0, 109, 173, 0.16);
   }
 
   .overview-grid-layout .react-resizable-handle-e,

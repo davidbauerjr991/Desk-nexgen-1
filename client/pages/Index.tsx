@@ -208,8 +208,8 @@ function ChannelToggleButton({
   const commonClassName = cn(
     "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
     isActive
-      ? "border-[#D9CCFF] bg-[#F3ECFF] text-[#6E00FD]"
-      : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#D9CCFF] hover:text-[#6E00FD]",
+      ? "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]"
+      : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#B8D7F0] hover:text-[#006DAD]",
   );
 
   if (channel === "chat") {
@@ -321,7 +321,7 @@ function AddNewPanel() {
               Item Type
             </label>
             <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
-              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E00FD]/30 focus:ring-offset-0 focus:border-[#6E00FD]">
+              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#006DAD]/30 focus:ring-offset-0 focus:border-[#006DAD]">
                 <SelectValue placeholder="Select item type" />
               </SelectTrigger>
               <SelectContent className="rounded border border-[#E5E7EB] bg-white">
@@ -346,7 +346,7 @@ function AddNewPanel() {
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
                   />
                 ) : (
                   <Input
@@ -355,7 +355,7 @@ function AddNewPanel() {
                       setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                     }
                     placeholder={field.placeholder}
-                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E00FD] focus-visible:ring-1 focus-visible:ring-[#6E00FD]/30"
+                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
                   />
                 )}
               </div>
@@ -370,7 +370,7 @@ function AddNewPanel() {
         </Button>
         <Button
           type="button"
-          className="rounded-xl bg-[#6E00FD] hover:bg-[#5B00D1] disabled:bg-[#D9CCFF] disabled:text-white"
+          className="rounded-xl bg-[#006DAD] hover:bg-[#5B00D1] disabled:bg-[#B8D7F0] disabled:text-white"
           onClick={handleSave}
           disabled={isSaveDisabled}
         >
