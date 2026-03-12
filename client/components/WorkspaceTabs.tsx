@@ -26,7 +26,7 @@ const primaryTabs: WorkspaceTab[] = [
 
 const secondaryTabs: WorkspaceTab[] = [
   { label: "Settings", to: "/settings" },
-  { label: "Salesforce", to: "/salesforce" },
+  { label: "Directory", to: "/salesforce" },
   { label: "Service Now", to: "/service-now" },
   { label: "WEM", to: "/wem" },
 ];
