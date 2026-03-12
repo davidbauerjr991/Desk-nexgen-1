@@ -279,12 +279,9 @@ export default function CopilotPopunder({
       >
         <div className="flex items-start gap-3">
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <div className="flex items-start gap-2">
-            <Bot className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
-              <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
+            <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
           </div>
         </div>
 
@@ -306,7 +303,7 @@ export default function CopilotPopunder({
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-            aria-label="Close NexAgent Copilot"
+            aria-label="Close NiCE Copilot"
           >
             <X className="h-4 w-4" />
           </button>
@@ -317,7 +314,7 @@ export default function CopilotPopunder({
 
       <button
         type="button"
-        aria-label="Resize NexAgent Copilot"
+        aria-label="Resize NiCE Copilot"
         className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
         onMouseDown={(event) => {
           event.preventDefault();

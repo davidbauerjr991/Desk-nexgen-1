@@ -1187,12 +1187,9 @@ function DockedCopilotPanel({
       >
         <div className="flex items-start gap-3">
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <div className="flex items-start gap-2">
-            <Bot className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
-            <div>
-              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NexAgent Copilot</h3>
-              <p className="text-xs text-[#7A7A7A]">Drag to undock or use the header toggle to hide the panel</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
+            <p className="text-xs text-[#7A7A7A]">Drag to undock or use the header toggle to hide the panel</p>
           </div>
         </div>
         <button
@@ -1200,7 +1197,7 @@ function DockedCopilotPanel({
           onMouseDown={(event) => event.stopPropagation()}
           onClick={onClose}
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-          aria-label="Close docked NexAgent Copilot"
+          aria-label="Close docked NiCE Copilot"
         >
           <X className="h-4 w-4" />
         </button>
