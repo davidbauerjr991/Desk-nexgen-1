@@ -13,9 +13,10 @@ import {
   X,
 } from "lucide-react";
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 const insights = {
   sentiment: "Frustrated",
@@ -59,50 +60,71 @@ interface CopilotPopunderProps {
 }
 
 export function CopilotContent() {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+    <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
       <div className="space-y-6 pb-1">
         <Card className="border-border bg-background shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between px-4 pb-3 pt-4">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Live Interaction Context
-            </CardTitle>
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-            </span>
-          </CardHeader>
-          <CardContent className="space-y-4 px-4 pb-4">
-            <div>
-              <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Detected Intent</div>
-              <div className="text-[14px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Sentiment</div>
-                <Badge variant="outline" className="border-orange-200 bg-orange-50 font-medium text-orange-600">
-                  {insights.sentiment}
-                </Badge>
-              </div>
-              <div>
-                <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Churn Risk</div>
-                <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
-                  <AlertTriangle className="h-4 w-4" />
-                  {insights.churnRisk}
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4 border-t border-border pt-4">
-              {customerContextFields.map((field) => (
-                <div key={field.label}>
-                  <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">
-                    {field.label}
+          <Accordion type="single" collapsible defaultValue="live-interaction-context">
+            <AccordionItem value="live-interaction-context" className="border-b-0">
+              <AccordionTrigger className="px-4 py-4 text-left hover:no-underline">
+                <div className="flex min-w-0 items-center justify-between gap-3">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Live Interaction Context
                   </div>
-                  <div className="break-all text-[14px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
+                  <span className="relative flex h-2 w-2 flex-shrink-0">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                  </span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <CardContent className="space-y-4 p-0">
+                  <div>
+                    <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Detected Intent</div>
+                    <div className="text-[14px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Sentiment</div>
+                      <Badge variant="outline" className="border-orange-200 bg-orange-50 font-medium text-orange-600">
+                        {insights.sentiment}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Churn Risk</div>
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        {insights.churnRisk}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-4 border-t border-border pt-4">
+                    {customerContextFields.map((field) => (
+                      <div key={field.label}>
+                        <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">
+                          {field.label}
+                        </div>
+                        <div className="break-all text-[14px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </Card>
 
         <div className="space-y-3">
