@@ -303,7 +303,6 @@ export default function CopilotPopunder({
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
-            <p className="text-xs text-[#7A7A7A]">Live guidance for the current customer interaction</p>
           </div>
         </div>
 
