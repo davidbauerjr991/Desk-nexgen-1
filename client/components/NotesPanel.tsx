@@ -924,14 +924,7 @@ export default function NotesPanel({
 
       {activeTab === "Notes" && (
         <div className="flex flex-1 flex-col overflow-hidden">
-          {notesOnly ? (
-            <div className="border-b border-border bg-background/50 px-5 py-4">
-              <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
-                <span>Notes</span>
-              </div>
-              <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
-            </div>
-          ) : (
+          {!notesOnly && (
             <div className="flex shrink-0 items-center justify-between border-b border-[rgba(0,0,0,0.08)] px-4 py-2.5">
               <span className="text-xs font-semibold text-[#333]">Latest Notes</span>
               <div className="flex items-center gap-2">
