@@ -984,6 +984,7 @@ function DockedConversationPanel({
   hasDesktopRightPanel,
   onWidthChange,
   onClose,
+  onUndockStart,
 }: {
   isOpen: boolean;
   width: number;
@@ -991,6 +992,7 @@ function DockedConversationPanel({
   hasDesktopRightPanel: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
+  onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1060,23 +1062,28 @@ function DockedConversationPanel({
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         {isContentVisible && (
           <>
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-card/50 px-5 py-4">
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-                <p className="truncate text-xs text-[#7A7A7A]">
-                  {conversation.customerName} · {conversation.label}
-                </p>
+            <div
+              className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+              onMouseDown={onUndockStart}
+            >
+              <div className="flex items-start gap-3">
+                <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+                  <p className="truncate text-xs text-[#7A7A7A]">
+                    {conversation.customerName} · {conversation.label}
+                  </p>
+                </div>
               </div>
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
                 aria-label="Close conversation panel"
+                onMouseDown={(event) => event.stopPropagation()}
                 onClick={onClose}
-                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
               >
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
 
             <ConversationPanel
@@ -1215,6 +1222,8 @@ function ConversationPopunder({
   onPositionChange,
   onSizeChange,
   onClose,
+  onDock,
+  dragActivation = null,
 }: {
   position: ConversationPopunderPosition;
   size: ConversationPopunderSize;
@@ -1222,11 +1231,21 @@ function ConversationPopunder({
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
   onClose: () => void;
+  onDock?: () => void;
+  dragActivation?: CopilotDragActivation | null;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    if (!dragActivation) return;
+
+    isDraggingRef.current = true;
+    dragOffsetRef.current = dragActivation.offset;
+    document.body.style.userSelect = "none";
+  }, [dragActivation]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -1310,15 +1329,29 @@ function ConversationPopunder({
             <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
           </div>
         </div>
-        <button
-          type="button"
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={onClose}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-          aria-label="Close conversation popunder"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onDock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onDock}
+              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+            >
+              Dock Panel
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close conversation popunder"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <ConversationPanel conversation={conversation} draftKey={`popunder-${conversation.label}-${conversation.customerName}`} />
@@ -1875,6 +1908,7 @@ export default function Layout({ children }: LayoutProps) {
   const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
   const [dockedConversationWidth, setDockedConversationWidth] = useState(DOCKED_CONVERSATION_DEFAULT_WIDTH);
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
+  const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 420, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
     x: 84,
@@ -2092,6 +2126,7 @@ export default function Layout({ children }: LayoutProps) {
   const openConversationPanel = () => {
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
+    setConversationDragActivation(null);
   };
 
   const openConversationPopunder = (anchorRect?: DOMRect | null) => {
@@ -2100,10 +2135,14 @@ export default function Layout({ children }: LayoutProps) {
     if (!isConversationPopunderOpen) {
       setConversationPopunderPosition(getAnchoredConversationPopunderPosition(anchorRect));
     }
+    setConversationDragActivation(null);
     setIsConversationPopunderOpen(true);
   };
 
-  const closeConversationPopunder = () => setIsConversationPopunderOpen(false);
+  const closeConversationPopunder = () => {
+    setConversationDragActivation(null);
+    setIsConversationPopunderOpen(false);
+  };
 
   const layoutContextValue = useMemo(
     () => ({
@@ -2439,6 +2478,37 @@ export default function Layout({ children }: LayoutProps) {
           hasDesktopRightPanel={activeRightPanel !== null}
           onWidthChange={setDockedConversationWidth}
           onClose={() => setIsConversationPanelOpen(false)}
+          onUndockStart={(event) => {
+            if (typeof window === "undefined") return;
+
+            event.preventDefault();
+
+            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+            if (!bounds) return;
+
+            const margin = CONVERSATION_POPOUNDER_MARGIN;
+            const nextPosition = {
+              x: Math.min(
+                Math.max(margin, bounds.left),
+                window.innerWidth - conversationPopunderSize.width - margin,
+              ),
+              y: Math.min(
+                Math.max(margin, bounds.top),
+                window.innerHeight - conversationPopunderSize.height - margin,
+              ),
+            };
+
+            setConversationPopunderPosition(nextPosition);
+            setIsConversationPanelOpen(false);
+            setIsConversationPopunderOpen(true);
+            setConversationDragActivation({
+              id: Date.now(),
+              offset: {
+                x: event.clientX - nextPosition.x,
+                y: event.clientY - nextPosition.y,
+              },
+            });
+          }}
         />
         <div
           className={cn(
@@ -2490,6 +2560,8 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onClose={closeConversationPopunder}
+          onDock={openConversationPanel}
+          dragActivation={conversationDragActivation}
         />
       )}
 
