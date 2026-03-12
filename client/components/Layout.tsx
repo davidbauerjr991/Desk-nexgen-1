@@ -1189,7 +1189,7 @@ function DockedCopilotPanel({
 
   return (
     <div
-      className="relative ml-4 flex h-full min-h-0 min-w-[320px] flex-shrink-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
+      className="relative ml-4 flex h-full min-h-0 min-w-[320px] flex-shrink-0 flex-col overflow-visible"
       style={{
         width,
         maxWidth: "calc(100vw - 2rem)",
@@ -1197,7 +1197,7 @@ function DockedCopilotPanel({
     >
       <button
         type="button"
-        aria-label="Resize docked NexAgent Copilot panel"
+        aria-label="Resize docked NiCE Copilot panel"
         className="absolute inset-y-0 -left-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[800px]:flex"
         onMouseDown={(event) => {
           event.preventDefault();
@@ -1214,29 +1214,31 @@ function DockedCopilotPanel({
         </span>
       </button>
 
-      <div
-        className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
-        onMouseDown={onUndockStart}
-      >
-        <div className="flex items-start gap-3">
-          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
-            <p className="text-xs text-[#7A7A7A]">Drag to undock or use the header toggle to hide the panel</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={onClose}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-          aria-label="Close docked NiCE Copilot"
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div
+          className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+          onMouseDown={onUndockStart}
         >
-          <X className="h-4 w-4" />
-        </button>
-      </div>
+          <div className="flex items-start gap-3">
+            <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
+              <p className="text-xs text-[#7A7A7A]">Drag to undock or use the header toggle to hide the panel</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close docked NiCE Copilot"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-      <CopilotContent />
+        <CopilotContent />
+      </div>
     </div>
   );
 }
