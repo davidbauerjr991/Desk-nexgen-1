@@ -305,6 +305,7 @@ const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
 const MIN_MAIN_WORKSPACE_WIDTH = 500;
+const COPILOT_DOCK_BREAKPOINT = 1280;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDockedConversationMaxWidth(hasDesktopRightPanel: boolean) {
@@ -1925,7 +1926,12 @@ export default function Layout({ children }: LayoutProps) {
     width: 360,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
-  const [isCopilotDocked, setIsCopilotDocked] = useState(true);
+  const [isCopilotDockingAllowed, setIsCopilotDockingAllowed] = useState(
+    () => typeof window === "undefined" ? true : window.innerWidth >= COPILOT_DOCK_BREAKPOINT,
+  );
+  const [isCopilotDocked, setIsCopilotDocked] = useState(
+    () => typeof window === "undefined" ? true : window.innerWidth >= COPILOT_DOCK_BREAKPOINT,
+  );
   const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -2112,6 +2118,25 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.removeEventListener("mouseup", clearDragActivation);
   }, [copilotDragActivation]);
+
+  useEffect(() => {
+    const syncCopilotDockingAvailability = () => {
+      setIsCopilotDockingAllowed(window.innerWidth >= COPILOT_DOCK_BREAKPOINT);
+    };
+
+    syncCopilotDockingAvailability();
+    window.addEventListener("resize", syncCopilotDockingAvailability);
+
+    return () => window.removeEventListener("resize", syncCopilotDockingAvailability);
+  }, []);
+
+  useEffect(() => {
+    if (isCopilotDockingAllowed || typeof window === "undefined") return;
+
+    setIsCopilotDocked(false);
+    setCopilotDragActivation(null);
+    setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+  }, [isCopilotDockingAllowed]);
 
   useEffect(() => {
     const syncDockedConversationWidth = () => {
@@ -2441,7 +2466,7 @@ export default function Layout({ children }: LayoutProps) {
                     return;
                   }
 
-                  if (isCopilotDocked) {
+                  if (isCopilotDocked && isCopilotDockingAllowed) {
                     setIsCopilotPopoverOpen(true);
                     return;
                   }
@@ -2564,7 +2589,7 @@ export default function Layout({ children }: LayoutProps) {
         >
           {children}
         </div>
-        {isCopilotPopoverOpen && isCopilotDocked && (
+        {isCopilotPopoverOpen && isCopilotDocked && isCopilotDockingAllowed && (
           <DockedCopilotPanel
             width={copilotPopunderSize.width}
             maxWidth={getDockedCopilotMaxWidth({
@@ -2692,17 +2717,17 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {isCopilotPopoverOpen && !isCopilotDocked && (
+      {isCopilotPopoverOpen && (!isCopilotDocked || !isCopilotDockingAllowed) && (
         <CopilotPopunder
           position={copilotPopunderPosition}
           size={copilotPopunderSize}
           onPositionChange={setCopilotPopunderPosition}
           onSizeChange={setCopilotPopunderSize}
           onClose={() => setIsCopilotPopoverOpen(false)}
-          onDock={() => {
+          onDock={isCopilotDockingAllowed ? () => {
             setIsCopilotDocked(true);
             setIsCopilotPopoverOpen(true);
-          }}
+          } : undefined}
           dragActivation={copilotDragActivation}
         />
       )}
