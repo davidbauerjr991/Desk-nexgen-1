@@ -304,7 +304,7 @@ const DOCKED_CONVERSATION_DEFAULT_WIDTH = 420;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
-const MIN_MAIN_WORKSPACE_WIDTH = 240;
+const MIN_MAIN_WORKSPACE_WIDTH = 500;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDockedConversationMaxWidth(hasDesktopRightPanel: boolean) {
@@ -320,6 +320,30 @@ function getDockedConversationMaxWidth(hasDesktopRightPanel: boolean) {
       DOCKED_CONVERSATION_MAX_WIDTH,
       window.innerWidth - 56 - rightPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - DOCKED_CONVERSATION_GAP - 16,
     ),
+  );
+}
+
+function getDockedCopilotMaxWidth({
+  hasDesktopRightPanel,
+  isConversationPanelOpen,
+  dockedConversationWidth,
+}: {
+  hasDesktopRightPanel: boolean;
+  isConversationPanelOpen: boolean;
+  dockedConversationWidth: number;
+}) {
+  if (typeof window === "undefined") {
+    return 320;
+  }
+
+  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
+  const conversationWidth = isConversationPanelOpen && window.innerWidth >= 800
+    ? dockedConversationWidth + DOCKED_CONVERSATION_GAP
+    : 0;
+
+  return Math.max(
+    320,
+    window.innerWidth - 56 - conversationWidth - rightPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - 16,
   );
 }
 const assignmentCallDetails = {
@@ -1120,11 +1144,13 @@ function DockedConversationPanel({
 
 function DockedCopilotPanel({
   width,
+  maxWidth,
   onClose,
   onWidthChange,
   onUndockStart,
 }: {
   width: number;
+  maxWidth: number;
   onClose: () => void;
   onWidthChange: (width: number) => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1141,7 +1167,7 @@ function DockedCopilotPanel({
       onWidthChange(
         Math.min(
           Math.max(320, resizeStartRef.current.width - deltaX),
-          Math.max(320, window.innerWidth - 32),
+          maxWidth,
         ),
       );
     };
@@ -1159,7 +1185,7 @@ function DockedCopilotPanel({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [onWidthChange]);
+  }, [maxWidth, onWidthChange]);
 
   return (
     <div
@@ -2098,6 +2124,25 @@ export default function Layout({ children }: LayoutProps) {
     return () => window.removeEventListener("resize", syncDockedConversationWidth);
   }, [activeRightPanel]);
 
+  useEffect(() => {
+    const syncDockedCopilotWidth = () => {
+      const maxWidth = getDockedCopilotMaxWidth({
+        hasDesktopRightPanel: activeRightPanel !== null,
+        isConversationPanelOpen,
+        dockedConversationWidth,
+      });
+      setCopilotPopunderSize((current) => ({
+        ...current,
+        width: Math.min(current.width, maxWidth),
+      }));
+    };
+
+    syncDockedCopilotWidth();
+    window.addEventListener("resize", syncDockedCopilotWidth);
+
+    return () => window.removeEventListener("resize", syncDockedCopilotWidth);
+  }, [activeRightPanel, dockedConversationWidth, isConversationPanelOpen]);
+
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
     const newWorkspace: WorkspaceOption = {
@@ -2512,7 +2557,7 @@ export default function Layout({ children }: LayoutProps) {
         />
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col overflow-hidden",
+            "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[500px]",
             isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
           )}
         >
@@ -2521,6 +2566,11 @@ export default function Layout({ children }: LayoutProps) {
         {isCopilotPopoverOpen && isCopilotDocked && (
           <DockedCopilotPanel
             width={copilotPopunderSize.width}
+            maxWidth={getDockedCopilotMaxWidth({
+              hasDesktopRightPanel: activeRightPanel !== null,
+              isConversationPanelOpen,
+              dockedConversationWidth,
+            })}
             onClose={() => setIsCopilotPopoverOpen(false)}
             onWidthChange={(width) => setCopilotPopunderSize((current) => ({ ...current, width }))}
             onUndockStart={(event) => {

@@ -577,7 +577,7 @@ export default function Index() {
           {/* Customer Data tabs */}
           <div
             className={cn(
-              "min-h-0 flex-1 min-w-0 flex-col overflow-hidden",
+              "min-h-0 flex-1 min-w-0 flex-col overflow-hidden min-[800px]:min-w-[500px]",
               isConversationPanelOpen ? "hidden min-[800px]:flex" : "flex",
             )}
           >
