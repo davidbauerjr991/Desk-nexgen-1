@@ -1114,12 +1114,46 @@ function DockedConversationPanel({
 function DockedCopilotPanel({
   width,
   onClose,
+  onWidthChange,
   onUndockStart,
 }: {
   width: number;
   onClose: () => void;
+  onWidthChange: (width: number) => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
 }) {
+  const resizeStartRef = useRef({ mouseX: 0, width });
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+
+      onWidthChange(
+        Math.min(
+          Math.max(320, resizeStartRef.current.width - deltaX),
+          Math.max(320, window.innerWidth - 32),
+        ),
+      );
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onWidthChange]);
+
   return (
     <div
       className="relative ml-4 flex h-full min-h-0 min-w-[320px] flex-shrink-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]"
@@ -1130,9 +1164,17 @@ function DockedCopilotPanel({
     >
       <button
         type="button"
-        aria-label="Drag docked NexAgent Copilot panel"
-        className="absolute inset-y-0 -left-2 z-10 hidden w-4 cursor-grab items-center justify-center min-[800px]:flex active:cursor-grabbing"
-        onMouseDown={onUndockStart}
+        aria-label="Resize docked NexAgent Copilot panel"
+        className="absolute inset-y-0 -left-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[800px]:flex"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            width,
+          };
+          document.body.style.userSelect = "none";
+        }}
       >
         <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
           <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
@@ -2413,6 +2455,7 @@ export default function Layout({ children }: LayoutProps) {
           <DockedCopilotPanel
             width={copilotPopunderSize.width}
             onClose={() => setIsCopilotPopoverOpen(false)}
+            onWidthChange={(width) => setCopilotPopunderSize((current) => ({ ...current, width }))}
             onUndockStart={(event) => {
               if (typeof window === "undefined") return;
 
