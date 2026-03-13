@@ -118,10 +118,11 @@ const statusOptions: Array<{
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
-  { id: "default", name: "Default Workspace", description: "Primary support workspace" },
-  { id: "billing", name: "Billing Operations", description: "Payments, invoices, and account reviews" },
-  { id: "vip", name: "VIP Accounts", description: "Priority service for strategic customers" },
-  { id: "escalations", name: "Escalation Desk", description: "High-priority and manager-reviewed cases" },
+  { id: "desktop", name: "Desktop", description: "" },
+  { id: "wem", name: "WEM", description: "" },
+  { id: "schedule", name: "Schedule", description: "" },
+  { id: "settings", name: "Settings", description: "" },
+  { id: "reporting", name: "Reporting", description: "" },
 ];
 
 const defaultConversationState: SharedConversationData = {
@@ -2349,7 +2350,9 @@ export default function Layout({ children }: LayoutProps) {
                         />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-semibold text-[#333333]">{workspace.name}</div>
-                          <div className="mt-0.5 text-xs leading-5 text-[#6B7280]">{workspace.description}</div>
+                          {workspace.description ? (
+                            <div className="mt-0.5 text-xs leading-5 text-[#6B7280]">{workspace.description}</div>
+                          ) : null}
                         </div>
                       </div>
                     </DropdownMenuItem>
