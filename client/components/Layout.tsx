@@ -56,7 +56,7 @@ interface LayoutProps {
 }
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
-type DeskCanvasView = "desk" | "copilot";
+type DeskCanvasView = "desk" | "copilot" | "notes";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 
 interface LayoutContextValue {
@@ -349,15 +349,15 @@ const COPILOT_DOCK_BREAKPOINT = 1280;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDeskCanvasPopunderMinWidth(view: DeskCanvasView) {
-  return view === "desk"
-    ? DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH
-    : DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH;
+  return view === "copilot"
+    ? DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH
+    : DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH;
 }
 
 function getDeskCanvasPopunderDefaultWidth(view: DeskCanvasView) {
-  return view === "desk"
-    ? DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH
-    : DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH;
+  return view === "copilot"
+    ? DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH
+    : DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH;
 }
 
 function getDockedConversationMaxWidth({
@@ -1658,6 +1658,7 @@ function DeskCanvasPopunder({
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
   const minWidth = getDeskCanvasPopunderMinWidth(view);
+  const panelLabel = view === "copilot" ? "Copilot" : view === "notes" ? "Notes" : "Desk";
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -1750,9 +1751,7 @@ function DeskCanvasPopunder({
         <div className="flex items-start gap-3">
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
-              {view === "copilot" ? "Copilot" : "Desk"}
-            </h3>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{panelLabel}</h3>
           </div>
         </div>
 
@@ -1774,7 +1773,7 @@ function DeskCanvasPopunder({
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-            aria-label={`Close ${view === "copilot" ? "Copilot" : "Desk"} popunder`}
+            aria-label={`Close ${panelLabel} popunder`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -1782,12 +1781,12 @@ function DeskCanvasPopunder({
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {view === "copilot" ? <CopilotContent /> : <DeskDataTable />}
+        {view === "copilot" ? <CopilotContent /> : view === "notes" ? <NotesPanel notesOnly /> : <DeskDataTable />}
       </div>
 
       <button
         type="button"
-        aria-label={`Resize ${view === "copilot" ? "Copilot" : "Desk"} popunder`}
+        aria-label={`Resize ${panelLabel} popunder`}
         className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
         onMouseDown={(event) => {
           event.preventDefault();
@@ -3035,7 +3034,11 @@ export default function Layout({ children }: LayoutProps) {
   const dockDeskCanvasPopunder = () => {
     if (!deskCanvasPopunderView) return;
 
-    const nextRoute = deskCanvasPopunderView === "copilot" ? "/desk?view=copilot" : "/desk";
+    const nextRoute = deskCanvasPopunderView === "copilot"
+      ? "/desk?view=copilot"
+      : deskCanvasPopunderView === "notes"
+        ? "/desk?view=notes"
+        : "/desk";
 
     closeDeskCanvasPopunder();
     navigate(nextRoute);
@@ -3317,19 +3320,12 @@ export default function Layout({ children }: LayoutProps) {
 
               <div ref={notesButtonRef}>
                 <HeaderIconButton
-                  ariaLabel={isNotesPopoverOpen ? "Hide notes popunder" : "Show notes popunder"}
-                  ariaExpanded={isNotesPopoverOpen}
+                  ariaLabel="Open notes in desk panel"
                   onClick={() => {
-                    if (isNotesPopoverOpen) {
-                      setIsNotesPopoverOpen(false);
-                      return;
-                    }
-
-                    bringFloatingPanelToFront("notes");
-                    setNotesPopunderPosition(getAnchoredNotesPopunderPosition());
-                    setIsNotesPopoverOpen(true);
+                    setIsNotesPopoverOpen(false);
+                    navigate("/desk?view=notes");
                   }}
-                  isActive={isNotesPopoverOpen}
+                  isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "notes"}
                 >
                   <FileText className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
