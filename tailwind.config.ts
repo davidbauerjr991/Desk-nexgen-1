@@ -63,6 +63,9 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontSize: {
+        sm: ["13px", { lineHeight: "1.25rem" }],
+      },
       keyframes: {
         "accordion-down": {
           from: {
