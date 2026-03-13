@@ -2398,6 +2398,17 @@ export default function Layout({ children }: LayoutProps) {
 
           {!isHeaderSearchOpen && (
             <>
+              <div
+                aria-hidden="true"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A]"
+              >
+                <img
+                  src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F519733970f424ad9bd5317195150e811?format=webp&width=800&height=1200"
+                  alt=""
+                  className="h-4 w-4 object-contain opacity-80"
+                />
+              </div>
+
               <HeaderIconButton>
                 <div className="relative">
                   <Bell className="h-4 w-4 stroke-[1.8]" />
