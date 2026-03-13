@@ -2992,6 +2992,7 @@ export default function Layout({ children }: LayoutProps) {
   const openConversationPopunder = (anchorRect?: DOMRect | null) => {
     if (isConversationPanelOpen) return;
 
+    bringFloatingPanelToFront("conversation");
     if (!isConversationPopunderOpen) {
       setConversationPopunderPosition(getAnchoredConversationPopunderPosition(anchorRect));
     }
@@ -3068,6 +3069,7 @@ export default function Layout({ children }: LayoutProps) {
         }
       : anchoredPosition;
 
+    bringFloatingPanelToFront("deskCanvas");
     setDeskCanvasPopunderView(view);
     setDeskCanvasPopunderSize({ width, height });
     setDeskCanvasPopunderPosition(nextPosition);
@@ -3125,6 +3127,7 @@ export default function Layout({ children }: LayoutProps) {
           openCustomerInfoPanel();
 
           if (!isCustomerInfoPanelAllowed) {
+            bringFloatingPanelToFront("customerInfo");
             setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
             setIsCustomerInfoPopunderOpen(true);
           }
@@ -3144,6 +3147,7 @@ export default function Layout({ children }: LayoutProps) {
           return;
         }
 
+        bringFloatingPanelToFront("call");
         setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
         setCallPopunderPosition(getAnchoredCallPopunderPosition(anchorRect));
         setIsCallPopunderOpen(true);
@@ -3313,6 +3317,7 @@ export default function Layout({ children }: LayoutProps) {
                       return;
                     }
 
+                    bringFloatingPanelToFront("notes");
                     setNotesPopunderPosition(getAnchoredNotesPopunderPosition());
                     setIsNotesPopoverOpen(true);
                   }}
@@ -3332,6 +3337,7 @@ export default function Layout({ children }: LayoutProps) {
                       return;
                     }
 
+                    bringFloatingPanelToFront("addNew");
                     setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
                     setIsAddNewPopoverOpen(true);
                   }}
@@ -3443,6 +3449,7 @@ export default function Layout({ children }: LayoutProps) {
               ),
             };
 
+            bringFloatingPanelToFront("conversation");
             setConversationPopunderPosition(nextPosition);
             setIsConversationPanelOpen(false);
             setIsConversationPopunderOpen(true);
@@ -3483,6 +3490,7 @@ export default function Layout({ children }: LayoutProps) {
               ),
             };
 
+            bringFloatingPanelToFront("customerInfo");
             setCustomerInfoPopunderPosition(nextPosition);
             setIsCustomerInfoPopunderOpen(true);
             setCustomerInfoDragActivation({
@@ -3511,11 +3519,13 @@ export default function Layout({ children }: LayoutProps) {
           position={conversationPopunderPosition}
           size={conversationPopunderSize}
           conversation={conversationState}
+          zIndex={getFloatingPanelZIndex("conversation")}
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onClose={closeConversationPopunder}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
+          onInteractStart={() => bringFloatingPanelToFront("conversation")}
         />
       )}
 
@@ -3525,11 +3535,13 @@ export default function Layout({ children }: LayoutProps) {
           size={customerInfoPopunderSize}
           customerName={selectedAssignment.name}
           customerId={selectedAssignmentCallDetail.customerId}
+          zIndex={getFloatingPanelZIndex("customerInfo")}
           onPositionChange={setCustomerInfoPopunderPosition}
           onSizeChange={setCustomerInfoPopunderSize}
           onClose={closeCustomerInfoPanel}
           onDock={isCustomerInfoPanelAllowed ? dockCustomerInfoPanel : undefined}
           dragActivation={customerInfoDragActivation}
+          onInteractStart={() => bringFloatingPanelToFront("customerInfo")}
         />
       )}
 
@@ -3538,11 +3550,13 @@ export default function Layout({ children }: LayoutProps) {
           view={deskCanvasPopunderView}
           position={deskCanvasPopunderPosition}
           size={deskCanvasPopunderSize}
+          zIndex={getFloatingPanelZIndex("deskCanvas")}
           onPositionChange={setDeskCanvasPopunderPosition}
           onSizeChange={setDeskCanvasPopunderSize}
           onClose={closeDeskCanvasPopunder}
           onDock={dockDeskCanvasPopunder}
           dragActivation={deskCanvasDragActivation}
+          onInteractStart={() => bringFloatingPanelToFront("deskCanvas")}
         />
       )}
 
@@ -3551,6 +3565,7 @@ export default function Layout({ children }: LayoutProps) {
           position={callPopunderPosition}
           size={callPopunderSize}
           mode={callPopunderMode}
+          zIndex={getFloatingPanelZIndex("call")}
           onPositionChange={setCallPopunderPosition}
           onSizeChange={setCallPopunderSize}
           onClose={() => {
@@ -3599,6 +3614,7 @@ export default function Layout({ children }: LayoutProps) {
             setIsCallPopunderOpen(false);
             setCallPopunderMode("setup");
           }}
+          onInteractStart={() => bringFloatingPanelToFront("call")}
         />
       )}
 
@@ -3606,9 +3622,11 @@ export default function Layout({ children }: LayoutProps) {
         <NotesPopoverContent
           position={notesPopunderPosition}
           size={notesPopunderSize}
+          zIndex={getFloatingPanelZIndex("notes")}
           onPositionChange={setNotesPopunderPosition}
           onSizeChange={setNotesPopunderSize}
           onClose={() => setIsNotesPopoverOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("notes")}
         />
       )}
 
@@ -3616,9 +3634,11 @@ export default function Layout({ children }: LayoutProps) {
         <AddNewPopoverContent
           position={addNewPopunderPosition}
           size={addNewPopunderSize}
+          zIndex={getFloatingPanelZIndex("addNew")}
           onPositionChange={setAddNewPopunderPosition}
           onSizeChange={setAddNewPopunderSize}
           onClose={() => setIsAddNewPopoverOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("addNew")}
         />
       )}
 
