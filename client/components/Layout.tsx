@@ -45,7 +45,6 @@ import {
 } from "@/components/ui/select";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
-import CustomerInfoPanel from "@/components/CustomerInfoPanel";
 import NotesPanel from "@/components/NotesPanel";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -1195,7 +1194,7 @@ function DockedCustomerInfoPanel({
           </div>
         </div>
 
-        <CustomerInfoPanel className="h-full" />
+        <NotesPanel initialTab="Overview" />
       </div>
     </div>
   );
