@@ -293,6 +293,16 @@ type ConversationPopunderSize = {
   height: number;
 };
 
+type CustomerInfoPopunderPosition = {
+  x: number;
+  y: number;
+};
+
+type CustomerInfoPopunderSize = {
+  width: number;
+  height: number;
+};
+
 type CallPopunderMode = "setup" | "connecting" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
@@ -306,33 +316,61 @@ const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
 const MIN_MAIN_WORKSPACE_WIDTH = 500;
-const CUSTOMER_INFO_PANEL_WIDTH = 300;
+const CUSTOMER_INFO_PANEL_MIN_WIDTH = 300;
+const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 300;
+const CUSTOMER_INFO_PANEL_MAX_WIDTH = 560;
 const CUSTOMER_INFO_PANEL_GAP = 16;
 const CUSTOMER_INFO_PANEL_BREAKPOINT = 1200;
+const CUSTOMER_INFO_POPOUNDER_MARGIN = 16;
+const CUSTOMER_INFO_POPOUNDER_GAP = 12;
 const COPILOT_DOCK_BREAKPOINT = 1280;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDockedConversationMaxWidth({
   hasDesktopRightPanel,
-  hasCustomerInfoPanel,
+  customerInfoPanelWidth,
 }: {
   hasDesktopRightPanel: boolean;
-  hasCustomerInfoPanel: boolean;
+  customerInfoPanelWidth: number;
 }) {
   if (typeof window === "undefined") {
     return DOCKED_CONVERSATION_MAX_WIDTH;
   }
 
   const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
-  const customerInfoPanelWidth = hasCustomerInfoPanel
-    ? CUSTOMER_INFO_PANEL_WIDTH + CUSTOMER_INFO_PANEL_GAP
-    : 0;
 
   return Math.max(
     DOCKED_CONVERSATION_MIN_WIDTH,
     Math.min(
       DOCKED_CONVERSATION_MAX_WIDTH,
       window.innerWidth - 56 - rightPanelWidth - customerInfoPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - DOCKED_CONVERSATION_GAP - 16,
+    ),
+  );
+}
+
+function getDockedCustomerInfoMaxWidth({
+  hasDesktopRightPanel,
+  isConversationPanelOpen,
+  dockedConversationWidth,
+}: {
+  hasDesktopRightPanel: boolean;
+  isConversationPanelOpen: boolean;
+  dockedConversationWidth: number;
+}) {
+  if (typeof window === "undefined") {
+    return CUSTOMER_INFO_PANEL_MAX_WIDTH;
+  }
+
+  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
+  const conversationWidth = isConversationPanelOpen && window.innerWidth >= 800
+    ? dockedConversationWidth + DOCKED_CONVERSATION_GAP
+    : 0;
+
+  return Math.max(
+    CUSTOMER_INFO_PANEL_MIN_WIDTH,
+    Math.min(
+      CUSTOMER_INFO_PANEL_MAX_WIDTH,
+      window.innerWidth - 56 - rightPanelWidth - conversationWidth - MIN_MAIN_WORKSPACE_WIDTH - CUSTOMER_INFO_PANEL_GAP - 16,
     ),
   );
 }
@@ -1020,7 +1058,7 @@ function DockedConversationPanel({
   width,
   conversation,
   hasDesktopRightPanel,
-  hasCustomerInfoPanel,
+  customerInfoPanelWidth,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1029,7 +1067,7 @@ function DockedConversationPanel({
   width: number;
   conversation: SharedConversationData;
   hasDesktopRightPanel: boolean;
-  hasCustomerInfoPanel: boolean;
+  customerInfoPanelWidth: number;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1046,7 +1084,7 @@ function DockedConversationPanel({
       const deltaX = event.clientX - resizeStartRef.current.mouseX;
       const maxWidth = getDockedConversationMaxWidth({
         hasDesktopRightPanel,
-        hasCustomerInfoPanel,
+        customerInfoPanelWidth,
       });
 
       onWidthChange(
@@ -1070,7 +1108,7 @@ function DockedConversationPanel({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [hasCustomerInfoPanel, hasDesktopRightPanel, onWidthChange]);
+  }, [customerInfoPanelWidth, hasDesktopRightPanel, onWidthChange]);
 
   useEffect(() => {
     if (!contentInitializedRef.current) {
@@ -1163,39 +1201,283 @@ function DockedConversationPanel({
 
 function DockedCustomerInfoPanel({
   isOpen,
+  width,
+  maxWidth,
   customerName,
   customerId,
+  onWidthChange,
+  onClose,
+  onUndockStart,
 }: {
   isOpen: boolean;
+  width: number;
+  maxWidth: number;
   customerName: string;
   customerId: string;
+  onWidthChange: (width: number) => void;
+  onClose: () => void;
+  onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
 }) {
+  const resizeStartRef = useRef({ mouseX: 0, width });
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+
+      onWidthChange(
+        Math.min(
+          maxWidth,
+          Math.max(CUSTOMER_INFO_PANEL_MIN_WIDTH, resizeStartRef.current.width + deltaX),
+        ),
+      );
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [maxWidth, onWidthChange]);
+
   return (
     <div
       aria-hidden={!isOpen}
       className={cn(
-        "relative hidden min-h-0 overflow-hidden transition-[width,margin,opacity,transform] duration-300 ease-out min-[1200px]:block",
+        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1200px]:block",
         isOpen
           ? "min-[1200px]:translate-x-0 min-[1200px]:opacity-100"
           : "pointer-events-none min-[1200px]:-translate-x-4 min-[1200px]:opacity-0",
       )}
       style={{
-        width: isOpen ? CUSTOMER_INFO_PANEL_WIDTH : 0,
+        width: isOpen ? width : 0,
         marginRight: isOpen ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="flex min-h-[68px] items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer Information</h3>
-            <p className="truncate text-xs text-[#7A7A7A]">
-              {customerName} · {customerId}
-            </p>
+        <div
+          className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+          onMouseDown={onUndockStart}
+        >
+          <div className="flex items-start gap-3">
+            <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer Information</h3>
+              <p className="truncate text-xs text-[#7A7A7A]">
+                {customerName} · {customerId}
+              </p>
+            </div>
           </div>
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close customer information panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         <NotesPanel initialTab="Overview" />
       </div>
+
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="Resize docked customer information panel"
+          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[1200px]:flex"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            isResizingRef.current = true;
+            resizeStartRef.current = {
+              mouseX: event.clientX,
+              width,
+            };
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
+            <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CustomerInfoPopunder({
+  position,
+  size,
+  customerName,
+  customerId,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+  onDock,
+  dragActivation = null,
+}: {
+  position: CustomerInfoPopunderPosition;
+  size: CustomerInfoPopunderSize;
+  customerName: string;
+  customerId: string;
+  onPositionChange: (position: CustomerInfoPopunderPosition) => void;
+  onSizeChange: (size: CustomerInfoPopunderSize) => void;
+  onClose: () => void;
+  onDock?: () => void;
+  dragActivation?: CopilotDragActivation | null;
+}) {
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    if (!dragActivation) return;
+
+    isDraggingRef.current = true;
+    dragOffsetRef.current = dragActivation.offset;
+    document.body.style.userSelect = "none";
+  }, [dragActivation]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(
+            Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, nextX),
+            window.innerWidth - size.width - CUSTOMER_INFO_POPOUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, nextY),
+            window.innerHeight - size.height - CUSTOMER_INFO_POPOUNDER_MARGIN,
+          ),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(360, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - CUSTOMER_INFO_POPOUNDER_MARGIN,
+        ),
+        height: Math.min(
+          Math.max(420, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - CUSTOMER_INFO_POPOUNDER_MARGIN,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+
+  return (
+    <div
+      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer Information</h3>
+            <p className="text-xs text-[#7A7A7A]">{customerName} · {customerId}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {onDock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onDock}
+              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+            >
+              Dock Panel
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label="Close customer information popunder"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <NotesPanel initialTab="Overview" />
+
+      <button
+        type="button"
+        aria-label="Resize customer information popunder"
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
     </div>
   );
 }
@@ -1999,13 +2281,21 @@ export default function Layout({ children }: LayoutProps) {
   const [dockedConversationWidth, setDockedConversationWidth] = useState(DOCKED_CONVERSATION_DEFAULT_WIDTH);
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
   const [isCustomerInfoPanelOpen, setIsCustomerInfoPanelOpen] = useState(false);
+  const [dockedCustomerInfoWidth, setDockedCustomerInfoWidth] = useState(CUSTOMER_INFO_PANEL_DEFAULT_WIDTH);
+  const [isCustomerInfoPopunderOpen, setIsCustomerInfoPopunderOpen] = useState(false);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
+  const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
   const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 315, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
     x: 84,
+    y: 72,
+  }));
+  const [customerInfoPopunderSize, setCustomerInfoPopunderSize] = useState<CustomerInfoPopunderSize>({ width: 380, height: 720 });
+  const [customerInfoPopunderPosition, setCustomerInfoPopunderPosition] = useState<CustomerInfoPopunderPosition>(() => ({
+    x: 420,
     y: 72,
   }));
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
@@ -2061,8 +2351,14 @@ export default function Layout({ children }: LayoutProps) {
   const isActivityRoute = location.pathname === "/activity";
   const isCopilotDeskView = location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "copilot";
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
+  const isDeskRoute = isDeskView || isCopilotDeskView;
+  const dockedCustomerInfoPanelWidth =
+    isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen
+      ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP
+      : 0;
   const isDeskCustomerInfoVisible =
-    (isDeskView || isCopilotDeskView) && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed;
+    isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen;
+  const isDeskCustomerInfoPopunderVisible = isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
@@ -2166,6 +2462,39 @@ export default function Layout({ children }: LayoutProps) {
     };
   };
 
+  const getAnchoredCustomerInfoPopunderPosition = (anchorRect?: DOMRect | null) => {
+    if (typeof window === "undefined") {
+      return { x: 420, y: 72 };
+    }
+
+    const width = Math.min(customerInfoPopunderSize.width, window.innerWidth - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
+    const height = Math.min(customerInfoPopunderSize.height, window.innerHeight - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
+
+    if (!anchorRect) {
+      return {
+        x: Math.min(
+          Math.max(
+            CUSTOMER_INFO_POPOUNDER_MARGIN,
+            56 + (isConversationPanelOpen ? dockedConversationWidth + DOCKED_CONVERSATION_GAP : 0) + CUSTOMER_INFO_POPOUNDER_GAP,
+          ),
+          window.innerWidth - width - CUSTOMER_INFO_POPOUNDER_MARGIN,
+        ),
+        y: 72,
+      };
+    }
+
+    return {
+      x: Math.min(
+        Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, anchorRect.left),
+        window.innerWidth - width - CUSTOMER_INFO_POPOUNDER_MARGIN,
+      ),
+      y: Math.min(
+        Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, anchorRect.top),
+        window.innerHeight - height - CUSTOMER_INFO_POPOUNDER_MARGIN,
+      ),
+    };
+  };
+
   useEffect(() => {
     if (isHeaderSearchOpen) {
       headerSearchInputRef.current?.focus();
@@ -2183,6 +2512,18 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.removeEventListener("mouseup", clearDragActivation);
   }, [copilotDragActivation]);
+
+  useEffect(() => {
+    if (!customerInfoDragActivation) return;
+
+    const clearDragActivation = () => {
+      setCustomerInfoDragActivation(null);
+    };
+
+    window.addEventListener("mouseup", clearDragActivation);
+
+    return () => window.removeEventListener("mouseup", clearDragActivation);
+  }, [customerInfoDragActivation]);
 
   useEffect(() => {
     const syncCopilotDockingAvailability = () => {
@@ -2207,7 +2548,7 @@ export default function Layout({ children }: LayoutProps) {
     const syncDockedConversationWidth = () => {
       const maxWidth = getDockedConversationMaxWidth({
         hasDesktopRightPanel: activeRightPanel !== null,
-        hasCustomerInfoPanel: isDeskCustomerInfoVisible,
+        customerInfoPanelWidth: dockedCustomerInfoPanelWidth,
       });
       setDockedConversationWidth((current) => Math.min(current, maxWidth));
     };
@@ -2216,7 +2557,7 @@ export default function Layout({ children }: LayoutProps) {
     window.addEventListener("resize", syncDockedConversationWidth);
 
     return () => window.removeEventListener("resize", syncDockedConversationWidth);
-  }, [activeRightPanel, isDeskCustomerInfoVisible]);
+  }, [activeRightPanel, dockedCustomerInfoPanelWidth]);
 
   useEffect(() => {
     const syncDockedCopilotWidth = () => {
@@ -2238,6 +2579,22 @@ export default function Layout({ children }: LayoutProps) {
   }, [activeRightPanel, dockedConversationWidth, isConversationPanelOpen]);
 
   useEffect(() => {
+    const syncDockedCustomerInfoWidth = () => {
+      const maxWidth = getDockedCustomerInfoMaxWidth({
+        hasDesktopRightPanel: activeRightPanel !== null,
+        isConversationPanelOpen,
+        dockedConversationWidth,
+      });
+      setDockedCustomerInfoWidth((current) => Math.min(current, maxWidth));
+    };
+
+    syncDockedCustomerInfoWidth();
+    window.addEventListener("resize", syncDockedCustomerInfoWidth);
+
+    return () => window.removeEventListener("resize", syncDockedCustomerInfoWidth);
+  }, [activeRightPanel, dockedConversationWidth, isConversationPanelOpen]);
+
+  useEffect(() => {
     const syncCustomerInfoPanelAvailability = () => {
       setIsCustomerInfoPanelAllowed(window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT);
     };
@@ -2247,6 +2604,23 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.removeEventListener("resize", syncCustomerInfoPanelAvailability);
   }, []);
+
+  useEffect(() => {
+    if (!isDeskRoute || !isCustomerInfoPanelOpen || isCustomerInfoPanelAllowed || isCustomerInfoPopunderOpen) return;
+
+    setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+    setIsCustomerInfoPopunderOpen(true);
+    setCustomerInfoDragActivation(null);
+  }, [
+    customerInfoPopunderSize.height,
+    customerInfoPopunderSize.width,
+    dockedConversationWidth,
+    isConversationPanelOpen,
+    isCustomerInfoPanelAllowed,
+    isCustomerInfoPanelOpen,
+    isCustomerInfoPopunderOpen,
+    isDeskRoute,
+  ]);
 
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
@@ -2294,6 +2668,27 @@ export default function Layout({ children }: LayoutProps) {
     setIsConversationPopunderOpen(false);
   };
 
+  const openCustomerInfoPanel = () => {
+    setIsCustomerInfoPanelOpen(true);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+    setDockedCustomerInfoWidth((current) => {
+      const maxWidth = getDockedCustomerInfoMaxWidth({
+        hasDesktopRightPanel: activeRightPanel !== null,
+        isConversationPanelOpen,
+        dockedConversationWidth,
+      });
+
+      return Math.min(Math.max(current, CUSTOMER_INFO_PANEL_MIN_WIDTH), maxWidth);
+    });
+  };
+
+  const closeCustomerInfoPanel = () => {
+    setCustomerInfoDragActivation(null);
+    setIsCustomerInfoPopunderOpen(false);
+    setIsCustomerInfoPanelOpen(false);
+  };
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -2335,6 +2730,11 @@ export default function Layout({ children }: LayoutProps) {
 
         if (location.pathname === "/desk") {
           setIsCustomerInfoPanelOpen(true);
+
+          if (!isCustomerInfoPanelAllowed) {
+            setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+            setIsCustomerInfoPopunderOpen(true);
+          }
           return;
         }
 
@@ -2370,8 +2770,12 @@ export default function Layout({ children }: LayoutProps) {
     [
       activeRightPanel,
       conversationState,
+      customerInfoPopunderSize.height,
+      customerInfoPopunderSize.width,
+      dockedConversationWidth,
       isAddNewPopoverOpen,
       isCallPopunderOpen,
+      isCustomerInfoPanelAllowed,
       isConversationPanelOpen,
       isConversationPopunderOpen,
       navigate,
@@ -2620,7 +3024,7 @@ export default function Layout({ children }: LayoutProps) {
           width={dockedConversationWidth}
           conversation={conversationState}
           hasDesktopRightPanel={activeRightPanel !== null}
-          hasCustomerInfoPanel={isDeskCustomerInfoVisible}
+          customerInfoPanelWidth={dockedCustomerInfoPanelWidth}
           onWidthChange={setDockedConversationWidth}
           onClose={() => setIsConversationPanelOpen(false)}
           onUndockStart={(event) => {
@@ -2657,8 +3061,46 @@ export default function Layout({ children }: LayoutProps) {
         />
         <DockedCustomerInfoPanel
           isOpen={isDeskCustomerInfoVisible}
+          width={dockedCustomerInfoWidth}
+          maxWidth={getDockedCustomerInfoMaxWidth({
+            hasDesktopRightPanel: activeRightPanel !== null,
+            isConversationPanelOpen,
+            dockedConversationWidth,
+          })}
           customerName={selectedAssignment.name}
           customerId={selectedAssignmentCallDetail.customerId}
+          onWidthChange={setDockedCustomerInfoWidth}
+          onClose={closeCustomerInfoPanel}
+          onUndockStart={(event) => {
+            if (typeof window === "undefined") return;
+
+            event.preventDefault();
+
+            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+            if (!bounds) return;
+
+            const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+            const nextPosition = {
+              x: Math.min(
+                Math.max(margin, bounds.left),
+                window.innerWidth - customerInfoPopunderSize.width - margin,
+              ),
+              y: Math.min(
+                Math.max(margin, bounds.top),
+                window.innerHeight - customerInfoPopunderSize.height - margin,
+              ),
+            };
+
+            setCustomerInfoPopunderPosition(nextPosition);
+            setIsCustomerInfoPopunderOpen(true);
+            setCustomerInfoDragActivation({
+              id: Date.now(),
+              offset: {
+                x: event.clientX - nextPosition.x,
+                y: event.clientY - nextPosition.y,
+              },
+            });
+          }}
         />
         <div
           className={cn(
@@ -2680,6 +3122,20 @@ export default function Layout({ children }: LayoutProps) {
           onClose={closeConversationPopunder}
           onDock={openConversationPanel}
           dragActivation={conversationDragActivation}
+        />
+      )}
+
+      {isDeskCustomerInfoPopunderVisible && (
+        <CustomerInfoPopunder
+          position={customerInfoPopunderPosition}
+          size={customerInfoPopunderSize}
+          customerName={selectedAssignment.name}
+          customerId={selectedAssignmentCallDetail.customerId}
+          onPositionChange={setCustomerInfoPopunderPosition}
+          onSizeChange={setCustomerInfoPopunderSize}
+          onClose={closeCustomerInfoPanel}
+          onDock={isCustomerInfoPanelAllowed ? openCustomerInfoPanel : undefined}
+          dragActivation={customerInfoDragActivation}
         />
       )}
 
