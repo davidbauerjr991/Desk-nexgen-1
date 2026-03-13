@@ -57,6 +57,7 @@ interface LayoutProps {
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot";
+type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -342,6 +343,8 @@ const DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH = 480;
 const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 320;
 const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 760;
 const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
+const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
+const FLOATING_PANEL_BASE_Z_INDEX = 70;
 const COPILOT_DOCK_BREAKPOINT = 1280;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
@@ -479,22 +482,26 @@ function CallControlsPopunder({
   position,
   size,
   mode,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
   onLaunchCall,
   onEndCall,
   onSelectDisposition,
+  onInteractStart,
 }: {
   position: CallPopunderPosition;
   size: CallPopunderSize;
   mode: CallPopunderMode;
+  zIndex: number;
   onPositionChange: (position: CallPopunderPosition) => void;
   onSizeChange: (size: CallPopunderSize) => void;
   onClose: () => void;
   onLaunchCall: () => void;
   onEndCall: () => void;
   onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
+  onInteractStart?: () => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
@@ -625,6 +632,7 @@ function CallControlsPopunder({
         top: position.y,
         width: mode === "controls" ? size.width : CALL_POPUNDER_WIDTH,
         height: mode === "controls" ? size.height : undefined,
+        zIndex,
       }}
     >
       <div
@@ -633,6 +641,7 @@ function CallControlsPopunder({
           mode === "setup" ? "justify-between" : mode === "connecting" ? "justify-between" : "justify-start",
         )}
         onMouseDown={(event) => {
+          onInteractStart?.();
           const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
           if (!bounds) return;
 
@@ -869,9 +878,11 @@ const NiceLogoIcon = () => (
 function AddNewPopoverContent({
   position,
   size,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
+  onInteractStart,
 }: {
   position: {
     x: number;
@@ -881,9 +892,11 @@ function AddNewPopoverContent({
     width: number;
     height: number;
   };
+  zIndex: number;
   onPositionChange: (position: { x: number; y: number }) => void;
   onSizeChange: (size: { width: number; height: number }) => void;
   onClose: () => void;
+  onInteractStart?: () => void;
 }) {
   const [selectedType, setSelectedType] = useState<AddNewType>("customer");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
@@ -971,11 +984,13 @@ function AddNewPopoverContent({
         height: size.height,
         maxWidth: "calc(100vw - 2rem)",
         maxHeight: "calc(100vh - 2rem)",
+        zIndex,
       }}
     >
       <div
         className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
+          onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
             x: event.clientX - position.x,
@@ -1348,21 +1363,25 @@ function CustomerInfoPopunder({
   size,
   customerName,
   customerId,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
   onDock,
   dragActivation = null,
+  onInteractStart,
 }: {
   position: CustomerInfoPopunderPosition;
   size: CustomerInfoPopunderSize;
   customerName: string;
   customerId: string;
+  zIndex: number;
   onPositionChange: (position: CustomerInfoPopunderPosition) => void;
   onSizeChange: (size: CustomerInfoPopunderSize) => void;
   onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
+  onInteractStart?: () => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
@@ -1439,11 +1458,13 @@ function CustomerInfoPopunder({
         height: size.height,
         maxWidth: "calc(100vw - 2rem)",
         maxHeight: "calc(100vh - 2rem)",
+        zIndex,
       }}
     >
       <div
         className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
+          onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
             x: event.clientX - position.x,
@@ -1613,20 +1634,24 @@ function DeskCanvasPopunder({
   view,
   position,
   size,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
   onDock,
   dragActivation = null,
+  onInteractStart,
 }: {
   view: DeskCanvasView;
   position: DeskCanvasPopunderPosition;
   size: DeskCanvasPopunderSize;
+  zIndex: number;
   onPositionChange: (position: DeskCanvasPopunderPosition) => void;
   onSizeChange: (size: DeskCanvasPopunderSize) => void;
   onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
+  onInteractStart?: () => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
@@ -1707,11 +1732,13 @@ function DeskCanvasPopunder({
         minWidth,
         maxWidth: "calc(100vw - 2rem)",
         maxHeight: "calc(100vh - 2rem)",
+        zIndex,
       }}
     >
       <div
         className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
+          onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
             x: event.clientX - position.x,
@@ -1785,20 +1812,24 @@ function ConversationPopunder({
   position,
   size,
   conversation,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
   onDock,
   dragActivation = null,
+  onInteractStart,
 }: {
   position: ConversationPopunderPosition;
   size: ConversationPopunderSize;
   conversation: SharedConversationData;
+  zIndex: number;
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
   onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
+  onInteractStart?: () => void;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
@@ -1875,11 +1906,13 @@ function ConversationPopunder({
         height: size.height,
         maxWidth: "calc(100vw - 2rem)",
         maxHeight: "calc(100vh - 2rem)",
+        zIndex,
       }}
     >
       <div
         className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
+          onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
             x: event.clientX - position.x,
@@ -1948,9 +1981,11 @@ function ConversationPopunder({
 function NotesPopoverContent({
   position,
   size,
+  zIndex,
   onPositionChange,
   onSizeChange,
   onClose,
+  onInteractStart,
 }: {
   position: {
     x: number;
@@ -1960,9 +1995,11 @@ function NotesPopoverContent({
     width: number;
     height: number;
   };
+  zIndex: number;
   onPositionChange: (position: { x: number; y: number }) => void;
   onSizeChange: (size: { width: number; height: number }) => void;
   onClose: () => void;
+  onInteractStart?: () => void;
 }) {
   const [addNoteTrigger, setAddNoteTrigger] = useState(0);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -2028,11 +2065,13 @@ function NotesPopoverContent({
         height: size.height,
         maxWidth: "calc(100vw - 2rem)",
         maxHeight: "calc(100vh - 2rem)",
+        zIndex,
       }}
     >
       <div
         className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
+          onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
             x: event.clientX - position.x,
@@ -2358,11 +2397,12 @@ function LeftQueueRail() {
               </div>
 
               <div
-                className={`absolute left-full top-0 z-50 ml-3 transition-all duration-200 ease-in-out ${
+                className={`absolute left-full top-0 ml-3 transition-all duration-200 ease-in-out ${
                   isOpen
                     ? "pointer-events-auto translate-x-0 opacity-100"
                     : "pointer-events-none -translate-x-2 opacity-0"
                 }`}
+                style={{ zIndex: ASSIGNMENTS_POPOVER_Z_INDEX }}
               >
                 <div className="flex max-h-[calc(100vh-96px)] w-[320px] flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.16)]">
                   <div className="flex shrink-0 items-center justify-between border-b border-black/[0.08] px-4 py-4">
@@ -2495,6 +2535,14 @@ export default function Layout({ children }: LayoutProps) {
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
   const wasExpandedCanvasRouteRef = useRef(false);
+  const [floatingPanelOrder, setFloatingPanelOrder] = useState<FloatingPanelId[]>([
+    "call",
+    "notes",
+    "addNew",
+    "conversation",
+    "customerInfo",
+    "deskCanvas",
+  ]);
   const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 315, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
     x: 84,
@@ -2893,6 +2941,15 @@ export default function Layout({ children }: LayoutProps) {
     setDeskCanvasDragActivation(null);
     setDeskCanvasPopunderView(null);
   }, [isDeskRoute]);
+
+  const bringFloatingPanelToFront = (panelId: FloatingPanelId) => {
+    setFloatingPanelOrder((current) => [...current.filter((id) => id !== panelId), panelId]);
+  };
+
+  const getFloatingPanelZIndex = (panelId: FloatingPanelId) => {
+    const index = floatingPanelOrder.indexOf(panelId);
+    return FLOATING_PANEL_BASE_Z_INDEX + (index === -1 ? 0 : index);
+  };
 
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
