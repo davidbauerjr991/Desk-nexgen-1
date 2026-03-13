@@ -1059,7 +1059,6 @@ function DockedConversationPanel({
   conversation,
   hasDesktopRightPanel,
   customerInfoPanelWidth,
-  shouldFillAvailableSpace,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1069,7 +1068,6 @@ function DockedConversationPanel({
   conversation: SharedConversationData;
   hasDesktopRightPanel: boolean;
   customerInfoPanelWidth: number;
-  shouldFillAvailableSpace: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1135,11 +1133,10 @@ function DockedConversationPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[800px]:block",
-        shouldFillAvailableSpace && "flex-1",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none min-[800px]:-translate-x-4 min-[800px]:opacity-0",
       )}
       style={{
-        width: shouldFillAvailableSpace ? undefined : isOpen ? width : 0,
+        width: isOpen ? width : 0,
         marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
@@ -1178,7 +1175,7 @@ function DockedConversationPanel({
         )}
       </div>
 
-      {isOpen && isContentVisible && !shouldFillAvailableSpace && (
+      {isOpen && isContentVisible && (
         <button
           type="button"
           aria-label="Resize docked conversation panel"
@@ -1208,7 +1205,6 @@ function DockedCustomerInfoPanel({
   maxWidth,
   customerName,
   customerId,
-  shouldFillAvailableSpace,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1218,7 +1214,6 @@ function DockedCustomerInfoPanel({
   maxWidth: number;
   customerName: string;
   customerId: string;
-  shouldFillAvailableSpace: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1260,13 +1255,12 @@ function DockedCustomerInfoPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1200px]:block",
-        shouldFillAvailableSpace && "flex-1",
         isOpen
           ? "min-[1200px]:translate-x-0 min-[1200px]:opacity-100"
           : "pointer-events-none min-[1200px]:-translate-x-4 min-[1200px]:opacity-0",
       )}
       style={{
-        width: shouldFillAvailableSpace ? undefined : isOpen ? width : 0,
+        width: isOpen ? width : 0,
         marginRight: isOpen ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
@@ -1298,7 +1292,7 @@ function DockedCustomerInfoPanel({
         <NotesPanel initialTab="Overview" />
       </div>
 
-      {isOpen && !shouldFillAvailableSpace && (
+      {isOpen && (
         <button
           type="button"
           aria-label="Resize docked customer information panel"
@@ -3036,7 +3030,6 @@ export default function Layout({ children }: LayoutProps) {
           conversation={conversationState}
           hasDesktopRightPanel={activeRightPanel !== null}
           customerInfoPanelWidth={dockedCustomerInfoPanelWidth}
-          shouldFillAvailableSpace={isExpandedCanvasRoute}
           onWidthChange={setDockedConversationWidth}
           onClose={() => setIsConversationPanelOpen(false)}
           onUndockStart={(event) => {
@@ -3081,7 +3074,6 @@ export default function Layout({ children }: LayoutProps) {
           })}
           customerName={selectedAssignment.name}
           customerId={selectedAssignmentCallDetail.customerId}
-          shouldFillAvailableSpace={isExpandedCanvasRoute}
           onWidthChange={setDockedCustomerInfoWidth}
           onClose={closeCustomerInfoPanel}
           onUndockStart={(event) => {
