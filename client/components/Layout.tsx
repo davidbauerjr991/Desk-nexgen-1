@@ -329,9 +329,11 @@ const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] a
 function getDockedConversationMaxWidth({
   hasDesktopRightPanel,
   customerInfoPanelWidth,
+  reserveMainWorkspace,
 }: {
   hasDesktopRightPanel: boolean;
   customerInfoPanelWidth: number;
+  reserveMainWorkspace: boolean;
 }) {
   if (typeof window === "undefined") {
     return DOCKED_CONVERSATION_MAX_WIDTH;
@@ -339,12 +341,11 @@ function getDockedConversationMaxWidth({
 
   const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
 
+  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+
   return Math.max(
     DOCKED_CONVERSATION_MIN_WIDTH,
-    Math.min(
-      DOCKED_CONVERSATION_MAX_WIDTH,
-      window.innerWidth - 56 - rightPanelWidth - customerInfoPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - DOCKED_CONVERSATION_GAP - 16,
-    ),
+    window.innerWidth - 56 - rightPanelWidth - customerInfoPanelWidth - reservedMainWorkspaceWidth - DOCKED_CONVERSATION_GAP - 16,
   );
 }
 
@@ -352,10 +353,12 @@ function getDockedCustomerInfoMaxWidth({
   hasDesktopRightPanel,
   isConversationPanelOpen,
   dockedConversationWidth,
+  reserveMainWorkspace,
 }: {
   hasDesktopRightPanel: boolean;
   isConversationPanelOpen: boolean;
   dockedConversationWidth: number;
+  reserveMainWorkspace: boolean;
 }) {
   if (typeof window === "undefined") {
     return CUSTOMER_INFO_PANEL_MAX_WIDTH;
@@ -366,12 +369,11 @@ function getDockedCustomerInfoMaxWidth({
     ? dockedConversationWidth + DOCKED_CONVERSATION_GAP
     : 0;
 
+  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+
   return Math.max(
     CUSTOMER_INFO_PANEL_MIN_WIDTH,
-    Math.min(
-      CUSTOMER_INFO_PANEL_MAX_WIDTH,
-      window.innerWidth - 56 - rightPanelWidth - conversationWidth - MIN_MAIN_WORKSPACE_WIDTH - CUSTOMER_INFO_PANEL_GAP - 16,
-    ),
+    window.innerWidth - 56 - rightPanelWidth - conversationWidth - reservedMainWorkspaceWidth - CUSTOMER_INFO_PANEL_GAP - 16,
   );
 }
 
@@ -1056,18 +1058,16 @@ function AddNewPopoverContent({
 function DockedConversationPanel({
   isOpen,
   width,
+  maxWidth,
   conversation,
-  hasDesktopRightPanel,
-  customerInfoPanelWidth,
   onWidthChange,
   onClose,
   onUndockStart,
 }: {
   isOpen: boolean;
   width: number;
+  maxWidth: number;
   conversation: SharedConversationData;
-  hasDesktopRightPanel: boolean;
-  customerInfoPanelWidth: number;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1082,10 +1082,6 @@ function DockedConversationPanel({
       if (!isResizingRef.current) return;
 
       const deltaX = event.clientX - resizeStartRef.current.mouseX;
-      const maxWidth = getDockedConversationMaxWidth({
-        hasDesktopRightPanel,
-        customerInfoPanelWidth,
-      });
 
       onWidthChange(
         Math.min(
@@ -1108,7 +1104,7 @@ function DockedConversationPanel({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [customerInfoPanelWidth, hasDesktopRightPanel, onWidthChange]);
+  }, [maxWidth, onWidthChange]);
 
   useEffect(() => {
     if (!contentInitializedRef.current) {
@@ -2288,6 +2284,7 @@ export default function Layout({ children }: LayoutProps) {
   );
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
+  const wasExpandedCanvasRouteRef = useRef(false);
   const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 315, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
     x: 84,
@@ -2355,14 +2352,22 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
-  const dockedCustomerInfoPanelWidth =
-    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen
-      ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP
-      : 0;
   const isDeskCustomerInfoVisible =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen;
+  const dockedCustomerInfoPanelWidth = isDeskCustomerInfoVisible ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP : 0;
   const isDeskCustomerInfoPopunderVisible =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+  const conversationPanelMaxWidth = getDockedConversationMaxWidth({
+    hasDesktopRightPanel: activeRightPanel !== null,
+    customerInfoPanelWidth: dockedCustomerInfoPanelWidth,
+    reserveMainWorkspace: !isExpandedCanvasRoute,
+  });
+  const customerInfoPanelMaxWidth = getDockedCustomerInfoMaxWidth({
+    hasDesktopRightPanel: activeRightPanel !== null,
+    isConversationPanelOpen,
+    dockedConversationWidth,
+    reserveMainWorkspace: !isExpandedCanvasRoute,
+  });
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
@@ -2550,18 +2555,14 @@ export default function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     const syncDockedConversationWidth = () => {
-      const maxWidth = getDockedConversationMaxWidth({
-        hasDesktopRightPanel: activeRightPanel !== null,
-        customerInfoPanelWidth: dockedCustomerInfoPanelWidth,
-      });
-      setDockedConversationWidth((current) => Math.min(current, maxWidth));
+      setDockedConversationWidth((current) => Math.min(current, conversationPanelMaxWidth));
     };
 
     syncDockedConversationWidth();
     window.addEventListener("resize", syncDockedConversationWidth);
 
     return () => window.removeEventListener("resize", syncDockedConversationWidth);
-  }, [activeRightPanel, dockedCustomerInfoPanelWidth]);
+  }, [conversationPanelMaxWidth]);
 
   useEffect(() => {
     const syncDockedCopilotWidth = () => {
@@ -2584,19 +2585,14 @@ export default function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     const syncDockedCustomerInfoWidth = () => {
-      const maxWidth = getDockedCustomerInfoMaxWidth({
-        hasDesktopRightPanel: activeRightPanel !== null,
-        isConversationPanelOpen,
-        dockedConversationWidth,
-      });
-      setDockedCustomerInfoWidth((current) => Math.min(current, maxWidth));
+      setDockedCustomerInfoWidth((current) => Math.min(current, customerInfoPanelMaxWidth));
     };
 
     syncDockedCustomerInfoWidth();
     window.addEventListener("resize", syncDockedCustomerInfoWidth);
 
     return () => window.removeEventListener("resize", syncDockedCustomerInfoWidth);
-  }, [activeRightPanel, dockedConversationWidth, isConversationPanelOpen]);
+  }, [customerInfoPanelMaxWidth]);
 
   useEffect(() => {
     const syncCustomerInfoPanelAvailability = () => {
@@ -2626,6 +2622,24 @@ export default function Layout({ children }: LayoutProps) {
     isCustomerInfoCanvasVisible,
   ]);
 
+  useEffect(() => {
+    if (isExpandedCanvasRoute && !wasExpandedCanvasRouteRef.current) {
+      if (isDeskCustomerInfoVisible) {
+        setDockedCustomerInfoWidth(customerInfoPanelMaxWidth);
+      } else if (isConversationPanelOpen) {
+        setDockedConversationWidth(conversationPanelMaxWidth);
+      }
+    }
+
+    wasExpandedCanvasRouteRef.current = isExpandedCanvasRoute;
+  }, [
+    conversationPanelMaxWidth,
+    customerInfoPanelMaxWidth,
+    isConversationPanelOpen,
+    isDeskCustomerInfoVisible,
+    isExpandedCanvasRoute,
+  ]);
+
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
     const newWorkspace: WorkspaceOption = {
@@ -2641,20 +2655,20 @@ export default function Layout({ children }: LayoutProps) {
     });
   };
 
-  const toggleConversationPanel = () => {
-    setIsConversationPanelOpen((current) => {
-      const next = !current;
-      if (next) {
-        setIsConversationPopunderOpen(false);
-      }
-      return next;
-    });
-  };
-
   const openConversationPanel = () => {
+    setDockedConversationWidth(conversationPanelMaxWidth);
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
     setConversationDragActivation(null);
+  };
+
+  const toggleConversationPanel = () => {
+    if (isConversationPanelOpen) {
+      setIsConversationPanelOpen(false);
+      return;
+    }
+
+    openConversationPanel();
   };
 
   const openConversationPopunder = (anchorRect?: DOMRect | null) => {
@@ -2676,15 +2690,7 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    setDockedCustomerInfoWidth((current) => {
-      const maxWidth = getDockedCustomerInfoMaxWidth({
-        hasDesktopRightPanel: activeRightPanel !== null,
-        isConversationPanelOpen,
-        dockedConversationWidth,
-      });
-
-      return Math.min(Math.max(current, CUSTOMER_INFO_PANEL_MIN_WIDTH), maxWidth);
-    });
+    setDockedCustomerInfoWidth(customerInfoPanelMaxWidth);
   };
 
   const closeCustomerInfoPanel = () => {
@@ -2733,7 +2739,7 @@ export default function Layout({ children }: LayoutProps) {
         setSelectedAssignmentId(assignmentId);
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
-          setIsCustomerInfoPanelOpen(true);
+          openCustomerInfoPanel();
 
           if (!isCustomerInfoPanelAllowed) {
             setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
@@ -2787,6 +2793,7 @@ export default function Layout({ children }: LayoutProps) {
       openConversationPanel,
       recentInteractions,
       location.pathname,
+      openCustomerInfoPanel,
       selectedAssignment,
       status,
       toggleConversationPanel,
@@ -3027,9 +3034,8 @@ export default function Layout({ children }: LayoutProps) {
         <DockedConversationPanel
           isOpen={isConversationPanelOpen}
           width={dockedConversationWidth}
+          maxWidth={conversationPanelMaxWidth}
           conversation={conversationState}
-          hasDesktopRightPanel={activeRightPanel !== null}
-          customerInfoPanelWidth={dockedCustomerInfoPanelWidth}
           onWidthChange={setDockedConversationWidth}
           onClose={() => setIsConversationPanelOpen(false)}
           onUndockStart={(event) => {
@@ -3067,11 +3073,7 @@ export default function Layout({ children }: LayoutProps) {
         <DockedCustomerInfoPanel
           isOpen={isDeskCustomerInfoVisible}
           width={dockedCustomerInfoWidth}
-          maxWidth={getDockedCustomerInfoMaxWidth({
-            hasDesktopRightPanel: activeRightPanel !== null,
-            isConversationPanelOpen,
-            dockedConversationWidth,
-          })}
+          maxWidth={customerInfoPanelMaxWidth}
           customerName={selectedAssignment.name}
           customerId={selectedAssignmentCallDetail.customerId}
           onWidthChange={setDockedCustomerInfoWidth}
