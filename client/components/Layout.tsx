@@ -1059,6 +1059,7 @@ function DockedConversationPanel({
   conversation,
   hasDesktopRightPanel,
   customerInfoPanelWidth,
+  shouldFillAvailableSpace,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1068,6 +1069,7 @@ function DockedConversationPanel({
   conversation: SharedConversationData;
   hasDesktopRightPanel: boolean;
   customerInfoPanelWidth: number;
+  shouldFillAvailableSpace: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1133,10 +1135,11 @@ function DockedConversationPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[800px]:block",
+        shouldFillAvailableSpace && "flex-1",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none min-[800px]:-translate-x-4 min-[800px]:opacity-0",
       )}
       style={{
-        width: isOpen ? width : 0,
+        width: shouldFillAvailableSpace ? undefined : isOpen ? width : 0,
         marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
@@ -1175,7 +1178,7 @@ function DockedConversationPanel({
         )}
       </div>
 
-      {isOpen && isContentVisible && (
+      {isOpen && isContentVisible && !shouldFillAvailableSpace && (
         <button
           type="button"
           aria-label="Resize docked conversation panel"
@@ -1205,6 +1208,7 @@ function DockedCustomerInfoPanel({
   maxWidth,
   customerName,
   customerId,
+  shouldFillAvailableSpace,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1214,6 +1218,7 @@ function DockedCustomerInfoPanel({
   maxWidth: number;
   customerName: string;
   customerId: string;
+  shouldFillAvailableSpace: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1255,12 +1260,13 @@ function DockedCustomerInfoPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1200px]:block",
+        shouldFillAvailableSpace && "flex-1",
         isOpen
           ? "min-[1200px]:translate-x-0 min-[1200px]:opacity-100"
           : "pointer-events-none min-[1200px]:-translate-x-4 min-[1200px]:opacity-0",
       )}
       style={{
-        width: isOpen ? width : 0,
+        width: shouldFillAvailableSpace ? undefined : isOpen ? width : 0,
         marginRight: isOpen ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
@@ -1292,7 +1298,7 @@ function DockedCustomerInfoPanel({
         <NotesPanel initialTab="Overview" />
       </div>
 
-      {isOpen && (
+      {isOpen && !shouldFillAvailableSpace && (
         <button
           type="button"
           aria-label="Resize docked customer information panel"
@@ -2349,16 +2355,20 @@ export default function Layout({ children }: LayoutProps) {
     [selectedAssignmentId],
   );
   const isActivityRoute = location.pathname === "/activity";
+  const isExpandedCanvasRoute =
+    isActivityRoute && Boolean((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel);
   const isCopilotDeskView = location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "copilot";
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const isDeskRoute = isDeskView || isCopilotDeskView;
+  const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
   const dockedCustomerInfoPanelWidth =
-    isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen
+    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen
       ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP
       : 0;
   const isDeskCustomerInfoVisible =
-    isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen;
-  const isDeskCustomerInfoPopunderVisible = isDeskRoute && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen;
+  const isDeskCustomerInfoPopunderVisible =
+    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
@@ -2606,7 +2616,7 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   useEffect(() => {
-    if (!isDeskRoute || !isCustomerInfoPanelOpen || isCustomerInfoPanelAllowed || isCustomerInfoPopunderOpen) return;
+    if (!isCustomerInfoCanvasVisible || !isCustomerInfoPanelOpen || isCustomerInfoPanelAllowed || isCustomerInfoPopunderOpen) return;
 
     setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
     setIsCustomerInfoPopunderOpen(true);
@@ -2619,7 +2629,7 @@ export default function Layout({ children }: LayoutProps) {
     isCustomerInfoPanelAllowed,
     isCustomerInfoPanelOpen,
     isCustomerInfoPopunderOpen,
-    isDeskRoute,
+    isCustomerInfoCanvasVisible,
   ]);
 
   const handleCreateWorkspace = () => {
@@ -2728,7 +2738,7 @@ export default function Layout({ children }: LayoutProps) {
       selectAssignment: (assignmentId) => {
         setSelectedAssignmentId(assignmentId);
 
-        if (location.pathname === "/desk") {
+        if (location.pathname === "/desk" || isExpandedCanvasRoute) {
           setIsCustomerInfoPanelOpen(true);
 
           if (!isCustomerInfoPanelAllowed) {
@@ -2778,6 +2788,7 @@ export default function Layout({ children }: LayoutProps) {
       isCustomerInfoPanelAllowed,
       isConversationPanelOpen,
       isConversationPopunderOpen,
+      isExpandedCanvasRoute,
       navigate,
       openConversationPanel,
       recentInteractions,
@@ -3025,6 +3036,7 @@ export default function Layout({ children }: LayoutProps) {
           conversation={conversationState}
           hasDesktopRightPanel={activeRightPanel !== null}
           customerInfoPanelWidth={dockedCustomerInfoPanelWidth}
+          shouldFillAvailableSpace={isExpandedCanvasRoute}
           onWidthChange={setDockedConversationWidth}
           onClose={() => setIsConversationPanelOpen(false)}
           onUndockStart={(event) => {
@@ -3069,6 +3081,7 @@ export default function Layout({ children }: LayoutProps) {
           })}
           customerName={selectedAssignment.name}
           customerId={selectedAssignmentCallDetail.customerId}
+          shouldFillAvailableSpace={isExpandedCanvasRoute}
           onWidthChange={setDockedCustomerInfoWidth}
           onClose={closeCustomerInfoPanel}
           onUndockStart={(event) => {
@@ -3102,14 +3115,16 @@ export default function Layout({ children }: LayoutProps) {
             });
           }}
         />
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[500px]",
-            isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
-          )}
-        >
-          {children}
-        </div>
+        {!isExpandedCanvasRoute && (
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[500px]",
+              isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
+            )}
+          >
+            {children}
+          </div>
+        )}
       </div>
 
       {isConversationPopunderOpen && !isConversationPanelOpen && (

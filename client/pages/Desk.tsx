@@ -30,7 +30,7 @@ export default function Desk() {
           type="button"
           aria-label={`Close ${isCopilotView ? "Copilot" : "Desk"} container`}
           onMouseDown={(event) => event.stopPropagation()}
-          onClick={() => navigate("/activity")}
+          onClick={() => navigate("/activity", { state: { hideMainCanvasPanel: true } })}
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
         >
           <X className="h-4 w-4" />
