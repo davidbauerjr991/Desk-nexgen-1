@@ -52,7 +52,7 @@ interface LayoutProps {
 type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot" | "notes" | "add";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
-type CombinedInteractionPanelTab = "conversation" | "customerInfo";
+type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -301,6 +301,7 @@ const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
 const FLOATING_PANEL_BASE_Z_INDEX = 70;
 const COPILOT_DOCK_BREAKPOINT = 1280;
 const COMBINED_INTERACTION_PANEL_BREAKPOINT = 1024;
+const COMBINED_INTERACTION_PANEL_CANVAS_BREAKPOINT = 900;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDeskCanvasPopunderMinWidth(view: DeskCanvasView) {
@@ -1119,6 +1120,10 @@ function CombinedInteractionPanel({
   conversation,
   customerName,
   customerId,
+  showCanvasTab,
+  canvasTabLabel,
+  canvasContent,
+  isFullWidth,
   onTabChange,
   onWidthChange,
   onClose,
@@ -1130,6 +1135,10 @@ function CombinedInteractionPanel({
   conversation: SharedConversationData;
   customerName: string;
   customerId: string;
+  showCanvasTab: boolean;
+  canvasTabLabel: string;
+  canvasContent: React.ReactNode;
+  isFullWidth: boolean;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1171,11 +1180,12 @@ function CombinedInteractionPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out",
+        isFullWidth && "min-w-0 flex-1",
         isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
       )}
       style={{
-        width: isOpen ? width : 0,
-        marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
+        width: isFullWidth ? undefined : isOpen ? width : 0,
+        marginRight: isFullWidth ? 0 : isOpen ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -1192,23 +1202,35 @@ function CombinedInteractionPanel({
                   {customerName} · {customerId}
                 </p>
               </div>
-              <button
-                type="button"
-                aria-label="Close combined interaction panel"
-                onClick={onClose}
-                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              {!isFullWidth && (
+                <button
+                  type="button"
+                  aria-label="Close combined interaction panel"
+                  onClick={onClose}
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
-            <TabsList className="mt-3 grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-[#F1F3F5] p-1">
+            <TabsList
+              className={cn(
+                "mt-3 grid h-auto w-full gap-1 rounded-lg bg-[#F1F3F5] p-1",
+                showCanvasTab ? "grid-cols-3" : "grid-cols-2",
+              )}
+            >
               <TabsTrigger value="conversation" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
                 Conversation
               </TabsTrigger>
               <TabsTrigger value="customerInfo" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
                 Customer Information
               </TabsTrigger>
+              {showCanvasTab && (
+                <TabsTrigger value="canvas" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
+                  {canvasTabLabel}
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -1221,10 +1243,15 @@ function CombinedInteractionPanel({
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden">
             <NotesPanel initialTab="Overview" />
           </TabsContent>
+          {showCanvasTab && (
+            <TabsContent value="canvas" className="mt-0 min-h-0 flex-1 overflow-hidden">
+              {canvasContent}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
-      {isOpen && (
+      {isOpen && !isFullWidth && (
         <button
           type="button"
           aria-label="Resize combined interaction panel"
@@ -2525,6 +2552,9 @@ export default function Layout({ children }: LayoutProps) {
   const [isCombinedInteractionPanelEnabled, setIsCombinedInteractionPanelEnabled] = useState(
     () => typeof window === "undefined" ? false : window.innerWidth < COMBINED_INTERACTION_PANEL_BREAKPOINT,
   );
+  const [isCombinedInteractionPanelCanvasEnabled, setIsCombinedInteractionPanelCanvasEnabled] = useState(
+    () => typeof window === "undefined" ? false : window.innerWidth < COMBINED_INTERACTION_PANEL_CANVAS_BREAKPOINT,
+  );
   const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
   const [deskCanvasDragActivation, setDeskCanvasDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
@@ -2621,6 +2651,7 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
+  const isCanvasMergedIntoCombinedPanel = isDeskRoute && isCombinedInteractionPanel && isCombinedInteractionPanelCanvasEnabled;
   const isDeskCustomerInfoVisible =
     isCustomerInfoCanvasVisible &&
     isCustomerInfoPanelOpen &&
@@ -2649,6 +2680,13 @@ export default function Layout({ children }: LayoutProps) {
   );
   const selectedAssignmentCallDetail =
     assignmentCallDetails[selectedAssignment.id as keyof typeof assignmentCallDetails] ?? assignmentCallDetails.alex;
+  const deskCanvasTabLabel = isCopilotDeskView
+    ? "Copilot"
+    : new URLSearchParams(location.search).get("view") === "notes"
+      ? "Notes"
+      : new URLSearchParams(location.search).get("view") === "add"
+        ? "Add"
+        : "Desk";
 
   useEffect(() => {
     setConversationState((current) => (
@@ -2869,6 +2907,17 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   useEffect(() => {
+    const syncCombinedInteractionPanelCanvasAvailability = () => {
+      setIsCombinedInteractionPanelCanvasEnabled(window.innerWidth < COMBINED_INTERACTION_PANEL_CANVAS_BREAKPOINT);
+    };
+
+    syncCombinedInteractionPanelCanvasAvailability();
+    window.addEventListener("resize", syncCombinedInteractionPanelCanvasAvailability);
+
+    return () => window.removeEventListener("resize", syncCombinedInteractionPanelCanvasAvailability);
+  }, []);
+
+  useEffect(() => {
     if (isCopilotDockingAllowed || typeof window === "undefined") return;
 
     setIsCopilotDocked(false);
@@ -2985,6 +3034,19 @@ export default function Layout({ children }: LayoutProps) {
     setDeskCanvasDragActivation(null);
     setDeskCanvasPopunderView(null);
   }, [isDeskRoute]);
+
+  useEffect(() => {
+    if (!isCanvasMergedIntoCombinedPanel) {
+      setCombinedInteractionPanelTab((current) => current === "canvas" ? "conversation" : current);
+      return;
+    }
+
+    setCombinedInteractionPanelTab("canvas");
+    setIsConversationPanelOpen(true);
+    setIsCustomerInfoPanelOpen(true);
+    setIsConversationPopunderOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+  }, [isCanvasMergedIntoCombinedPanel, location.pathname, location.search]);
 
   const bringFloatingPanelToFront = (panelId: FloatingPanelId) => {
     setFloatingPanelOrder((current) => [...current.filter((id) => id !== panelId), panelId]);
@@ -3520,13 +3582,17 @@ export default function Layout({ children }: LayoutProps) {
         <LeftQueueRail />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
-            isOpen={isConversationPanelOpen || isCustomerInfoPanelOpen}
+            isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
             width={dockedConversationWidth}
             maxWidth={conversationPanelMaxWidth}
             activeTab={combinedInteractionPanelTab}
             conversation={conversationState}
             customerName={selectedAssignment.name}
             customerId={selectedAssignmentCallDetail.customerId}
+            showCanvasTab={isCanvasMergedIntoCombinedPanel}
+            canvasTabLabel={deskCanvasTabLabel}
+            canvasContent={children}
+            isFullWidth={isCanvasMergedIntoCombinedPanel}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
@@ -3621,7 +3687,7 @@ export default function Layout({ children }: LayoutProps) {
             />
           </>
         )}
-        {!isExpandedCanvasRoute && (
+        {!isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel && (
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[500px]",
