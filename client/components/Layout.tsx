@@ -2399,7 +2399,11 @@ export default function Layout({ children }: LayoutProps) {
 
           {!isHeaderSearchOpen && (
             <>
-              <HeaderIconButton ariaLabel="Open Desk" onClick={() => navigate("/desk")}>
+              <HeaderIconButton
+                ariaLabel="Open Desk"
+                onClick={() => navigate("/desk")}
+                isActive={location.pathname === "/desk"}
+              >
                 <Monitor className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
 
