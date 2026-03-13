@@ -1999,6 +1999,8 @@ export default function Layout({ children }: LayoutProps) {
     [selectedAssignmentId],
   );
   const isActivityRoute = location.pathname === "/activity";
+  const isCopilotDeskView = location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "copilot";
+  const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
@@ -2405,7 +2407,7 @@ export default function Layout({ children }: LayoutProps) {
               <HeaderIconButton
                 ariaLabel="Open Desk"
                 onClick={() => navigate("/desk")}
-                isActive={location.pathname === "/desk"}
+                isActive={isDeskView}
               >
                 <Monitor className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
@@ -2460,23 +2462,9 @@ export default function Layout({ children }: LayoutProps) {
           {!isHeaderSearchOpen && (
             <div ref={copilotButtonRef}>
               <HeaderIconButton
-                ariaLabel={isCopilotPopoverOpen ? "Hide NexAgent Copilot" : "Show NexAgent Copilot"}
-                ariaExpanded={isCopilotPopoverOpen}
-                onClick={() => {
-                  if (isCopilotPopoverOpen) {
-                    setIsCopilotPopoverOpen(false);
-                    return;
-                  }
-
-                  if (isCopilotDocked && isCopilotDockingAllowed) {
-                    setIsCopilotPopoverOpen(true);
-                    return;
-                  }
-
-                  setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
-                  setIsCopilotPopoverOpen(true);
-                }}
-                isActive={isCopilotPopoverOpen}
+                ariaLabel="Open Copilot"
+                onClick={() => navigate("/desk?view=copilot")}
+                isActive={isCopilotDeskView}
               >
                 <Bot className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
@@ -2591,43 +2579,6 @@ export default function Layout({ children }: LayoutProps) {
         >
           {children}
         </div>
-        {isCopilotPopoverOpen && isCopilotDocked && isCopilotDockingAllowed && (
-          <DockedCopilotPanel
-            width={copilotPopunderSize.width}
-            maxWidth={getDockedCopilotMaxWidth({
-              hasDesktopRightPanel: activeRightPanel !== null,
-              isConversationPanelOpen,
-              dockedConversationWidth,
-            })}
-            onClose={() => setIsCopilotPopoverOpen(false)}
-            onWidthChange={(width) => setCopilotPopunderSize((current) => ({ ...current, width }))}
-            onUndockStart={(event) => {
-              if (typeof window === "undefined") return;
-
-              event.preventDefault();
-
-              const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-              if (!bounds) return;
-
-              const margin = 16;
-              const nextPosition = {
-                x: Math.min(Math.max(margin, bounds.left), window.innerWidth - copilotPopunderSize.width - margin),
-                y: Math.min(Math.max(margin, bounds.top), window.innerHeight - copilotPopunderSize.height - margin),
-              };
-
-              setCopilotPopunderPosition(nextPosition);
-              setIsCopilotDocked(false);
-              setIsCopilotPopoverOpen(true);
-              setCopilotDragActivation({
-                id: Date.now(),
-                offset: {
-                  x: event.clientX - nextPosition.x,
-                  y: event.clientY - nextPosition.y,
-                },
-              });
-            }}
-          />
-        )}
       </div>
 
       {isConversationPopunderOpen && !isConversationPanelOpen && (
@@ -2719,20 +2670,6 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {isCopilotPopoverOpen && (!isCopilotDocked || !isCopilotDockingAllowed) && (
-        <CopilotPopunder
-          position={copilotPopunderPosition}
-          size={copilotPopunderSize}
-          onPositionChange={setCopilotPopunderPosition}
-          onSizeChange={setCopilotPopunderSize}
-          onClose={() => setIsCopilotPopoverOpen(false)}
-          onDock={isCopilotDockingAllowed ? () => {
-            setIsCopilotDocked(true);
-            setIsCopilotPopoverOpen(true);
-          } : undefined}
-          dragActivation={copilotDragActivation}
-        />
-      )}
     </div>
     </LayoutContext.Provider>
   );
