@@ -723,6 +723,7 @@ export default function NotesPanel({
   const [noteDraft, setNoteDraft] = useState("");
   const [openTickets, setOpenTickets] = useState<CustomerTicket[]>([]);
   const [moreMenuPosition, setMoreMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const moreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -748,11 +749,12 @@ export default function NotesPanel({
 
     const updateMoreMenuPosition = () => {
       const rect = moreMenuButtonRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      const panelRect = panelRef.current?.getBoundingClientRect();
+      if (!rect || !panelRect) return;
 
       setMoreMenuPosition({
-        left: rect.left,
-        top: rect.bottom + 4,
+        left: rect.left - panelRect.left,
+        top: rect.bottom - panelRect.top + 4,
       });
     };
 
@@ -812,7 +814,7 @@ export default function NotesPanel({
   };
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
+    <div ref={panelRef} className="relative flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
       {!notesOnly && (
         <>
           <div className="shrink-0 border-b border-[rgba(0,0,0,0.1)] px-1">
@@ -843,10 +845,11 @@ export default function NotesPanel({
                   onClick={() => {
                     if (!showMoreTabs) {
                       const rect = moreMenuButtonRef.current?.getBoundingClientRect();
-                      if (rect) {
+                      const panelRect = panelRef.current?.getBoundingClientRect();
+                      if (rect && panelRect) {
                         setMoreMenuPosition({
-                          left: rect.left,
-                          top: rect.bottom + 4,
+                          left: rect.left - panelRect.left,
+                          top: rect.bottom - panelRect.top + 4,
                         });
                       }
                     }
@@ -900,7 +903,7 @@ export default function NotesPanel({
 
           {showMoreTabs && moreMenuPosition ? (
             <div
-              className="fixed z-20 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg"
+              className="absolute z-20 w-36 rounded-lg border border-[rgba(0,0,0,0.1)] bg-white py-1 shadow-lg"
               style={{ left: moreMenuPosition.left, top: moreMenuPosition.top }}
             >
               {moreTabs.map((tab) => (
