@@ -1,11 +1,12 @@
-import { GripHorizontal } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { GripHorizontal, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { CopilotContent } from "@/components/CopilotPopunder";
 import DeskDataTable from "@/components/DeskDataTable";
 
 export default function Desk() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isCopilotView = new URLSearchParams(location.search).get("view") === "copilot";
 
   return (
@@ -24,6 +25,16 @@ export default function Desk() {
             <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{isCopilotView ? "Copilot" : "Desk"}</h3>
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label={`Close ${isCopilotView ? "Copilot" : "Desk"} container`}
+          onMouseDown={(event) => event.stopPropagation()}
+          onClick={() => navigate("/activity")}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {isCopilotView ? <CopilotContent /> : <DeskDataTable />}
