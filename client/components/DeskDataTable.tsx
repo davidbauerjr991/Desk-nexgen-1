@@ -203,7 +203,7 @@ const deskRows = [...baseRows, ...generatedRows];
 
 export default function DeskDataTable() {
   return (
-    <Box className="min-h-0 flex-1 bg-white">
+    <Box className="flex min-h-0 flex-1 overflow-hidden bg-white">
       <DataGrid
         rows={deskRows}
         columns={deskColumns}
@@ -224,11 +224,21 @@ export default function DeskDataTable() {
           params.indexRelativeToCurrentPage % 2 === 0 ? "desk-row-even" : "desk-row-odd"
         }
         sx={{
+          flex: 1,
+          minHeight: 0,
           height: "100%",
+          overflow: "hidden",
           border: 0,
           fontSize: "13px",
           color: "#333333",
           backgroundColor: "#FFFFFF",
+          "& .MuiDataGrid-main": {
+            overflow: "hidden",
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            overflowX: "auto",
+            overflowY: "auto",
+          },
           "& .MuiDataGrid-columnHeaders": {
             backgroundColor: "#F3F4F6",
             borderBottom: "1px solid #D7DBE0",
