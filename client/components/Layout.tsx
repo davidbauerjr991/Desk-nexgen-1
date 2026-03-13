@@ -300,6 +300,7 @@ const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
 const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
 const FLOATING_PANEL_BASE_Z_INDEX = 70;
 const COPILOT_DOCK_BREAKPOINT = 1280;
+const COMBINED_INTERACTION_PANEL_BREAKPOINT = 1024;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
 
 function getDeskCanvasPopunderMinWidth(view: DeskCanvasView) {
@@ -2521,6 +2522,9 @@ export default function Layout({ children }: LayoutProps) {
   const [isCopilotDocked, setIsCopilotDocked] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= COPILOT_DOCK_BREAKPOINT,
   );
+  const [isCombinedInteractionPanelEnabled, setIsCombinedInteractionPanelEnabled] = useState(
+    () => typeof window === "undefined" ? false : window.innerWidth < COMBINED_INTERACTION_PANEL_BREAKPOINT,
+  );
   const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
   const [deskCanvasDragActivation, setDeskCanvasDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
@@ -2616,7 +2620,7 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
-  const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && !isCopilotDockingAllowed;
+  const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const isDeskCustomerInfoVisible =
     isCustomerInfoCanvasVisible &&
     isCustomerInfoPanelOpen &&
@@ -2851,6 +2855,17 @@ export default function Layout({ children }: LayoutProps) {
     window.addEventListener("resize", syncCopilotDockingAvailability);
 
     return () => window.removeEventListener("resize", syncCopilotDockingAvailability);
+  }, []);
+
+  useEffect(() => {
+    const syncCombinedInteractionPanelAvailability = () => {
+      setIsCombinedInteractionPanelEnabled(window.innerWidth < COMBINED_INTERACTION_PANEL_BREAKPOINT);
+    };
+
+    syncCombinedInteractionPanelAvailability();
+    window.addEventListener("resize", syncCombinedInteractionPanelAvailability);
+
+    return () => window.removeEventListener("resize", syncCombinedInteractionPanelAvailability);
   }, []);
 
   useEffect(() => {
