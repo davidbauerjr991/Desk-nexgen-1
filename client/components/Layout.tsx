@@ -301,7 +301,7 @@ const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_POPOUNDER_MARGIN = 16;
 const CONVERSATION_POPOUNDER_GAP = 12;
 const DOCKED_CONVERSATION_MIN_WIDTH = 320;
-const DOCKED_CONVERSATION_DEFAULT_WIDTH = 360;
+const DOCKED_CONVERSATION_DEFAULT_WIDTH = 315;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
@@ -1924,7 +1924,7 @@ export default function Layout({ children }: LayoutProps) {
   }));
   const [copilotPopunderPosition, setCopilotPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [copilotPopunderSize, setCopilotPopunderSize] = useState(() => ({
-    width: 360,
+    width: 315,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
   const [isCopilotDockingAllowed, setIsCopilotDockingAllowed] = useState(
@@ -1943,7 +1943,7 @@ export default function Layout({ children }: LayoutProps) {
   const [dockedConversationWidth, setDockedConversationWidth] = useState(DOCKED_CONVERSATION_DEFAULT_WIDTH);
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
-  const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 420, height: 720 });
+  const [conversationPopunderSize, setConversationPopunderSize] = useState<ConversationPopunderSize>({ width: 315, height: 720 });
   const [conversationPopunderPosition, setConversationPopunderPosition] = useState<ConversationPopunderPosition>(() => ({
     x: 84,
     y: 72,
