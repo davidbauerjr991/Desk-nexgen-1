@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -51,6 +52,7 @@ interface LayoutProps {
 type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot" | "notes" | "add";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
+type CombinedInteractionPanelTab = "conversation" | "customerInfo";
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -1089,6 +1091,143 @@ function DockedConversationPanel({
           type="button"
           aria-label="Resize docked conversation panel"
           className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[800px]:flex"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            isResizingRef.current = true;
+            resizeStartRef.current = {
+              mouseX: event.clientX,
+              width,
+            };
+            document.body.style.userSelect = "none";
+          }}
+        >
+          <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
+            <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CombinedInteractionPanel({
+  isOpen,
+  width,
+  maxWidth,
+  activeTab,
+  conversation,
+  customerName,
+  customerId,
+  onTabChange,
+  onWidthChange,
+  onClose,
+}: {
+  isOpen: boolean;
+  width: number;
+  maxWidth: number;
+  activeTab: CombinedInteractionPanelTab;
+  conversation: SharedConversationData;
+  customerName: string;
+  customerId: string;
+  onTabChange: (tab: CombinedInteractionPanelTab) => void;
+  onWidthChange: (width: number) => void;
+  onClose: () => void;
+}) {
+  const resizeStartRef = useRef({ mouseX: 0, width });
+  const isResizingRef = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+
+      onWidthChange(
+        Math.min(
+          maxWidth,
+          Math.max(DOCKED_CONVERSATION_MIN_WIDTH, resizeStartRef.current.width + deltaX),
+        ),
+      );
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [maxWidth, onWidthChange]);
+
+  return (
+    <div
+      aria-hidden={!isOpen}
+      className={cn(
+        "relative min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out",
+        isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
+      )}
+      style={{
+        width: isOpen ? width : 0,
+        marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
+      }}
+    >
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => onTabChange(value as CombinedInteractionPanelTab)}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <div className="border-b border-border bg-background/50 px-4 py-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation & Customer Information</h3>
+                <p className="truncate text-xs text-[#7A7A7A]">
+                  {customerName} · {customerId}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close combined interaction panel"
+                onClick={onClose}
+                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <TabsList className="mt-3 grid h-auto w-full grid-cols-2 gap-1 rounded-lg bg-[#F1F3F5] p-1">
+              <TabsTrigger value="conversation" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
+                Conversation
+              </TabsTrigger>
+              <TabsTrigger value="customerInfo" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
+                Customer Information
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="conversation" className="mt-0 min-h-0 flex-1 overflow-hidden">
+            <ConversationPanel
+              conversation={conversation}
+              draftKey={`combined-${conversation.label}-${conversation.customerName}`}
+            />
+          </TabsContent>
+          <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden">
+            <NotesPanel initialTab="Overview" />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {isOpen && (
+        <button
+          type="button"
+          aria-label="Resize combined interaction panel"
+          className="absolute inset-y-0 -right-2 z-10 flex w-4 cursor-col-resize items-center justify-center"
           onMouseDown={(event) => {
             event.preventDefault();
             isResizingRef.current = true;
@@ -2398,6 +2537,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
+  const [combinedInteractionPanelTab, setCombinedInteractionPanelTab] = useState<CombinedInteractionPanelTab>("conversation");
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
   const wasExpandedCanvasRouteRef = useRef(false);
@@ -2476,11 +2616,16 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
+  const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && !isCopilotDockingAllowed;
   const isDeskCustomerInfoVisible =
-    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPanelAllowed && !isCustomerInfoPopunderOpen;
+    isCustomerInfoCanvasVisible &&
+    isCustomerInfoPanelOpen &&
+    !isCombinedInteractionPanel &&
+    isCustomerInfoPanelAllowed &&
+    !isCustomerInfoPopunderOpen;
   const dockedCustomerInfoPanelWidth = isDeskCustomerInfoVisible ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP : 0;
   const isDeskCustomerInfoPopunderVisible =
-    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
   const shouldPreserveFloatingCustomerInfoPanel =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
@@ -2769,7 +2914,22 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   useEffect(() => {
-    if (!isCustomerInfoCanvasVisible || !isCustomerInfoPanelOpen || isCustomerInfoPanelAllowed || isCustomerInfoPopunderOpen) return;
+    if (!isCombinedInteractionPanel || !isCustomerInfoPopunderOpen) return;
+
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+  }, [isCombinedInteractionPanel, isCustomerInfoPopunderOpen]);
+
+  useEffect(() => {
+    if (
+      !isCustomerInfoCanvasVisible ||
+      !isCustomerInfoPanelOpen ||
+      isCustomerInfoPanelAllowed ||
+      isCustomerInfoPopunderOpen ||
+      isCombinedInteractionPanel
+    ) {
+      return;
+    }
 
     setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
     setIsCustomerInfoPopunderOpen(true);
@@ -2778,6 +2938,7 @@ export default function Layout({ children }: LayoutProps) {
     customerInfoPopunderSize.height,
     customerInfoPopunderSize.width,
     dockedConversationWidth,
+    isCombinedInteractionPanel,
     isConversationPanelOpen,
     isCustomerInfoPanelAllowed,
     isCustomerInfoPanelOpen,
@@ -2834,7 +2995,41 @@ export default function Layout({ children }: LayoutProps) {
     });
   };
 
+  const closeCombinedInteractionPanel = () => {
+    setConversationDragActivation(null);
+    setCustomerInfoDragActivation(null);
+    setIsConversationPopunderOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setIsConversationPanelOpen(false);
+    setIsCustomerInfoPanelOpen(false);
+  };
+
+  const openCombinedInteractionPanel = (tab: CombinedInteractionPanelTab) => {
+    setCombinedInteractionPanelTab(tab);
+    setDockedConversationWidth((current) => Math.min(conversationPanelMaxWidth, Math.max(current, 360)));
+    setIsConversationPanelOpen(true);
+    setIsConversationPopunderOpen(false);
+    setConversationDragActivation(null);
+    setIsCustomerInfoPanelOpen(true);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+  };
+
+  const closeConversationPanel = () => {
+    if (isCombinedInteractionPanel) {
+      closeCombinedInteractionPanel();
+      return;
+    }
+
+    setIsConversationPanelOpen(false);
+  };
+
   const openConversationPanel = () => {
+    if (isCombinedInteractionPanel) {
+      openCombinedInteractionPanel("conversation");
+      return;
+    }
+
     setDockedConversationWidth(conversationPanelMaxWidth);
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
@@ -2842,6 +3037,11 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const dockConversationPanel = () => {
+    if (isCombinedInteractionPanel) {
+      openCombinedInteractionPanel("conversation");
+      return;
+    }
+
     setDockedConversationWidth(Math.min(conversationPanelMaxWidth, 360));
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
@@ -2850,7 +3050,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const toggleConversationPanel = () => {
     if (isConversationPanelOpen) {
-      setIsConversationPanelOpen(false);
+      closeConversationPanel();
       return;
     }
 
@@ -2874,6 +3074,11 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openCustomerInfoPanel = () => {
+    if (isCombinedInteractionPanel) {
+      openCombinedInteractionPanel("customerInfo");
+      return;
+    }
+
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
@@ -2881,6 +3086,11 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const dockCustomerInfoPanel = () => {
+    if (isCombinedInteractionPanel) {
+      openCombinedInteractionPanel("customerInfo");
+      return;
+    }
+
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
@@ -2888,6 +3098,11 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const closeCustomerInfoPanel = () => {
+    if (isCombinedInteractionPanel) {
+      closeCombinedInteractionPanel();
+      return;
+    }
+
     setCustomerInfoDragActivation(null);
     setIsCustomerInfoPopunderOpen(false);
     setIsCustomerInfoPanelOpen(false);
@@ -3005,7 +3220,7 @@ export default function Layout({ children }: LayoutProps) {
 
           openCustomerInfoPanel();
 
-          if (!isCustomerInfoPanelAllowed) {
+          if (!isCustomerInfoPanelAllowed && !isCombinedInteractionPanel) {
             bringFloatingPanelToFront("customerInfo");
             setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
             setIsCustomerInfoPopunderOpen(true);
@@ -3288,86 +3503,109 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
         <LeftQueueRail />
-        <DockedConversationPanel
-          isOpen={isConversationPanelOpen}
-          width={dockedConversationWidth}
-          maxWidth={conversationPanelMaxWidth}
-          conversation={conversationState}
-          onWidthChange={setDockedConversationWidth}
-          onClose={() => setIsConversationPanelOpen(false)}
-          onUndockStart={(event) => {
-            if (typeof window === "undefined") return;
+        {isCombinedInteractionPanel ? (
+          <CombinedInteractionPanel
+            isOpen={isConversationPanelOpen || isCustomerInfoPanelOpen}
+            width={dockedConversationWidth}
+            maxWidth={conversationPanelMaxWidth}
+            activeTab={combinedInteractionPanelTab}
+            conversation={conversationState}
+            customerName={selectedAssignment.name}
+            customerId={selectedAssignmentCallDetail.customerId}
+            onTabChange={(tab) => {
+              setCombinedInteractionPanelTab(tab);
+              setIsConversationPanelOpen(true);
+              setIsCustomerInfoPanelOpen(true);
+              setIsConversationPopunderOpen(false);
+              setIsCustomerInfoPopunderOpen(false);
+            }}
+            onWidthChange={setDockedConversationWidth}
+            onClose={closeCombinedInteractionPanel}
+          />
+        ) : (
+          <>
+            <DockedConversationPanel
+              isOpen={isConversationPanelOpen}
+              width={dockedConversationWidth}
+              maxWidth={conversationPanelMaxWidth}
+              conversation={conversationState}
+              onWidthChange={setDockedConversationWidth}
+              onClose={closeConversationPanel}
+              onUndockStart={(event) => {
+                if (typeof window === "undefined") return;
 
-            event.preventDefault();
+                event.preventDefault();
 
-            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-            if (!bounds) return;
+                const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                if (!bounds) return;
 
-            const margin = CONVERSATION_POPOUNDER_MARGIN;
-            const nextPosition = {
-              x: Math.min(
-                Math.max(margin, bounds.left),
-                window.innerWidth - conversationPopunderSize.width - margin,
-              ),
-              y: Math.min(
-                Math.max(margin, bounds.top),
-                window.innerHeight - conversationPopunderSize.height - margin,
-              ),
-            };
+                const margin = CONVERSATION_POPOUNDER_MARGIN;
+                const nextPosition = {
+                  x: Math.min(
+                    Math.max(margin, bounds.left),
+                    window.innerWidth - conversationPopunderSize.width - margin,
+                  ),
+                  y: Math.min(
+                    Math.max(margin, bounds.top),
+                    window.innerHeight - conversationPopunderSize.height - margin,
+                  ),
+                };
 
-            bringFloatingPanelToFront("conversation");
-            setConversationPopunderPosition(nextPosition);
-            setIsConversationPanelOpen(false);
-            setIsConversationPopunderOpen(true);
-            setConversationDragActivation({
-              id: Date.now(),
-              offset: {
-                x: event.clientX - nextPosition.x,
-                y: event.clientY - nextPosition.y,
-              },
-            });
-          }}
-        />
-        <DockedCustomerInfoPanel
-          isOpen={isDeskCustomerInfoVisible}
-          width={dockedCustomerInfoWidth}
-          maxWidth={customerInfoPanelMaxWidth}
-          customerName={selectedAssignment.name}
-          customerId={selectedAssignmentCallDetail.customerId}
-          onWidthChange={setDockedCustomerInfoWidth}
-          onClose={closeCustomerInfoPanel}
-          onUndockStart={(event) => {
-            if (typeof window === "undefined") return;
+                bringFloatingPanelToFront("conversation");
+                setConversationPopunderPosition(nextPosition);
+                setIsConversationPanelOpen(false);
+                setIsConversationPopunderOpen(true);
+                setConversationDragActivation({
+                  id: Date.now(),
+                  offset: {
+                    x: event.clientX - nextPosition.x,
+                    y: event.clientY - nextPosition.y,
+                  },
+                });
+              }}
+            />
+            <DockedCustomerInfoPanel
+              isOpen={isDeskCustomerInfoVisible}
+              width={dockedCustomerInfoWidth}
+              maxWidth={customerInfoPanelMaxWidth}
+              customerName={selectedAssignment.name}
+              customerId={selectedAssignmentCallDetail.customerId}
+              onWidthChange={setDockedCustomerInfoWidth}
+              onClose={closeCustomerInfoPanel}
+              onUndockStart={(event) => {
+                if (typeof window === "undefined") return;
 
-            event.preventDefault();
+                event.preventDefault();
 
-            const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-            if (!bounds) return;
+                const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                if (!bounds) return;
 
-            const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
-            const nextPosition = {
-              x: Math.min(
-                Math.max(margin, bounds.left),
-                window.innerWidth - customerInfoPopunderSize.width - margin,
-              ),
-              y: Math.min(
-                Math.max(margin, bounds.top),
-                window.innerHeight - customerInfoPopunderSize.height - margin,
-              ),
-            };
+                const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+                const nextPosition = {
+                  x: Math.min(
+                    Math.max(margin, bounds.left),
+                    window.innerWidth - customerInfoPopunderSize.width - margin,
+                  ),
+                  y: Math.min(
+                    Math.max(margin, bounds.top),
+                    window.innerHeight - customerInfoPopunderSize.height - margin,
+                  ),
+                };
 
-            bringFloatingPanelToFront("customerInfo");
-            setCustomerInfoPopunderPosition(nextPosition);
-            setIsCustomerInfoPopunderOpen(true);
-            setCustomerInfoDragActivation({
-              id: Date.now(),
-              offset: {
-                x: event.clientX - nextPosition.x,
-                y: event.clientY - nextPosition.y,
-              },
-            });
-          }}
-        />
+                bringFloatingPanelToFront("customerInfo");
+                setCustomerInfoPopunderPosition(nextPosition);
+                setIsCustomerInfoPopunderOpen(true);
+                setCustomerInfoDragActivation({
+                  id: Date.now(),
+                  offset: {
+                    x: event.clientX - nextPosition.x,
+                    y: event.clientY - nextPosition.y,
+                  },
+                });
+              }}
+            />
+          </>
+        )}
         {!isExpandedCanvasRoute && (
           <div
             className={cn(
