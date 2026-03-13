@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/select";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
+import DeskDataTable from "@/components/DeskDataTable";
 import NotesPanel from "@/components/NotesPanel";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ interface LayoutProps {
 }
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
+type DeskCanvasView = "desk" | "copilot";
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -80,6 +82,7 @@ interface LayoutContextValue {
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  undockDeskPanel: (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => void;
   toggleCallPopunder: (anchorRect?: DOMRect | null) => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
@@ -303,6 +306,16 @@ type CustomerInfoPopunderSize = {
   height: number;
 };
 
+type DeskCanvasPopunderPosition = {
+  x: number;
+  y: number;
+};
+
+type DeskCanvasPopunderSize = {
+  width: number;
+  height: number;
+};
+
 type CallPopunderMode = "setup" | "connecting" | "controls" | "disposition";
 
 const CALL_POPUNDER_WIDTH = 272;
@@ -323,8 +336,26 @@ const CUSTOMER_INFO_PANEL_GAP = 16;
 const CUSTOMER_INFO_PANEL_BREAKPOINT = 1200;
 const CUSTOMER_INFO_POPOUNDER_MARGIN = 16;
 const CUSTOMER_INFO_POPOUNDER_GAP = 12;
+const DESK_CANVAS_POPOUNDER_MARGIN = 16;
+const DESK_CANVAS_POPOUNDER_MIN_HEIGHT = 420;
+const DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH = 480;
+const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 320;
+const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 760;
+const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
 const COPILOT_DOCK_BREAKPOINT = 1280;
 const CALL_DISPOSITION_OPTIONS = ["Resolved", "Escalated", "Follow-up needed"] as const;
+
+function getDeskCanvasPopunderMinWidth(view: DeskCanvasView) {
+  return view === "desk"
+    ? DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH
+    : DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH;
+}
+
+function getDeskCanvasPopunderDefaultWidth(view: DeskCanvasView) {
+  return view === "desk"
+    ? DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH
+    : DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH;
+}
 
 function getDockedConversationMaxWidth({
   hasDesktopRightPanel,
@@ -1578,6 +1609,178 @@ function DockedCopilotPanel({
   );
 }
 
+function DeskCanvasPopunder({
+  view,
+  position,
+  size,
+  onPositionChange,
+  onSizeChange,
+  onClose,
+  onDock,
+  dragActivation = null,
+}: {
+  view: DeskCanvasView;
+  position: DeskCanvasPopunderPosition;
+  size: DeskCanvasPopunderSize;
+  onPositionChange: (position: DeskCanvasPopunderPosition) => void;
+  onSizeChange: (size: DeskCanvasPopunderSize) => void;
+  onClose: () => void;
+  onDock?: () => void;
+  dragActivation?: CopilotDragActivation | null;
+}) {
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
+  const isDraggingRef = useRef(false);
+  const isResizingRef = useRef(false);
+  const minWidth = getDeskCanvasPopunderMinWidth(view);
+
+  useEffect(() => {
+    if (!dragActivation) return;
+
+    isDraggingRef.current = true;
+    dragOffsetRef.current = dragActivation.offset;
+    document.body.style.userSelect = "none";
+  }, [dragActivation]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (typeof window === "undefined") return;
+
+      if (isDraggingRef.current) {
+        const nextX = event.clientX - dragOffsetRef.current.x;
+        const nextY = event.clientY - dragOffsetRef.current.y;
+
+        onPositionChange({
+          x: Math.min(
+            Math.max(DESK_CANVAS_POPOUNDER_MARGIN, nextX),
+            window.innerWidth - size.width - DESK_CANVAS_POPOUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(DESK_CANVAS_POPOUNDER_MARGIN, nextY),
+            window.innerHeight - size.height - DESK_CANVAS_POPOUNDER_MARGIN,
+          ),
+        });
+        return;
+      }
+
+      if (!isResizingRef.current) return;
+
+      const deltaX = event.clientX - resizeStartRef.current.mouseX;
+      const deltaY = event.clientY - resizeStartRef.current.mouseY;
+
+      onSizeChange({
+        width: Math.min(
+          Math.max(minWidth, resizeStartRef.current.width + deltaX),
+          window.innerWidth - position.x - DESK_CANVAS_POPOUNDER_MARGIN,
+        ),
+        height: Math.min(
+          Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, resizeStartRef.current.height + deltaY),
+          window.innerHeight - position.y - DESK_CANVAS_POPOUNDER_MARGIN,
+        ),
+      });
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+      document.body.style.userSelect = "";
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [minWidth, onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+
+  return (
+    <div
+      className="fixed z-[70] flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
+        minWidth,
+        maxWidth: "calc(100vw - 2rem)",
+        maxHeight: "calc(100vh - 2rem)",
+      }}
+    >
+      <div
+        className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        onMouseDown={(event) => {
+          isDraggingRef.current = true;
+          dragOffsetRef.current = {
+            x: event.clientX - position.x,
+            y: event.clientY - position.y,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div>
+            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">
+              {view === "copilot" ? "Copilot" : "Desk"}
+            </h3>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {onDock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onDock}
+              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+            >
+              Dock panel
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            aria-label={`Close ${view === "copilot" ? "Copilot" : "Desk"} popunder`}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {view === "copilot" ? <CopilotContent /> : <DeskDataTable />}
+      </div>
+
+      <button
+        type="button"
+        aria-label={`Resize ${view === "copilot" ? "Copilot" : "Desk"} popunder`}
+        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          isResizingRef.current = true;
+          resizeStartRef.current = {
+            mouseX: event.clientX,
+            mouseY: event.clientY,
+            width: size.width,
+            height: size.height,
+          };
+          document.body.style.userSelect = "none";
+        }}
+      >
+        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
+      </button>
+    </div>
+  );
+}
+
 function ConversationPopunder({
   position,
   size,
@@ -2245,6 +2448,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
+  const [deskCanvasPopunderView, setDeskCanvasPopunderView] = useState<DeskCanvasView | null>(null);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
@@ -2261,6 +2465,11 @@ export default function Layout({ children }: LayoutProps) {
     width: 315,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
+  const [deskCanvasPopunderPosition, setDeskCanvasPopunderPosition] = useState<DeskCanvasPopunderPosition>(() => ({ x: 0, y: 0 }));
+  const [deskCanvasPopunderSize, setDeskCanvasPopunderSize] = useState<DeskCanvasPopunderSize>(() => ({
+    width: DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH,
+    height: typeof window === "undefined" ? 720 : Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
+  }));
   const [isCopilotDockingAllowed, setIsCopilotDockingAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= COPILOT_DOCK_BREAKPOINT,
   );
@@ -2268,6 +2477,7 @@ export default function Layout({ children }: LayoutProps) {
     () => typeof window === "undefined" ? true : window.innerWidth >= COPILOT_DOCK_BREAKPOINT,
   );
   const [copilotDragActivation, setCopilotDragActivation] = useState<CopilotDragActivation | null>(null);
+  const [deskCanvasDragActivation, setDeskCanvasDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
@@ -2455,6 +2665,20 @@ export default function Layout({ children }: LayoutProps) {
     };
   };
 
+  const getAnchoredDeskCanvasPopunderPosition = (width: number, height: number) => {
+    if (typeof window === "undefined") {
+      return { x: DESK_CANVAS_POPOUNDER_MARGIN, y: 72 };
+    }
+
+    return {
+      x: Math.max(window.innerWidth - width - DESK_CANVAS_POPOUNDER_MARGIN, DESK_CANVAS_POPOUNDER_MARGIN),
+      y: Math.min(
+        Math.max(DESK_CANVAS_POPOUNDER_MARGIN, 72),
+        window.innerHeight - height - DESK_CANVAS_POPOUNDER_MARGIN,
+      ),
+    };
+  };
+
   const getAnchoredConversationPopunderPosition = (anchorRect?: DOMRect | null) => {
     if (typeof window === "undefined") {
       return { x: 84, y: 72 };
@@ -2532,6 +2756,18 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.removeEventListener("mouseup", clearDragActivation);
   }, [copilotDragActivation]);
+
+  useEffect(() => {
+    if (!deskCanvasDragActivation) return;
+
+    const clearDragActivation = () => {
+      setDeskCanvasDragActivation(null);
+    };
+
+    window.addEventListener("mouseup", clearDragActivation);
+
+    return () => window.removeEventListener("mouseup", clearDragActivation);
+  }, [deskCanvasDragActivation]);
 
   useEffect(() => {
     if (!customerInfoDragActivation) return;
@@ -2651,6 +2887,13 @@ export default function Layout({ children }: LayoutProps) {
     isExpandedCanvasRoute,
   ]);
 
+  useEffect(() => {
+    if (!isDeskRoute) return;
+
+    setDeskCanvasDragActivation(null);
+    setDeskCanvasPopunderView(null);
+  }, [isDeskRoute]);
+
   const handleCreateWorkspace = () => {
     const nextWorkspaceNumber = workspaceOptions.filter((workspace) => workspace.id.startsWith("custom-")).length + 1;
     const newWorkspace: WorkspaceOption = {
@@ -2710,6 +2953,63 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(false);
   };
 
+  const closeDeskCanvasPopunder = () => {
+    setDeskCanvasDragActivation(null);
+    setDeskCanvasPopunderView(null);
+  };
+
+  const dockDeskCanvasPopunder = () => {
+    if (!deskCanvasPopunderView) return;
+
+    const nextRoute = deskCanvasPopunderView === "copilot" ? "/desk?view=copilot" : "/desk";
+
+    closeDeskCanvasPopunder();
+    navigate(nextRoute);
+  };
+
+  const undockDeskPanel = (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => {
+    if (typeof window === "undefined") return;
+
+    event.preventDefault();
+
+    const minWidth = getDeskCanvasPopunderMinWidth(view);
+    const defaultWidth = getDeskCanvasPopunderDefaultWidth(view);
+    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+    const width = Math.min(
+      Math.max(minWidth, bounds?.width ?? defaultWidth),
+      window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2,
+    );
+    const height = Math.min(
+      Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, bounds?.height ?? Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80)),
+      window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2,
+    );
+    const anchoredPosition = getAnchoredDeskCanvasPopunderPosition(width, height);
+    const nextPosition = bounds
+      ? {
+          x: Math.min(
+            Math.max(DESK_CANVAS_POPOUNDER_MARGIN, bounds.left),
+            window.innerWidth - width - DESK_CANVAS_POPOUNDER_MARGIN,
+          ),
+          y: Math.min(
+            Math.max(DESK_CANVAS_POPOUNDER_MARGIN, bounds.top),
+            window.innerHeight - height - DESK_CANVAS_POPOUNDER_MARGIN,
+          ),
+        }
+      : anchoredPosition;
+
+    setDeskCanvasPopunderView(view);
+    setDeskCanvasPopunderSize({ width, height });
+    setDeskCanvasPopunderPosition(nextPosition);
+    setDeskCanvasDragActivation({
+      id: Date.now(),
+      offset: {
+        x: event.clientX - nextPosition.x,
+        y: event.clientY - nextPosition.y,
+      },
+    });
+    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+  };
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -2746,6 +3046,7 @@ export default function Layout({ children }: LayoutProps) {
       closeConversationPopunder,
       setConversationState,
       closeRightPanel: () => setActiveRightPanel(null),
+      undockDeskPanel,
       selectAssignment: (assignmentId) => {
         setSelectedAssignmentId(assignmentId);
 
@@ -2805,9 +3106,11 @@ export default function Layout({ children }: LayoutProps) {
       recentInteractions,
       location.pathname,
       openCustomerInfoPanel,
+      deskCanvasPopunderView,
       selectedAssignment,
       status,
       toggleConversationPanel,
+      undockDeskPanel,
     ],
   );
 
@@ -3156,6 +3459,19 @@ export default function Layout({ children }: LayoutProps) {
           onClose={closeCustomerInfoPanel}
           onDock={isCustomerInfoPanelAllowed ? openCustomerInfoPanel : undefined}
           dragActivation={customerInfoDragActivation}
+        />
+      )}
+
+      {deskCanvasPopunderView && (
+        <DeskCanvasPopunder
+          view={deskCanvasPopunderView}
+          position={deskCanvasPopunderPosition}
+          size={deskCanvasPopunderSize}
+          onPositionChange={setDeskCanvasPopunderPosition}
+          onSizeChange={setDeskCanvasPopunderSize}
+          onClose={closeDeskCanvasPopunder}
+          onDock={dockDeskCanvasPopunder}
+          dragActivation={deskCanvasDragActivation}
         />
       )}
 

@@ -2,21 +2,19 @@ import { GripHorizontal, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { CopilotContent } from "@/components/CopilotPopunder";
+import { useLayoutContext } from "@/components/Layout";
 import DeskDataTable from "@/components/DeskDataTable";
 
 export default function Desk() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { undockDeskPanel } = useLayoutContext();
   const isCopilotView = new URLSearchParams(location.search).get("view") === "copilot";
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div
-        draggable
-        onDragStart={(event) => {
-          event.dataTransfer.setData("text/plain", isCopilotView ? "Copilot" : "Desk");
-          event.dataTransfer.effectAllowed = "move";
-        }}
+        onMouseDown={(event) => undockDeskPanel(isCopilotView ? "copilot" : "desk", event)}
         className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
       >
         <div className="flex items-start gap-3">
