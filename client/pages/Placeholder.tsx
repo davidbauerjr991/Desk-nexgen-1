@@ -9,7 +9,7 @@ interface PlaceholderProps {
 export default function Placeholder({ title, description, icon: Icon }: PlaceholderProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center p-8">
-      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-6">
+      <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
         <Icon className="w-8 h-8 text-muted-foreground" />
       </div>
       <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">

@@ -20,7 +20,7 @@ export default function Desk() {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
           <ClipboardList className="h-8 w-8 text-muted-foreground" />
         </div>
         <h2 className="mb-2 text-2xl font-bold tracking-tight text-foreground">Desk</h2>
