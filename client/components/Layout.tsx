@@ -2375,6 +2375,17 @@ export default function Layout({ children }: LayoutProps) {
   const selectedAssignmentCallDetail =
     assignmentCallDetails[selectedAssignment.id as keyof typeof assignmentCallDetails] ?? assignmentCallDetails.alex;
 
+  useEffect(() => {
+    setConversationState((current) => (
+      current.customerName === selectedAssignment.name
+        ? current
+        : {
+            ...current,
+            customerName: selectedAssignment.name,
+          }
+    ));
+  }, [selectedAssignment.name]);
+
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
     if (typeof window === "undefined") {
       return { x: 24, y: 24 };
