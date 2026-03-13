@@ -1,6 +1,7 @@
 import { GripHorizontal, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
+import AddPanelContent from "@/components/AddPanelContent";
 import { CopilotContent } from "@/components/CopilotPopunder";
 import { useLayoutContext } from "@/components/Layout";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -13,8 +14,9 @@ export default function Desk() {
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
   const isNotesView = view === "notes";
-  const panelLabel = isCopilotView ? "Copilot" : isNotesView ? "Notes" : "Desk";
-  const panelView = isCopilotView ? "copilot" : isNotesView ? "notes" : "desk";
+  const isAddView = view === "add";
+  const panelLabel = isCopilotView ? "Copilot" : isNotesView ? "Notes" : isAddView ? "Add" : "Desk";
+  const panelView = isCopilotView ? "copilot" : isNotesView ? "notes" : isAddView ? "add" : "desk";
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -40,7 +42,7 @@ export default function Desk() {
         </button>
       </div>
 
-      {isCopilotView ? <CopilotContent /> : isNotesView ? <NotesPanel notesOnly /> : <DeskDataTable />}
+      {isCopilotView ? <CopilotContent /> : isNotesView ? <NotesPanel notesOnly /> : isAddView ? <AddPanelContent /> : <DeskDataTable />}
     </div>
   );
 }

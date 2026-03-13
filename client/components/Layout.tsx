@@ -33,19 +33,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
+import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -56,7 +49,7 @@ interface LayoutProps {
 }
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
-type DeskCanvasView = "desk" | "copilot" | "notes";
+type DeskCanvasView = "desk" | "copilot" | "notes" | "add";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 
 interface LayoutContextValue {
@@ -102,7 +95,6 @@ export function useLayoutContext() {
 }
 
 type AgentStatus = "Available" | "Busy" | "Away" | "Offline" | "In a Call";
-type AddNewType = "customer" | "account" | "ticket" | "work-item";
 type WorkspaceOption = {
   id: string;
   name: string;
@@ -158,46 +150,6 @@ const defaultConversationState: SharedConversationData = {
         "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
       time: "10:26 AM",
     },
-  ],
-};
-
-const addNewFieldConfig: Record<
-  AddNewType,
-  Array<{
-    key: string;
-    label: string;
-    placeholder: string;
-    type: "input" | "textarea";
-  }>
-> = {
-  customer: [
-    { key: "firstName", label: "First Name", placeholder: "Enter first name", type: "input" },
-    { key: "lastName", label: "Last Name", placeholder: "Enter last name", type: "input" },
-    { key: "email", label: "Email", placeholder: "name@example.com", type: "input" },
-    { key: "phone", label: "Phone", placeholder: "(555) 123-4567", type: "input" },
-    { key: "customerId", label: "Customer ID", placeholder: "CST-10482", type: "input" },
-    { key: "notes", label: "Notes", placeholder: "Add customer notes", type: "textarea" },
-  ],
-  account: [
-    { key: "accountName", label: "Account Name", placeholder: "Premier Account", type: "input" },
-    { key: "accountNumber", label: "Account Number", placeholder: "ACC-20391", type: "input" },
-    { key: "owner", label: "Owner", placeholder: "Alex Kowalski", type: "input" },
-    { key: "status", label: "Status", placeholder: "Active", type: "input" },
-    { key: "billingAddress", label: "Billing Address", placeholder: "Add billing address", type: "textarea" },
-  ],
-  ticket: [
-    { key: "title", label: "Ticket Title", placeholder: "Payment mismatch preventing upgrade", type: "input" },
-    { key: "priority", label: "Priority", placeholder: "High", type: "input" },
-    { key: "category", label: "Category", placeholder: "Billing", type: "input" },
-    { key: "customer", label: "Customer", placeholder: "Alex Kowalski", type: "input" },
-    { key: "description", label: "Description", placeholder: "Describe the issue", type: "textarea" },
-  ],
-  "work-item": [
-    { key: "name", label: "Work Item Name", placeholder: "Resolve billing mismatch", type: "input" },
-    { key: "assignee", label: "Assignee", placeholder: "Jordan Doe", type: "input" },
-    { key: "dueDate", label: "Due Date", placeholder: "03/15/26", type: "input" },
-    { key: "relatedTo", label: "Related To", placeholder: "Ticket TCK-2091", type: "input" },
-    { key: "details", label: "Details", placeholder: "Add work item details", type: "textarea" },
   ],
 };
 
@@ -898,15 +850,10 @@ function AddNewPopoverContent({
   onClose: () => void;
   onInteractStart?: () => void;
 }) {
-  const [selectedType, setSelectedType] = useState<AddNewType>("customer");
-  const [formValues, setFormValues] = useState<Record<string, string>>({});
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 720 });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
-
-  const fields = addNewFieldConfig[selectedType];
-  const isSaveDisabled = fields.some((field) => !(formValues[field.key] ?? "").trim());
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -956,24 +903,6 @@ function AddNewPopoverContent({
     };
   }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
 
-  const clearForm = () => {
-    setFormValues({});
-  };
-
-  const handleSave = () => {
-    if (isSaveDisabled) {
-      return;
-    }
-
-    clearForm();
-    toast.success("Customer Saved Successfully", {
-      action: {
-        label: "Open Record",
-        onClick: () => undefined,
-      },
-    });
-  };
-
   return (
     <div
       className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
@@ -1014,69 +943,7 @@ function AddNewPopoverContent({
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-        <div className="space-y-5">
-          <div className="space-y-2">
-            <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
-              Item Type
-            </label>
-            <Select value={selectedType} onValueChange={(value) => setSelectedType(value as AddNewType)}>
-              <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#006DAD]/30 focus:ring-offset-0 focus:border-[#006DAD]">
-                <SelectValue placeholder="Select item type" />
-              </SelectTrigger>
-              <SelectContent className="z-[80] rounded border border-[#E5E7EB] bg-white">
-                <SelectItem value="customer">Customer</SelectItem>
-                <SelectItem value="account">Account</SelectItem>
-                <SelectItem value="ticket">Ticket</SelectItem>
-                <SelectItem value="work-item">Work Item</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-4">
-            {fields.map((field) => (
-              <div key={field.key} className="space-y-2">
-                <label className="block text-[10px] font-medium uppercase tracking-wider text-[#9CA3AF]">
-                  {field.label}
-                </label>
-                {field.type === "textarea" ? (
-                  <Textarea
-                    value={formValues[field.key] ?? ""}
-                    onChange={(event) =>
-                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
-                    }
-                    placeholder={field.placeholder}
-                    className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
-                  />
-                ) : (
-                  <Input
-                    value={formValues[field.key] ?? ""}
-                    onChange={(event) =>
-                      setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
-                    }
-                    placeholder={field.placeholder}
-                    className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#006DAD] focus-visible:ring-1 focus-visible:ring-[#006DAD]/30"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-3 border-t border-border px-5 py-4">
-        <Button type="button" variant="outline" className="rounded-xl" onClick={clearForm}>
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          className="rounded-xl bg-[#006DAD] hover:bg-[#5B00D1] disabled:bg-[#B8D7F0] disabled:text-white"
-          onClick={handleSave}
-          disabled={isSaveDisabled}
-        >
-          Save
-        </Button>
-      </div>
+      <AddPanelContent />
 
       <button
         type="button"
@@ -1658,7 +1525,7 @@ function DeskCanvasPopunder({
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
   const minWidth = getDeskCanvasPopunderMinWidth(view);
-  const panelLabel = view === "copilot" ? "Copilot" : view === "notes" ? "Notes" : "Desk";
+  const panelLabel = view === "copilot" ? "Copilot" : view === "notes" ? "Notes" : view === "add" ? "Add" : "Desk";
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -1781,7 +1648,7 @@ function DeskCanvasPopunder({
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {view === "copilot" ? <CopilotContent /> : view === "notes" ? <NotesPanel notesOnly /> : <DeskDataTable />}
+        {view === "copilot" ? <CopilotContent /> : view === "notes" ? <NotesPanel notesOnly /> : view === "add" ? <AddPanelContent /> : <DeskDataTable />}
       </div>
 
       <button
@@ -3038,7 +2905,9 @@ export default function Layout({ children }: LayoutProps) {
       ? "/desk?view=copilot"
       : deskCanvasPopunderView === "notes"
         ? "/desk?view=notes"
-        : "/desk";
+        : deskCanvasPopunderView === "add"
+          ? "/desk?view=add"
+          : "/desk";
 
     closeDeskCanvasPopunder();
     navigate(nextRoute);
@@ -3333,19 +3202,12 @@ export default function Layout({ children }: LayoutProps) {
 
               <div ref={addNewButtonRef}>
                 <HeaderIconButton
-                  ariaLabel={isAddNewPopoverOpen ? "Hide add new popover" : "Show add new popover"}
-                  ariaExpanded={isAddNewPopoverOpen}
+                  ariaLabel="Open add in desk panel"
                   onClick={() => {
-                    if (isAddNewPopoverOpen) {
-                      setIsAddNewPopoverOpen(false);
-                      return;
-                    }
-
-                    bringFloatingPanelToFront("addNew");
-                    setAddNewPopunderPosition(getAnchoredAddNewPopunderPosition());
-                    setIsAddNewPopoverOpen(true);
+                    setIsAddNewPopoverOpen(false);
+                    navigate("/desk?view=add");
                   }}
-                  isActive={isAddNewPopoverOpen}
+                  isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "add"}
                 >
                   <Plus className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
