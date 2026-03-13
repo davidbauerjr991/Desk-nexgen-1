@@ -1089,7 +1089,7 @@ function DockedConversationPanel({
         {isContentVisible && (
           <>
             <div
-              className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+              className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
               onMouseDown={onUndockStart}
             >
               <div className="flex items-start gap-3">
@@ -1218,7 +1218,7 @@ function DockedCopilotPanel({
 
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div
-          className="flex cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+          className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
           onMouseDown={onUndockStart}
         >
           <div className="flex items-start gap-3">
