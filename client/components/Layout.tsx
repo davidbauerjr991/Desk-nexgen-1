@@ -2916,6 +2916,13 @@ export default function Layout({ children }: LayoutProps) {
     setConversationDragActivation(null);
   };
 
+  const dockConversationPanel = () => {
+    setDockedConversationWidth(Math.min(conversationPanelMaxWidth, 360));
+    setIsConversationPanelOpen(true);
+    setIsConversationPopunderOpen(false);
+    setConversationDragActivation(null);
+  };
+
   const toggleConversationPanel = () => {
     if (isConversationPanelOpen) {
       setIsConversationPanelOpen(false);
@@ -3443,7 +3450,7 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onClose={closeConversationPopunder}
-          onDock={openConversationPanel}
+          onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
         />
       )}
