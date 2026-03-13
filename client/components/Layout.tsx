@@ -2310,7 +2310,7 @@ export default function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 aria-label="Select workspace"
-                className="hidden min-w-0 items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none lg:flex"
+                className="hidden min-w-0 items-start gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none lg:flex"
               >
                 <span className="min-w-0">
                   <span className="block truncate text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
@@ -2320,7 +2320,7 @@ export default function Layout({ children }: LayoutProps) {
                     {activeWorkspace.name}
                   </span>
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-[#666666]" />
+                <ChevronDown className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#666666]" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
