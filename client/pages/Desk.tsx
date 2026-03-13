@@ -1,7 +1,8 @@
-import { ClipboardList, GripHorizontal } from "lucide-react";
+import { GripHorizontal } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import { CopilotContent } from "@/components/CopilotPopunder";
+import DeskDataTable from "@/components/DeskDataTable";
 
 export default function Desk() {
   const location = useLocation();
@@ -25,22 +26,7 @@ export default function Desk() {
         </div>
       </div>
 
-      {isCopilotView ? (
-        <CopilotContent />
-      ) : (
-        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
-            <ClipboardList className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h2 className="mb-2 text-2xl font-bold tracking-tight text-foreground">Desk</h2>
-          <p className="mb-8 max-w-md text-muted-foreground">
-            Manage assigned work, case queues, and agent handoffs from a dedicated desk workspace.
-          </p>
-          <div className="rounded-lg border border-primary/20 bg-primary/10 p-4 text-sm font-medium text-primary">
-            You can continue prompting to build this page out next!
-          </div>
-        </div>
-      )}
+      {isCopilotView ? <CopilotContent /> : <DeskDataTable />}
     </div>
   );
 }
