@@ -2954,6 +2954,13 @@ export default function Layout({ children }: LayoutProps) {
     setDockedCustomerInfoWidth(customerInfoPanelMaxWidth);
   };
 
+  const dockCustomerInfoPanel = () => {
+    setIsCustomerInfoPanelOpen(true);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+    setDockedCustomerInfoWidth(Math.min(customerInfoPanelMaxWidth, 425));
+  };
+
   const closeCustomerInfoPanel = () => {
     setCustomerInfoDragActivation(null);
     setIsCustomerInfoPopunderOpen(false);
@@ -3464,7 +3471,7 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setCustomerInfoPopunderPosition}
           onSizeChange={setCustomerInfoPopunderSize}
           onClose={closeCustomerInfoPanel}
-          onDock={isCustomerInfoPanelAllowed ? openCustomerInfoPanel : undefined}
+          onDock={isCustomerInfoPanelAllowed ? dockCustomerInfoPanel : undefined}
           dragActivation={customerInfoDragActivation}
         />
       )}
