@@ -288,7 +288,7 @@ const CUSTOMER_INFO_PANEL_MIN_WIDTH = 425;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 300;
 const CUSTOMER_INFO_PANEL_MAX_WIDTH = 560;
 const CUSTOMER_INFO_PANEL_GAP = 16;
-const CUSTOMER_INFO_PANEL_BREAKPOINT = 1200;
+const CUSTOMER_INFO_PANEL_BREAKPOINT = 1024;
 const CUSTOMER_INFO_POPOUNDER_MARGIN = 16;
 const CUSTOMER_INFO_POPOUNDER_GAP = 12;
 const DESK_CANVAS_POPOUNDER_MARGIN = 16;
@@ -1303,10 +1303,10 @@ function DockedCustomerInfoPanel({
     <div
       aria-hidden={!isOpen}
       className={cn(
-        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1200px]:block",
+        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1024px]:block",
         isOpen
-          ? "min-[1200px]:translate-x-0 min-[1200px]:opacity-100"
-          : "pointer-events-none min-[1200px]:-translate-x-4 min-[1200px]:opacity-0",
+          ? "min-[1024px]:translate-x-0 min-[1024px]:opacity-100"
+          : "pointer-events-none min-[1024px]:-translate-x-4 min-[1024px]:opacity-0",
       )}
       style={{
         width: isOpen ? width : 0,
@@ -1345,7 +1345,7 @@ function DockedCustomerInfoPanel({
         <button
           type="button"
           aria-label="Resize docked customer information panel"
-          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[1200px]:flex"
+          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[1024px]:flex"
           onMouseDown={(event) => {
             event.preventDefault();
             isResizingRef.current = true;
