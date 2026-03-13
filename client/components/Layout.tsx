@@ -2615,6 +2615,8 @@ export default function Layout({ children }: LayoutProps) {
   const dockedCustomerInfoPanelWidth = isDeskCustomerInfoVisible ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP : 0;
   const isDeskCustomerInfoPopunderVisible =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+  const shouldPreserveFloatingCustomerInfoPanel =
+    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
     customerInfoPanelWidth: dockedCustomerInfoPanelWidth,
@@ -3124,6 +3126,11 @@ export default function Layout({ children }: LayoutProps) {
         setSelectedAssignmentId(assignmentId);
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
+          if (shouldPreserveFloatingCustomerInfoPanel) {
+            bringFloatingPanelToFront("customerInfo");
+            return;
+          }
+
           openCustomerInfoPanel();
 
           if (!isCustomerInfoPanelAllowed) {
@@ -3181,6 +3188,7 @@ export default function Layout({ children }: LayoutProps) {
       recentInteractions,
       location.pathname,
       openCustomerInfoPanel,
+      shouldPreserveFloatingCustomerInfoPanel,
       deskCanvasPopunderView,
       selectedAssignment,
       status,
