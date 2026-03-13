@@ -269,6 +269,12 @@ export default function DeskDataTable() {
             minHeight: "46px",
             borderTop: "1px solid #D7DBE0",
             backgroundColor: "#FFFFFF",
+            overflow: "hidden",
+          },
+          "& .MuiDataGrid-scrollbar--vertical": {
+            top: "var(--DataGrid-headersTotalHeight)",
+            bottom: "calc(var(--DataGrid-bottomContainerHeight) + var(--DataGrid-hasScrollX) * var(--DataGrid-scrollbarSize))",
+            height: "auto",
           },
           "& .MuiTablePagination-root": {
             color: "#4B5563",
