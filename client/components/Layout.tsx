@@ -45,7 +45,6 @@ import {
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
 import NotesPanel from "@/components/NotesPanel";
-import WorkspaceTabs from "@/components/WorkspaceTabs";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -2368,15 +2367,6 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        </div>
-
-        <div
-          className={cn(
-            "flex min-w-0 flex-1 justify-start pl-2 lg:flex-none lg:justify-center lg:px-2",
-            isHeaderSearchOpen && "hidden",
-          )}
-        >
-          <WorkspaceTabs />
         </div>
 
         <div className="relative flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5">
