@@ -7,7 +7,7 @@ interface CustomerInfoPanelProps {
   bordered?: boolean;
 }
 
-function OverviewField({
+function CustomerDetailRow({
   label,
   value,
 }: {
@@ -15,24 +15,25 @@ function OverviewField({
   value: React.ReactNode;
 }) {
   return (
-    <div>
-      <div className="text-[11px] font-semibold uppercase text-[#333333]">{label}</div>
-      <div className="text-[11px] leading-5 text-[#6B7280]">{value}</div>
+    <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] py-3 last:border-b-0">
+      <span className="text-[14px] leading-6 text-[#667085]">{label}</span>
+      <span className="text-right text-[14px] font-medium leading-6 text-[#101828]">{value}</span>
     </div>
   );
 }
 
 export function CustomerOverviewCard() {
   return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-5 p-4">
-      <OverviewField label="Phone #" value={<span>🇺🇸 +1 716 331 4661</span>} />
-      <OverviewField label="Contact #" value="2457" />
-      <OverviewField label="Email" value="Teresa.Harrington@nice.com" />
-      <OverviewField label="Balance" value="$5,005.65" />
-      <OverviewField label="Address" value="1 SmartReach Rd" />
-      <OverviewField label="City" value="Buffalo" />
-      <OverviewField label="State" value="New York" />
-      <OverviewField label="Zip Code" value="14217" />
+    <div className="p-4">
+      <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#667085]">Customer Details</div>
+      <div className="mt-4">
+        <CustomerDetailRow label="Customer" value="David Brown" />
+        <CustomerDetailRow label="Channel" value="SMS" />
+        <CustomerDetailRow label="Timeline" value="SMS · Today, 10:24 AM" />
+        <CustomerDetailRow label="Messages" value="11 live updates" />
+        <CustomerDetailRow label="Sentiment flags" value="1 active" />
+        <CustomerDetailRow label="Translation" value="English" />
+      </div>
     </div>
   );
 }

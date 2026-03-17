@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowUpRight, Bot, Clock3, GripVertical, Sparkles, Ticket } from "lucide-react";
+import { ArrowUpRight, Clock3, GripVertical, Ticket } from "lucide-react";
 import { Responsive, WidthProvider, type ResponsiveLayouts } from "react-grid-layout/legacy";
 
 import { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
@@ -7,12 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
-const overviewSummaryBullets = [
-  "Billing mismatch and zip-code verification triggered the latest payment block during the upgrade attempt.",
-  "Customer shows strong product intent and remains engaged across SMS, chat, and email despite repeated failures.",
-  "Best next action is to confirm the hold is cleared, guide a fresh retry, and monitor for one more payment event.",
-];
 
 const overviewTimeline = [
   {
@@ -85,22 +79,19 @@ const recentTickets = [
 
 const defaultLayouts: ResponsiveLayouts = {
   lg: [
-    { i: "summary", x: 0, y: 0, w: 2, h: 6, minW: 1, maxW: 2, minH: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
-    { i: "timeline", x: 1, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
-    { i: "tickets", x: 0, y: 11, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "overview", x: 0, y: 0, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "timeline", x: 1, y: 0, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "tickets", x: 0, y: 5, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
   ],
   md: [
-    { i: "summary", x: 0, y: 0, w: 2, h: 6, minW: 1, maxW: 2, minH: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
-    { i: "timeline", x: 1, y: 6, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
-    { i: "tickets", x: 0, y: 11, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "overview", x: 0, y: 0, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "timeline", x: 1, y: 0, w: 1, h: 5, minW: 1, maxW: 2, minH: 5 },
+    { i: "tickets", x: 0, y: 5, w: 2, h: 5, minW: 1, maxW: 2, minH: 5 },
   ],
   sm: [
-    { i: "summary", x: 0, y: 0, w: 1, h: 6, minW: 1, maxW: 1, minH: 6 },
-    { i: "overview", x: 0, y: 6, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
-    { i: "timeline", x: 0, y: 11, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
-    { i: "tickets", x: 0, y: 16, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
+    { i: "overview", x: 0, y: 0, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
+    { i: "timeline", x: 0, y: 5, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
+    { i: "tickets", x: 0, y: 10, w: 1, h: 5, minW: 1, maxW: 1, minH: 5 },
   ],
 };
 
@@ -130,54 +121,6 @@ function DashboardCard({
         </div>
       </div>
       <div className={cn("min-h-0 flex-1 overflow-hidden", bodyClassName)}>{children}</div>
-    </div>
-  );
-}
-
-function OverviewSummaryCard() {
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[#B8D7F0] bg-[linear-gradient(135deg,#EEF6FC_0%,#F0F8FC_100%)] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="overview-card-handle flex cursor-grab items-start justify-between gap-3 border-b border-[#D7EAF6] px-4 py-3 active:cursor-grabbing">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#D7EAF6] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#006DAD]">
-            <Sparkles className="h-3.5 w-3.5" />
-            AI Auto Summary
-          </div>
-          <h3 className="mt-3 text-base font-semibold tracking-tight text-[#1F2937]">
-            Alex is likely to convert if the billing hold is cleared in-session.
-          </h3>
-          <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#6B7280]">
-            The account shows healthy payment history and repeated intent to upgrade. Current friction is operational rather than churn-related.
-          </p>
-        </div>
-        <GripVertical className="mt-1 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-      </div>
-
-      <div className="grid gap-3 px-4 py-3 sm:grid-cols-2">
-        <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[#1991D2]">Intent</div>
-          <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">High to upgrade</div>
-        </div>
-        <div className="rounded-xl border border-white/80 bg-white/80 px-4 py-3 shadow-sm">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-[#1991D2]">Risk</div>
-          <div className="mt-1 text-[13px] font-semibold text-[#1F2937]">Medium friction</div>
-        </div>
-      </div>
-
-      <div className="grid min-h-0 flex-1 gap-3 border-t border-[#D7EAF6] bg-white/60 px-4 py-3 md:grid-cols-2 xl:grid-cols-3">
-        {overviewSummaryBullets.map((item) => (
-          <div
-            key={item}
-            className="rounded-xl border border-white bg-white px-4 py-3 text-[13px] leading-5 text-[#4B5563] shadow-sm"
-          >
-            <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#006DAD]">
-              <Bot className="h-3.5 w-3.5" />
-              Insight
-            </div>
-            {item}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
@@ -272,7 +215,6 @@ export default function OverviewDashboard() {
 
   const cards = useMemo(
     () => ({
-      summary: <OverviewSummaryCard />,
       overview: <OverviewCard />,
       timeline: <TimelineCard />,
       tickets: <TicketsCard />,
@@ -280,7 +222,7 @@ export default function OverviewDashboard() {
     [],
   );
 
-  const orderedItems = useMemo(() => ["summary", "overview", "timeline", "tickets"], []);
+  const orderedItems = useMemo(() => ["overview", "timeline", "tickets"], []);
 
   return (
     <div className="pb-4">
