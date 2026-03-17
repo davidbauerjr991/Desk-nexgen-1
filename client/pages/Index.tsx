@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MoreVertical,
   PhoneCall,
@@ -24,11 +24,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { createConversationState, type CustomerChannel } from "@/lib/customer-database";
 import { useLayoutContext } from "@/components/Layout";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
-import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
+import ConversationPanel from "@/components/ConversationPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,131 +37,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type ChannelType = "chat" | "sms" | "whatsapp" | "email";
+type ChannelType = CustomerChannel;
 type AddNewType = "customer" | "account" | "ticket" | "work-item";
-
-const conversationsByChannel: Record<ChannelType, Omit<SharedConversationData, "customerName">> = {
-  chat: {
-    label: "Chat",
-    timelineLabel: "Web chat · Today, 10:24 AM",
-    draft:
-      "I can see the upgrade failure in your live chat session. I’m clearing the billing mismatch now so you can retry without leaving this window.",
-    messages: [
-      {
-        id: 1,
-        role: "customer",
-        content:
-          "Hi, I'm on the pricing page and the upgrade button keeps failing after I submit my card details.",
-        time: "10:24 AM",
-      },
-      {
-        id: 2,
-        role: "agent",
-        content:
-          "Thanks for flagging it. I’m reviewing the failed checkout event from your session now.",
-        time: "10:25 AM",
-      },
-      {
-        id: 3,
-        role: "customer",
-        content:
-          "It says the payment details don't match, but everything is copied directly from my profile.",
-        time: "10:26 AM",
-        sentiment: "frustrated",
-      },
-    ],
-  },
-  sms: {
-    label: "SMS",
-    timelineLabel: "SMS · Today, 10:24 AM",
-    draft:
-      "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you.",
-    messages: [
-      {
-        id: 1,
-        role: "customer",
-        content:
-          "Hi, I'm trying to upgrade my subscription to the Pro tier, but my credit card keeps getting declined even though I know I have sufficient funds.",
-        time: "10:24 AM",
-        sentiment: "frustrated",
-      },
-      {
-        id: 2,
-        role: "agent",
-        content:
-          "Hello Alex! I'm sorry to hear you're experiencing issues upgrading your account. I can certainly help you look into this right away.",
-        time: "10:25 AM",
-      },
-      {
-        id: 3,
-        role: "customer",
-        content:
-          "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
-        time: "10:26 AM",
-      },
-    ],
-  },
-  whatsapp: {
-    label: "WhatsApp",
-    timelineLabel: "WhatsApp · Today, 10:24 AM",
-    draft:
-      "Thanks for sending that over on WhatsApp. I’ve cleared the payment security flag, so please try the upgrade once more and let me know what you see.",
-    messages: [
-      {
-        id: 1,
-        role: "customer",
-        content:
-          "Hey team, my upgrade still isn't going through. I tried again from my phone and it failed immediately.",
-        time: "10:24 AM",
-      },
-      {
-        id: 2,
-        role: "agent",
-        content:
-          "I’ve got your account open now. Give me a moment to review the latest payment attempt.",
-        time: "10:25 AM",
-      },
-      {
-        id: 3,
-        role: "customer",
-        content:
-          "Appreciate it — I need the Pro features enabled before my meeting starts.",
-        time: "10:27 AM",
-        sentiment: "frustrated",
-      },
-    ],
-  },
-  email: {
-    label: "Email",
-    timelineLabel: "Email thread · Today, 10:24 AM",
-    draft:
-      "Hi Alex — I found the billing mismatch that caused the failed upgrade attempts. I’ve removed the security hold, so please try again when convenient and reply if you still see an error.",
-    messages: [
-      {
-        id: 1,
-        role: "customer",
-        content:
-          "Subject: Upgrade payment failing\n\nHi team, I’m trying to move to the Pro plan and the payment form keeps rejecting my card even though the card is valid.",
-        time: "10:24 AM",
-      },
-      {
-        id: 2,
-        role: "agent",
-        content:
-          "Hi Alex, thanks for the details. I’m checking the payment logs and fraud rules tied to your most recent attempt now.",
-        time: "10:25 AM",
-      },
-      {
-        id: 3,
-        role: "customer",
-        content:
-          "Thanks. I retried just before sending this and got the same billing mismatch message.",
-        time: "10:28 AM",
-        sentiment: "frustrated",
-      },
-    ],
-  },
-};
 
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
@@ -188,13 +66,6 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
-const assignmentHeaderDetails = {
-  alex: { customerId: "CST-10482", lastUpdated: "02/23/26 | 04:22 PM" },
-  sarah: { customerId: "CST-10591", lastUpdated: "02/24/26 | 09:18 AM" },
-  emily: { customerId: "CST-10814", lastUpdated: "02/25/26 | 11:47 AM" },
-  david: { customerId: "CST-10363", lastUpdated: "02/26/26 | 03:06 PM" },
-} as const;
-
 function ChannelToggleButton({
   channel,
   activeChannel,
@@ -410,10 +281,10 @@ export default function Index() {
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Overview");
   const conversationPanelInitializedRef = useRef(false);
-  const activeConversation = conversationsByChannel[activeChannel];
-  const selectedAssignmentHeader =
-    assignmentHeaderDetails[selectedAssignment.id as keyof typeof assignmentHeaderDetails] ??
-    assignmentHeaderDetails.alex;
+  const activeConversation = useMemo(
+    () => createConversationState(selectedAssignment.id, activeChannel),
+    [activeChannel, selectedAssignment.id],
+  );
 
   useEffect(() => {
     if (!conversationPanelInitializedRef.current) {
@@ -447,13 +318,7 @@ export default function Index() {
   }, [isRightPanelOpen]);
 
   useEffect(() => {
-    setConversationState({
-      customerName: selectedAssignment.name,
-      label: activeConversation.label,
-      timelineLabel: activeConversation.timelineLabel,
-      draft: activeConversation.draft,
-      messages: activeConversation.messages,
-    });
+    setConversationState(activeConversation);
   }, [activeConversation, selectedAssignment.name, setConversationState]);
 
   const handleChannelSelection = (channel: ChannelType) => {
@@ -511,10 +376,10 @@ export default function Index() {
               </div>
               <div className="mt-1 flex flex-col gap-2 text-sm text-muted-foreground min-[800px]:flex-row min-[800px]:items-center min-[800px]:gap-4">
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="break-words leading-tight">{selectedAssignmentHeader.customerId}</span>
+                  <span className="break-words leading-tight">{selectedAssignment.customerId}</span>
                   <span className="flex items-start gap-1.5 leading-tight">
                     <Clock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Last updated {selectedAssignmentHeader.lastUpdated}</span>
+                    <span>Last updated {selectedAssignment.lastUpdated}</span>
                   </span>
                 </div>
               </div>

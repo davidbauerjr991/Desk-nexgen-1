@@ -43,6 +43,13 @@ import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
+import {
+  createConversationState,
+  customerDatabase,
+  defaultCustomerId,
+  getChannelFromConversationLabel,
+  type CustomerQueueIcon,
+} from "@/lib/customer-database";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -123,38 +130,7 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "reporting", name: "Reporting", description: "" },
 ];
 
-const defaultConversationState: SharedConversationData = {
-  customerName: "Alex Kowalski",
-  label: "SMS",
-  timelineLabel: "SMS · Today, 10:24 AM",
-  draft:
-    "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you.",
-  isCustomerTyping: false,
-  messages: [
-    {
-      id: 1,
-      role: "customer",
-      content:
-        "Hi, I'm trying to upgrade my subscription to the Pro tier, but my credit card keeps getting declined even though I know I have sufficient funds.",
-      time: "10:24 AM",
-      sentiment: "frustrated",
-    },
-    {
-      id: 2,
-      role: "agent",
-      content:
-        "Hello Alex! I'm sorry to hear you're experiencing issues upgrading your account. I can certainly help you look into this right away.",
-      time: "10:25 AM",
-    },
-    {
-      id: 3,
-      role: "customer",
-      content:
-        "Thank you. It's the Visa ending in 4092. I just tried it again 5 minutes ago and got the same error.",
-      time: "10:26 AM",
-    },
-  ],
-};
+const defaultConversationState: SharedConversationData = createConversationState(defaultCustomerId, "sms");
 
 type QueueSortOption = "created-desc" | "created-asc" | "updated-desc" | "updated-asc";
 
@@ -162,6 +138,8 @@ type QueuePreviewItem = {
   id: string;
   initials: string;
   name: string;
+  customerId: string;
+  lastUpdated: string;
   time: string;
   preview: string;
   sentiment: string;
@@ -173,64 +151,28 @@ type QueuePreviewItem = {
   updatedAt: string;
 };
 
-const queuePreviewItems: QueuePreviewItem[] = [
-  {
-    id: "alex",
-    initials: "AK",
-    name: "Alex Kowalski",
-    time: "Now",
-    preview: "Need help resolving a blocked upgrade.",
-    sentiment: "Positive",
-    sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
-    badgeColor: "bg-[#CC2D2D]",
-    icon: Phone,
-    isActive: true,
-    createdAt: "2026-03-11T08:30:00",
-    updatedAt: "2026-03-11T10:24:00",
-  },
-  {
-    id: "sarah",
-    initials: "SM",
-    name: "Sarah Miller",
-    time: "2m ago",
-    preview: "Missed flight",
-    sentiment: "Neutral",
-    sentimentClassName: "border-black/20 text-[#333333]",
-    badgeColor: "bg-[#2E9B34]",
-    icon: Phone,
-    isActive: false,
-    createdAt: "2026-03-11T09:02:00",
-    updatedAt: "2026-03-11T10:22:00",
-  },
-  {
-    id: "emily",
-    initials: "EC",
-    name: "Emily Chen",
-    time: "5m ago",
-    preview: "The discount code is not working at ch...",
-    sentiment: "Negative",
-    sentimentClassName: "border-[#A14C49] text-[#87413C]",
-    badgeColor: "bg-[#45C9CF]",
-    icon: ClipboardList,
-    isActive: false,
-    createdAt: "2026-03-11T08:55:00",
-    updatedAt: "2026-03-11T10:19:00",
-  },
-  {
-    id: "david",
-    initials: "DB",
-    name: "David Brown",
-    time: "24m ago",
-    preview: "Can I upgrade my subscription?",
-    sentiment: "Positive",
-    sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
-    badgeColor: "bg-[#8BC34A]",
-    icon: MessageSquare,
-    isActive: false,
-    createdAt: "2026-03-11T07:40:00",
-    updatedAt: "2026-03-11T10:00:00",
-  },
-];
+const queueIconMap: Record<CustomerQueueIcon, typeof Phone> = {
+  phone: Phone,
+  clipboardList: ClipboardList,
+  messageSquare: MessageSquare,
+};
+
+const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) => ({
+  id: customer.id,
+  initials: customer.initials,
+  name: customer.name,
+  customerId: customer.customerId,
+  lastUpdated: customer.lastUpdated,
+  time: customer.queue.time,
+  preview: customer.queue.preview,
+  sentiment: customer.queue.sentiment,
+  sentimentClassName: customer.queue.sentimentClassName,
+  badgeColor: customer.queue.badgeColor,
+  icon: queueIconMap[customer.queue.icon],
+  isActive: customer.queue.isActive,
+  createdAt: customer.queue.createdAt,
+  updatedAt: customer.queue.updatedAt,
+}));
 
 type CallPopunderPosition = {
   x: number;
@@ -480,13 +422,6 @@ function getDefaultDockedPanelWidths({
     customerInfoWidth: Math.max(CUSTOMER_INFO_PANEL_MIN_WIDTH, customerInfoWidth),
   };
 }
-const assignmentCallDetails = {
-  alex: { customerId: "CST-10482" },
-  sarah: { customerId: "CST-10591" },
-  emily: { customerId: "CST-10814" },
-  david: { customerId: "CST-10363" },
-} as const;
-
 function formatRecentInteractionTimestamp(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
   const day = `${date.getDate()}`.padStart(2, "0");
@@ -2778,9 +2713,7 @@ export default function Layout({ children }: LayoutProps) {
     x: 420,
     y: 72,
   }));
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(
-    () => queuePreviewItems.find((item) => item.isActive)?.id ?? queuePreviewItems[0].id,
-  );
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => defaultCustomerId);
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
@@ -2872,8 +2805,6 @@ export default function Layout({ children }: LayoutProps) {
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
   );
-  const selectedAssignmentCallDetail =
-    assignmentCallDetails[selectedAssignment.id as keyof typeof assignmentCallDetails] ?? assignmentCallDetails.alex;
   const deskCanvasTabLabel = isCopilotDeskView
     ? "Copilot"
     : new URLSearchParams(location.search).get("view") === "notes"
@@ -2883,15 +2814,11 @@ export default function Layout({ children }: LayoutProps) {
         : "Desk";
 
   useEffect(() => {
-    setConversationState((current) => (
-      current.customerName === selectedAssignment.name
-        ? current
-        : {
-            ...current,
-            customerName: selectedAssignment.name,
-          }
+    setConversationState((current) => createConversationState(
+      selectedAssignment.id,
+      getChannelFromConversationLabel(current.label),
     ));
-  }, [selectedAssignment.name]);
+  }, [selectedAssignment.id]);
 
   const handleConversationStateChange = (nextConversation: SharedConversationData) => {
     if (customerReplyTimeoutRef.current !== null) {
@@ -3908,7 +3835,7 @@ export default function Layout({ children }: LayoutProps) {
             activeTab={combinedInteractionPanelTab}
             conversation={conversationState}
             customerName={selectedAssignment.name}
-            customerId={selectedAssignmentCallDetail.customerId}
+            customerId={selectedAssignment.customerId}
             showCanvasTab={isCanvasMergedIntoCombinedPanel}
             canvasTabLabel={deskCanvasTabLabel}
             canvasContent={children}
@@ -3973,7 +3900,7 @@ export default function Layout({ children }: LayoutProps) {
               width={dockedCustomerInfoWidth}
               maxWidth={customerInfoPanelMaxWidth}
               customerName={selectedAssignment.name}
-              customerId={selectedAssignmentCallDetail.customerId}
+              customerId={selectedAssignment.customerId}
               onWidthChange={setDockedCustomerInfoWidth}
               onClose={closeCustomerInfoPanel}
               showTrailingGap={isMainCanvasVisible}
@@ -4043,7 +3970,7 @@ export default function Layout({ children }: LayoutProps) {
           position={customerInfoPopunderPosition}
           size={customerInfoPopunderSize}
           customerName={selectedAssignment.name}
-          customerId={selectedAssignmentCallDetail.customerId}
+          customerId={selectedAssignment.customerId}
           zIndex={getFloatingPanelZIndex("customerInfo")}
           onPositionChange={setCustomerInfoPopunderPosition}
           onSizeChange={setCustomerInfoPopunderSize}
@@ -4109,7 +4036,7 @@ export default function Layout({ children }: LayoutProps) {
                 createdAt: formatRecentInteractionTimestamp(new Date()),
                 status: disposition,
                 customerName: selectedAssignment.name,
-                customerId: selectedAssignmentCallDetail.customerId,
+                customerId: selectedAssignment.customerId,
                 channel: "Outbound Voice - Agent Workspace",
                 statusColor: getDispositionStatusColor(disposition),
               },
