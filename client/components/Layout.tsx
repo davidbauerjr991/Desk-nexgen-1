@@ -2506,15 +2506,12 @@ function LeftQueueRail() {
             )}
           >
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
-              <div className="shrink-0 px-4 py-4">
+              <div className="shrink-0 px-4 pb-4 pt-0">
                 <div className="flex items-start justify-between gap-3 rounded-[8px] bg-white px-3 py-3">
                   <div className="min-w-0 flex-1">
                     <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
                       AI Priority Assist
                     </label>
-                    <p className="mt-1 text-xs leading-5 text-[#667085]">
-                      Tasks ranked by urgency, voice calls always first.
-                    </p>
                   </div>
                   <Switch
                     id="ai-priority-assist"
