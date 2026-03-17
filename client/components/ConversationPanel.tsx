@@ -326,7 +326,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
                 </div>
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                  <div className="mr-auto max-w-[min(100%,42rem)] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                     <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
                       <Sparkles className="h-3.5 w-3.5" />
                       <span>AI Suggestion</span>
