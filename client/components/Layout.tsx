@@ -1941,7 +1941,6 @@ function ConversationPopunder({
   onPositionChange,
   onSizeChange,
   onConversationChange,
-  onClose,
   onDock,
   dragActivation = null,
   onInteractStart,
@@ -1953,7 +1952,6 @@ function ConversationPopunder({
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
   onConversationChange: (conversation: SharedConversationData) => void;
-  onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
   onInteractStart?: () => void;
@@ -2055,29 +2053,18 @@ function ConversationPopunder({
             <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {onDock ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock Panel
-            </Button>
-          ) : null}
-          <button
+        {onDock ? (
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-            aria-label="Close conversation popunder"
+            onClick={onDock}
+            className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
           >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+            Dock Panel
+          </Button>
+        ) : null}
       </div>
 
       <ConversationPanel
@@ -4045,7 +4032,6 @@ export default function Layout({ children }: LayoutProps) {
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onConversationChange={handleConversationStateChange}
-          onClose={closeConversationPopunder}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("conversation")}
