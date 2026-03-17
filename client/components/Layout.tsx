@@ -1289,9 +1289,9 @@ function CombinedInteractionPanel({
         <Tabs
           value={activeTab}
           onValueChange={(value) => onTabChange(value as CombinedInteractionPanelTab)}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="border-b border-border bg-background/50 px-4 py-4">
+          <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation & Customer</h3>
@@ -1331,18 +1331,19 @@ function CombinedInteractionPanel({
             </TabsList>
           </div>
 
-          <TabsContent value="conversation" className="mt-0 min-h-0 flex-1 overflow-hidden">
+          <TabsContent value="conversation" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
             <ConversationPanel
+              className="min-h-0 flex-1"
               conversation={conversation}
               draftKey={`combined-${conversation.label}-${conversation.customerName}`}
               onConversationChange={onConversationChange}
             />
           </TabsContent>
-          <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden">
+          <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
             <NotesPanel initialTab="Overview" />
           </TabsContent>
           {showCanvasTab && (
-            <TabsContent value="canvas" className="mt-0 min-h-0 flex-1 overflow-hidden">
+            <TabsContent value="canvas" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
               {canvasContent}
             </TabsContent>
           )}
