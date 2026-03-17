@@ -2762,20 +2762,18 @@ export default function Layout({ children }: LayoutProps) {
       hasDesktopRightPanel: false,
       reserveMainWorkspace: false,
       showConversation: true,
-      showCustomerInfo: typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
+      showCustomerInfo: false,
       hasMainCanvas: false,
     }).conversationWidth,
   );
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
-  const [isCustomerInfoPanelOpen, setIsCustomerInfoPanelOpen] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
-  );
+  const [isCustomerInfoPanelOpen, setIsCustomerInfoPanelOpen] = useState(false);
   const [dockedCustomerInfoWidth, setDockedCustomerInfoWidth] = useState(() =>
     getBalancedDockedPanelWidths({
       hasDesktopRightPanel: false,
       reserveMainWorkspace: false,
       showConversation: true,
-      showCustomerInfo: typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
+      showCustomerInfo: false,
       hasMainCanvas: false,
     }).customerInfoWidth,
   );
