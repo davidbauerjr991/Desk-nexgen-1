@@ -3597,8 +3597,12 @@ export default function Layout({ children }: LayoutProps) {
         setSelectedAssignmentId(assignmentId);
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
-          if (shouldPreserveFloatingCustomerInfoPanel) {
+          if (shouldPreserveFloatingCustomerInfoPanel || isDeskCustomerInfoPopunderVisible) {
             bringFloatingPanelToFront("customerInfo");
+            return;
+          }
+
+          if (isDeskCustomerInfoVisible || isCombinedInteractionPanel) {
             return;
           }
 
@@ -3654,6 +3658,8 @@ export default function Layout({ children }: LayoutProps) {
       isCustomerInfoPanelAllowed,
       isConversationPanelOpen,
       isConversationPopunderOpen,
+      isDeskCustomerInfoPopunderVisible,
+      isDeskCustomerInfoVisible,
       isExpandedCanvasRoute,
       navigate,
       handleConversationStateChange,
@@ -3667,6 +3673,7 @@ export default function Layout({ children }: LayoutProps) {
       status,
       toggleConversationPanel,
       undockDeskPanel,
+      isCombinedInteractionPanel,
     ],
   );
 
