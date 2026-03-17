@@ -231,7 +231,7 @@ const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
-const MIN_MAIN_WORKSPACE_WIDTH = 500;
+const MIN_MAIN_WORKSPACE_WIDTH = 315;
 const CUSTOMER_INFO_PANEL_MIN_WIDTH = 315;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 425;
 const CUSTOMER_INFO_PANEL_MAX_WIDTH = 560;
@@ -369,7 +369,7 @@ function getDockedCopilotMaxWidth({
     : 0;
 
   return Math.max(
-    320,
+    315,
     window.innerWidth - 56 - conversationWidth - rightPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - 16,
   );
 }
@@ -4023,7 +4023,7 @@ export default function Layout({ children }: LayoutProps) {
         {!isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel && (
           <div
             className={cn(
-              "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[500px]",
+              "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[315px]",
               isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
             )}
           >
