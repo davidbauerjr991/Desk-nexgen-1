@@ -2759,6 +2759,8 @@ export default function Layout({ children }: LayoutProps) {
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
+  const dockedConversationWidthRef = useRef(dockedConversationWidth);
+  const dockedCustomerInfoWidthRef = useRef(dockedCustomerInfoWidth);
   const [combinedInteractionPanelTab, setCombinedInteractionPanelTab] = useState<CombinedInteractionPanelTab>("conversation");
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
@@ -3170,6 +3172,14 @@ export default function Layout({ children }: LayoutProps) {
   }, [conversationPanelMaxWidth]);
 
   useEffect(() => {
+    dockedConversationWidthRef.current = dockedConversationWidth;
+  }, [dockedConversationWidth]);
+
+  useEffect(() => {
+    dockedCustomerInfoWidthRef.current = dockedCustomerInfoWidth;
+  }, [dockedCustomerInfoWidth]);
+
+  useEffect(() => {
     if (typeof window === "undefined" || isCombinedInteractionPanel) {
       return;
     }
@@ -3188,8 +3198,8 @@ export default function Layout({ children }: LayoutProps) {
         showConversation,
         showCustomerInfo,
         hasMainCanvas: isMainCanvasVisible,
-        currentConversationWidth: dockedConversationWidth,
-        currentCustomerInfoWidth: dockedCustomerInfoWidth,
+        currentConversationWidth: dockedConversationWidthRef.current,
+        currentCustomerInfoWidth: dockedCustomerInfoWidthRef.current,
       });
 
       if (showConversation) {
@@ -3207,8 +3217,6 @@ export default function Layout({ children }: LayoutProps) {
     return () => window.removeEventListener("resize", syncDefaultDockedPanelWidths);
   }, [
     activeRightPanel,
-    dockedConversationWidth,
-    dockedCustomerInfoWidth,
     isCombinedInteractionPanel,
     isConversationPanelOpen,
     isDeskCustomerInfoVisible,
