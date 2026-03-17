@@ -285,7 +285,7 @@ const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
 const MIN_MAIN_WORKSPACE_WIDTH = 500;
-const CUSTOMER_INFO_PANEL_MIN_WIDTH = 425;
+const CUSTOMER_INFO_PANEL_MIN_WIDTH = 300;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 300;
 const CUSTOMER_INFO_PANEL_MAX_WIDTH = 560;
 const CUSTOMER_INFO_PANEL_GAP = 16;
@@ -390,6 +390,39 @@ function getDockedCopilotMaxWidth({
     320,
     window.innerWidth - 56 - conversationWidth - rightPanelWidth - MIN_MAIN_WORKSPACE_WIDTH - 16,
   );
+}
+
+function getDefaultDockedPanelWidths({
+  hasDesktopRightPanel,
+  reserveMainWorkspace,
+}: {
+  hasDesktopRightPanel: boolean;
+  reserveMainWorkspace: boolean;
+}) {
+  if (typeof window === "undefined") {
+    return {
+      conversationWidth: DOCKED_CONVERSATION_DEFAULT_WIDTH,
+      customerInfoWidth: CUSTOMER_INFO_PANEL_DEFAULT_WIDTH,
+    };
+  }
+
+  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
+  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+  const availableWidth = Math.max(
+    DOCKED_CONVERSATION_MIN_WIDTH + CUSTOMER_INFO_PANEL_MIN_WIDTH,
+    window.innerWidth - 56 - rightPanelWidth - reservedMainWorkspaceWidth - DOCKED_CONVERSATION_GAP - CUSTOMER_INFO_PANEL_GAP - 16,
+  );
+
+  const customerInfoWidth = Math.min(
+    availableWidth - DOCKED_CONVERSATION_MIN_WIDTH,
+    Math.max(CUSTOMER_INFO_PANEL_MIN_WIDTH, Math.round(availableWidth * 0.25)),
+  );
+  const conversationWidth = Math.max(DOCKED_CONVERSATION_MIN_WIDTH, availableWidth - customerInfoWidth);
+
+  return {
+    conversationWidth,
+    customerInfoWidth: Math.max(CUSTOMER_INFO_PANEL_MIN_WIDTH, customerInfoWidth),
+  };
 }
 const assignmentCallDetails = {
   alex: { customerId: "CST-10482" },
@@ -2658,10 +2691,22 @@ export default function Layout({ children }: LayoutProps) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
-  const [dockedConversationWidth, setDockedConversationWidth] = useState(DOCKED_CONVERSATION_DEFAULT_WIDTH);
+  const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
+    getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: false,
+      reserveMainWorkspace: true,
+    }).conversationWidth,
+  );
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
-  const [isCustomerInfoPanelOpen, setIsCustomerInfoPanelOpen] = useState(false);
-  const [dockedCustomerInfoWidth, setDockedCustomerInfoWidth] = useState(CUSTOMER_INFO_PANEL_DEFAULT_WIDTH);
+  const [isCustomerInfoPanelOpen, setIsCustomerInfoPanelOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
+  );
+  const [dockedCustomerInfoWidth, setDockedCustomerInfoWidth] = useState(() =>
+    getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: false,
+      reserveMainWorkspace: true,
+    }).customerInfoWidth,
+  );
   const [isCustomerInfoPopunderOpen, setIsCustomerInfoPopunderOpen] = useState(false);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
@@ -3084,6 +3129,40 @@ export default function Layout({ children }: LayoutProps) {
   }, [conversationPanelMaxWidth]);
 
   useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      isCombinedInteractionPanel ||
+      !isConversationPanelOpen ||
+      !isCustomerInfoPanelOpen ||
+      !isCustomerInfoPanelAllowed
+    ) {
+      return;
+    }
+
+    const syncDefaultDockedPanelWidths = () => {
+      const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
+        hasDesktopRightPanel: activeRightPanel !== null,
+        reserveMainWorkspace: !isExpandedCanvasRoute,
+      });
+
+      setDockedConversationWidth(conversationWidth);
+      setDockedCustomerInfoWidth(customerInfoWidth);
+    };
+
+    syncDefaultDockedPanelWidths();
+    window.addEventListener("resize", syncDefaultDockedPanelWidths);
+
+    return () => window.removeEventListener("resize", syncDefaultDockedPanelWidths);
+  }, [
+    activeRightPanel,
+    isCombinedInteractionPanel,
+    isConversationPanelOpen,
+    isCustomerInfoPanelAllowed,
+    isCustomerInfoPanelOpen,
+    isExpandedCanvasRoute,
+  ]);
+
+  useEffect(() => {
     const syncDockedCopilotWidth = () => {
       const maxWidth = getDockedCopilotMaxWidth({
         hasDesktopRightPanel: activeRightPanel !== null,
@@ -3254,7 +3333,15 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    setDockedConversationWidth(conversationPanelMaxWidth);
+    const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: activeRightPanel !== null,
+      reserveMainWorkspace: !isExpandedCanvasRoute,
+    });
+
+    setDockedConversationWidth(conversationWidth);
+    if (isCustomerInfoPanelAllowed) {
+      setDockedCustomerInfoWidth(customerInfoWidth);
+    }
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
     setConversationDragActivation(null);
@@ -3303,10 +3390,16 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: activeRightPanel !== null,
+      reserveMainWorkspace: !isExpandedCanvasRoute,
+    });
+
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    setDockedCustomerInfoWidth(customerInfoPanelMaxWidth);
+    setDockedConversationWidth(conversationWidth);
+    setDockedCustomerInfoWidth(customerInfoWidth);
   };
 
   const dockCustomerInfoPanel = () => {
