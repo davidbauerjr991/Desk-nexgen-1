@@ -125,9 +125,9 @@ export default function ConversationPanel({ conversation, draftKey, className }:
                 align="start"
                 side="top"
                 sideOffset={12}
-                className="w-[320px] rounded-[22px] border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
+                className="w-[320px] rounded-[8px] border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
               >
-                <div className="px-5 py-4">
+                <div className="p-4">
                   {conversationFooterMenuItems.map((item) => (
                     <DropdownMenuItem
                       key={item}
@@ -138,7 +138,7 @@ export default function ConversationPanel({ conversation, draftKey, className }:
                   ))}
                 </div>
                 <DropdownMenuSeparator className="my-0 bg-black/10" />
-                <div className="px-5 py-4">
+                <div className="p-4">
                   {conversationFooterSecondaryMenuItems.map((item) => (
                     <DropdownMenuItem
                       key={item}
