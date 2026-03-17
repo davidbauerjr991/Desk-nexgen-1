@@ -2390,16 +2390,14 @@ function LeftQueueRail() {
     selectAssignment,
   } = useLayoutContext();
 
-  const sortedQueuePreviewItems = useMemo(() => {
-    const items = [...queuePreviewItems];
-
-    items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-    return items.map((item) => ({
-      ...item,
-      isActive: item.id === selectedAssignment.id,
-    }));
-  }, [selectedAssignment.id]);
+  const sortedQueuePreviewItems = useMemo(
+    () =>
+      queuePreviewItems.map((item) => ({
+        ...item,
+        isActive: item.id === selectedAssignment.id,
+      })),
+    [selectedAssignment.id],
+  );
 
   const railQueuePreviewItems = useMemo(
     () =>
