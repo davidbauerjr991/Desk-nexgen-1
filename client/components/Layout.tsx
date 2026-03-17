@@ -2525,6 +2525,39 @@ function formatStatusDuration(totalSeconds: number) {
     .padStart(2, "0")}`;
 }
 
+function formatConversationReplyTime(date: Date) {
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function generateSimulatedCustomerReply(conversation: SharedConversationData, agentMessage: string) {
+  const normalizedMessage = agentMessage.toLowerCase();
+
+  if (normalizedMessage.includes("flag") || normalizedMessage.includes("block") || normalizedMessage.includes("cleared")) {
+    return "I just tried it again and it worked this time. Thank you for getting that cleared so quickly.";
+  }
+
+  if (normalizedMessage.includes("zip") || normalizedMessage.includes("billing")) {
+    return "That makes sense. I recently moved, so the billing zip code might still be the old one. Do I need to update anything on my side?";
+  }
+
+  if (normalizedMessage.includes("upgrade") || normalizedMessage.includes("subscription") || normalizedMessage.includes("pro tier")) {
+    return "Okay, thanks. I mainly want to make sure the upgrade goes through today and that I do not get charged twice.";
+  }
+
+  if (normalizedMessage.includes("card") || normalizedMessage.includes("visa") || normalizedMessage.includes("payment")) {
+    return "Understood. I have the same card ready to use again. Should I retry it now?";
+  }
+
+  if (normalizedMessage.includes("email") || normalizedMessage.includes("send")) {
+    return `Yes, please send that over. I will keep an eye on my inbox, ${conversation.customerName.split(" ")[0]}.`;
+  }
+
+  return "Thanks for the update. That helps. What should I do next on my side?";
+}
+
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2624,6 +2657,7 @@ export default function Layout({ children }: LayoutProps) {
   });
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const callConnectTimeoutRef = useRef<number | null>(null);
+  const customerReplyTimeoutRef = useRef<number | null>(null);
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
@@ -2643,6 +2677,10 @@ export default function Layout({ children }: LayoutProps) {
     return () => {
       if (callConnectTimeoutRef.current !== null) {
         window.clearTimeout(callConnectTimeoutRef.current);
+      }
+
+      if (customerReplyTimeoutRef.current !== null) {
+        window.clearTimeout(customerReplyTimeoutRef.current);
       }
     };
   }, []);
@@ -2710,6 +2748,47 @@ export default function Layout({ children }: LayoutProps) {
           }
     ));
   }, [selectedAssignment.name]);
+
+  const handleConversationStateChange = (nextConversation: SharedConversationData) => {
+    if (customerReplyTimeoutRef.current !== null) {
+      window.clearTimeout(customerReplyTimeoutRef.current);
+      customerReplyTimeoutRef.current = null;
+    }
+
+    setConversationState(nextConversation);
+
+    const latestMessage = nextConversation.messages[nextConversation.messages.length - 1];
+    if (!latestMessage || latestMessage.role !== "agent") {
+      return;
+    }
+
+    customerReplyTimeoutRef.current = window.setTimeout(() => {
+      setConversationState((current) => {
+        const currentLatestMessage = current.messages[current.messages.length - 1];
+        if (
+          current.customerName !== nextConversation.customerName ||
+          current.label !== nextConversation.label ||
+          currentLatestMessage?.id !== latestMessage.id
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+          messages: [
+            ...current.messages,
+            {
+              id: current.messages.reduce((maxId, message) => Math.max(maxId, message.id), 0) + 1,
+              role: "customer",
+              content: generateSimulatedCustomerReply(current, latestMessage.content),
+              time: formatConversationReplyTime(new Date()),
+            },
+          ],
+        };
+      });
+      customerReplyTimeoutRef.current = null;
+    }, 1200);
+  };
 
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
     if (typeof window === "undefined") {
@@ -3295,7 +3374,7 @@ export default function Layout({ children }: LayoutProps) {
       openConversationPanel,
       openConversationPopunder,
       closeConversationPopunder,
-      setConversationState,
+      setConversationState: handleConversationStateChange,
       closeRightPanel: () => setActiveRightPanel(null),
       undockDeskPanel,
       selectAssignment: (assignmentId) => {
@@ -3360,6 +3439,7 @@ export default function Layout({ children }: LayoutProps) {
       isConversationPopunderOpen,
       isExpandedCanvasRoute,
       navigate,
+      handleConversationStateChange,
       openConversationPanel,
       recentInteractions,
       location.pathname,
@@ -3605,7 +3685,7 @@ export default function Layout({ children }: LayoutProps) {
             canvasTabLabel={deskCanvasTabLabel}
             canvasContent={children}
             isFullWidth={isCanvasMergedIntoCombinedPanel}
-            onConversationChange={setConversationState}
+            onConversationChange={handleConversationStateChange}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
@@ -3623,7 +3703,7 @@ export default function Layout({ children }: LayoutProps) {
               width={dockedConversationWidth}
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
-              onConversationChange={setConversationState}
+              onConversationChange={handleConversationStateChange}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
               onUndockStart={(event) => {
@@ -3721,7 +3801,7 @@ export default function Layout({ children }: LayoutProps) {
           zIndex={getFloatingPanelZIndex("conversation")}
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
-          onConversationChange={setConversationState}
+          onConversationChange={handleConversationStateChange}
           onClose={closeConversationPopunder}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
