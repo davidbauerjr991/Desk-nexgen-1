@@ -4,40 +4,10 @@ import { Responsive, WidthProvider, type ResponsiveLayouts } from "react-grid-la
 
 import { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getRandomizedCustomerInteractionTimeline } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
-
-const overviewTimeline = [
-  {
-    id: 1,
-    title: "Upgrade retry blocked",
-    timestamp: "Today · 10:26 AM",
-    detail: "Card was declined again after billing verification failed on the Pro upgrade flow.",
-    tone: "critical",
-  },
-  {
-    id: 2,
-    title: "Agent responded on SMS",
-    timestamp: "Today · 10:25 AM",
-    detail: "Agent acknowledged the issue and started reviewing payment security flags.",
-    tone: "info",
-  },
-  {
-    id: 3,
-    title: "Customer opened live chat",
-    timestamp: "Today · 10:24 AM",
-    detail: "Customer reported the checkout failure from the pricing page and requested immediate help.",
-    tone: "default",
-  },
-  {
-    id: 4,
-    title: "Security rule triggered",
-    timestamp: "Today · 10:23 AM",
-    detail: "Fraud rule flagged a mismatch between billing zip and stored payment profile details.",
-    tone: "warning",
-  },
-];
 
 const recentTickets = [
   {
@@ -137,14 +107,16 @@ function OverviewCard({ customerId }: { customerId: string }) {
   );
 }
 
-function TimelineCard() {
+function TimelineCard({ customerId }: { customerId: string }) {
+  const timelineItems = useMemo(() => getRandomizedCustomerInteractionTimeline(customerId), [customerId]);
+
   return (
     <DashboardCard title="Interaction timeline" subtitle="Latest events across channels" icon={<Clock3 className="h-4 w-4" />}>
       <ScrollArea className="h-full w-full">
         <div className="space-y-4 p-4">
-          {overviewTimeline.map((item, index) => (
+          {timelineItems.map((item, index) => (
             <div key={item.id} className="relative flex gap-3 pl-6">
-              {index < overviewTimeline.length - 1 ? (
+              {index < timelineItems.length - 1 ? (
                 <span className="absolute left-[7px] top-6 h-[calc(100%+8px)] w-px bg-black/10" />
               ) : null}
               <span
@@ -216,7 +188,7 @@ export default function OverviewDashboard({ customerId }: { customerId: string }
   const cards = useMemo(
     () => ({
       overview: <OverviewCard customerId={customerId} />,
-      timeline: <TimelineCard />,
+      timeline: <TimelineCard customerId={customerId} />,
       tickets: <TicketsCard />,
     }),
     [customerId],

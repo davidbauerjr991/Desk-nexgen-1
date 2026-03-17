@@ -2,6 +2,16 @@ import type { ConversationMessage, SharedConversationData } from "@/components/C
 
 export type CustomerChannel = "chat" | "sms" | "whatsapp" | "email";
 export type CustomerQueueIcon = "phone" | "clipboardList" | "messageSquare";
+export type CustomerOverviewTimelineTone = "critical" | "warning" | "info" | "default";
+
+export type CustomerOverviewTimelineItem = {
+  id: string;
+  title: string;
+  timestamp: string;
+  detail: string;
+  tone: CustomerOverviewTimelineTone;
+  sortOrder: number;
+};
 
 export type CustomerSeedRecord = {
   id: string;
@@ -16,6 +26,7 @@ export type CustomerSeedRecord = {
     lastContactTime: string;
     address: string;
   };
+  interactionTimeline: CustomerOverviewTimelineItem[];
   queue: {
     time: string;
     preview: string;
@@ -52,6 +63,56 @@ export const customerDatabase: CustomerSeedRecord[] = [
       lastContactTime: "Today, 10:26 AM",
       address: "245 Market St, Apt 8C, San Francisco, CA 94105",
     },
+    interactionTimeline: [
+      {
+        id: "alex-risk-flag",
+        title: "Security rule triggered",
+        timestamp: "Today · 10:23 AM",
+        detail: "Fraud screening flagged a billing zip mismatch against the saved payment profile during the Pro upgrade flow.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "alex-chat-open",
+        title: "Customer opened live chat",
+        timestamp: "Today · 10:24 AM",
+        detail: "Alex reported a blocked Pro upgrade from the pricing page and asked for immediate help before an upcoming meeting.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "alex-sms-agent",
+        title: "Agent responded on SMS",
+        timestamp: "Today · 10:25 AM",
+        detail: "Jordan acknowledged the failed payment attempts and started reviewing the account security flags.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "alex-retry-failed",
+        title: "Upgrade retry blocked",
+        timestamp: "Today · 10:26 AM",
+        detail: "A follow-up checkout attempt was declined again after billing verification failed on the Pro upgrade request.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "alex-whatsapp-followup",
+        title: "Customer requested mobile follow-up",
+        timestamp: "Today · 10:27 AM",
+        detail: "Alex switched to WhatsApp and asked for a faster path to enable Pro features before a client call.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "alex-email-log",
+        title: "Billing logs attached to case",
+        timestamp: "Today · 10:28 AM",
+        detail: "The failed transaction details were attached to the customer record so support could clear the payment hold.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
     queue: {
       time: "Now",
       preview: "Need help resolving a blocked upgrade.",
@@ -199,6 +260,56 @@ export const customerDatabase: CustomerSeedRecord[] = [
       lastContactTime: "Today, 9:23 AM",
       address: "881 Pine St, Seattle, WA 98101",
     },
+    interactionTimeline: [
+      {
+        id: "sarah-delay-posted",
+        title: "Inbound delay recorded",
+        timestamp: "Today · 9:16 AM",
+        detail: "Operations posted a late-arriving inbound segment that put Sarah’s Seattle connection at risk.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "sarah-chat-open",
+        title: "Customer requested rebooking help",
+        timestamp: "Today · 9:18 AM",
+        detail: "Sarah opened support after missing her connection and asked for a same-day replacement flight.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "sarah-agent-review",
+        title: "Agent reviewed standby options",
+        timestamp: "Today · 9:19 AM",
+        detail: "Priya began checking confirmed-seat and standby inventory for flights that would still arrive before the event.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "sarah-bag-transfer",
+        title: "Bag transfer constraint added",
+        timestamp: "Today · 9:22 AM",
+        detail: "The case was updated to prioritize itineraries that could transfer Sarah’s checked bag without manual reclaim.",
+        tone: "default",
+        sortOrder: 4,
+      },
+      {
+        id: "sarah-waiver-check",
+        title: "Fee waiver requested",
+        timestamp: "Today · 9:23 AM",
+        detail: "Support requested a change-fee waiver because the missed connection followed an airline-caused delay.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "sarah-final-seat-hold",
+        title: "Replacement seat held",
+        timestamp: "Today · 9:24 AM",
+        detail: "A same-day Seattle seat was temporarily held while pricing and bag transfer eligibility were confirmed.",
+        tone: "critical",
+        sortOrder: 6,
+      },
+    ],
     queue: {
       time: "2m ago",
       preview: "Missed flight and needs a same-day rebooking.",
@@ -343,6 +454,56 @@ export const customerDatabase: CustomerSeedRecord[] = [
       lastContactTime: "Today, 11:51 AM",
       address: "117 Orchard St, New York, NY 10002",
     },
+    interactionTimeline: [
+      {
+        id: "emily-campaign-live",
+        title: "Launch-week campaign activated",
+        timestamp: "Today · 11:45 AM",
+        detail: "The promotion banner went live for Emily’s segment with item-level eligibility rules applied at checkout.",
+        tone: "info",
+        sortOrder: 1,
+      },
+      {
+        id: "emily-customer-report",
+        title: "Customer reported invalid promo code",
+        timestamp: "Today · 11:47 AM",
+        detail: "Emily reported that the advertised discount code was failing even though her cart matched the campaign email.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "emily-agent-audit",
+        title: "Agent audited promotion rules",
+        timestamp: "Today · 11:48 AM",
+        detail: "Marcus started reviewing the banner campaign, cart restrictions, and checkout validation logs.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "emily-validation-failure",
+        title: "Checkout validation mismatch found",
+        timestamp: "Today · 11:49 AM",
+        detail: "One item in the cart was incorrectly excluded by a promotion rule, causing the entire discount to fail.",
+        tone: "warning",
+        sortOrder: 4,
+      },
+      {
+        id: "emily-cart-preserved",
+        title: "Cart preservation requested",
+        timestamp: "Today · 11:50 AM",
+        detail: "The customer record was updated to keep Emily’s configured cart intact while the promotion issue was corrected.",
+        tone: "default",
+        sortOrder: 5,
+      },
+      {
+        id: "emily-code-reissue",
+        title: "Corrected promo path prepared",
+        timestamp: "Today · 11:51 AM",
+        detail: "Support prepared a corrected validation path so Emily could retry checkout without rebuilding the order.",
+        tone: "critical",
+        sortOrder: 6,
+      },
+    ],
     queue: {
       time: "5m ago",
       preview: "Discount code is failing during checkout.",
@@ -487,6 +648,56 @@ export const customerDatabase: CustomerSeedRecord[] = [
       lastContactTime: "Today, 3:10 PM",
       address: "410 W Lake St, Chicago, IL 60606",
     },
+    interactionTimeline: [
+      {
+        id: "david-plan-change",
+        title: "Plan change initiated",
+        timestamp: "Today · 3:05 PM",
+        detail: "David started a subscription update that created two closely timed authorization attempts on the same card.",
+        tone: "default",
+        sortOrder: 1,
+      },
+      {
+        id: "david-duplicate-hold",
+        title: "Duplicate authorization detected",
+        timestamp: "Today · 3:06 PM",
+        detail: "Billing systems flagged a second pending hold while the first authorization was still unresolved.",
+        tone: "warning",
+        sortOrder: 2,
+      },
+      {
+        id: "david-agent-audit",
+        title: "Agent reviewed payment audit trail",
+        timestamp: "Today · 3:07 PM",
+        detail: "Alex began checking the subscription ledger and card authorization history to confirm whether a duplicate capture occurred.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "david-customer-risk",
+        title: "Customer paused retry",
+        timestamp: "Today · 3:08 PM",
+        detail: "David held off on another submission because he needed the new plan active without creating a second billable charge.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "david-reversal-request",
+        title: "Reversal request submitted",
+        timestamp: "Today · 3:09 PM",
+        detail: "Support initiated reversal handling for the extra authorization hold before advising the customer to retry.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "david-screenshot-offer",
+        title: "Customer offered banking proof",
+        timestamp: "Today · 3:10 PM",
+        detail: "David offered to send a screenshot from his banking app to help confirm the duplicate pending charge.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
     queue: {
       time: "24m ago",
       preview: "Subscription change and duplicate-charge concern.",
@@ -624,6 +835,18 @@ export const defaultCustomerId = customerDatabase.find((customer) => customer.qu
 
 export function getCustomerRecord(customerId: string) {
   return customerDatabase.find((customer) => customer.id === customerId) ?? customerDatabase[0];
+}
+
+export function getRandomizedCustomerInteractionTimeline(customerId: string, count = 4) {
+  const customer = getCustomerRecord(customerId);
+  const shuffled = [...customer.interactionTimeline]
+    .map((item) => ({ item, random: Math.random() }))
+    .sort((left, right) => left.random - right.random)
+    .map(({ item }) => item);
+
+  return shuffled
+    .slice(0, Math.min(count, shuffled.length))
+    .sort((left, right) => right.sortOrder - left.sortOrder);
 }
 
 export function getChannelFromConversationLabel(label: string): CustomerChannel {
