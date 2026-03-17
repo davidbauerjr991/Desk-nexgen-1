@@ -1032,6 +1032,7 @@ function DockedConversationPanel({
   const isResizingRef = useRef(false);
   const contentInitializedRef = useRef(false);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
+  const shouldStackHeaderActions = width < 800;
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -1096,7 +1097,10 @@ function DockedConversationPanel({
         {isContentVisible && (
           <>
             <div
-              className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+              className={cn(
+                "flex min-h-[68px] cursor-grab border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing",
+                shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-start justify-between gap-3",
+              )}
               onMouseDown={onUndockStart}
             >
               <div className="flex items-start gap-3">
@@ -1108,7 +1112,12 @@ function DockedConversationPanel({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "flex items-center gap-2",
+                  shouldStackHeaderActions ? "pl-7" : "shrink-0",
+                )}
+              >
                 <ConversationChannelToggleGroup
                   activeChannel={activeChannel}
                   onSelectChannel={onSelectChannel}
@@ -1932,6 +1941,7 @@ function ConversationPopunder({
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const shouldStackHeaderActions = size.width < 800;
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -2007,7 +2017,10 @@ function ConversationPopunder({
       }}
     >
       <div
-        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+        className={cn(
+          "flex cursor-grab border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing",
+          shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-center justify-between gap-3",
+        )}
         onMouseDown={(event) => {
           onInteractStart?.();
           isDraggingRef.current = true;
@@ -2025,7 +2038,12 @@ function ConversationPopunder({
             <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            shouldStackHeaderActions ? "pl-7" : "",
+          )}
+        >
           <ConversationChannelToggleGroup
             activeChannel={activeChannel}
             onSelectChannel={onSelectChannel}
