@@ -226,13 +226,13 @@ const CALL_POPUNDER_MARGIN = 16;
 const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_POPOUNDER_MARGIN = 16;
 const CONVERSATION_POPOUNDER_GAP = 12;
-const DOCKED_CONVERSATION_MIN_WIDTH = 315;
+const DOCKED_CONVERSATION_MIN_WIDTH = 360;
 const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
-const MIN_MAIN_WORKSPACE_WIDTH = 315;
-const CUSTOMER_INFO_PANEL_MIN_WIDTH = 315;
+const MIN_MAIN_WORKSPACE_WIDTH = 360;
+const CUSTOMER_INFO_PANEL_MIN_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 425;
 const CUSTOMER_INFO_PANEL_MAX_WIDTH = 560;
 const CUSTOMER_INFO_PANEL_GAP = 16;
@@ -241,8 +241,8 @@ const CUSTOMER_INFO_POPOUNDER_MARGIN = 16;
 const CUSTOMER_INFO_POPOUNDER_GAP = 12;
 const DESK_CANVAS_POPOUNDER_MARGIN = 16;
 const DESK_CANVAS_POPOUNDER_MIN_HEIGHT = 420;
-const DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH = 315;
-const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 320;
+const DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH = 360;
+const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 360;
 const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 760;
 const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
 const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
@@ -4042,7 +4042,7 @@ export default function Layout({ children }: LayoutProps) {
         {!isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel && (
           <div
             className={cn(
-              "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[315px]",
+              "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[360px]",
               isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
             )}
           >
