@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
-  ArrowUpDown,
   Bell,
   Bot,
   ChevronDown,
@@ -2388,7 +2387,6 @@ function QueueOverlayList({
 
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
-  const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const closeTimeoutRef = useRef<number | null>(null);
   const {
@@ -2399,21 +2397,13 @@ function LeftQueueRail() {
   const sortedQueuePreviewItems = useMemo(() => {
     const items = [...queuePreviewItems];
 
-    items.sort((a, b) => {
-      const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      const updatedDiff = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-
-      if (sortOption === "created-asc") return createdDiff;
-      if (sortOption === "created-desc") return -createdDiff;
-      if (sortOption === "updated-asc") return updatedDiff;
-      return -updatedDiff;
-    });
+    items.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     return items.map((item) => ({
       ...item,
       isActive: item.id === selectedAssignment.id,
     }));
-  }, [selectedAssignment.id, sortOption]);
+  }, [selectedAssignment.id]);
 
   const railQueuePreviewItems = useMemo(
     () =>
@@ -2517,53 +2507,7 @@ function LeftQueueRail() {
           >
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="shrink-0 px-4 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Current Work</h3>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Sort current work"
-                        className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
-                      >
-                        <ArrowUpDown className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      sideOffset={8}
-                      className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                    >
-                    <DropdownMenuItem
-                      onClick={() => setSortOption("created-asc")}
-                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                    >
-                      Create date ascending
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortOption("created-desc")}
-                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                    >
-                      Create date descending
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortOption("updated-asc")}
-                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                    >
-                      Last updated ascending
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => setSortOption("updated-desc")}
-                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                    >
-                      Last updated descending
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <div className="mt-4 flex items-start justify-between gap-3 rounded-[8px] bg-white px-3 py-3">
+                <div className="flex items-start justify-between gap-3 rounded-[8px] bg-white px-3 py-3">
                   <div className="min-w-0 flex-1">
                     <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
                       AI Priority Assist
