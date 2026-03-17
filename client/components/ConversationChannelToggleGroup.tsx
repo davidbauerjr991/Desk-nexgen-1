@@ -1,0 +1,93 @@
+import { Mail, MessageCircle, MessageSquare } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import type { CustomerChannel } from "@/lib/customer-database";
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        d="M12 3.25C7.163 3.25 3.25 7.119 3.25 11.882C3.25 13.549 3.734 15.149 4.638 16.529L3.75 20.75L8.097 19.9C9.406 20.647 10.898 21.042 12.421 21.042C17.258 21.042 21.171 17.172 21.171 12.41C21.171 7.647 16.837 3.25 12 3.25Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.428 8.867C9.206 8.373 8.97 8.362 8.761 8.354C8.59 8.347 8.394 8.347 8.198 8.347C8.002 8.347 7.683 8.421 7.413 8.715C7.143 9.009 6.389 9.703 6.389 11.117C6.389 12.531 7.438 13.897 7.585 14.093C7.732 14.289 9.634 17.287 12.611 18.437C15.086 19.392 15.589 19.203 16.123 19.154C16.657 19.105 17.839 18.485 18.084 17.815C18.329 17.144 18.329 16.566 18.255 16.444C18.182 16.321 17.986 16.248 17.692 16.101C17.397 15.954 15.957 15.235 15.687 15.137C15.417 15.039 15.22 14.99 15.024 15.284C14.828 15.578 14.27 16.248 14.098 16.444C13.926 16.64 13.754 16.665 13.459 16.518C13.165 16.37 12.218 16.061 11.095 15.059C10.221 14.28 9.632 13.319 9.46 13.025C9.289 12.731 9.442 12.571 9.589 12.424C9.722 12.292 9.883 12.081 10.03 11.91C10.177 11.738 10.226 11.615 10.324 11.419C10.422 11.223 10.373 11.052 10.299 10.905C10.226 10.758 9.679 9.312 9.428 8.867Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+const channels: Array<{
+  channel: CustomerChannel;
+  label: string;
+  renderIcon: (className: string) => React.ReactNode;
+}> = [
+  {
+    channel: "chat",
+    label: "Chat",
+    renderIcon: (className) => <MessageCircle className={className} />,
+  },
+  {
+    channel: "sms",
+    label: "SMS",
+    renderIcon: (className) => <MessageSquare className={className} />,
+  },
+  {
+    channel: "whatsapp",
+    label: "WhatsApp",
+    renderIcon: (className) => <WhatsAppIcon className={className} />,
+  },
+  {
+    channel: "email",
+    label: "Email",
+    renderIcon: (className) => <Mail className={className} />,
+  },
+];
+
+export default function ConversationChannelToggleGroup({
+  activeChannel,
+  onSelectChannel,
+  className,
+  buttonClassName,
+}: {
+  activeChannel: CustomerChannel | null;
+  onSelectChannel: (channel: CustomerChannel) => void;
+  className?: string;
+  buttonClassName?: string;
+}) {
+  return (
+    <div className={cn("flex items-center gap-1.5", className)}>
+      {channels.map(({ channel, label, renderIcon }) => {
+        const isActive = activeChannel === channel;
+
+        return (
+          <button
+            key={channel}
+            type="button"
+            aria-label={`Show ${label} conversation`}
+            aria-pressed={isActive}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={() => onSelectChannel(channel)}
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-[#5B5B5B] transition-colors hover:border-[#B8D7F0] hover:text-[#006DAD]",
+              isActive && "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]",
+              buttonClassName,
+            )}
+          >
+            {renderIcon("h-4 w-4")}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

@@ -40,13 +40,14 @@ import ConversationPanel, { type SharedConversationData } from "@/components/Con
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
+import ConversationChannelToggleGroup from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 import {
   createConversationState,
   customerDatabase,
   defaultCustomerId,
-  getChannelFromConversationLabel,
+  type CustomerChannel,
   type CustomerQueueIcon,
 } from "@/lib/customer-database";
 import { toast } from "sonner";
@@ -71,6 +72,7 @@ interface LayoutContextValue {
   isAgentAvailable: boolean;
   isConversationPanelOpen: boolean;
   isConversationPopunderOpen: boolean;
+  activeConversationChannel: CustomerChannel;
   selectedAssignment: QueuePreviewItem;
   recentInteractions: RecentInteractionItem[];
   conversationState: SharedConversationData;
@@ -81,6 +83,7 @@ interface LayoutContextValue {
   openConversationPanel: () => void;
   openConversationPopunder: (anchorRect?: DOMRect | null) => void;
   closeConversationPopunder: () => void;
+  setActiveConversationChannel: (channel: CustomerChannel) => void;
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -1001,7 +1004,9 @@ function DockedConversationPanel({
   width,
   maxWidth,
   conversation,
+  activeChannel,
   onConversationChange,
+  onSelectChannel,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1011,7 +1016,9 @@ function DockedConversationPanel({
   width: number;
   maxWidth: number;
   conversation: SharedConversationData;
+  activeChannel: CustomerChannel;
   onConversationChange: (conversation: SharedConversationData) => void;
+  onSelectChannel: (channel: CustomerChannel) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1090,6 +1097,12 @@ function DockedConversationPanel({
             >
               <div className="flex items-start gap-3">
                 <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+                <ConversationChannelToggleGroup
+                  activeChannel={activeChannel}
+                  onSelectChannel={onSelectChannel}
+                  className="pt-0.5"
+                  buttonClassName="h-8 w-8"
+                />
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
                   <p className="truncate text-xs text-[#7A7A7A]">
@@ -1871,10 +1884,12 @@ function ConversationPopunder({
   position,
   size,
   conversation,
+  activeChannel,
   zIndex,
   onPositionChange,
   onSizeChange,
   onConversationChange,
+  onSelectChannel,
   onDock,
   dragActivation = null,
   onInteractStart,
@@ -1882,10 +1897,12 @@ function ConversationPopunder({
   position: ConversationPopunderPosition;
   size: ConversationPopunderSize;
   conversation: SharedConversationData;
+  activeChannel: CustomerChannel;
   zIndex: number;
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
   onConversationChange: (conversation: SharedConversationData) => void;
+  onSelectChannel: (channel: CustomerChannel) => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
   onInteractStart?: () => void;
@@ -1980,8 +1997,14 @@ function ConversationPopunder({
           document.body.style.userSelect = "none";
         }}
       >
-        <div className="flex items-center gap-3">
-          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+        <div className="flex items-start gap-3">
+          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <ConversationChannelToggleGroup
+            activeChannel={activeChannel}
+            onSelectChannel={onSelectChannel}
+            className="pt-0.5"
+            buttonClassName="h-8 w-8"
+          />
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
             <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
@@ -2603,6 +2626,7 @@ export default function Layout({ children }: LayoutProps) {
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
+  const [activeConversationChannel, setActiveConversationChannel] = useState<CustomerChannel>("sms");
   const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
   const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
     getDefaultDockedPanelWidths({
@@ -2753,11 +2777,8 @@ export default function Layout({ children }: LayoutProps) {
         : "Desk";
 
   useEffect(() => {
-    setConversationState((current) => createConversationState(
-      selectedAssignment.id,
-      getChannelFromConversationLabel(current.label),
-    ));
-  }, [selectedAssignment.id]);
+    setConversationState(createConversationState(selectedAssignment.id, activeConversationChannel));
+  }, [activeConversationChannel, selectedAssignment.id]);
 
   const handleConversationStateChange = (nextConversation: SharedConversationData) => {
     if (customerReplyTimeoutRef.current !== null) {
@@ -3446,6 +3467,7 @@ export default function Layout({ children }: LayoutProps) {
       isAgentAvailable: status === "Available",
       isConversationPanelOpen,
       isConversationPopunderOpen,
+      activeConversationChannel,
       selectedAssignment,
       recentInteractions,
       conversationState,
@@ -3468,6 +3490,7 @@ export default function Layout({ children }: LayoutProps) {
       openConversationPanel,
       openConversationPopunder,
       closeConversationPopunder,
+      setActiveConversationChannel,
       setConversationState: handleConversationStateChange,
       closeRightPanel: () => setActiveRightPanel(null),
       undockDeskPanel,
@@ -3522,6 +3545,7 @@ export default function Layout({ children }: LayoutProps) {
     }),
     [
       activeRightPanel,
+      activeConversationChannel,
       conversationState,
       customerInfoPopunderSize.height,
       customerInfoPopunderSize.width,
@@ -3797,7 +3821,9 @@ export default function Layout({ children }: LayoutProps) {
               width={dockedConversationWidth}
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
+              activeChannel={activeConversationChannel}
               onConversationChange={handleConversationStateChange}
+              onSelectChannel={setActiveConversationChannel}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || isMainCanvasVisible}
@@ -3894,10 +3920,12 @@ export default function Layout({ children }: LayoutProps) {
           position={conversationPopunderPosition}
           size={conversationPopunderSize}
           conversation={conversationState}
+          activeChannel={activeConversationChannel}
           zIndex={getFloatingPanelZIndex("conversation")}
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onConversationChange={handleConversationStateChange}
+          onSelectChannel={setActiveConversationChannel}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("conversation")}

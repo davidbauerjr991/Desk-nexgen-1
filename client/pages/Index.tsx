@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MoreVertical,
   PhoneCall,
   Info,
   FileText,
   History,
-  Mail,
   Clock,
   X,
   FilePlus2,
-  MessageCircle,
-  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { createConversationState, type CustomerChannel } from "@/lib/customer-database";
+import type { CustomerChannel } from "@/lib/customer-database";
 import { useLayoutContext } from "@/components/Layout";
+import ConversationChannelToggleGroup from "@/components/ConversationChannelToggleGroup";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
@@ -40,79 +38,8 @@ import {
 type ChannelType = CustomerChannel;
 type AddNewType = "customer" | "account" | "ticket" | "work-item";
 
-function WhatsAppIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M12 3.25C7.163 3.25 3.25 7.119 3.25 11.882C3.25 13.549 3.734 15.149 4.638 16.529L3.75 20.75L8.097 19.9C9.406 20.647 10.898 21.042 12.421 21.042C17.258 21.042 21.171 17.172 21.171 12.41C21.171 7.647 16.837 3.25 12 3.25Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.428 8.867C9.206 8.373 8.97 8.362 8.761 8.354C8.59 8.347 8.394 8.347 8.198 8.347C8.002 8.347 7.683 8.421 7.413 8.715C7.143 9.009 6.389 9.703 6.389 11.117C6.389 12.531 7.438 13.897 7.585 14.093C7.732 14.289 9.634 17.287 12.611 18.437C15.086 19.392 15.589 19.203 16.123 19.154C16.657 19.105 17.839 18.485 18.084 17.815C18.329 17.144 18.329 16.566 18.255 16.444C18.182 16.321 17.986 16.248 17.692 16.101C17.397 15.954 15.957 15.235 15.687 15.137C15.417 15.039 15.22 14.99 15.024 15.284C14.828 15.578 14.27 16.248 14.098 16.444C13.926 16.64 13.754 16.665 13.459 16.518C13.165 16.37 12.218 16.061 11.095 15.059C10.221 14.28 9.632 13.319 9.46 13.025C9.289 12.731 9.442 12.571 9.589 12.424C9.722 12.292 9.883 12.081 10.03 11.91C10.177 11.738 10.226 11.615 10.324 11.419C10.422 11.223 10.373 11.052 10.299 10.905C10.226 10.758 9.679 9.312 9.428 8.867Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
-function ChannelToggleButton({
-  channel,
-  activeChannel,
-  onClick,
-}: {
-  channel: ChannelType;
-  activeChannel: ChannelType | null;
-  onClick: () => void;
-}) {
-  const isActive = activeChannel === channel;
-  const commonClassName = cn(
-    "flex h-8 w-8 items-center justify-center rounded-full border transition-colors",
-    isActive
-      ? "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]"
-      : "border-black/10 bg-white text-[#7A7A7A] hover:border-[#B8D7F0] hover:text-[#006DAD]",
-  );
-
-  if (channel === "chat") {
-    return (
-      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show chat conversation" aria-pressed={isActive}>
-        <MessageCircle className="h-4 w-4 stroke-[1.8]" />
-      </button>
-    );
-  }
-
-  if (channel === "sms") {
-    return (
-      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show SMS conversation" aria-pressed={isActive}>
-        <MessageSquare className="h-4 w-4 stroke-[1.8]" />
-      </button>
-    );
-  }
-
-  if (channel === "whatsapp") {
-    return (
-      <button type="button" onClick={onClick} className={commonClassName} aria-label="Show WhatsApp conversation" aria-pressed={isActive}>
-        <WhatsAppIcon className="h-4 w-4" />
-      </button>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={commonClassName} aria-label="Show email conversation" aria-pressed={isActive}>
-      <Mail className="h-4 w-4 stroke-[1.8]" />
-    </button>
-  );
-}
 
 const addNewFieldConfig: Record<
   AddNewType,
@@ -273,18 +200,15 @@ export default function Index() {
     openConversationPanel,
     conversationState,
     setConversationState,
+    activeConversationChannel,
+    setActiveConversationChannel,
   } = useLayoutContext();
-  const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
   const [addNoteTrigger, setAddNoteTrigger] = useState(0);
   const [isMobileDetailsOpen, setIsMobileDetailsOpen] = useState(false);
   const [mobileDetailsTab, setMobileDetailsTab] = useState("Overview");
   const conversationPanelInitializedRef = useRef(false);
-  const activeConversation = useMemo(
-    () => createConversationState(selectedAssignment.id, activeChannel),
-    [activeChannel, selectedAssignment.id],
-  );
 
   useEffect(() => {
     if (!conversationPanelInitializedRef.current) {
@@ -317,17 +241,13 @@ export default function Index() {
     return () => window.clearTimeout(timeoutId);
   }, [isRightPanelOpen]);
 
-  useEffect(() => {
-    setConversationState(activeConversation);
-  }, [activeConversation, selectedAssignment.name, setConversationState]);
-
   const handleChannelSelection = (channel: ChannelType) => {
-    if (channel === activeChannel) {
+    if (channel === activeConversationChannel && isConversationPanelOpen) {
       toggleConversationPanel();
       return;
     }
 
-    setActiveChannel(channel);
+    setActiveConversationChannel(channel);
     openConversationPanel();
   };
 
@@ -343,25 +263,10 @@ export default function Index() {
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">{selectedAssignment.name}</h2>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <ChannelToggleButton
-                    channel="chat"
-                    activeChannel={isConversationPanelOpen ? activeChannel : null}
-                    onClick={() => handleChannelSelection("chat")}
-                  />
-                  <ChannelToggleButton
-                    channel="sms"
-                    activeChannel={isConversationPanelOpen ? activeChannel : null}
-                    onClick={() => handleChannelSelection("sms")}
-                  />
-                  <ChannelToggleButton
-                    channel="whatsapp"
-                    activeChannel={isConversationPanelOpen ? activeChannel : null}
-                    onClick={() => handleChannelSelection("whatsapp")}
-                  />
-                  <ChannelToggleButton
-                    channel="email"
-                    activeChannel={isConversationPanelOpen ? activeChannel : null}
-                    onClick={() => handleChannelSelection("email")}
+                  <ConversationChannelToggleGroup
+                    activeChannel={isConversationPanelOpen ? activeConversationChannel : null}
+                    onSelectChannel={handleChannelSelection}
+                    buttonClassName="h-8 w-8"
                   />
                   <Button
                     variant="outline"
@@ -429,7 +334,7 @@ export default function Index() {
             {isConversationContentVisible && (
               <ConversationPanel
                 conversation={conversationState}
-                draftKey={`mobile-${activeChannel}`}
+                draftKey={`mobile-${activeConversationChannel}`}
                 onConversationChange={setConversationState}
               />
             )}
