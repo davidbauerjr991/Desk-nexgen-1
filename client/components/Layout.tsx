@@ -2513,7 +2513,7 @@ function LeftQueueRail() {
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
-            <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-black/[0.08] bg-[#F8F8F9]">
+            <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="flex shrink-0 items-center justify-between px-4 py-4">
                 <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
                 <DropdownMenu>
