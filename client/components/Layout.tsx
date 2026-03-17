@@ -2451,9 +2451,22 @@ function LeftQueueRail() {
   }, []);
 
   return (
-    <div className="fixed bottom-0 left-0 top-12 z-30 block">
-      <div className="relative flex h-full" onMouseEnter={openAssignmentsPopover} onMouseLeave={closeAssignmentsPopover}>
-        <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
+    <div
+      className={cn(
+        "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
+        isOpen ? "w-[392px]" : "w-[56px]",
+      )}
+      onMouseEnter={openAssignmentsPopover}
+      onMouseLeave={closeAssignmentsPopover}
+    >
+      <div className="relative flex h-full bg-[#F8F8F9]">
+        <aside
+          className={cn(
+            "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] py-3 transition-[width,opacity] duration-300 ease-out",
+            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[56px] opacity-100",
+          )}
+          aria-hidden={isOpen}
+        >
           <div className="flex flex-col items-center gap-2.5 pt-1">
             <div className="flex flex-col items-center gap-2.5">
               {railQueuePreviewItems.map((item) => {
@@ -2493,15 +2506,14 @@ function LeftQueueRail() {
             "h-full overflow-hidden transition-[width,opacity] duration-300 ease-out",
             isOpen ? "w-[392px] opacity-100" : "w-0 opacity-0",
           )}
-          style={{ zIndex: ASSIGNMENTS_POPOVER_Z_INDEX }}
         >
           <div
             className={cn(
-              "flex h-full w-[392px] min-w-[392px] flex-col bg-[#F8F8F9] pl-3 pr-3 transition-transform duration-300 ease-out",
+              "flex h-full w-[392px] min-w-[392px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
-            <div className="flex h-full flex-col overflow-hidden rounded-r-3xl rounded-l-none border border-black/[0.08] bg-[#F8F8F9]">
+            <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-black/[0.08] bg-[#F8F8F9]">
               <div className="flex shrink-0 items-center justify-between px-4 py-4">
                 <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
                 <DropdownMenu>
@@ -3868,7 +3880,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-0 pb-4 pl-[56px] pr-4 pt-0">
+      <div className="flex min-h-0 flex-1 gap-0 pb-4 pr-4 pt-0">
         <LeftQueueRail />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
