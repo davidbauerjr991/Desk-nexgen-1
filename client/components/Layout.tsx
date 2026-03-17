@@ -2535,25 +2535,74 @@ function formatConversationReplyTime(date: Date) {
 
 function generateSimulatedCustomerReply(conversation: SharedConversationData, agentMessage: string) {
   const normalizedMessage = agentMessage.toLowerCase();
+  const latestCustomerContext = [...conversation.messages]
+    .reverse()
+    .find((message) => message.role === "customer")
+    ?.content.toLowerCase() ?? "";
+
+  if (
+    normalizedMessage.includes("screenshot") ||
+    normalizedMessage.includes("screen shot") ||
+    normalizedMessage.includes("photo") ||
+    normalizedMessage.includes("image")
+  ) {
+    return "Yes — I can send a screenshot of the error. Do you want the full page or just the payment section?";
+  }
+
+  if (normalizedMessage.includes("refresh") || normalizedMessage.includes("reload")) {
+    if (
+      latestCustomerContext.includes("same error") ||
+      latestCustomerContext.includes("billing mismatch") ||
+      latestCustomerContext.includes("doesn't match")
+    ) {
+      return "I refreshed and tried it again, but I am still seeing the same billing mismatch message on my side.";
+    }
+
+    return "I refreshed and retried it just now, but the upgrade is still not going through.";
+  }
+
+  if (normalizedMessage.includes("retry") || normalizedMessage.includes("try again") || normalizedMessage.includes("try it again")) {
+    if (normalizedMessage.includes("without leaving") || normalizedMessage.includes("stay in this conversation")) {
+      return "Okay, I am retrying it now while staying in this chat. I will tell you exactly what happens.";
+    }
+
+    return "I just retried it and I am still getting blocked at the same step.";
+  }
 
   if (normalizedMessage.includes("flag") || normalizedMessage.includes("block") || normalizedMessage.includes("cleared")) {
     return "I just tried it again and it worked this time. Thank you for getting that cleared so quickly.";
   }
 
   if (normalizedMessage.includes("zip") || normalizedMessage.includes("billing")) {
-    return "That makes sense. I recently moved, so the billing zip code might still be the old one. Do I need to update anything on my side?";
+    return "That could be it. I recently moved, so the billing zip code may still be the old one. Where should I update it?";
+  }
+
+  if (normalizedMessage.includes("charged twice") || normalizedMessage.includes("double charge")) {
+    return "That is my main concern too. I just want to make sure I will not end up with a duplicate charge if I retry it.";
+  }
+
+  if (normalizedMessage.includes("payment link") || normalizedMessage.includes("secure link")) {
+    return "Yes, a payment link would be helpful. Please send it over and I will complete it right away.";
+  }
+
+  if (normalizedMessage.includes("email") || normalizedMessage.includes("inbox")) {
+    return "Perfect — please send it over and I will watch for it in my inbox.";
+  }
+
+  if (normalizedMessage.includes("send") && normalizedMessage.includes("over")) {
+    return "Yes, please send that over. I can review it right away once it comes through.";
+  }
+
+  if (normalizedMessage.includes("card") || normalizedMessage.includes("visa") || normalizedMessage.includes("payment")) {
+    return "Understood. I have the same card ready to use again. Should I retry it now, or is there anything I should update first?";
   }
 
   if (normalizedMessage.includes("upgrade") || normalizedMessage.includes("subscription") || normalizedMessage.includes("pro tier")) {
     return "Okay, thanks. I mainly want to make sure the upgrade goes through today and that I do not get charged twice.";
   }
 
-  if (normalizedMessage.includes("card") || normalizedMessage.includes("visa") || normalizedMessage.includes("payment")) {
-    return "Understood. I have the same card ready to use again. Should I retry it now?";
-  }
-
-  if (normalizedMessage.includes("email") || normalizedMessage.includes("send")) {
-    return `Yes, please send that over. I will keep an eye on my inbox, ${conversation.customerName.split(" ")[0]}.`;
+  if (normalizedMessage.includes("meeting") || normalizedMessage.includes("today") || normalizedMessage.includes("urgent")) {
+    return "Thank you — I am on a bit of a deadline, so I appreciate you staying on this with me.";
   }
 
   return "Thanks for the update. That helps. What should I do next on my side?";
