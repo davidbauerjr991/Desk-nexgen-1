@@ -1048,7 +1048,7 @@ function DockedConversationPanel({
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
-  onOpenCustomerInfo: () => void;
+  onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   isCallDisabled: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1166,8 +1166,15 @@ function DockedConversationPanel({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={onOpenCustomerInfo}
+                  onMouseDown={(event) => {
+                    event.stopPropagation();
+                    onOpenCustomerInfo(event);
+                  }}
+                  onClick={(event) => {
+                    if (event.detail === 0) {
+                      onOpenCustomerInfo();
+                    }
+                  }}
                   className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
                 >
                   Customer Information
@@ -1976,7 +1983,7 @@ function ConversationPopunder({
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
-  onOpenCustomerInfo: () => void;
+  onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   isCallDisabled: boolean;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -2124,8 +2131,15 @@ function ConversationPopunder({
             type="button"
             variant="outline"
             size="sm"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onOpenCustomerInfo}
+            onMouseDown={(event) => {
+              event.stopPropagation();
+              onOpenCustomerInfo(event);
+            }}
+            onClick={(event) => {
+              if (event.detail === 0) {
+                onOpenCustomerInfo();
+              }
+            }}
             className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
           >
             Customer Information
@@ -3505,6 +3519,36 @@ export default function Layout({ children }: LayoutProps) {
     setDockedCustomerInfoWidth(customerInfoWidth);
   };
 
+  const openCustomerInfoPopunder = (event?: React.MouseEvent<HTMLElement>) => {
+    if (isCombinedInteractionPanel) {
+      openCombinedInteractionPanel("customerInfo");
+      return;
+    }
+
+    const anchorRect = event?.currentTarget.getBoundingClientRect();
+    const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
+
+    bringFloatingPanelToFront("customerInfo");
+    setCustomerInfoPopunderPosition(nextPosition);
+    setIsCustomerInfoPanelOpen(true);
+    setIsCustomerInfoPopunderOpen(true);
+    setCustomerInfoDragActivation(
+      event
+        ? {
+            id: Date.now(),
+            offset: {
+              x: event.clientX - nextPosition.x,
+              y: event.clientY - nextPosition.y,
+            },
+          }
+        : null,
+    );
+
+    if (location.pathname !== "/desk" && !isExpandedCanvasRoute) {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
+  };
+
   const dockCustomerInfoPanel = () => {
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("customerInfo");
@@ -3980,7 +4024,7 @@ export default function Layout({ children }: LayoutProps) {
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
-              onOpenCustomerInfo={openCustomerInfoPanel}
+              onOpenCustomerInfo={openCustomerInfoPopunder}
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
@@ -4086,7 +4130,7 @@ export default function Layout({ children }: LayoutProps) {
           onConversationChange={handleConversationStateChange}
           onSelectChannel={setActiveConversationChannel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
-          onOpenCustomerInfo={openCustomerInfoPanel}
+          onOpenCustomerInfo={openCustomerInfoPopunder}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
