@@ -190,7 +190,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <div className="relative flex-1">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
           <div className="mx-auto max-w-3xl space-y-6">
             <div className="text-center">
@@ -259,7 +259,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
         )}
       </div>
 
-      <div className="border-t border-border bg-background p-4">
+      <div className="shrink-0 border-t border-border bg-background p-4">
         <div
           className={cn(
             "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
