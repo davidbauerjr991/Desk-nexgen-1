@@ -864,6 +864,7 @@ export function createConversationState(customerId: string, channel: CustomerCha
     customerName: customer.name,
     label: conversation.label,
     timelineLabel: conversation.timelineLabel,
+    status: "open",
     draft: conversation.draft,
     messages: conversation.messages.map((message) => ({ ...message })),
     isCustomerTyping: false,

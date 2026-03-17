@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Plus, Send, SlidersHorizontal, Sparkles } from "lucide-react";
+import { AlertTriangle, AudioLines, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,10 +15,13 @@ export type ConversationMessage = {
   sentiment?: "frustrated";
 };
 
+export type ConversationStatus = "open" | "closed" | "pending";
+
 export type SharedConversationData = {
   customerName: string;
   label: string;
   timelineLabel: string;
+  status: ConversationStatus;
   draft: string;
   messages: ConversationMessage[];
   isCustomerTyping?: boolean;
@@ -104,6 +107,29 @@ function getInlineSuggestion(conversation: SharedConversationData, customerMessa
   };
 }
 
+function getConversationOverview(conversation: SharedConversationData) {
+  const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
+  const latestRelevantMessage = latestCustomerMessage ?? conversation.messages[conversation.messages.length - 1];
+  const normalizedContent = latestRelevantMessage?.content.replace(/\s+/g, " ").trim();
+  const latestIssue = normalizedContent && normalizedContent.length > 160
+    ? `${normalizedContent.slice(0, 157)}...`
+    : normalizedContent;
+
+  const statusDescription = conversation.status === "open"
+    ? "an active"
+    : conversation.status === "pending"
+      ? "a pending"
+      : "a closed";
+
+  return `${conversation.customerName.split(" ")[0]} is in ${statusDescription} ${conversation.label.toLowerCase()} thread. Latest issue: ${latestIssue ?? "Awaiting the next customer update."}`;
+}
+
+const statusOptions: Array<{ value: ConversationStatus; label: string }> = [
+  { value: "open", label: "Open" },
+  { value: "closed", label: "Closed" },
+  { value: "pending", label: "Pending" },
+];
+
 export default function ConversationPanel({ conversation, draftKey, className, onConversationChange }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -115,6 +141,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
+  const [isContextExpanded, setIsContextExpanded] = useState(true);
 
   useEffect(() => {
     setDraft(conversation.draft);
@@ -231,6 +258,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
   const inlineSuggestion = latestCustomerMessage ? getInlineSuggestion(conversation, latestCustomerMessage) : null;
+  const conversationOverview = getConversationOverview(conversation);
+  const lastActivityAt = conversation.timelineLabel.includes("·")
+    ? conversation.timelineLabel.split("·").slice(1).join("·").trim()
+    : conversation.timelineLabel;
   const shouldShowSuggestion =
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
@@ -255,6 +286,13 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
   const handleDismissSuggestion = () => {
     setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
+  };
+
+  const handleConversationStatusChange = (status: ConversationStatus) => {
+    onConversationChange?.({
+      ...conversation,
+      status,
+    });
   };
 
   const handleSend = () => {
@@ -285,6 +323,52 @@ export default function ConversationPanel({ conversation, draftKey, className, o
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
           <div className="mx-auto max-w-3xl space-y-6">
+            <div className="overflow-hidden rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
+                    <span>{conversation.label.toUpperCase()}</span>
+                    <span className="text-[#C9A74A]">•</span>
+                    <span>{lastActivityAt}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {statusOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleConversationStatusChange(option.value)}
+                        className={cn(
+                          "rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors",
+                          option.value === conversation.status
+                            ? option.value === "open"
+                              ? "border-[#98D38D] bg-[#EAF8E6] text-[#2F7D32]"
+                              : option.value === "pending"
+                                ? "border-[#E8C46A] bg-[#FFF3CD] text-[#9A6700]"
+                                : "border-[#D0D5DD] bg-white text-[#667085]"
+                            : "border-black/10 bg-white/70 text-[#667085] hover:bg-white",
+                        )}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsContextExpanded((current) => !current)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[#8C6A00] transition-colors hover:bg-[#F6E7B8]"
+                  aria-label={isContextExpanded ? "Collapse conversation context" : "Expand conversation context"}
+                >
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", isContextExpanded && "rotate-180")} />
+                </button>
+              </div>
+              {isContextExpanded && (
+                <div className="border-t border-[#E7D7A6] px-4 py-3 text-sm leading-6 text-[#6B5A1B]">
+                  {conversationOverview}
+                </div>
+              )}
+            </div>
+
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
