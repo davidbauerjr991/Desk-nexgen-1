@@ -36,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
@@ -2388,6 +2389,7 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [sortOption, setSortOption] = useState<QueueSortOption>("updated-desc");
+  const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const closeTimeoutRef = useRef<number | null>(null);
   const {
     selectedAssignment,
@@ -2514,25 +2516,26 @@ function LeftQueueRail() {
             )}
           >
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
-              <div className="flex shrink-0 items-center justify-between px-4 py-4">
-                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Sort assignments"
-                      className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
+              <div className="shrink-0 px-4 py-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Current Work</h3>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Sort current work"
+                        className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
+                      >
+                        <ArrowUpDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      sideOffset={8}
+                      className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
                     >
-                      <ArrowUpDown className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    sideOffset={8}
-                    className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                  >
                     <DropdownMenuItem
                       onClick={() => setSortOption("created-asc")}
                       className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
@@ -2558,7 +2561,25 @@ function LeftQueueRail() {
                       Last updated descending
                     </DropdownMenuItem>
                   </DropdownMenuContent>
-                </DropdownMenu>
+                  </DropdownMenu>
+                </div>
+                <div className="mt-4 flex items-start justify-between gap-3 rounded-[8px] bg-white px-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
+                      AI Priority Assist
+                    </label>
+                    <p className="mt-1 text-xs leading-5 text-[#667085]">
+                      Tasks ranked by urgency, voice calls always first.
+                    </p>
+                  </div>
+                  <Switch
+                    id="ai-priority-assist"
+                    checked={isPriorityAssistEnabled}
+                    onCheckedChange={setIsPriorityAssistEnabled}
+                    aria-label="Toggle AI Priority Assist"
+                    className="mt-0.5 data-[state=checked]:bg-[#006DAD] data-[state=unchecked]:bg-[#D0D5DD]"
+                  />
+                </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <QueueOverlayList items={sortedQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
