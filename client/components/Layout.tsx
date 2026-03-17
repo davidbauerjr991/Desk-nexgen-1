@@ -1033,6 +1033,7 @@ function DockedConversationPanel({
   onConversationChange,
   onSelectChannel,
   onOpenCall,
+  onOpenCustomerInfo,
   isCallDisabled,
   onWidthChange,
   onClose,
@@ -1047,6 +1048,7 @@ function DockedConversationPanel({
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
+  onOpenCustomerInfo: () => void;
   isCallDisabled: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1159,6 +1161,16 @@ function DockedConversationPanel({
                   className="h-8 rounded-full border-black/10 px-3"
                 >
                   <Phone className="mr-2 h-4 w-4" /> Call
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={onOpenCustomerInfo}
+                  className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+                >
+                  Customer Information
                 </Button>
               </div>
             </div>
@@ -1948,6 +1960,7 @@ function ConversationPopunder({
   onConversationChange,
   onSelectChannel,
   onOpenCall,
+  onOpenCustomerInfo,
   isCallDisabled,
   onDock,
   dragActivation = null,
@@ -1963,6 +1976,7 @@ function ConversationPopunder({
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
+  onOpenCustomerInfo: () => void;
   isCallDisabled: boolean;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -2105,6 +2119,16 @@ function ConversationPopunder({
             className="h-8 rounded-full border-black/10 px-3"
           >
             <Phone className="mr-2 h-4 w-4" /> Call
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={onOpenCustomerInfo}
+            className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+          >
+            Customer Information
           </Button>
           {!shouldStackHeaderActions && onDock ? (
             <Button
@@ -3958,6 +3982,7 @@ export default function Layout({ children }: LayoutProps) {
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
+              onOpenCustomerInfo={openCustomerInfoPanel}
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
@@ -4063,6 +4088,7 @@ export default function Layout({ children }: LayoutProps) {
           onConversationChange={handleConversationStateChange}
           onSelectChannel={setActiveConversationChannel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
+          onOpenCustomerInfo={openCustomerInfoPanel}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
