@@ -250,7 +250,7 @@ export default function Index() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 rounded-full border-black/10 px-3"
+                    className="h-8 rounded-full border-black/10 px-3 min-[800px]:hidden"
                     onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
                     disabled={isAgentInCall || !isAgentAvailable}
                   >

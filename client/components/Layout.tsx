@@ -1007,6 +1007,8 @@ function DockedConversationPanel({
   activeChannel,
   onConversationChange,
   onSelectChannel,
+  onOpenCall,
+  isCallDisabled,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1019,6 +1021,8 @@ function DockedConversationPanel({
   activeChannel: CustomerChannel;
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenCall: (anchorRect?: DOMRect | null) => void;
+  isCallDisabled: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1104,12 +1108,25 @@ function DockedConversationPanel({
                   </p>
                 </div>
               </div>
-              <ConversationChannelToggleGroup
-                activeChannel={activeChannel}
-                onSelectChannel={onSelectChannel}
-                className="shrink-0 pt-0.5"
-                buttonClassName="h-8 w-8"
-              />
+              <div className="flex items-center gap-2">
+                <ConversationChannelToggleGroup
+                  activeChannel={activeChannel}
+                  onSelectChannel={onSelectChannel}
+                  className="shrink-0 pt-0.5"
+                  buttonClassName="h-8 w-8"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+                  disabled={isCallDisabled}
+                  className="h-8 rounded-full border-black/10 px-3"
+                >
+                  <Phone className="mr-2 h-4 w-4" /> Call
+                </Button>
+              </div>
             </div>
 
             <ConversationPanel
@@ -1890,6 +1907,8 @@ function ConversationPopunder({
   onSizeChange,
   onConversationChange,
   onSelectChannel,
+  onOpenCall,
+  isCallDisabled,
   onDock,
   dragActivation = null,
   onInteractStart,
@@ -1903,6 +1922,8 @@ function ConversationPopunder({
   onSizeChange: (size: ConversationPopunderSize) => void;
   onConversationChange: (conversation: SharedConversationData) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenCall: (anchorRect?: DOMRect | null) => void;
+  isCallDisabled: boolean;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
   onInteractStart?: () => void;
@@ -2011,6 +2032,17 @@ function ConversationPopunder({
             className="shrink-0"
             buttonClassName="h-8 w-8"
           />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+            disabled={isCallDisabled}
+            className="h-8 rounded-full border-black/10 px-3"
+          >
+            <Phone className="mr-2 h-4 w-4" /> Call
+          </Button>
           {onDock ? (
             <Button
               type="button"
@@ -3826,6 +3858,8 @@ export default function Layout({ children }: LayoutProps) {
               activeChannel={activeConversationChannel}
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
+              onOpenCall={layoutContextValue.toggleCallPopunder}
+              isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || isMainCanvasVisible}
@@ -3928,6 +3962,8 @@ export default function Layout({ children }: LayoutProps) {
           onSizeChange={setConversationPopunderSize}
           onConversationChange={handleConversationStateChange}
           onSelectChannel={setActiveConversationChannel}
+          onOpenCall={layoutContextValue.toggleCallPopunder}
+          isCallDisabled={status === "In a Call" || status !== "Available"}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("conversation")}
