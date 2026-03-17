@@ -3694,6 +3694,10 @@ export default function Layout({ children }: LayoutProps) {
         setSelectedAssignmentId(assignmentId);
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
+          if (!isCustomerInfoPanelOpen) {
+            return;
+          }
+
           if (shouldPreserveFloatingCustomerInfoPanel || isDeskCustomerInfoPopunderVisible) {
             bringFloatingPanelToFront("customerInfo");
             return;
@@ -3702,8 +3706,6 @@ export default function Layout({ children }: LayoutProps) {
           if (isDeskCustomerInfoVisible || isCombinedInteractionPanel) {
             return;
           }
-
-          openCustomerInfoPanel();
 
           if (!isCustomerInfoPanelAllowed && !isCombinedInteractionPanel) {
             bringFloatingPanelToFront("customerInfo");
