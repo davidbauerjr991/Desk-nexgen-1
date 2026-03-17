@@ -27,6 +27,7 @@ interface ConversationPanelProps {
   conversation: SharedConversationData;
   draftKey: string;
   className?: string;
+  onConversationChange?: (conversation: SharedConversationData) => void;
 }
 
 const conversationFooterMenuItems = [
@@ -41,7 +42,14 @@ const conversationFooterSecondaryMenuItems = [
   "Add connectors",
 ] as const;
 
-export default function ConversationPanel({ conversation, draftKey, className }: ConversationPanelProps) {
+function formatConversationTimestamp(date: Date) {
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export default function ConversationPanel({ conversation, draftKey, className, onConversationChange }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState(conversation.draft);
@@ -58,6 +66,28 @@ export default function ConversationPanel({ conversation, draftKey, className }:
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
+
+  const handleSend = () => {
+    const nextDraft = draft.trim();
+    if (!nextDraft) return;
+
+    const nextConversation: SharedConversationData = {
+      ...conversation,
+      draft: "",
+      messages: [
+        ...conversation.messages,
+        {
+          id: conversation.messages.reduce((maxId, message) => Math.max(maxId, message.id), 0) + 1,
+          role: "agent",
+          content: nextDraft,
+          time: formatConversationTimestamp(new Date()),
+        },
+      ],
+    };
+
+    setDraft("");
+    onConversationChange?.(nextConversation);
+  };
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
@@ -130,6 +160,12 @@ export default function ConversationPanel({ conversation, draftKey, className }:
             onChange={(event) => setDraft(event.target.value)}
             onFocus={() => setIsDraftFocused(true)}
             onBlur={() => setIsDraftFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                handleSend();
+              }
+            }}
             rows={1}
             className="min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           />
@@ -199,7 +235,7 @@ export default function ConversationPanel({ conversation, draftKey, className }:
               >
                 <AudioLines className="h-4 w-4" />
               </Button>
-              <Button className="h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]" size="icon" aria-label="Send message">
+              <Button className="h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]" size="icon" aria-label="Send message" onClick={handleSend}>
                 <Send className="h-3.5 w-3.5" />
               </Button>
             </div>

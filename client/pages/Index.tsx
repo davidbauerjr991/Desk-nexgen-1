@@ -400,6 +400,7 @@ export default function Index() {
     isConversationPanelOpen,
     toggleConversationPanel,
     openConversationPanel,
+    conversationState,
     setConversationState,
   } = useLayoutContext();
   const [activeChannel, setActiveChannel] = useState<ChannelType>("sms");
@@ -562,14 +563,9 @@ export default function Index() {
           >
             {isConversationContentVisible && (
               <ConversationPanel
-                conversation={{
-                  customerName: selectedAssignment.name,
-                  label: activeConversation.label,
-                  timelineLabel: activeConversation.timelineLabel,
-                  draft: activeConversation.draft,
-                  messages: activeConversation.messages,
-                }}
+                conversation={conversationState}
                 draftKey={`mobile-${activeChannel}`}
+                onConversationChange={setConversationState}
               />
             )}
           </div>

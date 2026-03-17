@@ -977,6 +977,7 @@ function DockedConversationPanel({
   width,
   maxWidth,
   conversation,
+  onConversationChange,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -985,6 +986,7 @@ function DockedConversationPanel({
   width: number;
   maxWidth: number;
   conversation: SharedConversationData;
+  onConversationChange: (conversation: SharedConversationData) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1083,6 +1085,7 @@ function DockedConversationPanel({
             <ConversationPanel
               conversation={conversation}
               draftKey={`docked-${conversation.label}-${conversation.customerName}`}
+              onConversationChange={onConversationChange}
             />
           </>
         )}
@@ -1124,6 +1127,7 @@ function CombinedInteractionPanel({
   canvasTabLabel,
   canvasContent,
   isFullWidth,
+  onConversationChange,
   onTabChange,
   onWidthChange,
   onClose,
@@ -1139,6 +1143,7 @@ function CombinedInteractionPanel({
   canvasTabLabel: string;
   canvasContent: React.ReactNode;
   isFullWidth: boolean;
+  onConversationChange: (conversation: SharedConversationData) => void;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1238,6 +1243,7 @@ function CombinedInteractionPanel({
             <ConversationPanel
               conversation={conversation}
               draftKey={`combined-${conversation.label}-${conversation.customerName}`}
+              onConversationChange={onConversationChange}
             />
           </TabsContent>
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden">
@@ -1848,6 +1854,7 @@ function ConversationPopunder({
   zIndex,
   onPositionChange,
   onSizeChange,
+  onConversationChange,
   onClose,
   onDock,
   dragActivation = null,
@@ -1859,6 +1866,7 @@ function ConversationPopunder({
   zIndex: number;
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
+  onConversationChange: (conversation: SharedConversationData) => void;
   onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -1986,7 +1994,11 @@ function ConversationPopunder({
         </div>
       </div>
 
-      <ConversationPanel conversation={conversation} draftKey={`popunder-${conversation.label}-${conversation.customerName}`} />
+      <ConversationPanel
+        conversation={conversation}
+        draftKey={`popunder-${conversation.label}-${conversation.customerName}`}
+        onConversationChange={onConversationChange}
+      />
 
       <button
         type="button"
@@ -3593,6 +3605,7 @@ export default function Layout({ children }: LayoutProps) {
             canvasTabLabel={deskCanvasTabLabel}
             canvasContent={children}
             isFullWidth={isCanvasMergedIntoCombinedPanel}
+            onConversationChange={setConversationState}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
@@ -3610,6 +3623,7 @@ export default function Layout({ children }: LayoutProps) {
               width={dockedConversationWidth}
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
+              onConversationChange={setConversationState}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
               onUndockStart={(event) => {
@@ -3707,6 +3721,7 @@ export default function Layout({ children }: LayoutProps) {
           zIndex={getFloatingPanelZIndex("conversation")}
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
+          onConversationChange={setConversationState}
           onClose={closeConversationPopunder}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
