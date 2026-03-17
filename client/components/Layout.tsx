@@ -146,8 +146,8 @@ type QueuePreviewItem = {
   lastUpdated: string;
   time: string;
   preview: string;
-  sentiment: string;
-  sentimentClassName: string;
+  priority: string;
+  priorityClassName: string;
   badgeColor: string;
   icon: typeof Phone;
   isActive: boolean;
@@ -169,8 +169,8 @@ const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) =>
   lastUpdated: customer.lastUpdated,
   time: customer.queue.time,
   preview: customer.queue.preview,
-  sentiment: customer.queue.sentiment,
-  sentimentClassName: customer.queue.sentimentClassName,
+  priority: customer.queue.priority,
+  priorityClassName: customer.queue.priorityClassName,
   badgeColor: customer.queue.badgeColor,
   icon: queueIconMap[customer.queue.icon],
   isActive: customer.queue.isActive,
@@ -2358,8 +2358,8 @@ function QueueOverlayList({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="truncate text-[14px] font-semibold leading-5 text-[#333333]">{item.name}</span>
-                    <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.sentimentClassName)}>
-                      {item.sentiment.toLowerCase()}
+                    <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.priorityClassName)}>
+                      {item.priority.toLowerCase()}
                     </span>
                   </div>
                 </div>

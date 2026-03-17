@@ -30,8 +30,8 @@ export type CustomerSeedRecord = {
   queue: {
     time: string;
     preview: string;
-    sentiment: string;
-    sentimentClassName: string;
+    priority: string;
+    priorityClassName: string;
     badgeColor: string;
     icon: CustomerQueueIcon;
     isActive: boolean;
@@ -116,8 +116,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
     queue: {
       time: "Now",
       preview: "Need help resolving a blocked upgrade.",
-      sentiment: "Positive",
-      sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
+      priority: "Critical",
+      priorityClassName: "border-[#F04438] bg-[#FEF3F2] text-[#B42318]",
       badgeColor: "bg-[#CC2D2D]",
       icon: "phone",
       isActive: true,
@@ -313,8 +313,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
     queue: {
       time: "2m ago",
       preview: "Missed flight and needs a same-day rebooking.",
-      sentiment: "Neutral",
-      sentimentClassName: "border-black/20 text-[#333333]",
+      priority: "High",
+      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
       badgeColor: "bg-[#2E9B34]",
       icon: "phone",
       isActive: false,
@@ -507,8 +507,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
     queue: {
       time: "5m ago",
       preview: "Discount code is failing during checkout.",
-      sentiment: "Negative",
-      sentimentClassName: "border-[#A14C49] text-[#87413C]",
+      priority: "Medium",
+      priorityClassName: "border-[#2E90FA] bg-[#EFF8FF] text-[#175CD3]",
       badgeColor: "bg-[#45C9CF]",
       icon: "clipboardList",
       isActive: false,
@@ -701,8 +701,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
     queue: {
       time: "24m ago",
       preview: "Subscription change and duplicate-charge concern.",
-      sentiment: "Positive",
-      sentimentClassName: "border-[#73A76F] text-[#4E8A51]",
+      priority: "Low",
+      priorityClassName: "border-[#12B76A] bg-[#ECFDF3] text-[#027A48]",
       badgeColor: "bg-[#8BC34A]",
       icon: "messageSquare",
       isActive: false,
