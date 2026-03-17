@@ -317,26 +317,58 @@ function getDeskCanvasPopunderDefaultWidth(view: DeskCanvasView) {
     : DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH;
 }
 
+function getAvailableDockedPanelWidth({
+  hasDesktopRightPanel,
+  reserveMainWorkspace,
+  visiblePanelCount,
+  hasMainCanvas,
+}: {
+  hasDesktopRightPanel: boolean;
+  reserveMainWorkspace: boolean;
+  visiblePanelCount: number;
+  hasMainCanvas: boolean;
+}) {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
+  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+  const gapCount = visiblePanelCount === 0 ? 0 : Math.max(0, visiblePanelCount - 1) + (hasMainCanvas ? 1 : 0);
+
+  return Math.max(
+    0,
+    window.innerWidth - 56 - rightPanelWidth - reservedMainWorkspaceWidth - gapCount * DOCKED_CONVERSATION_GAP - 16,
+  );
+}
+
 function getDockedConversationMaxWidth({
   hasDesktopRightPanel,
   customerInfoPanelWidth,
+  hasCustomerInfoPanel,
   reserveMainWorkspace,
+  hasMainCanvas,
 }: {
   hasDesktopRightPanel: boolean;
   customerInfoPanelWidth: number;
+  hasCustomerInfoPanel: boolean;
   reserveMainWorkspace: boolean;
+  hasMainCanvas: boolean;
 }) {
   if (typeof window === "undefined") {
     return DOCKED_CONVERSATION_MAX_WIDTH;
   }
 
-  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
-
-  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+  const availableWidth = getAvailableDockedPanelWidth({
+    hasDesktopRightPanel,
+    reserveMainWorkspace,
+    visiblePanelCount: hasCustomerInfoPanel ? 2 : 1,
+    hasMainCanvas,
+  });
 
   return Math.max(
     DOCKED_CONVERSATION_MIN_WIDTH,
-    window.innerWidth - 56 - rightPanelWidth - customerInfoPanelWidth - reservedMainWorkspaceWidth - DOCKED_CONVERSATION_GAP - 16,
+    availableWidth - (hasCustomerInfoPanel ? customerInfoPanelWidth : 0),
   );
 }
 
@@ -345,26 +377,29 @@ function getDockedCustomerInfoMaxWidth({
   isConversationPanelOpen,
   dockedConversationWidth,
   reserveMainWorkspace,
+  hasMainCanvas,
 }: {
   hasDesktopRightPanel: boolean;
   isConversationPanelOpen: boolean;
   dockedConversationWidth: number;
   reserveMainWorkspace: boolean;
+  hasMainCanvas: boolean;
 }) {
   if (typeof window === "undefined") {
     return CUSTOMER_INFO_PANEL_MAX_WIDTH;
   }
 
-  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
-  const conversationWidth = isConversationPanelOpen && window.innerWidth >= 800
-    ? dockedConversationWidth + DOCKED_CONVERSATION_GAP
-    : 0;
-
-  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
+  const hasDockedConversation = isConversationPanelOpen && window.innerWidth >= 800;
+  const availableWidth = getAvailableDockedPanelWidth({
+    hasDesktopRightPanel,
+    reserveMainWorkspace,
+    visiblePanelCount: hasDockedConversation ? 2 : 1,
+    hasMainCanvas,
+  });
 
   return Math.max(
     CUSTOMER_INFO_PANEL_MIN_WIDTH,
-    window.innerWidth - 56 - rightPanelWidth - conversationWidth - reservedMainWorkspaceWidth - CUSTOMER_INFO_PANEL_GAP - 16,
+    availableWidth - (hasDockedConversation ? dockedConversationWidth : 0),
   );
 }
 
@@ -395,9 +430,15 @@ function getDockedCopilotMaxWidth({
 function getDefaultDockedPanelWidths({
   hasDesktopRightPanel,
   reserveMainWorkspace,
+  showConversation,
+  showCustomerInfo,
+  hasMainCanvas,
 }: {
   hasDesktopRightPanel: boolean;
   reserveMainWorkspace: boolean;
+  showConversation: boolean;
+  showCustomerInfo: boolean;
+  hasMainCanvas: boolean;
 }) {
   if (typeof window === "undefined") {
     return {
@@ -406,12 +447,27 @@ function getDefaultDockedPanelWidths({
     };
   }
 
-  const rightPanelWidth = hasDesktopRightPanel && window.innerWidth >= 1024 ? 380 : 0;
-  const reservedMainWorkspaceWidth = reserveMainWorkspace ? MIN_MAIN_WORKSPACE_WIDTH : 0;
-  const availableWidth = Math.max(
-    DOCKED_CONVERSATION_MIN_WIDTH + CUSTOMER_INFO_PANEL_MIN_WIDTH,
-    window.innerWidth - 56 - rightPanelWidth - reservedMainWorkspaceWidth - DOCKED_CONVERSATION_GAP - CUSTOMER_INFO_PANEL_GAP - 16,
-  );
+  const visiblePanelCount = (showConversation ? 1 : 0) + (showCustomerInfo ? 1 : 0);
+  const availableWidth = getAvailableDockedPanelWidth({
+    hasDesktopRightPanel,
+    reserveMainWorkspace,
+    visiblePanelCount,
+    hasMainCanvas,
+  });
+
+  if (!showCustomerInfo) {
+    return {
+      conversationWidth: Math.max(DOCKED_CONVERSATION_MIN_WIDTH, availableWidth),
+      customerInfoWidth: CUSTOMER_INFO_PANEL_DEFAULT_WIDTH,
+    };
+  }
+
+  if (!showConversation) {
+    return {
+      conversationWidth: DOCKED_CONVERSATION_DEFAULT_WIDTH,
+      customerInfoWidth: Math.max(CUSTOMER_INFO_PANEL_MIN_WIDTH, availableWidth),
+    };
+  }
 
   const customerInfoWidth = Math.min(
     availableWidth - DOCKED_CONVERSATION_MIN_WIDTH,
@@ -1015,6 +1071,7 @@ function DockedConversationPanel({
   onWidthChange,
   onClose,
   onUndockStart,
+  showTrailingGap,
 }: {
   isOpen: boolean;
   width: number;
@@ -1024,6 +1081,7 @@ function DockedConversationPanel({
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
+  showTrailingGap: boolean;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1086,7 +1144,7 @@ function DockedConversationPanel({
       )}
       style={{
         width: isOpen ? width : 0,
-        marginRight: isOpen ? DOCKED_CONVERSATION_GAP : 0,
+        marginRight: isOpen && showTrailingGap ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -1324,6 +1382,7 @@ function DockedCustomerInfoPanel({
   onWidthChange,
   onClose,
   onUndockStart,
+  showTrailingGap,
 }: {
   isOpen: boolean;
   width: number;
@@ -1333,6 +1392,7 @@ function DockedCustomerInfoPanel({
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
+  showTrailingGap: boolean;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1377,7 +1437,7 @@ function DockedCustomerInfoPanel({
       )}
       style={{
         width: isOpen ? width : 0,
-        marginRight: isOpen ? CUSTOMER_INFO_PANEL_GAP : 0,
+        marginRight: isOpen && showTrailingGap ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -2694,7 +2754,10 @@ export default function Layout({ children }: LayoutProps) {
   const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
     getDefaultDockedPanelWidths({
       hasDesktopRightPanel: false,
-      reserveMainWorkspace: true,
+      reserveMainWorkspace: false,
+      showConversation: true,
+      showCustomerInfo: typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
+      hasMainCanvas: false,
     }).conversationWidth,
   );
   const [isConversationPopunderOpen, setIsConversationPopunderOpen] = useState(false);
@@ -2704,7 +2767,10 @@ export default function Layout({ children }: LayoutProps) {
   const [dockedCustomerInfoWidth, setDockedCustomerInfoWidth] = useState(() =>
     getDefaultDockedPanelWidths({
       hasDesktopRightPanel: false,
-      reserveMainWorkspace: true,
+      reserveMainWorkspace: false,
+      showConversation: true,
+      showCustomerInfo: typeof window !== "undefined" && window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
+      hasMainCanvas: false,
     }).customerInfoWidth,
   );
   const [isCustomerInfoPopunderOpen, setIsCustomerInfoPopunderOpen] = useState(false);
@@ -2803,21 +2869,25 @@ export default function Layout({ children }: LayoutProps) {
     !isCombinedInteractionPanel &&
     isCustomerInfoPanelAllowed &&
     !isCustomerInfoPopunderOpen;
-  const dockedCustomerInfoPanelWidth = isDeskCustomerInfoVisible ? dockedCustomerInfoWidth + CUSTOMER_INFO_PANEL_GAP : 0;
+  const isDockedConversationVisible = !isCombinedInteractionPanel && isConversationPanelOpen;
+  const isMainCanvasVisible = !isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel;
   const isDeskCustomerInfoPopunderVisible =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
   const shouldPreserveFloatingCustomerInfoPanel =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
-    customerInfoPanelWidth: dockedCustomerInfoPanelWidth,
-    reserveMainWorkspace: !isExpandedCanvasRoute,
+    customerInfoPanelWidth: isDeskCustomerInfoVisible ? dockedCustomerInfoWidth : 0,
+    hasCustomerInfoPanel: isDeskCustomerInfoVisible,
+    reserveMainWorkspace: isMainCanvasVisible,
+    hasMainCanvas: isMainCanvasVisible,
   });
   const customerInfoPanelMaxWidth = getDockedCustomerInfoMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
-    isConversationPanelOpen,
+    isConversationPanelOpen: isDockedConversationVisible,
     dockedConversationWidth,
-    reserveMainWorkspace: !isExpandedCanvasRoute,
+    reserveMainWorkspace: isMainCanvasVisible,
+    hasMainCanvas: isMainCanvasVisible,
   });
   const activeWorkspace = useMemo(
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
@@ -3129,24 +3199,33 @@ export default function Layout({ children }: LayoutProps) {
   }, [conversationPanelMaxWidth]);
 
   useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      isCombinedInteractionPanel ||
-      !isConversationPanelOpen ||
-      !isCustomerInfoPanelOpen ||
-      !isCustomerInfoPanelAllowed
-    ) {
+    if (typeof window === "undefined" || isCombinedInteractionPanel) {
       return;
     }
 
     const syncDefaultDockedPanelWidths = () => {
+      const showConversation = isConversationPanelOpen;
+      const showCustomerInfo = isDeskCustomerInfoVisible;
+
+      if (!showConversation && !showCustomerInfo) {
+        return;
+      }
+
       const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
         hasDesktopRightPanel: activeRightPanel !== null,
-        reserveMainWorkspace: !isExpandedCanvasRoute,
+        reserveMainWorkspace: isMainCanvasVisible,
+        showConversation,
+        showCustomerInfo,
+        hasMainCanvas: isMainCanvasVisible,
       });
 
-      setDockedConversationWidth(conversationWidth);
-      setDockedCustomerInfoWidth(customerInfoWidth);
+      if (showConversation) {
+        setDockedConversationWidth(conversationWidth);
+      }
+
+      if (showCustomerInfo) {
+        setDockedCustomerInfoWidth(customerInfoWidth);
+      }
     };
 
     syncDefaultDockedPanelWidths();
@@ -3157,9 +3236,8 @@ export default function Layout({ children }: LayoutProps) {
     activeRightPanel,
     isCombinedInteractionPanel,
     isConversationPanelOpen,
-    isCustomerInfoPanelAllowed,
-    isCustomerInfoPanelOpen,
-    isExpandedCanvasRoute,
+    isDeskCustomerInfoVisible,
+    isMainCanvasVisible,
   ]);
 
   useEffect(() => {
@@ -3335,11 +3413,14 @@ export default function Layout({ children }: LayoutProps) {
 
     const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
       hasDesktopRightPanel: activeRightPanel !== null,
-      reserveMainWorkspace: !isExpandedCanvasRoute,
+      reserveMainWorkspace: isMainCanvasVisible,
+      showConversation: true,
+      showCustomerInfo: isDeskCustomerInfoVisible,
+      hasMainCanvas: isMainCanvasVisible,
     });
 
     setDockedConversationWidth(conversationWidth);
-    if (isCustomerInfoPanelAllowed) {
+    if (isDeskCustomerInfoVisible) {
       setDockedCustomerInfoWidth(customerInfoWidth);
     }
     setIsConversationPanelOpen(true);
@@ -3353,7 +3434,15 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    setDockedConversationWidth(Math.min(conversationPanelMaxWidth, 360));
+    const { conversationWidth } = getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: activeRightPanel !== null,
+      reserveMainWorkspace: isMainCanvasVisible,
+      showConversation: true,
+      showCustomerInfo: isDeskCustomerInfoVisible,
+      hasMainCanvas: isMainCanvasVisible,
+    });
+
+    setDockedConversationWidth(conversationWidth);
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
     setConversationDragActivation(null);
@@ -3392,7 +3481,10 @@ export default function Layout({ children }: LayoutProps) {
 
     const { conversationWidth, customerInfoWidth } = getDefaultDockedPanelWidths({
       hasDesktopRightPanel: activeRightPanel !== null,
-      reserveMainWorkspace: !isExpandedCanvasRoute,
+      reserveMainWorkspace: isMainCanvasVisible,
+      showConversation: isConversationPanelOpen,
+      showCustomerInfo: true,
+      hasMainCanvas: isMainCanvasVisible,
     });
 
     setIsCustomerInfoPanelOpen(true);
@@ -3408,10 +3500,18 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    const { customerInfoWidth } = getDefaultDockedPanelWidths({
+      hasDesktopRightPanel: activeRightPanel !== null,
+      reserveMainWorkspace: isMainCanvasVisible,
+      showConversation: isConversationPanelOpen,
+      showCustomerInfo: true,
+      hasMainCanvas: isMainCanvasVisible,
+    });
+
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    setDockedCustomerInfoWidth(Math.min(customerInfoPanelMaxWidth, 425));
+    setDockedCustomerInfoWidth(customerInfoWidth);
   };
 
   const closeCustomerInfoPanel = () => {
@@ -3855,6 +3955,7 @@ export default function Layout({ children }: LayoutProps) {
               onConversationChange={handleConversationStateChange}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
+              showTrailingGap={isDeskCustomerInfoVisible || isMainCanvasVisible}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -3896,6 +3997,7 @@ export default function Layout({ children }: LayoutProps) {
               customerId={selectedAssignmentCallDetail.customerId}
               onWidthChange={setDockedCustomerInfoWidth}
               onClose={closeCustomerInfoPanel}
+              showTrailingGap={isMainCanvasVisible}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
