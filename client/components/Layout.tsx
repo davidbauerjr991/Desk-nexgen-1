@@ -2334,7 +2334,7 @@ function QueueOverlayList({
             type="button"
             onClick={() => onSelectAssignment(item.id)}
             className={cn(
-              "group relative flex w-full items-start gap-3 overflow-hidden rounded-3xl border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+              "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
               item.isActive
                 ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
                 : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
@@ -2344,7 +2344,7 @@ function QueueOverlayList({
           >
             <span
               className={cn(
-                "absolute inset-y-0 left-0 w-1 rounded-l-3xl",
+                "absolute inset-y-0 left-0 w-1 rounded-l-[8px]",
                 item.isActive ? "bg-[#006DAD]" : "bg-[#F59E0B]",
               )}
             />
