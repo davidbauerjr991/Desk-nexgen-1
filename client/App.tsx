@@ -29,7 +29,7 @@ const App = () => (
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route path="/" element={<Navigate to="/desk" replace />} />
+            <Route path="/" element={<Navigate to="/activity" replace state={{ hideMainCanvasPanel: true }} />} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/desk" element={<Desk />} />
             <Route path="/schedule" element={<Schedule />} />
