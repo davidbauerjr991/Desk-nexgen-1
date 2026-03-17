@@ -1,6 +1,7 @@
-import { AlertTriangle, Paperclip, Send, Sparkles } from "lucide-react";
+import { AlertTriangle, AudioLines, Plus, Send, SlidersHorizontal, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,18 @@ interface ConversationPanelProps {
   draftKey: string;
   className?: string;
 }
+
+const conversationFooterMenuItems = [
+  "Add files or photos",
+  "Take a screenshot",
+  "Add to project",
+] as const;
+
+const conversationFooterSecondaryMenuItems = [
+  "Web search",
+  "Connect Supervisor",
+  "Add connectors",
+] as const;
 
 export default function ConversationPanel({ conversation, draftKey, className }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
@@ -87,24 +100,88 @@ export default function ConversationPanel({ conversation, draftKey, className }:
       </ScrollArea>
 
       <div className="border-t border-border bg-background p-4">
-        <div className="relative flex items-end gap-3">
-          <div className="absolute right-14 top-2 flex items-center gap-1 rounded-md border border-border bg-background/80 px-2 py-0.5 text-xs text-muted-foreground backdrop-blur">
-            <Sparkles className="h-3 w-3 text-primary" /> AI writing enabled
+        <div className="rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+          <Textarea
+            key={draftKey}
+            placeholder="Type your live response..."
+            className="min-h-[54px] resize-none border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus-visible:ring-0"
+            defaultValue={conversation.draft}
+          />
+
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#5B5B5B] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  aria-label="Open conversation actions"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                side="top"
+                sideOffset={12}
+                className="w-[320px] rounded-[22px] border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
+              >
+                <div className="px-5 py-4">
+                  {conversationFooterMenuItems.map((item) => (
+                    <DropdownMenuItem
+                      key={item}
+                      className="rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]"
+                    >
+                      {item}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+                <DropdownMenuSeparator className="my-0 bg-black/10" />
+                <div className="px-5 py-4">
+                  {conversationFooterSecondaryMenuItems.map((item) => (
+                    <DropdownMenuItem
+                      key={item}
+                      className={cn(
+                        "rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]",
+                        item === "Web search" && "text-[#0B7C86] focus:text-[#0B7C86]",
+                      )}
+                    >
+                      {item}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-1 rounded-full border border-[#D8CCE9] bg-[#F7F1FD] px-2.5 py-1 text-xs font-medium text-[#6D4ACF] sm:flex">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI writing enabled
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                aria-label="Conversation options"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                aria-label="Voice input"
+              >
+                <AudioLines className="h-4 w-4" />
+              </Button>
+              <Button className="h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]" size="icon" aria-label="Send message">
+                <Send className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-          <Button variant="ghost" size="icon" className="mb-1 h-10 w-10 shrink-0 text-muted-foreground hover:text-foreground">
-            <Paperclip className="h-5 w-5" />
-          </Button>
-          <div className="relative flex-1">
-            <Textarea
-              key={draftKey}
-              placeholder="Type your message..."
-              className="min-h-[60px] max-h-32 resize-none rounded-xl pb-3 pr-12 pt-3 focus-visible:ring-1"
-              defaultValue={conversation.draft}
-            />
-          </div>
-          <Button className="mb-1 h-10 w-10 shrink-0 rounded-xl" size="icon">
-            <Send className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </div>
