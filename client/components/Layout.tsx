@@ -15,6 +15,7 @@ import {
   Mic,
   Monitor,
   Pause,
+  Pin,
   Phone,
   PhoneOff,
   Plus,
@@ -2384,6 +2385,7 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
+  const [isAssignmentsPinnedOpen, setIsAssignmentsPinnedOpen] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
   const {
     selectedAssignment,
@@ -2418,6 +2420,10 @@ function LeftQueueRail() {
   };
 
   const closeAssignmentsPopover = () => {
+    if (isAssignmentsPinnedOpen) {
+      return;
+    }
+
     if (closeTimeoutRef.current !== null) {
       window.clearTimeout(closeTimeoutRef.current);
     }
@@ -2426,6 +2432,19 @@ function LeftQueueRail() {
       setIsOpen(false);
       closeTimeoutRef.current = null;
     }, 120);
+  };
+
+  const toggleAssignmentsPinnedOpen = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+
+    setIsAssignmentsPinnedOpen((current) => {
+      const next = !current;
+      setIsOpen(next);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -2501,19 +2520,35 @@ function LeftQueueRail() {
           >
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="shrink-0 px-4 pb-4 pt-0">
-                <div className="flex items-start justify-between gap-3 rounded-[8px] bg-white px-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
-                      AI Priority Assist
-                    </label>
+                <div className="rounded-[8px] bg-white px-3 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
+                        AI Priority Assist
+                      </label>
+                    </div>
+                    <Switch
+                      id="ai-priority-assist"
+                      checked={isPriorityAssistEnabled}
+                      onCheckedChange={setIsPriorityAssistEnabled}
+                      aria-label="Toggle AI Priority Assist"
+                      className="mt-0.5 data-[state=checked]:bg-[#006DAD] data-[state=unchecked]:bg-[#D0D5DD]"
+                    />
                   </div>
-                  <Switch
-                    id="ai-priority-assist"
-                    checked={isPriorityAssistEnabled}
-                    onCheckedChange={setIsPriorityAssistEnabled}
-                    aria-label="Toggle AI Priority Assist"
-                    className="mt-0.5 data-[state=checked]:bg-[#006DAD] data-[state=unchecked]:bg-[#D0D5DD]"
-                  />
+                  <button
+                    type="button"
+                    onClick={toggleAssignmentsPinnedOpen}
+                    aria-pressed={isAssignmentsPinnedOpen}
+                    className={cn(
+                      "mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      isAssignmentsPinnedOpen
+                        ? "border-[#006DAD] bg-[#E6F3FA] text-[#0B5F8A]"
+                        : "border-black/10 bg-white text-[#667085] hover:border-[#006DAD]/30 hover:text-[#0B5F8A]",
+                    )}
+                  >
+                    <Pin className="h-3.5 w-3.5" />
+                    <span>Pin Assignments Open</span>
+                  </button>
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
