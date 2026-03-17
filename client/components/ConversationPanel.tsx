@@ -1,4 +1,5 @@
-import { AlertTriangle, AudioLines, Plus, Send, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, AudioLines, Plus, Send, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -42,6 +43,21 @@ const conversationFooterSecondaryMenuItems = [
 
 export default function ConversationPanel({ conversation, draftKey, className }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [draft, setDraft] = useState(conversation.draft);
+  const [isDraftFocused, setIsDraftFocused] = useState(false);
+
+  useEffect(() => {
+    setDraft(conversation.draft);
+  }, [conversation.draft, draftKey]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [draft]);
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
@@ -100,12 +116,22 @@ export default function ConversationPanel({ conversation, draftKey, className }:
       </ScrollArea>
 
       <div className="border-t border-border bg-background p-4">
-        <div className="rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+        <div
+          className={cn(
+            "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
+            isDraftFocused ? "border border-transparent shadow-none" : "border border-black/10",
+          )}
+        >
           <Textarea
             key={draftKey}
+            ref={textareaRef}
             placeholder="Type your live response..."
-            className="min-h-[54px] resize-none border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus-visible:ring-0"
-            defaultValue={conversation.draft}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onFocus={() => setIsDraftFocused(true)}
+            onBlur={() => setIsDraftFocused(false)}
+            rows={1}
+            className="min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           />
 
           <div className="mt-2 flex items-center justify-between gap-3">
@@ -155,10 +181,6 @@ export default function ConversationPanel({ conversation, draftKey, className }:
             </DropdownMenu>
 
             <div className="flex items-center gap-2">
-              <div className="hidden items-center gap-1 rounded-full border border-[#D8CCE9] bg-[#F7F1FD] px-2.5 py-1 text-xs font-medium text-[#6D4ACF] sm:flex">
-                <Sparkles className="h-3.5 w-3.5" />
-                AI writing enabled
-              </div>
               <Button
                 type="button"
                 variant="ghost"
