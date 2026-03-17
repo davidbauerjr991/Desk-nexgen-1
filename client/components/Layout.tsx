@@ -2349,10 +2349,6 @@ function QueueOverlayList({
               )}
             />
 
-            <div className="flex w-7 flex-shrink-0 items-center justify-center pt-1 text-[14px] font-semibold leading-none text-[#333333]">
-              {index + 1}
-            </div>
-
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
