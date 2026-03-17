@@ -129,6 +129,7 @@ const defaultConversationState: SharedConversationData = {
   timelineLabel: "SMS · Today, 10:24 AM",
   draft:
     "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes. Let me clear that flag for you.",
+  isCustomerTyping: false,
   messages: [
     {
       id: 1,
@@ -2755,9 +2756,14 @@ export default function Layout({ children }: LayoutProps) {
       customerReplyTimeoutRef.current = null;
     }
 
-    setConversationState(nextConversation);
-
     const latestMessage = nextConversation.messages[nextConversation.messages.length - 1];
+    const shouldShowTyping = latestMessage?.role === "agent";
+
+    setConversationState({
+      ...nextConversation,
+      isCustomerTyping: shouldShowTyping,
+    });
+
     if (!latestMessage || latestMessage.role !== "agent") {
       return;
     }
@@ -2775,6 +2781,7 @@ export default function Layout({ children }: LayoutProps) {
 
         return {
           ...current,
+          isCustomerTyping: false,
           messages: [
             ...current.messages,
             {
