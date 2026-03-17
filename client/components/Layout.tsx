@@ -6,7 +6,9 @@ import {
   Bell,
   Bot,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
+  Clock,
   FilePlus2,
   FileText,
   GripHorizontal,
@@ -2314,67 +2316,69 @@ function HeaderIconButton({
 
 function QueueOverlayList({
   items,
+  isOpen,
   onSelectAssignment,
 }: {
   items: QueuePreviewItem[];
+  isOpen: boolean;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
 }) {
   return (
-    <div className="min-h-full overflow-hidden bg-white">
-      {items.map((item) => {
+    <div className="space-y-3 bg-transparent p-3">
+      {items.map((item, index) => {
         const ItemIcon = item.icon;
 
         return (
-          <div
+          <button
             key={item.id}
+            type="button"
             onClick={() => onSelectAssignment(item.id)}
-            className={`group relative flex cursor-pointer gap-3 border-b border-black/[0.08] px-4 py-3.5 transition-colors last:border-b-0 ${
-              item.isActive ? "bg-[#E6F3FA]" : "bg-white hover:bg-[#EEF6FC]"
-            }`}
+            className={cn(
+              "group relative flex w-full items-start gap-3 overflow-hidden rounded-3xl border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+              item.isActive
+                ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
+                : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
+              isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0",
+            )}
+            style={{ transitionDelay: `${index * 35}ms` }}
           >
-            {item.isActive && <span className="absolute inset-y-0 left-0 w-1 bg-[#006DAD]" />}
+            <span
+              className={cn(
+                "absolute inset-y-0 left-0 w-1 rounded-l-3xl",
+                item.isActive ? "bg-[#006DAD]" : "bg-[#F59E0B]",
+              )}
+            />
 
-            <div className="relative mt-0.5 h-11 w-11 flex-shrink-0 self-start">
-              <div
-                className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors ${
-                  item.isActive
-                    ? "bg-[#006DAD] text-white"
-                    : "border border-black/15 bg-white text-[#006DAD] group-hover:border-[#006DAD]/20 group-hover:bg-[#E6F3FA]"
-                }`}
-              >
-                {item.initials}
-              </div>
-              <span
-                className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white ${item.badgeColor}`}
-              >
-                <ItemIcon className="h-3 w-3 text-white" />
-              </span>
+            <div className="flex w-7 flex-shrink-0 items-center justify-center pt-1 text-[28px] font-semibold leading-none text-[#333333]">
+              {index + 1}
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[14px] font-semibold leading-5 text-[#333333] transition-colors group-hover:text-[#006DAD]">
-                    {item.name}
-                  </div>
-                  <div className="mt-0.5 truncate text-[13px] leading-[18px] text-[#6B6B6B]">
-                    {item.preview}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-[14px] font-semibold leading-5 text-[#333333]">{item.name}</span>
+                    <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.sentimentClassName)}>
+                      {item.sentiment.toLowerCase()}
+                    </span>
                   </div>
                 </div>
-                <span className="flex-shrink-0 pt-0.5 text-[12px] font-medium leading-[18px] text-[#6B6B6B]">
+                <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#333333]" />
+              </div>
+
+              <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
+                <span className="inline-flex items-center gap-1.5">
+                  <ItemIcon className="h-4 w-4 text-[#16A34A]" />
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
                   {item.time}
                 </span>
               </div>
 
-              <div className="mt-2">
-                <span
-                  className={`inline-flex rounded-full border px-3 py-0.5 text-[12px] font-medium ${item.sentimentClassName}`}
-                >
-                  {item.sentiment}
-                </span>
-              </div>
+              <div className="mt-2 text-[13px] leading-5 text-[#5B5B5B]">{item.preview}</div>
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
@@ -2448,104 +2452,108 @@ function LeftQueueRail() {
 
   return (
     <div className="fixed bottom-0 left-0 top-12 z-30 block">
-      <div className="relative flex h-full">
+      <div className="relative flex h-full" onMouseEnter={openAssignmentsPopover} onMouseLeave={closeAssignmentsPopover}>
         <aside className="flex h-full w-[56px] shrink-0 flex-col items-center bg-[#F8F8F9] py-3">
           <div className="flex flex-col items-center gap-2.5 pt-1">
-            <div className="relative" onMouseEnter={openAssignmentsPopover} onMouseLeave={closeAssignmentsPopover}>
-              <div className="flex flex-col items-center gap-2.5">
-                {railQueuePreviewItems.map((item) => {
-                  const ItemIcon = item.icon;
+            <div className="flex flex-col items-center gap-2.5">
+              {railQueuePreviewItems.map((item) => {
+                const ItemIcon = item.icon;
 
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
-                      aria-label={`${item.name} queue item`}
-                      onClick={() => selectAssignment(item.id)}
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                    aria-label={`${item.name} queue item`}
+                    onClick={() => selectAssignment(item.id)}
+                  >
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
+                        item.isActive
+                          ? "bg-[#006DAD] text-white"
+                          : "border border-black/15 bg-white text-[#0D5E8A]"
+                      }`}
                     >
-                      <span
-                        className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
-                          item.isActive
-                            ? "bg-[#006DAD] text-white"
-                            : "border border-black/15 bg-white text-[#0D5E8A]"
-                        }`}
-                      >
-                        {item.initials}
-                      </span>
-                      <span
-                        className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
-                      >
-                        <ItemIcon className="h-3 w-3 text-white" />
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div
-                className={`absolute left-full top-0 ml-3 transition-all duration-200 ease-in-out ${
-                  isOpen
-                    ? "pointer-events-auto translate-x-0 opacity-100"
-                    : "pointer-events-none -translate-x-2 opacity-0"
-                }`}
-                style={{ zIndex: ASSIGNMENTS_POPOVER_Z_INDEX }}
-              >
-                <div className="flex max-h-[calc(100vh-96px)] w-[320px] flex-col overflow-hidden rounded-2xl border border-black/[0.08] bg-white shadow-[0_18px_40px_rgba(15,23,42,0.16)]">
-                  <div className="flex shrink-0 items-center justify-between border-b border-black/[0.08] px-4 py-4">
-                    <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label="Sort assignments"
-                          className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
-                        >
-                          <ArrowUpDown className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        sideOffset={8}
-                        className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
-                      >
-                        <DropdownMenuItem
-                          onClick={() => setSortOption("created-asc")}
-                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                        >
-                          Create date ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption("created-desc")}
-                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                        >
-                          Create date descending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption("updated-asc")}
-                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                        >
-                          Last updated ascending
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setSortOption("updated-desc")}
-                          className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
-                        >
-                          Last updated descending
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="min-h-0 flex-1 overflow-y-auto">
-                    <QueueOverlayList items={sortedQueuePreviewItems} onSelectAssignment={selectAssignment} />
-                  </div>
-                </div>
-              </div>
+                      {item.initials}
+                    </span>
+                    <span
+                      className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
+                    >
+                      <ItemIcon className="h-3 w-3 text-white" />
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </aside>
+
+        <div
+          className={cn(
+            "h-full overflow-hidden transition-[width,opacity] duration-300 ease-out",
+            isOpen ? "w-[392px] opacity-100" : "w-0 opacity-0",
+          )}
+          style={{ zIndex: ASSIGNMENTS_POPOVER_Z_INDEX }}
+        >
+          <div
+            className={cn(
+              "flex h-full w-[392px] min-w-[392px] flex-col bg-[#F8F8F9] pl-3 pr-3 transition-transform duration-300 ease-out",
+              isOpen ? "translate-x-0" : "-translate-x-8",
+            )}
+          >
+            <div className="flex h-full flex-col overflow-hidden rounded-r-3xl rounded-l-none border border-black/[0.08] bg-[#F8F8F9]">
+              <div className="flex shrink-0 items-center justify-between px-4 py-4">
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Assignments</h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Sort assignments"
+                      className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#7A7A7A] hover:bg-[#E6F3FA] hover:text-[#006DAD]"
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    sideOffset={8}
+                    className="w-56 rounded-xl border border-black/10 bg-white p-1.5 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+                  >
+                    <DropdownMenuItem
+                      onClick={() => setSortOption("created-asc")}
+                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                    >
+                      Create date ascending
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortOption("created-desc")}
+                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                    >
+                      Create date descending
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortOption("updated-asc")}
+                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                    >
+                      Last updated ascending
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setSortOption("updated-desc")}
+                      className="rounded-lg px-3 py-2 text-sm text-[#333333] focus:bg-[#F8F8F9]"
+                    >
+                      Last updated descending
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <QueueOverlayList items={sortedQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
