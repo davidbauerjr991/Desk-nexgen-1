@@ -1177,6 +1177,7 @@ function CombinedInteractionPanel({
   maxWidth,
   activeTab,
   conversation,
+  customerRecordId,
   customerName,
   customerId,
   showCanvasTab,
@@ -1193,6 +1194,7 @@ function CombinedInteractionPanel({
   maxWidth: number;
   activeTab: CombinedInteractionPanelTab;
   conversation: SharedConversationData;
+  customerRecordId: string;
   customerName: string;
   customerId: string;
   showCanvasTab: boolean;
@@ -1304,7 +1306,7 @@ function CombinedInteractionPanel({
             />
           </TabsContent>
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
-            <NotesPanel initialTab="Overview" />
+            <NotesPanel initialTab="Overview" customerId={customerRecordId} />
           </TabsContent>
           {showCanvasTab && (
             <TabsContent value="canvas" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
@@ -1342,6 +1344,7 @@ function DockedCustomerInfoPanel({
   isOpen,
   width,
   maxWidth,
+  customerRecordId,
   customerName,
   customerId,
   onWidthChange,
@@ -1352,6 +1355,7 @@ function DockedCustomerInfoPanel({
   isOpen: boolean;
   width: number;
   maxWidth: number;
+  customerRecordId: string;
   customerName: string;
   customerId: string;
   onWidthChange: (width: number) => void;
@@ -1430,7 +1434,7 @@ function DockedCustomerInfoPanel({
           </button>
         </div>
 
-        <NotesPanel initialTab="Overview" />
+        <NotesPanel initialTab="Overview" customerId={customerRecordId} />
       </div>
 
       {isOpen && (
@@ -1460,6 +1464,7 @@ function DockedCustomerInfoPanel({
 function CustomerInfoPopunder({
   position,
   size,
+  customerRecordId,
   customerName,
   customerId,
   zIndex,
@@ -1472,6 +1477,7 @@ function CustomerInfoPopunder({
 }: {
   position: CustomerInfoPopunderPosition;
   size: CustomerInfoPopunderSize;
+  customerRecordId: string;
   customerName: string;
   customerId: string;
   zIndex: number;
@@ -1604,7 +1610,7 @@ function CustomerInfoPopunder({
         </div>
       </div>
 
-      <NotesPanel initialTab="Overview" />
+      <NotesPanel initialTab="Overview" customerId={customerRecordId} />
 
       <button
         type="button"
@@ -3863,6 +3869,7 @@ export default function Layout({ children }: LayoutProps) {
             maxWidth={conversationPanelMaxWidth}
             activeTab={combinedInteractionPanelTab}
             conversation={conversationState}
+            customerRecordId={selectedAssignment.id}
             customerName={selectedAssignment.name}
             customerId={selectedAssignment.customerId}
             showCanvasTab={isCanvasMergedIntoCombinedPanel}
@@ -3932,6 +3939,7 @@ export default function Layout({ children }: LayoutProps) {
               isOpen={isDeskCustomerInfoVisible}
               width={dockedCustomerInfoWidth}
               maxWidth={customerInfoPanelMaxWidth}
+              customerRecordId={selectedAssignment.id}
               customerName={selectedAssignment.name}
               customerId={selectedAssignment.customerId}
               onWidthChange={setDockedCustomerInfoWidth}
@@ -4006,6 +4014,7 @@ export default function Layout({ children }: LayoutProps) {
         <CustomerInfoPopunder
           position={customerInfoPopunderPosition}
           size={customerInfoPopunderSize}
+          customerRecordId={selectedAssignment.id}
           customerName={selectedAssignment.name}
           customerId={selectedAssignment.customerId}
           zIndex={getFloatingPanelZIndex("customerInfo")}

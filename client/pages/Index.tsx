@@ -327,7 +327,7 @@ export default function Index() {
             )}
           >
             <div className="flex min-h-0 flex-1 overflow-hidden">
-              <NotesPanel />
+              <NotesPanel customerId={selectedAssignment.id} />
             </div>
           </div>
 
@@ -413,7 +413,7 @@ export default function Index() {
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
-              <NotesPanel initialTab={mobileDetailsTab} />
+              <NotesPanel initialTab={mobileDetailsTab} customerId={selectedAssignment.id} />
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronUp } from "lucide-react";
+import { getCustomerRecord } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
 interface CustomerInfoPanelProps {
@@ -15,24 +16,30 @@ function CustomerDetailRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] py-3 last:border-b-0">
-      <span className="text-[14px] leading-6 text-[#667085]">{label}</span>
-      <span className="text-right text-[14px] font-medium leading-6 text-[#101828]">{value}</span>
+    <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] py-3 last:border-b-0">
+      <span className="pt-0.5 text-sm leading-6 text-[#667085]">{label}</span>
+      <span className="max-w-[60%] text-right text-sm font-medium leading-6 text-[#101828]">{value}</span>
     </div>
   );
 }
 
-export function CustomerOverviewCard() {
+export function CustomerOverviewCard({ customerId }: { customerId: string }) {
+  const customer = getCustomerRecord(customerId);
+  const rows = [
+    { label: "Contact number", value: customer.overview.contactNumber },
+    { label: "Customer name", value: customer.name },
+    { label: "Assigned agent", value: customer.overview.assignedAgent },
+    { label: "Pronoun", value: customer.overview.pronoun },
+    { label: "Last contact time", value: customer.overview.lastContactTime },
+    { label: "Address", value: customer.overview.address },
+  ];
+
   return (
     <div className="p-4">
-      <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#667085]">Customer Details</div>
-      <div className="mt-4">
-        <CustomerDetailRow label="Customer" value="David Brown" />
-        <CustomerDetailRow label="Channel" value="SMS" />
-        <CustomerDetailRow label="Timeline" value="SMS · Today, 10:24 AM" />
-        <CustomerDetailRow label="Messages" value="11 live updates" />
-        <CustomerDetailRow label="Sentiment flags" value="1 active" />
-        <CustomerDetailRow label="Translation" value="English" />
+      <div>
+        {rows.map((row) => (
+          <CustomerDetailRow key={row.label} label={row.label} value={row.value} />
+        ))}
       </div>
     </div>
   );

@@ -9,6 +9,13 @@ export type CustomerSeedRecord = {
   name: string;
   customerId: string;
   lastUpdated: string;
+  overview: {
+    contactNumber: string;
+    assignedAgent: string;
+    pronoun: "she" | "he" | "they";
+    lastContactTime: string;
+    address: string;
+  };
   queue: {
     time: string;
     preview: string;
@@ -38,6 +45,13 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Alex Kowalski",
     customerId: "CST-10482",
     lastUpdated: "02/23/26 | 04:22 PM",
+    overview: {
+      contactNumber: "(415) 555-4092",
+      assignedAgent: "Jordan Doe",
+      pronoun: "he",
+      lastContactTime: "Today, 10:26 AM",
+      address: "245 Market St, Apt 8C, San Francisco, CA 94105",
+    },
     queue: {
       time: "Now",
       preview: "Need help resolving a blocked upgrade.",
@@ -178,6 +192,13 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Sarah Miller",
     customerId: "CST-10591",
     lastUpdated: "02/24/26 | 09:18 AM",
+    overview: {
+      contactNumber: "(206) 555-0184",
+      assignedAgent: "Priya Shah",
+      pronoun: "she",
+      lastContactTime: "Today, 9:23 AM",
+      address: "881 Pine St, Seattle, WA 98101",
+    },
     queue: {
       time: "2m ago",
       preview: "Missed flight and needs a same-day rebooking.",
@@ -315,6 +336,13 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Emily Chen",
     customerId: "CST-10814",
     lastUpdated: "02/25/26 | 11:47 AM",
+    overview: {
+      contactNumber: "(646) 555-0117",
+      assignedAgent: "Marcus Lee",
+      pronoun: "she",
+      lastContactTime: "Today, 11:51 AM",
+      address: "117 Orchard St, New York, NY 10002",
+    },
     queue: {
       time: "5m ago",
       preview: "Discount code is failing during checkout.",
@@ -452,6 +480,13 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "David Brown",
     customerId: "CST-10363",
     lastUpdated: "02/26/26 | 03:06 PM",
+    overview: {
+      contactNumber: "(312) 555-0146",
+      assignedAgent: "Alex Bogush",
+      pronoun: "he",
+      lastContactTime: "Today, 3:10 PM",
+      address: "410 W Lake St, Chicago, IL 60606",
+    },
     queue: {
       time: "24m ago",
       preview: "Subscription change and duplicate-charge concern.",

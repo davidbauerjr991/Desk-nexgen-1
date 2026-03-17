@@ -125,12 +125,12 @@ function DashboardCard({
   );
 }
 
-function OverviewCard() {
+function OverviewCard({ customerId }: { customerId: string }) {
   return (
     <DashboardCard title="Overview" subtitle="Customer profile snapshot">
       <ScrollArea className="h-full w-full">
         <div className="p-3">
-          <CustomerOverviewCard />
+          <CustomerOverviewCard customerId={customerId} />
         </div>
       </ScrollArea>
     </DashboardCard>
@@ -210,16 +210,16 @@ function TicketsCard() {
   );
 }
 
-export default function OverviewDashboard() {
+export default function OverviewDashboard({ customerId }: { customerId: string }) {
   const [layouts, setLayouts] = useState<ResponsiveLayouts>(defaultLayouts);
 
   const cards = useMemo(
     () => ({
-      overview: <OverviewCard />,
+      overview: <OverviewCard customerId={customerId} />,
       timeline: <TimelineCard />,
       tickets: <TicketsCard />,
     }),
-    [],
+    [customerId],
   );
 
   const orderedItems = useMemo(() => ["overview", "timeline", "tickets"], []);

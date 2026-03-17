@@ -704,12 +704,14 @@ interface NotesPanelProps {
   initialTab?: string;
   notesOnly?: boolean;
   addNoteTrigger?: number;
+  customerId?: string;
 }
 
 export default function NotesPanel({
   initialTab = "Overview",
   notesOnly = false,
   addNoteTrigger = 0,
+  customerId,
 }: NotesPanelProps) {
   const [activeTab, setActiveTab] = useState(notesOnly ? "Notes" : initialTab);
   const [activeSwitchableTab, setActiveSwitchableTab] = useState<string>(
@@ -989,7 +991,7 @@ export default function NotesPanel({
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
           <div className="min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full min-h-0 w-full">
-              <OverviewDashboard />
+              {customerId ? <OverviewDashboard customerId={customerId} /> : null}
             </ScrollArea>
           </div>
         </div>
