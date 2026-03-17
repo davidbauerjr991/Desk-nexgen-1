@@ -49,11 +49,20 @@ function formatConversationTimestamp(date: Date) {
   });
 }
 
+function isScrolledToBottom(viewport: HTMLDivElement) {
+  return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 24;
+}
+
 export default function ConversationPanel({ conversation, draftKey, className, onConversationChange }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const previousMessageCountRef = useRef(conversation.messages.length);
+  const shouldStickToBottomRef = useRef(true);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
 
   useEffect(() => {
     setDraft(conversation.draft);
@@ -66,6 +75,96 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
+
+  const getScrollViewport = () => {
+    if (scrollViewportRef.current) return scrollViewportRef.current;
+
+    const viewport = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
+    if (!(viewport instanceof HTMLDivElement)) return null;
+
+    scrollViewportRef.current = viewport;
+    return viewport;
+  };
+
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    viewport.scrollTo({
+      top: viewport.scrollHeight,
+      behavior,
+    });
+  };
+
+  useEffect(() => {
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const atBottom = isScrolledToBottom(viewport);
+      shouldStickToBottomRef.current = atBottom;
+
+      if (atBottom) {
+        setNewMessagesCount(0);
+      }
+    };
+
+    handleScroll();
+    viewport.addEventListener("scroll", handleScroll, { passive: true });
+
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToBottom("auto");
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      viewport.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    previousMessageCountRef.current = conversation.messages.length;
+    shouldStickToBottomRef.current = true;
+    setNewMessagesCount(0);
+
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToBottom("auto");
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [draftKey]);
+
+  useEffect(() => {
+    const previousMessageCount = previousMessageCountRef.current;
+    const nextMessageCount = conversation.messages.length;
+
+    if (nextMessageCount <= previousMessageCount) {
+      previousMessageCountRef.current = nextMessageCount;
+      return;
+    }
+
+    const addedMessagesCount = nextMessageCount - previousMessageCount;
+
+    if (shouldStickToBottomRef.current) {
+      const frameId = window.requestAnimationFrame(() => {
+        scrollToBottom("smooth");
+      });
+
+      setNewMessagesCount(0);
+      previousMessageCountRef.current = nextMessageCount;
+
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    setNewMessagesCount((currentCount) => currentCount + addedMessagesCount);
+    previousMessageCountRef.current = nextMessageCount;
+  }, [conversation.messages]);
+
+  const handleJumpToLatest = () => {
+    shouldStickToBottomRef.current = true;
+    setNewMessagesCount(0);
+    scrollToBottom("smooth");
+  };
 
   const handleSend = () => {
     const nextDraft = draft.trim();
@@ -91,59 +190,74 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <ScrollArea className="flex-1 p-6">
-        <div className="mx-auto max-w-3xl space-y-6">
-          <div className="text-center">
-            <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-              {conversation.timelineLabel}
-            </span>
-          </div>
+      <div className="relative flex-1">
+        <ScrollArea ref={scrollAreaRef} className="h-full p-6">
+          <div className="mx-auto max-w-3xl space-y-6">
+            <div className="text-center">
+              <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                {conversation.timelineLabel}
+              </span>
+            </div>
 
-          {conversation.messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex max-w-[85%] flex-col",
-                message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
-              )}
-            >
-              <div className="mb-1 flex items-end gap-2">
-                {message.role === "customer" && (
-                  <span className="ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
-                )}
-                {message.role === "agent" && (
-                  <span className="mr-1 text-xs font-medium text-muted-foreground">You</span>
-                )}
-              </div>
+            {conversation.messages.map((message) => (
               <div
+                key={message.id}
                 className={cn(
-                  "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                  message.role === "agent"
-                    ? "rounded-br-sm bg-primary text-primary-foreground"
-                    : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                  "flex max-w-[85%] flex-col",
+                  message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
                 )}
               >
-                {message.content}
-              </div>
-              {message.sentiment === "frustrated" && (
-                <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Frustrated sentiment detected
+                <div className="mb-1 flex items-end gap-2">
+                  {message.role === "customer" && (
+                    <span className="ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
+                  )}
+                  {message.role === "agent" && (
+                    <span className="mr-1 text-xs font-medium text-muted-foreground">You</span>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                    message.role === "agent"
+                      ? "rounded-br-sm bg-primary text-primary-foreground"
+                      : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                  )}
+                >
+                  {message.content}
+                </div>
+                {message.sentiment === "frustrated" && (
+                  <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Frustrated sentiment detected
+                  </div>
+                )}
+              </div>
+            ))}
 
-          <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/40"></span>
-              <span className="delay-75 h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60"></span>
-              <span className="delay-150 h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
+            <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary/40"></span>
+                <span className="delay-75 h-1.5 w-1.5 animate-pulse rounded-full bg-primary/60"></span>
+                <span className="delay-150 h-1.5 w-1.5 animate-pulse rounded-full bg-primary"></span>
+              </div>
+              <span>NexAgent AI is analyzing the {conversation.label.toLowerCase()} conversation...</span>
             </div>
-            <span>NexAgent AI is analyzing the {conversation.label.toLowerCase()} conversation...</span>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+
+        {newMessagesCount > 0 && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-6">
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleJumpToLatest}
+              className="pointer-events-auto rounded-full bg-[#111827] px-4 text-white shadow-lg hover:bg-[#1F2937]"
+            >
+              {newMessagesCount} new {newMessagesCount === 1 ? "message" : "messages"}
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="border-t border-border bg-background p-4">
         <div
