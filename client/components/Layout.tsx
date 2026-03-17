@@ -2031,12 +2031,26 @@ function ConversationPopunder({
           document.body.style.userSelect = "none";
         }}
       >
-        <div className="flex items-start gap-3">
-          <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-            <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+              <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
+            </div>
           </div>
+          {shouldStackHeaderActions && onDock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onDock}
+              className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+            >
+              Dock Panel
+            </Button>
+          ) : null}
         </div>
         <div
           className={cn(
@@ -2061,7 +2075,7 @@ function ConversationPopunder({
           >
             <Phone className="mr-2 h-4 w-4" /> Call
           </Button>
-          {onDock ? (
+          {!shouldStackHeaderActions && onDock ? (
             <Button
               type="button"
               variant="outline"
