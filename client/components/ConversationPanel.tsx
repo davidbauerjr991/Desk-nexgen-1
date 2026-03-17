@@ -332,8 +332,8 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <div className="shrink-0 border-b border-[#E7D7A6] bg-[#FFF9E8]">
-        <div className="mx-auto flex max-w-3xl flex-col px-6 py-3">
+      <div className="shrink-0 border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3">
+        <div className="flex w-full flex-col">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
               <span>{conversation.label.toUpperCase()}</span>
