@@ -829,6 +829,1558 @@ export const customerDatabase: CustomerSeedRecord[] = [
       },
     },
   },
+  {
+    id: "priya",
+    initials: "PN",
+    name: "Priya Nair",
+    customerId: "CST-11024",
+    lastUpdated: "02/27/26 | 08:41 AM",
+    overview: {
+      contactNumber: "(512) 555-0172",
+      assignedAgent: "Jordan Doe",
+      pronoun: "she",
+      lastContactTime: "Today, 8:44 AM",
+      address: "1812 Nueces St, Austin, TX 78701",
+    },
+    interactionTimeline: [
+      {
+        id: "priya-lockout-detected",
+        title: "Repeated login failures detected",
+        timestamp: "Today · 8:39 AM",
+        detail: "Security systems detected repeated failed login attempts before Priya’s account was temporarily locked.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "priya-customer-chat",
+        title: "Customer requested access recovery",
+        timestamp: "Today · 8:40 AM",
+        detail: "Priya opened a support thread because she could not access her dashboard ahead of the morning reporting cutoff.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "priya-identity-check",
+        title: "Identity verification started",
+        timestamp: "Today · 8:41 AM",
+        detail: "Jordan started identity verification and reviewed recent device history before clearing the lockout.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "priya-device-risk",
+        title: "New-device sign-in flagged",
+        timestamp: "Today · 8:42 AM",
+        detail: "The login attempt was tied to a new laptop, which triggered a manual review requirement before access could be restored.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "priya-reset-link",
+        title: "Password reset link prepared",
+        timestamp: "Today · 8:43 AM",
+        detail: "Support prepared a fresh password reset path with extended validity so Priya could complete recovery without starting over.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "priya-session-restore",
+        title: "Session restoration pending",
+        timestamp: "Today · 8:44 AM",
+        detail: "The case was updated to restore dashboard access as soon as Priya completed the verification prompt.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "1m ago",
+      preview: "Locked out after failed sign-in attempts.",
+      priority: "Critical",
+      priorityClassName: "border-[#F04438] bg-[#FEF3F2] text-[#B42318]",
+      badgeColor: "bg-[#CC2D2D]",
+      icon: "phone",
+      isActive: false,
+      createdAt: "2026-03-11T08:15:00",
+      updatedAt: "2026-03-11T08:44:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 8:40 AM",
+        draft:
+          "I can see the temporary account lock on your profile. I’m validating the sign-in attempt now so I can safely restore access.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Hi, I’m locked out of my account and I need to pull this morning’s report before my team meeting starts.",
+            time: "8:40 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m reviewing the security lock now and I’ll walk you through the fastest path to regain access.",
+            time: "8:41 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. I tried resetting it twice, but I still get kicked back to the lock screen.",
+            time: "8:42 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 8:40 AM",
+        draft:
+          "I found the lockout trigger and I’m clearing it after one quick identity check. I’ll text the reset instructions as soon as it’s ready.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Can you help me unlock my account? I keep getting blocked after I enter my password.",
+            time: "8:40 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m looking at the sign-in history now and I’ll confirm the safest next step.",
+            time: "8:41 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "I’m on a new laptop today, so that may be why it suddenly flagged me.",
+            time: "8:43 AM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 8:40 AM",
+        draft:
+          "Thanks for confirming the new device. I’m clearing the review hold now so you can finish the reset from that laptop.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Hey, I’m fully locked out and support in the portal won’t load because I can’t get past sign-in.",
+            time: "8:40 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’ve got your account open. I’m checking whether the lock was triggered by a password issue or a device flag.",
+            time: "8:41 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please keep this moving fast if possible — the dashboard is how I brief leadership every morning.",
+            time: "8:44 AM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 8:40 AM",
+        draft:
+          "Hi Priya — I confirmed that the temporary lock was triggered by a new-device check rather than a permanent credential problem. I’m preparing a fresh recovery link now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Urgent account lockout\n\nHello, I’m unable to access my account this morning and need help restoring access as soon as possible.",
+            time: "8:40 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Priya, thanks for contacting us. I’m checking the sign-in security events attached to your profile now.",
+            time: "8:41 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. If you need me to verify the new device or location, I can do that immediately.",
+            time: "8:44 AM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "miguel",
+    initials: "MS",
+    name: "Miguel Santos",
+    customerId: "CST-11137",
+    lastUpdated: "02/27/26 | 12:12 PM",
+    overview: {
+      contactNumber: "(305) 555-0143",
+      assignedAgent: "Marcus Lee",
+      pronoun: "he",
+      lastContactTime: "Today, 12:14 PM",
+      address: "922 Biscayne Blvd, Miami, FL 33132",
+    },
+    interactionTimeline: [
+      {
+        id: "miguel-refund-opened",
+        title: "Refund case opened",
+        timestamp: "Today · 12:09 PM",
+        detail: "Miguel opened a billing case after seeing a completed charge for an order that was canceled minutes later.",
+        tone: "default",
+        sortOrder: 1,
+      },
+      {
+        id: "miguel-ledger-check",
+        title: "Payment ledger review started",
+        timestamp: "Today · 12:10 PM",
+        detail: "Marcus began tracing the order cancellation event against the refund queue and settlement timeline.",
+        tone: "info",
+        sortOrder: 2,
+      },
+      {
+        id: "miguel-bank-delay",
+        title: "Settlement delay identified",
+        timestamp: "Today · 12:11 PM",
+        detail: "The refund could not post immediately because the original charge had already moved into settlement.",
+        tone: "warning",
+        sortOrder: 3,
+      },
+      {
+        id: "miguel-escalation",
+        title: "Finance escalation submitted",
+        timestamp: "Today · 12:12 PM",
+        detail: "Support escalated the refund request to finance so the reversal could be prioritized before end-of-day batch processing.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "miguel-receipt-note",
+        title: "Receipt evidence attached",
+        timestamp: "Today · 12:13 PM",
+        detail: "The customer attached the cancellation receipt and the posted card charge to help confirm the discrepancy.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "miguel-followup-window",
+        title: "Refund window communicated",
+        timestamp: "Today · 12:14 PM",
+        detail: "The case was updated with an expected refund window and a promise of proactive follow-up once the reversal was accepted.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "3m ago",
+      preview: "Canceled order still posted a completed charge.",
+      priority: "High",
+      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
+      badgeColor: "bg-[#45C9CF]",
+      icon: "clipboardList",
+      isActive: false,
+      createdAt: "2026-03-11T11:55:00",
+      updatedAt: "2026-03-11T12:14:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 12:10 PM",
+        draft:
+          "I confirmed the cancellation on your order and I’m escalating the posted charge now so the refund can move faster.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Hi, I canceled the order almost immediately, but the charge still went through on my card.",
+            time: "12:10 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m reviewing the order and payment timeline now so I can confirm whether the refund has already been queued.",
+            time: "12:11 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "I need help quickly because it was a large charge and I cannot leave it hanging for several days.",
+            time: "12:12 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 12:10 PM",
+        draft:
+          "I can see the cancellation and the posted payment. I’m pushing the refund request to finance so you do not have to wait on the normal queue.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "The order was canceled, but my bank still shows the full charge. Can someone fix this?",
+            time: "12:10 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m checking whether it is still pending or whether it has already settled.",
+            time: "12:11 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "It looks completed on my side, not just pending.",
+            time: "12:13 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 12:10 PM",
+        draft:
+          "Thanks for sending the receipt. I matched it to the canceled order and I’m moving the refund through manual review now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I sent screenshots from my bank app and the canceled order email. Please tell me what else you need.",
+            time: "12:10 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "That helps a lot. I’m cross-checking both records against the refund queue right now.",
+            time: "12:11 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "If there’s a way to speed it up, I’d really appreciate it.",
+            time: "12:14 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 12:10 PM",
+        draft:
+          "Hi Miguel — I verified that the order was canceled, but the charge had already entered settlement. I’ve escalated the refund so it can be reversed as quickly as possible.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Charge posted after cancellation\n\nHello, I canceled my order, but the payment still completed on my credit card. Please advise on next steps.",
+            time: "12:10 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Miguel, I’m reviewing the payment settlement status and the cancellation record now.",
+            time: "12:11 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. Please let me know if you need the cancellation confirmation forwarded again.",
+            time: "12:14 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "olivia",
+    initials: "OR",
+    name: "Olivia Reed",
+    customerId: "CST-11192",
+    lastUpdated: "02/27/26 | 01:26 PM",
+    overview: {
+      contactNumber: "(617) 555-0198",
+      assignedAgent: "Priya Shah",
+      pronoun: "she",
+      lastContactTime: "Today, 1:28 PM",
+      address: "41 Charles St, Boston, MA 02114",
+    },
+    interactionTimeline: [
+      {
+        id: "olivia-shipping-alert",
+        title: "Shipment exception posted",
+        timestamp: "Today · 1:23 PM",
+        detail: "Carrier tracking showed a delivery exception after Olivia’s package reached the local hub.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "olivia-address-check",
+        title: "Address verification started",
+        timestamp: "Today · 1:24 PM",
+        detail: "Support reviewed the final delivery address after the carrier marked the package as undeliverable.",
+        tone: "info",
+        sortOrder: 2,
+      },
+      {
+        id: "olivia-customer-request",
+        title: "Customer requested reroute",
+        timestamp: "Today · 1:25 PM",
+        detail: "Olivia asked for the package to be rerouted before an event later this week.",
+        tone: "default",
+        sortOrder: 3,
+      },
+      {
+        id: "olivia-carrier-hold",
+        title: "Carrier hold placed",
+        timestamp: "Today · 1:26 PM",
+        detail: "A temporary hold was placed with the carrier to avoid the package being returned to sender.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "olivia-alt-destination",
+        title: "Alternate destination reviewed",
+        timestamp: "Today · 1:27 PM",
+        detail: "Support reviewed nearby pickup and workplace delivery options to speed up final handoff.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "olivia-followup-scheduled",
+        title: "Carrier follow-up scheduled",
+        timestamp: "Today · 1:28 PM",
+        detail: "The case was updated with a follow-up window once the carrier confirmed whether rerouting would be accepted.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "7m ago",
+      preview: "Delivery exception needs an address reroute.",
+      priority: "Medium",
+      priorityClassName: "border-[#2E90FA] bg-[#EFF8FF] text-[#175CD3]",
+      badgeColor: "bg-[#2E9B34]",
+      icon: "messageSquare",
+      isActive: false,
+      createdAt: "2026-03-11T13:05:00",
+      updatedAt: "2026-03-11T13:28:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 1:24 PM",
+        draft:
+          "I can see the carrier exception on the shipment. I’m placing a hold now so we can reroute it before it gets returned.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "My package says delivery exception and I need it before Friday. Can someone reroute it?",
+            time: "1:24 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m pulling up the carrier event history now and I’ll check what reroute options are available.",
+            time: "1:25 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please stop it from being sent back. I can even pick it up if that’s faster.",
+            time: "1:26 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 1:24 PM",
+        draft:
+          "I’ve put a hold on the return path and I’m checking whether the package can be rerouted or held for pickup.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Tracking says my package couldn’t be delivered. Can you help me redirect it?",
+            time: "1:24 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m contacting the carrier tools now to see whether we can intercept it.",
+            time: "1:25 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "A pickup hold would work if home delivery isn’t possible anymore.",
+            time: "1:27 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 1:24 PM",
+        draft:
+          "Thanks for confirming the alternate address. I’m validating that reroute request with the carrier now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I can send a different delivery address if that helps. The current one may be what caused the problem.",
+            time: "1:24 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "That may help. I’m checking whether the carrier still allows edits after the local hub scan.",
+            time: "1:25 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks — I just really need to keep it from getting bounced back.",
+            time: "1:28 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 1:24 PM",
+        draft:
+          "Hi Olivia — I confirmed the shipment exception and placed a carrier hold to keep the package from being returned. I’m now checking reroute and pickup options for you.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Delivery exception on package\n\nHello, my shipment is showing a delivery exception and I need help rerouting it before it gets sent back.",
+            time: "1:24 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Olivia, I’m reviewing the carrier details and the address validation results now.",
+            time: "1:25 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. Please let me know whether pickup would be the faster option.",
+            time: "1:28 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "jamal",
+    initials: "JC",
+    name: "Jamal Carter",
+    customerId: "CST-11244",
+    lastUpdated: "02/27/26 | 02:03 PM",
+    overview: {
+      contactNumber: "(404) 555-0121",
+      assignedAgent: "Alex Bogush",
+      pronoun: "he",
+      lastContactTime: "Today, 2:05 PM",
+      address: "290 Peachtree St NW, Atlanta, GA 30303",
+    },
+    interactionTimeline: [
+      {
+        id: "jamal-device-sync",
+        title: "Device sync failure logged",
+        timestamp: "Today · 2:00 PM",
+        detail: "A mobile sync failure prevented Jamal’s latest project changes from appearing on desktop.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "jamal-customer-reachout",
+        title: "Customer reported missing updates",
+        timestamp: "Today · 2:01 PM",
+        detail: "Jamal opened support because edits made on mobile were not visible in the shared workspace.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "jamal-conflict-check",
+        title: "Conflict review started",
+        timestamp: "Today · 2:02 PM",
+        detail: "Support started comparing device versions and offline conflict markers across Jamal’s account.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "jamal-publish-block",
+        title: "Pending publish blocked sync",
+        timestamp: "Today · 2:03 PM",
+        detail: "A stale publish job was blocking the newest workspace state from syncing to other devices.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "jamal-restore-path",
+        title: "Recovery path prepared",
+        timestamp: "Today · 2:04 PM",
+        detail: "Support prepared a recovery path that would preserve Jamal’s unsynced changes while clearing the blocked publish job.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "jamal-sync-validation",
+        title: "Cross-device validation pending",
+        timestamp: "Today · 2:05 PM",
+        detail: "The case was updated to verify that the desktop workspace refreshed correctly once the queue blockage was removed.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "9m ago",
+      preview: "Changes saved on mobile are missing on desktop.",
+      priority: "High",
+      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
+      badgeColor: "bg-[#8BC34A]",
+      icon: "phone",
+      isActive: false,
+      createdAt: "2026-03-11T13:40:00",
+      updatedAt: "2026-03-11T14:05:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 2:01 PM",
+        draft:
+          "I found the blocked sync job on your account. I’m preserving your recent edits now and then I’ll force the devices back into sync.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I made edits from my phone this morning, but they’re not showing up on desktop and I’m worried they disappeared.",
+            time: "2:01 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m checking the sync queue and the version history now so we can confirm those edits are still intact.",
+            time: "2:02 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please don’t overwrite anything — some of those updates were for a client review this afternoon.",
+            time: "2:03 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 2:01 PM",
+        draft:
+          "I can see the stuck sync job and I’m protecting your latest version before I clear it.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "My mobile updates aren’t appearing on desktop. Can someone check whether sync is broken?",
+            time: "2:01 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m tracing the device sync history now.",
+            time: "2:02 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "I just need to know the edits are safe before I refresh anything.",
+            time: "2:04 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 2:01 PM",
+        draft:
+          "Thanks for sending the screenshots of both devices. I can see the version mismatch and I’m correcting it now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I’ve sent screenshots from phone and desktop — the mobile version has changes that the desktop one does not.",
+            time: "2:01 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m comparing those versions now and I’ll make sure the newest edits win before anything refreshes.",
+            time: "2:02 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Perfect. I mostly need confidence that my client notes aren’t gone.",
+            time: "2:05 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 2:01 PM",
+        draft:
+          "Hi Jamal — I located the stalled sync job that is preventing your latest mobile edits from appearing on desktop. I’m preserving those updates before restarting the sync process.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Mobile changes not appearing on desktop\n\nHello, edits I made on my phone today are not showing up on the desktop app. Please help me avoid losing them.",
+            time: "2:01 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Jamal, I’m reviewing the sync queue and version history tied to your workspace now.",
+            time: "2:02 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. Please let me know whether I should avoid making any new edits until you confirm it’s stable.",
+            time: "2:05 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "hannah",
+    initials: "HB",
+    name: "Hannah Brooks",
+    customerId: "CST-11307",
+    lastUpdated: "02/27/26 | 02:47 PM",
+    overview: {
+      contactNumber: "(720) 555-0115",
+      assignedAgent: "Jordan Doe",
+      pronoun: "she",
+      lastContactTime: "Today, 2:49 PM",
+      address: "1980 Wazee St, Denver, CO 80202",
+    },
+    interactionTimeline: [
+      {
+        id: "hannah-billing-cycle",
+        title: "Invoice cycle generated",
+        timestamp: "Today · 2:44 PM",
+        detail: "Hannah’s renewal invoice generated with a line item that did not match the quoted annual rate.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "hannah-customer-dispute",
+        title: "Customer disputed renewal total",
+        timestamp: "Today · 2:45 PM",
+        detail: "Hannah contacted support because the renewal total was higher than the approved quote on file.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "hannah-contract-review",
+        title: "Contract review started",
+        timestamp: "Today · 2:46 PM",
+        detail: "Support began reviewing the signed renewal quote against the invoiced line items and seat counts.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "hannah-seat-audit",
+        title: "Seat overage mismatch found",
+        timestamp: "Today · 2:47 PM",
+        detail: "A stale seat overage setting incorrectly carried into the renewal invoice and inflated the billed amount.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "hannah-credit-hold",
+        title: "Payment hold prevented",
+        timestamp: "Today · 2:48 PM",
+        detail: "The invoice was prevented from auto-charging while the billing discrepancy was under review.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "hannah-corrected-total",
+        title: "Corrected invoice path prepared",
+        timestamp: "Today · 2:49 PM",
+        detail: "Support prepared a corrected invoice total that aligned with the quoted annual renewal amount.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "11m ago",
+      preview: "Renewal invoice total doesn’t match the quoted rate.",
+      priority: "Critical",
+      priorityClassName: "border-[#F04438] bg-[#FEF3F2] text-[#B42318]",
+      badgeColor: "bg-[#CC2D2D]",
+      icon: "clipboardList",
+      isActive: false,
+      createdAt: "2026-03-11T14:25:00",
+      updatedAt: "2026-03-11T14:49:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 2:45 PM",
+        draft:
+          "I found the invoice mismatch and I’ve stopped the payment from auto-processing while I correct the renewal total.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Our renewal invoice looks higher than the quote we approved. Can someone review this before it charges?",
+            time: "2:45 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m comparing the invoice lines to your signed renewal quote now.",
+            time: "2:46 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please pause anything automatic until we know where the extra amount came from.",
+            time: "2:47 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 2:45 PM",
+        draft:
+          "I’ve frozen the invoice while I validate the seat count and quote terms. I’ll confirm the corrected total shortly.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "The renewal total is wrong and I need to stop it before finance processes it.",
+            time: "2:45 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Understood — I’m reviewing the quote and invoice setup right now.",
+            time: "2:46 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "It looks like extra seats were added, but we never approved that.",
+            time: "2:48 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 2:45 PM",
+        draft:
+          "Thanks for sending the quote screenshot. I confirmed the invoice pulled the wrong seat count and I’m correcting it now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I just sent the quote and invoice screenshots. The totals definitely don’t match.",
+            time: "2:45 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I can already see the discrepancy. I’m verifying which line item created the overage.",
+            time: "2:46 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Great, thank you. We just need the corrected amount before procurement signs off.",
+            time: "2:49 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 2:45 PM",
+        draft:
+          "Hi Hannah — I confirmed that the renewal invoice pulled an incorrect seat overage setting. I’ve stopped the payment workflow and I’m issuing a corrected total now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Renewal invoice mismatch\n\nHello, the annual renewal invoice we received today does not match our approved quote. Please review before payment is collected.",
+            time: "2:45 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Hannah, I’m reviewing the invoice lines and contract details attached to your renewal now.",
+            time: "2:46 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. Please confirm once the corrected invoice is ready so I can forward it internally.",
+            time: "2:49 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "noah",
+    initials: "NP",
+    name: "Noah Patel",
+    customerId: "CST-11368",
+    lastUpdated: "02/27/26 | 04:11 PM",
+    overview: {
+      contactNumber: "(213) 555-0179",
+      assignedAgent: "Marcus Lee",
+      pronoun: "he",
+      lastContactTime: "Today, 4:13 PM",
+      address: "775 S Grand Ave, Los Angeles, CA 90017",
+    },
+    interactionTimeline: [
+      {
+        id: "noah-export-job",
+        title: "Export job failed",
+        timestamp: "Today · 4:08 PM",
+        detail: "Noah’s scheduled analytics export failed after timing out on a large report bundle.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "noah-customer-outreach",
+        title: "Customer requested urgent file delivery",
+        timestamp: "Today · 4:09 PM",
+        detail: "Noah contacted support because he needed the report export for an external stakeholder meeting the same day.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "noah-queue-review",
+        title: "Background queue reviewed",
+        timestamp: "Today · 4:10 PM",
+        detail: "Support reviewed the export queue and identified a timeout on one oversized report segment.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "noah-manual-rerun",
+        title: "Manual rerun queued",
+        timestamp: "Today · 4:11 PM",
+        detail: "A manual rerun was queued with a narrower data range so the export could complete before the meeting deadline.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "noah-download-link",
+        title: "Secure download path prepared",
+        timestamp: "Today · 4:12 PM",
+        detail: "Support prepared a secure download link to deliver the rerun export as soon as the file generated.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "noah-followup-note",
+        title: "Meeting deadline noted",
+        timestamp: "Today · 4:13 PM",
+        detail: "The case was tagged with Noah’s meeting deadline to keep the rerun at the top of the queue.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "14m ago",
+      preview: "Analytics export failed before a stakeholder meeting.",
+      priority: "High",
+      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
+      badgeColor: "bg-[#45C9CF]",
+      icon: "messageSquare",
+      isActive: false,
+      createdAt: "2026-03-11T15:45:00",
+      updatedAt: "2026-03-11T16:13:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 4:09 PM",
+        draft:
+          "I found the export timeout and I’ve started a manual rerun with a safer range so we can get you the file before your meeting.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "My analytics export failed and I need the file before I present to stakeholders later today.",
+            time: "4:09 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m checking the export queue now and I’ll see whether I can rerun it faster for you.",
+            time: "4:10 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please do — the meeting is soon and I can’t walk in without those numbers.",
+            time: "4:11 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 4:09 PM",
+        draft:
+          "I can see the timed-out export job and I’m rerunning it now. I’ll text you the secure download link as soon as it finishes.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Can you help with a failed export? I need the report today.",
+            time: "4:09 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m checking the export log and queue status now.",
+            time: "4:10 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "If it helps, I only need the current quarter, not the full year.",
+            time: "4:12 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 4:09 PM",
+        draft:
+          "Thanks for clarifying the timeframe. I’m rerunning the export with that smaller range to get it back faster.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I can narrow the report if needed. I mainly need the quarter-over-quarter numbers right away.",
+            time: "4:09 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "That helps. I’m adjusting the rerun parameters now to reduce the file size and finish sooner.",
+            time: "4:10 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Perfect. Send the link here if that’s the quickest path once it’s ready.",
+            time: "4:13 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 4:09 PM",
+        draft:
+          "Hi Noah — I confirmed that your export failed because one large report segment timed out. I’ve started a manual rerun with a narrower range so we can get you the file before your meeting.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Export failed before meeting\n\nHello, my scheduled export failed and I need the report file today for an external meeting. Please help me recover it quickly.",
+            time: "4:09 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Noah, I’m reviewing the export queue and timeout logs for your report now.",
+            time: "4:10 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. If a smaller report can finish sooner, I’m happy to use that version.",
+            time: "4:13 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "lauren",
+    initials: "LK",
+    name: "Lauren Kim",
+    customerId: "CST-11412",
+    lastUpdated: "02/27/26 | 04:39 PM",
+    overview: {
+      contactNumber: "(503) 555-0132",
+      assignedAgent: "Priya Shah",
+      pronoun: "she",
+      lastContactTime: "Today, 4:41 PM",
+      address: "622 NW Everett St, Portland, OR 97209",
+    },
+    interactionTimeline: [
+      {
+        id: "lauren-seat-add",
+        title: "Seat expansion started",
+        timestamp: "Today · 4:36 PM",
+        detail: "Lauren attempted to add seats for a new team rollout and hit an admin-permission restriction during checkout.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "lauren-admin-check",
+        title: "Permission review started",
+        timestamp: "Today · 4:37 PM",
+        detail: "Support reviewed the workspace roles after the seat expansion failed under Lauren’s current admin scope.",
+        tone: "info",
+        sortOrder: 2,
+      },
+      {
+        id: "lauren-customer-urgency",
+        title: "Customer needs rollout today",
+        timestamp: "Today · 4:38 PM",
+        detail: "Lauren contacted support because new hires needed access before the end of the business day.",
+        tone: "default",
+        sortOrder: 3,
+      },
+      {
+        id: "lauren-escalated-role",
+        title: "Temporary role elevation requested",
+        timestamp: "Today · 4:39 PM",
+        detail: "A temporary role elevation request was submitted so Lauren could complete the seat purchase without waiting for another admin.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "lauren-seat-quote",
+        title: "Updated seat quote prepared",
+        timestamp: "Today · 4:40 PM",
+        detail: "Support prepared an updated seat quote so the order could be approved immediately once access was restored.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "lauren-completion-path",
+        title: "Completion path documented",
+        timestamp: "Today · 4:41 PM",
+        detail: "The case was updated with the exact steps Lauren would need to complete once the admin permission was fixed.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "18m ago",
+      preview: "Seat expansion blocked by admin permissions.",
+      priority: "Low",
+      priorityClassName: "border-[#12B76A] bg-[#ECFDF3] text-[#027A48]",
+      badgeColor: "bg-[#8BC34A]",
+      icon: "phone",
+      isActive: false,
+      createdAt: "2026-03-11T16:20:00",
+      updatedAt: "2026-03-11T16:41:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 4:37 PM",
+        draft:
+          "I found the permission block on your admin role. I’m escalating a temporary elevation now so you can finish adding the seats today.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I’m trying to add seats for new hires, but the admin tools keep blocking me at the final step.",
+            time: "4:37 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m checking your workspace role and the seat-purchase permissions now.",
+            time: "4:38 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "I need to finish this today because onboarding starts tomorrow morning.",
+            time: "4:39 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 4:37 PM",
+        draft:
+          "I can see the permission mismatch and I’m requesting a temporary role fix so you can add the seats today.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Can you help me add seats? The system says I don’t have the right admin access.",
+            time: "4:37 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m reviewing the workspace admin settings now.",
+            time: "4:38 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. If I need another approver, I can pull them in fast.",
+            time: "4:40 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 4:37 PM",
+        draft:
+          "Thanks for the screenshot. I confirmed the role gate and I’m pushing a faster approval path for the seat add.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I sent the screen where it blocks me. It looks like a permissions issue, not a billing problem.",
+            time: "4:37 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I agree. I’m tracing the admin role settings and purchase policy now.",
+            time: "4:38 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Great — I just need the quickest route to get those seats live.",
+            time: "4:41 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 4:37 PM",
+        draft:
+          "Hi Lauren — I confirmed that the seat expansion is blocked by an admin-permission setting rather than a billing failure. I’ve escalated a temporary access fix so you can complete the purchase today.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Unable to add seats\n\nHello, I’m trying to purchase additional seats for new team members, but the admin settings are blocking me at checkout.",
+            time: "4:37 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Lauren, I’m reviewing the role permissions and seat-purchase policy attached to your workspace now.",
+            time: "4:38 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. Please let me know whether I should involve our main account owner to speed approval.",
+            time: "4:41 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "ethan",
+    initials: "EZ",
+    name: "Ethan Zhang",
+    customerId: "CST-11458",
+    lastUpdated: "02/27/26 | 05:07 PM",
+    overview: {
+      contactNumber: "(646) 555-0163",
+      assignedAgent: "Alex Bogush",
+      pronoun: "he",
+      lastContactTime: "Today, 5:09 PM",
+      address: "515 Madison Ave, New York, NY 10022",
+    },
+    interactionTimeline: [
+      {
+        id: "ethan-api-rate-limit",
+        title: "Rate limit spike detected",
+        timestamp: "Today · 5:04 PM",
+        detail: "Ethan’s API integration began returning rate-limit errors after a sudden spike in scheduled requests.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "ethan-integration-ticket",
+        title: "Customer reported failed sync jobs",
+        timestamp: "Today · 5:05 PM",
+        detail: "Ethan contacted support because downstream sync jobs stopped updating once the API errors began.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "ethan-throttle-review",
+        title: "Throttle policy reviewed",
+        timestamp: "Today · 5:06 PM",
+        detail: "Support reviewed Ethan’s request pattern and identified a burst window exceeding the account’s allowed threshold.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "ethan-priority-window",
+        title: "Temporary priority window requested",
+        timestamp: "Today · 5:07 PM",
+        detail: "A temporary throughput increase was requested so Ethan could clear the sync backlog without manual retries.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "ethan-backoff-plan",
+        title: "Backoff guidance prepared",
+        timestamp: "Today · 5:08 PM",
+        detail: "Support prepared recommended retry spacing so the integration could remain stable after the backlog cleared.",
+        tone: "info",
+        sortOrder: 5,
+      },
+      {
+        id: "ethan-recovery-check",
+        title: "Recovery monitoring added",
+        timestamp: "Today · 5:09 PM",
+        detail: "The case was updated with monitoring to confirm the sync backlog drained once the priority window opened.",
+        tone: "default",
+        sortOrder: 6,
+      },
+    ],
+    queue: {
+      time: "22m ago",
+      preview: "API sync jobs stalled after rate-limit errors.",
+      priority: "Medium",
+      priorityClassName: "border-[#2E90FA] bg-[#EFF8FF] text-[#175CD3]",
+      badgeColor: "bg-[#2E9B34]",
+      icon: "messageSquare",
+      isActive: false,
+      createdAt: "2026-03-11T16:52:00",
+      updatedAt: "2026-03-11T17:09:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 5:05 PM",
+        draft:
+          "I found the burst pattern that triggered the rate limit. I’m requesting a temporary throughput increase and I’ll share the retry guidance once the backlog starts clearing.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Our integration started throwing rate-limit errors and now none of the sync jobs are catching up.",
+            time: "5:05 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I’m reviewing the request burst and current queue backlog now.",
+            time: "5:06 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "If we can’t clear this today, several downstream systems will be stale by tomorrow morning.",
+            time: "5:07 PM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 5:05 PM",
+        draft:
+          "I can see the rate-limit spike and I’m requesting a temporary increase while I also prepare the safer retry spacing for your integration.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Can you check our API rate limit? Sync jobs are failing across the board.",
+            time: "5:05 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Yes — I’m checking the request pattern and the failure window now.",
+            time: "5:06 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "We had a large scheduled burst this afternoon, so that may be the trigger.",
+            time: "5:08 PM",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 5:05 PM",
+        draft:
+          "Thanks for confirming the burst timing. I’m opening a temporary priority window now and I’ll monitor the backlog here with you.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I’ve sent the error screenshots and request counts. It looks like we hit the cap hard.",
+            time: "5:05 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "That matches what I’m seeing. I’m escalating a throughput exception now.",
+            time: "5:06 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Great — please keep me posted as soon as the queue starts moving again.",
+            time: "5:09 PM",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 5:05 PM",
+        draft:
+          "Hi Ethan — I confirmed that the sync failures line up with a request burst that exceeded the current API threshold. I’ve requested a temporary increase and I’m preparing guidance to prevent repeat throttling.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: API rate limits breaking sync\n\nHello, our API integration began failing this afternoon with rate-limit errors, and now our sync jobs are backed up. Please advise.",
+            time: "5:05 PM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Ethan, I’m reviewing the rate-limit events and queued retries tied to your integration now.",
+            time: "5:06 PM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thanks. We can adjust the retry cadence if needed once the backlog is cleared.",
+            time: "5:09 PM",
+          },
+        ],
+      },
+    },
+  },
 ];
 
 export const defaultCustomerId = customerDatabase.find((customer) => customer.queue.isActive)?.id ?? customerDatabase[0]?.id ?? "alex";
