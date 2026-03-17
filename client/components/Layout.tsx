@@ -3520,6 +3520,11 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openCustomerInfoPopunder = (event?: React.MouseEvent<HTMLElement>) => {
+    if (isCustomerInfoPanelOpen) {
+      closeCustomerInfoPanel();
+      return;
+    }
+
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("customerInfo");
       return;
