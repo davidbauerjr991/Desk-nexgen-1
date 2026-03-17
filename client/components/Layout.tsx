@@ -2456,7 +2456,7 @@ function LeftQueueRail() {
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[392px]" : "w-[56px]",
+        isOpen ? "w-[315px]" : "w-[56px]",
       )}
       onMouseEnter={openAssignmentsPopover}
       onMouseLeave={closeAssignmentsPopover}
@@ -2506,12 +2506,12 @@ function LeftQueueRail() {
         <div
           className={cn(
             "h-full overflow-hidden transition-[width,opacity] duration-300 ease-out",
-            isOpen ? "w-[392px] opacity-100" : "w-0 opacity-0",
+            isOpen ? "w-[315px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div
             className={cn(
-              "flex h-full w-[392px] min-w-[392px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
+              "flex h-full w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
