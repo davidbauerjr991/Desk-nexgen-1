@@ -21,9 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { CustomerChannel } from "@/lib/customer-database";
 import { useLayoutContext } from "@/components/Layout";
-import ConversationChannelToggleGroup from "@/components/ConversationChannelToggleGroup";
 import { toast } from "sonner";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
@@ -35,7 +33,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type ChannelType = CustomerChannel;
 type AddNewType = "customer" | "account" | "ticket" | "work-item";
 
 const CONVERSATION_CONTENT_DELAY_MS = 300;
@@ -196,12 +193,9 @@ export default function Index() {
     toggleInteractions,
     toggleCallPopunder,
     isConversationPanelOpen,
-    toggleConversationPanel,
-    openConversationPanel,
     conversationState,
     setConversationState,
     activeConversationChannel,
-    setActiveConversationChannel,
   } = useLayoutContext();
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
@@ -241,16 +235,6 @@ export default function Index() {
     return () => window.clearTimeout(timeoutId);
   }, [isRightPanelOpen]);
 
-  const handleChannelSelection = (channel: ChannelType) => {
-    if (channel === activeConversationChannel && isConversationPanelOpen) {
-      toggleConversationPanel();
-      return;
-    }
-
-    setActiveConversationChannel(channel);
-    openConversationPanel();
-  };
-
   return (
     <div className="relative flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
@@ -263,11 +247,6 @@ export default function Index() {
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-lg font-semibold tracking-tight">{selectedAssignment.name}</h2>
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <ConversationChannelToggleGroup
-                    activeChannel={isConversationPanelOpen ? activeConversationChannel : null}
-                    onSelectChannel={handleChannelSelection}
-                    buttonClassName="h-8 w-8"
-                  />
                   <Button
                     variant="outline"
                     size="sm"

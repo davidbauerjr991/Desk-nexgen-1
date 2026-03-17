@@ -1097,12 +1097,6 @@ function DockedConversationPanel({
             >
               <div className="flex items-start gap-3">
                 <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-                <ConversationChannelToggleGroup
-                  activeChannel={activeChannel}
-                  onSelectChannel={onSelectChannel}
-                  className="pt-0.5"
-                  buttonClassName="h-8 w-8"
-                />
                 <div className="min-w-0">
                   <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
                   <p className="truncate text-xs text-[#7A7A7A]">
@@ -1110,6 +1104,12 @@ function DockedConversationPanel({
                   </p>
                 </div>
               </div>
+              <ConversationChannelToggleGroup
+                activeChannel={activeChannel}
+                onSelectChannel={onSelectChannel}
+                className="shrink-0 pt-0.5"
+                buttonClassName="h-8 w-8"
+              />
             </div>
 
             <ConversationPanel
@@ -1999,29 +1999,31 @@ function ConversationPopunder({
       >
         <div className="flex items-start gap-3">
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <ConversationChannelToggleGroup
-            activeChannel={activeChannel}
-            onSelectChannel={onSelectChannel}
-            className="pt-0.5"
-            buttonClassName="h-8 w-8"
-          />
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
             <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
           </div>
         </div>
-        {onDock ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onDock}
-            className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-          >
-            Dock Panel
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <ConversationChannelToggleGroup
+            activeChannel={activeChannel}
+            onSelectChannel={onSelectChannel}
+            className="shrink-0"
+            buttonClassName="h-8 w-8"
+          />
+          {onDock ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onDock}
+              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+            >
+              Dock Panel
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <ConversationPanel
