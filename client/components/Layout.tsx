@@ -2800,6 +2800,14 @@ export default function Layout({ children }: LayoutProps) {
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
   const shouldPreserveFloatingCustomerInfoPanel =
     isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+  const shouldAutoExpandConversationPanel =
+    isDockedConversationVisible &&
+    !isCombinedInteractionPanel && (
+      !isDeskCustomerInfoVisible ||
+      !isMainCanvasVisible ||
+      customerInfoDragActivation !== null ||
+      deskCanvasDragActivation !== null
+    );
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
     customerInfoPanelWidth: isDeskCustomerInfoVisible ? dockedCustomerInfoWidth : 0,
@@ -3155,6 +3163,14 @@ export default function Layout({ children }: LayoutProps) {
     isDeskCustomerInfoVisible,
     isMainCanvasVisible,
   ]);
+
+  useEffect(() => {
+    if (!shouldAutoExpandConversationPanel) {
+      return;
+    }
+
+    setDockedConversationWidth((current) => current === conversationPanelMaxWidth ? current : conversationPanelMaxWidth);
+  }, [conversationPanelMaxWidth, shouldAutoExpandConversationPanel]);
 
   useEffect(() => {
     const syncDockedCopilotWidth = () => {
