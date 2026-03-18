@@ -2501,7 +2501,13 @@ function LeftQueueRail() {
             >
               {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </button>
-            <div className="flex flex-col items-center gap-2.5">
+            <div
+              className={cn(
+                "flex flex-col items-center gap-2.5 transition-opacity duration-200 ease-out",
+                isOpen ? "pointer-events-none opacity-0" : "opacity-100",
+              )}
+              aria-hidden={isOpen}
+            >
               {railQueuePreviewItems.map((item) => {
                 const ItemIcon = item.icon;
 
