@@ -16,7 +16,6 @@ import {
   Mic,
   Monitor,
   Pause,
-  Pin,
   Phone,
   PhoneOff,
   Plus,
@@ -2446,7 +2445,6 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
-  const [isAssignmentsPinnedOpen, setIsAssignmentsPinnedOpen] = useState(false);
   const {
     selectedAssignment,
     selectAssignment,
@@ -2472,11 +2470,6 @@ function LeftQueueRail() {
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
-  };
-
-  const toggleAssignmentsPinnedOpen = () => {
-    setIsAssignmentsPinnedOpen((current) => !current);
-    setIsOpen(true);
   };
 
   return (
@@ -2585,20 +2578,6 @@ function LeftQueueRail() {
                       className="mt-0.5 data-[state=checked]:bg-[#006DAD] data-[state=unchecked]:bg-[#D0D5DD]"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={toggleAssignmentsPinnedOpen}
-                    aria-pressed={isAssignmentsPinnedOpen}
-                    className={cn(
-                      "mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      isAssignmentsPinnedOpen
-                        ? "border-[#006DAD] bg-[#E6F3FA] text-[#0B5F8A]"
-                        : "border-black/10 bg-white text-[#667085] hover:border-[#006DAD]/30 hover:text-[#0B5F8A]",
-                    )}
-                  >
-                    <Pin className="h-3.5 w-3.5" />
-                    <span>Pin Assignments Open</span>
-                  </button>
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
