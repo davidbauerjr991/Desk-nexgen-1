@@ -2492,15 +2492,17 @@ function LeftQueueRail() {
           aria-hidden={false}
         >
           <div className="flex flex-col items-center gap-2.5 pt-0">
-            <button
-              type="button"
-              onClick={toggleLeftRailOpen}
-              aria-label={isOpen ? "Collapse assignments rail" : "Expand assignments rail"}
-              aria-pressed={isOpen}
-              className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
-            >
-              {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </button>
+            {!isOpen && (
+              <button
+                type="button"
+                onClick={toggleLeftRailOpen}
+                aria-label="Expand assignments rail"
+                aria-pressed={false}
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
             <div
               className={cn(
                 "flex flex-col items-center gap-2.5 transition-opacity duration-200 ease-out",
@@ -2555,6 +2557,17 @@ function LeftQueueRail() {
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="shrink-0 px-4 pb-4 pt-0">
                 <div className="rounded-[8px] bg-white px-3 py-3">
+                  <div className="mb-3 flex items-center justify-start">
+                    <button
+                      type="button"
+                      onClick={toggleLeftRailOpen}
+                      aria-label="Collapse assignments rail"
+                      aria-pressed={true}
+                      className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                  </div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
