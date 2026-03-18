@@ -5,6 +5,7 @@ import {
   Bell,
   Bot,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ClipboardList,
   Clock,
@@ -2443,10 +2444,9 @@ function QueueOverlayList({
 }
 
 function LeftQueueRail() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const [isAssignmentsPinnedOpen, setIsAssignmentsPinnedOpen] = useState(false);
-  const closeTimeoutRef = useRef<number | null>(null);
   const {
     selectedAssignment,
     selectAssignment,
@@ -2470,69 +2470,37 @@ function LeftQueueRail() {
     [selectedAssignment.id],
   );
 
-  const openAssignmentsPopover = () => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-
-    setIsOpen(true);
-  };
-
-  const closeAssignmentsPopover = () => {
-    if (isAssignmentsPinnedOpen) {
-      return;
-    }
-
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-    }
-
-    closeTimeoutRef.current = window.setTimeout(() => {
-      setIsOpen(false);
-      closeTimeoutRef.current = null;
-    }, 120);
+  const toggleLeftRailOpen = () => {
+    setIsOpen((current) => !current);
   };
 
   const toggleAssignmentsPinnedOpen = () => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-
-    setIsAssignmentsPinnedOpen((current) => {
-      const next = !current;
-      setIsOpen(next);
-      return next;
-    });
+    setIsAssignmentsPinnedOpen((current) => !current);
+    setIsOpen(true);
   };
-
-  useEffect(() => {
-    return () => {
-      if (closeTimeoutRef.current !== null) {
-        window.clearTimeout(closeTimeoutRef.current);
-      }
-    };
-  }, []);
 
   return (
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[315px]" : "w-[56px]",
+        isOpen ? "w-[371px]" : "w-[56px]",
       )}
-      onMouseEnter={openAssignmentsPopover}
-      onMouseLeave={closeAssignmentsPopover}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
         <aside
-          className={cn(
-            "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
-            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[56px] opacity-100",
-          )}
-          aria-hidden={isOpen}
+          className="flex h-full w-[56px] shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0"
+          aria-hidden={false}
         >
           <div className="flex flex-col items-center gap-2.5 pt-0">
+            <button
+              type="button"
+              onClick={toggleLeftRailOpen}
+              aria-label={isOpen ? "Collapse assignments rail" : "Expand assignments rail"}
+              aria-pressed={isOpen}
+              className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+            >
+              {isOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
             <div className="flex flex-col items-center gap-2.5">
               {railQueuePreviewItems.map((item) => {
                 const ItemIcon = item.icon;
