@@ -2483,13 +2483,16 @@ function LeftQueueRail() {
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[371px]" : "w-[56px]",
+        isOpen ? "w-[315px]" : "w-[56px]",
       )}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
         <aside
-          className="flex h-full w-[56px] shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0"
-          aria-hidden={false}
+          className={cn(
+            "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
+            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[56px] opacity-100",
+          )}
+          aria-hidden={isOpen}
         >
           <div className="flex flex-col items-center gap-2.5 pt-0">
             {!isOpen && (
