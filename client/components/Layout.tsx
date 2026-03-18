@@ -2553,16 +2553,20 @@ function LeftQueueRail() {
             <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="shrink-0 px-4 pb-4 pt-0">
                 <div className="rounded-[8px] bg-white px-3 py-3">
-                  <div className="mb-3 flex items-center justify-start">
+                  <div className="mb-3 flex items-center gap-3">
                     <button
                       type="button"
                       onClick={toggleLeftRailOpen}
                       aria-label="Collapse assignments rail"
                       aria-pressed={true}
-                      className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+                      className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-semibold tracking-tight text-[#333333]">Assignments</h3>
+                      <p className="text-sm text-[#7A7A7A]">0/{sortedQueuePreviewItems.length} completed</p>
+                    </div>
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
