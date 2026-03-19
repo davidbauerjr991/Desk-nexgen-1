@@ -308,14 +308,8 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
-  const contextHeaderRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
-  const previousScrollTopRef = useRef(0);
-  const lastUserScrollDirectionRef = useRef<"up" | "down" | null>(null);
-  const lastUserScrollIntentAtRef = useRef(0);
-  const touchStartYRef = useRef<number | null>(null);
-  const suppressProgrammaticContextRevealRef = useRef(false);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
@@ -325,8 +319,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
-  const [isContextVisible, setIsContextVisible] = useState(true);
-  const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
   const generatedInlineSuggestion = latestCustomerMessage
@@ -334,12 +326,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     : null;
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
-  const conversationOverviewText = [
-    conversationOverview.assignmentReason,
-    conversationOverview.customerIssue,
-    conversationOverview.priorHelp,
-    conversationOverview.remainingNeed,
-  ].join(" ");
   const shouldShowSuggestion =
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
@@ -358,31 +344,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
-
-  useEffect(() => {
-    const headerElement = contextHeaderRef.current;
-    if (!headerElement) return;
-
-    const updateHeaderHeight = () => {
-      setContextHeaderHeight(Math.max(0, Math.ceil(headerElement.getBoundingClientRect().height)));
-    };
-
-    updateHeaderHeight();
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateHeaderHeight();
-    });
-
-    resizeObserver.observe(headerElement);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, [conversationOverviewText]);
 
   const getScrollViewport = () => {
     if (scrollViewportRef.current) return scrollViewportRef.current;
@@ -427,68 +388,9 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     const viewport = getScrollViewport();
     if (!viewport) return;
 
-    const registerUserScrollIntent = (direction: "up" | "down") => {
-      lastUserScrollDirectionRef.current = direction;
-      lastUserScrollIntentAtRef.current = Date.now();
-    };
-
-    const handleWheel = (event: WheelEvent) => {
-      if (Math.abs(event.deltaY) < 2) return;
-      registerUserScrollIntent(event.deltaY > 0 ? "down" : "up");
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      touchStartYRef.current = event.touches[0]?.clientY ?? null;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      const currentTouchY = event.touches[0]?.clientY;
-      if (touchStartYRef.current === null || typeof currentTouchY !== "number") return;
-
-      const deltaY = touchStartYRef.current - currentTouchY;
-      if (Math.abs(deltaY) >= 2) {
-        registerUserScrollIntent(deltaY > 0 ? "down" : "up");
-        touchStartYRef.current = currentTouchY;
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (["ArrowUp", "PageUp", "Home"].includes(event.key)) {
-        registerUserScrollIntent("up");
-        return;
-      }
-
-      if (["ArrowDown", "PageDown", "End", " "].includes(event.key)) {
-        registerUserScrollIntent("down");
-      }
-    };
-
     const handleScroll = () => {
-      const currentScrollTop = Math.max(0, viewport.scrollTop);
-      const scrollDelta = currentScrollTop - previousScrollTopRef.current;
       const atBottom = isScrolledToBottom(viewport);
-      const hasRecentUserUpIntent =
-        lastUserScrollDirectionRef.current === "up" && Date.now() - lastUserScrollIntentAtRef.current < 240;
       shouldStickToBottomRef.current = atBottom;
-
-      if (currentScrollTop <= 8) {
-        suppressProgrammaticContextRevealRef.current = false;
-        setIsContextVisible(true);
-      } else if (atBottom) {
-        if (scrollDelta < -12 && (!suppressProgrammaticContextRevealRef.current || hasRecentUserUpIntent)) {
-          suppressProgrammaticContextRevealRef.current = false;
-          setIsContextVisible(true);
-        }
-      } else if (scrollDelta > 12) {
-        setIsContextVisible(false);
-      } else if (scrollDelta < -12) {
-        if (!suppressProgrammaticContextRevealRef.current || hasRecentUserUpIntent) {
-          suppressProgrammaticContextRevealRef.current = false;
-          setIsContextVisible(true);
-        }
-      }
-
-      previousScrollTopRef.current = currentScrollTop;
 
       if (atBottom) {
         setNewMessagesCount(0);
@@ -496,20 +398,12 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     };
 
     handleScroll();
-    viewport.addEventListener("wheel", handleWheel, { passive: true });
-    viewport.addEventListener("touchstart", handleTouchStart, { passive: true });
-    viewport.addEventListener("touchmove", handleTouchMove, { passive: true });
-    viewport.addEventListener("keydown", handleKeyDown);
     viewport.addEventListener("scroll", handleScroll, { passive: true });
 
     const cleanupQueuedScroll = queueScrollToBottomAfterLayout();
 
     return () => {
       cleanupQueuedScroll();
-      viewport.removeEventListener("wheel", handleWheel);
-      viewport.removeEventListener("touchstart", handleTouchStart);
-      viewport.removeEventListener("touchmove", handleTouchMove);
-      viewport.removeEventListener("keydown", handleKeyDown);
       viewport.removeEventListener("scroll", handleScroll);
     };
   }, []);
@@ -517,13 +411,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   useEffect(() => {
     previousMessageCountRef.current = conversation.messages.length;
     shouldStickToBottomRef.current = true;
-    previousScrollTopRef.current = 0;
-    lastUserScrollDirectionRef.current = null;
-    lastUserScrollIntentAtRef.current = 0;
-    touchStartYRef.current = null;
-    suppressProgrammaticContextRevealRef.current = false;
     setNewMessagesCount(0);
-    setIsContextVisible(true);
 
     return queueScrollToBottomAfterLayout();
   }, [draftKey]);
@@ -587,10 +475,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
   const handleUseSuggestion = () => {
     if (!inlineSuggestion || isSuggestionAdded) return;
-
-    if (!isContextVisible) {
-      suppressProgrammaticContextRevealRef.current = true;
-    }
 
     setDraft(inlineSuggestion.suggestedReply);
     setIsSuggestionAdded(true);
@@ -666,31 +550,18 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
   return (
     <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
-      <div
-        className={cn(
-          "absolute inset-x-0 top-0 z-10 transition-[opacity,transform] duration-300 ease-out",
-          isContextVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0",
-        )}
-      >
-        <div ref={contextHeaderRef} className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
-          <div className="flex w-full flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0 flex-1 text-sm leading-6 text-[#6B5A1B]">
-                <div className="space-y-1.5">
-                  <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
-                  <p><span className="font-semibold text-[#7A5B00]">Customer issue:</span> {conversationOverview.customerIssue}</p>
-                  <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
-                  <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
-          <div className="mx-auto max-w-3xl space-y-6" style={{ paddingTop: contextHeaderHeight }}>
+          <div className="mx-auto max-w-3xl space-y-6">
+            <div className="rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 py-4 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
+              <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
+                <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
+                <p><span className="font-semibold text-[#7A5B00]">Customer issue:</span> {conversationOverview.customerIssue}</p>
+                <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
+                <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
+              </div>
+            </div>
+
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
