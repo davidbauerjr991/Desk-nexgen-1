@@ -248,21 +248,59 @@ function getInlineSuggestion(
   ], refreshKey);
 }
 
-function getConversationOverview(conversation: SharedConversationData) {
-  const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
-  const latestRelevantMessage = latestCustomerMessage ?? conversation.messages[conversation.messages.length - 1];
-  const normalizedContent = latestRelevantMessage?.content.replace(/\s+/g, " ").trim();
-  const latestIssue = normalizedContent && normalizedContent.length > 160
-    ? `${normalizedContent.slice(0, 157)}...`
+function getSummarySnippet(content: string | undefined, maxLength = 170) {
+  const normalizedContent = content?.replace(/\s+/g, " ").trim();
+
+  if (!normalizedContent) {
+    return null;
+  }
+
+  return normalizedContent.length > maxLength
+    ? `${normalizedContent.slice(0, maxLength - 3)}...`
     : normalizedContent;
+}
 
-  const statusDescription = conversation.status === "open"
-    ? "an active"
-    : conversation.status === "pending"
-      ? "a pending"
-      : "a closed";
+function getRemainingSupportNeed(issueSummary: string | null, latestCustomerMessage: ConversationMessage | undefined) {
+  const normalizedIssue = `${issueSummary ?? ""} ${latestCustomerMessage?.content ?? ""}`.toLowerCase();
 
-  return `${conversation.customerName.split(" ")[0]} is in ${statusDescription} ${conversation.label.toLowerCase()} thread. Latest issue: ${latestIssue ?? "Awaiting the next customer update."}`;
+  if (normalizedIssue.includes("billing") || normalizedIssue.includes("zip") || normalizedIssue.includes("card") || normalizedIssue.includes("payment")) {
+    return "verify the billing details, clear the payment mismatch, and confirm exactly when the customer should retry";
+  }
+
+  if (normalizedIssue.includes("same error") || normalizedIssue.includes("still") || normalizedIssue.includes("retry") || normalizedIssue.includes("declined")) {
+    return "pinpoint what is still blocking the latest attempt and give the customer one concrete next step instead of another generic retry";
+  }
+
+  if (normalizedIssue.includes("urgent") || normalizedIssue.includes("today") || normalizedIssue.includes("meeting")) {
+    return "take immediate ownership, remove the blocker, and respond with a time-sensitive resolution path the customer can act on right away";
+  }
+
+  return "identify the exact blocker, resolve what is still incomplete, and give the customer a specific path forward that was not provided earlier";
+}
+
+function getConversationOverview(conversation: SharedConversationData) {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
+  const latestAgentMessage = [...conversation.messages].reverse().find((message) => message.role === "agent");
+  const issueSummary = getSummarySnippet(latestCustomerMessage?.content);
+  const priorHelpSummary = getSummarySnippet(latestAgentMessage?.content, 150);
+  const assignmentReason = latestCustomerMessage?.sentiment === "frustrated"
+    ? `${customerFirstName} was routed to this agent because the issue is still unresolved and the customer is showing frustration in the current ${conversation.label.toLowerCase()} thread.`
+    : `${customerFirstName} was routed to this agent because the current ${conversation.label.toLowerCase()} thread still needs active ownership to move the issue forward.`;
+  const customerIssue = issueSummary
+    ? `${customerFirstName} is dealing with this issue: ${issueSummary}`
+    : `${customerFirstName}'s current issue has not been fully captured in the thread yet.`;
+  const priorHelp = priorHelpSummary
+    ? `The previous agent or AI already tried to help by saying or doing this: ${priorHelpSummary}`
+    : "The previous agent or AI has not yet documented a meaningful action that would unblock the issue.";
+  const remainingNeed = `What is still needed now is to ${getRemainingSupportNeed(issueSummary, latestCustomerMessage)}.`;
+
+  return {
+    assignmentReason,
+    customerIssue,
+    priorHelp,
+    remainingNeed,
+  };
 }
 
 export default function ConversationPanel({ conversation, activeChannel, draftKey, className, onConversationChange, onSelectChannel }: ConversationPanelProps) {
@@ -296,6 +334,12 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     : null;
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
+  const conversationOverviewText = [
+    conversationOverview.assignmentReason,
+    conversationOverview.customerIssue,
+    conversationOverview.priorHelp,
+    conversationOverview.remainingNeed,
+  ].join(" ");
   const shouldShowSuggestion =
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
@@ -338,7 +382,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     return () => {
       resizeObserver.disconnect();
     };
-  }, [conversationOverview]);
+  }, [conversationOverviewText]);
 
   const getScrollViewport = () => {
     if (scrollViewportRef.current) return scrollViewportRef.current;
@@ -631,8 +675,13 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
         <div ref={contextHeaderRef} className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
           <div className="flex w-full flex-col">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0 flex-1 text-sm font-medium leading-6 text-[#6B5A1B]">
-                <p className="line-clamp-2">{conversationOverview}</p>
+              <div className="min-w-0 flex-1 text-sm leading-6 text-[#6B5A1B]">
+                <div className="space-y-1.5">
+                  <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
+                  <p><span className="font-semibold text-[#7A5B00]">Customer issue:</span> {conversationOverview.customerIssue}</p>
+                  <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
+                  <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
+                </div>
               </div>
             </div>
           </div>
