@@ -193,6 +193,13 @@ const priorityDotClassNameMap: Record<string, string> = {
   low: "bg-[#12B76A]",
 };
 
+const priorityIconClassNameMap: Record<string, string> = {
+  critical: "text-[#F04438]",
+  high: "text-[#F79009]",
+  medium: "text-[#2E90FA]",
+  low: "text-[#12B76A]",
+};
+
 type CallPopunderPosition = {
   x: number;
   y: number;
@@ -2534,7 +2541,9 @@ function LeftQueueRail() {
                   const activeDuration = formatStatusDuration(
                     Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
                   );
-                  const priorityDotClassName = priorityDotClassNameMap[item.priority.toLowerCase()] ?? "bg-[#98A2B3]";
+                  const priorityKey = item.priority.toLowerCase();
+                  const priorityDotClassName = priorityDotClassNameMap[priorityKey] ?? "bg-[#98A2B3]";
+                  const priorityIconClassName = priorityIconClassNameMap[priorityKey] ?? "text-[#98A2B3]";
 
                   return (
                     <button
@@ -2553,7 +2562,7 @@ function LeftQueueRail() {
                         aria-hidden="true"
                         className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
                       />
-                      <ItemIcon className="h-5 w-5 text-[#16A34A]" />
+                      <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
                       <span
                         className={cn(
                           "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
