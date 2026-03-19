@@ -40,7 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
-import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
+import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
@@ -134,6 +134,24 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "settings", name: "Settings", description: "" },
   { id: "reporting", name: "Reporting", description: "" },
 ];
+
+const conversationStatusOptions: Array<{ value: ConversationStatus; label: string }> = [
+  { value: "open", label: "Open" },
+  { value: "closed", label: "Closed" },
+  { value: "pending", label: "Pending" },
+];
+
+function getConversationStatusChipClasses(status: ConversationStatus) {
+  if (status === "open") {
+    return "border-[#98D38D] bg-[#EAF8E6] text-[#2F7D32] hover:bg-[#E2F3DC]";
+  }
+
+  if (status === "pending") {
+    return "border-[#E8C46A] bg-[#FFF3CD] text-[#9A6700] hover:bg-[#FDECB8]";
+  }
+
+  return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
+}
 
 const defaultConversationState: SharedConversationData = createConversationState(defaultCustomerId, "sms");
 
@@ -508,6 +526,45 @@ function CallAIGuidanceCard() {
         <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
       </ul>
     </div>
+  );
+}
+
+function ConversationStatusDropdown({
+  status,
+  onStatusChange,
+}: {
+  status: ConversationStatus;
+  onStatusChange: (status: ConversationStatus) => void;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+            getConversationStatusChipClasses(status),
+          )}
+        >
+          <span>{conversationStatusOptions.find((option) => option.value === status)?.label ?? "Open"}</span>
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-32 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
+        {conversationStatusOptions.map((option) => (
+          <DropdownMenuItem
+            key={option.value}
+            onClick={() => onStatusChange(option.value)}
+            className={cn(
+              "rounded-lg px-3 py-2 text-xs font-medium text-[#333333] focus:bg-[#F8F8F9]",
+              option.value === status && "bg-[#F8F8F9]",
+            )}
+          >
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -1059,6 +1116,7 @@ function DockedConversationPanel({
   onSelectChannel,
   onOpenCall,
   onOpenCustomerInfo,
+  onConversationStatusChange,
   isCallDisabled,
   onWidthChange,
   onClose,
@@ -1074,6 +1132,7 @@ function DockedConversationPanel({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+  onConversationStatusChange: (status: ConversationStatus) => void;
   isCallDisabled: boolean;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1158,7 +1217,15 @@ function DockedConversationPanel({
               <div className="flex items-start gap-3">
                 <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
                 <div className="min-w-0">
-                  <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+                    <div className="shrink-0" onMouseDown={(event) => event.stopPropagation()}>
+                      <ConversationStatusDropdown
+                        status={conversation.status}
+                        onStatusChange={onConversationStatusChange}
+                      />
+                    </div>
+                  </div>
                   <p className="truncate text-xs text-[#7A7A7A]">
                     {conversation.customerName} · {conversation.label}
                   </p>
@@ -2005,6 +2072,7 @@ function ConversationPopunder({
   onSelectChannel,
   onOpenCall,
   onOpenCustomerInfo,
+  onConversationStatusChange,
   isCallDisabled,
   onDock,
   dragActivation = null,
@@ -2021,6 +2089,7 @@ function ConversationPopunder({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+  onConversationStatusChange: (status: ConversationStatus) => void;
   isCallDisabled: boolean;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -2124,7 +2193,15 @@ function ConversationPopunder({
           <div className="flex items-start gap-3">
             <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div>
-              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
+                <div className="shrink-0" onMouseDown={(event) => event.stopPropagation()}>
+                  <ConversationStatusDropdown
+                    status={conversation.status}
+                    onStatusChange={onConversationStatusChange}
+                  />
+                </div>
+              </div>
               <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
             </div>
           </div>
@@ -3048,6 +3125,13 @@ export default function Layout({ children }: LayoutProps) {
       });
       delete customerReplyTimeoutsRef.current[targetConversationStateKey];
     }, 1200);
+  };
+
+  const handleConversationStatusChange = (nextStatus: ConversationStatus) => {
+    handleConversationStateChange({
+      ...conversationState,
+      status: nextStatus,
+    });
   };
 
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
@@ -4148,6 +4232,7 @@ export default function Layout({ children }: LayoutProps) {
               onSelectChannel={setActiveConversationChannel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenCustomerInfo={openCustomerInfoPopunder}
+              onConversationStatusChange={handleConversationStatusChange}
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
@@ -4224,6 +4309,7 @@ export default function Layout({ children }: LayoutProps) {
               onSelectChannel={setActiveConversationChannel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenCustomerInfo={openCustomerInfoPopunder}
+              onConversationStatusChange={handleConversationStatusChange}
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
@@ -4330,6 +4416,7 @@ export default function Layout({ children }: LayoutProps) {
           onSelectChannel={setActiveConversationChannel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
           onOpenCustomerInfo={openCustomerInfoPopunder}
+          onConversationStatusChange={handleConversationStatusChange}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}

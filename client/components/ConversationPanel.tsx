@@ -265,24 +265,6 @@ function getConversationOverview(conversation: SharedConversationData) {
   return `${conversation.customerName.split(" ")[0]} is in ${statusDescription} ${conversation.label.toLowerCase()} thread. Latest issue: ${latestIssue ?? "Awaiting the next customer update."}`;
 }
 
-const statusOptions: Array<{ value: ConversationStatus; label: string }> = [
-  { value: "open", label: "Open" },
-  { value: "closed", label: "Closed" },
-  { value: "pending", label: "Pending" },
-];
-
-function getStatusChipClasses(status: ConversationStatus) {
-  if (status === "open") {
-    return "border-[#98D38D] bg-[#EAF8E6] text-[#2F7D32] hover:bg-[#E2F3DC]";
-  }
-
-  if (status === "pending") {
-    return "border-[#E8C46A] bg-[#FFF3CD] text-[#9A6700] hover:bg-[#FDECB8]";
-  }
-
-  return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
-}
-
 export default function ConversationPanel({ conversation, activeChannel, draftKey, className, onConversationChange, onSelectChannel }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -605,13 +587,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
   };
 
-  const handleConversationStatusChange = (status: ConversationStatus) => {
-    onConversationChange?.({
-      ...conversation,
-      status,
-    });
-  };
-
   const handleClearDraft = () => {
     setDraft("");
     onConversationChange?.({
@@ -666,34 +641,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                 <span>{lastActivityAt}</span>
               </div>
               <div className="flex items-center gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                        getStatusChipClasses(conversation.status),
-                      )}
-                    >
-                      <span>{statusOptions.find((option) => option.value === conversation.status)?.label ?? "Open"}</span>
-                      <ChevronDown className="h-3.5 w-3.5" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-32 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
-                    {statusOptions.map((option) => (
-                      <DropdownMenuItem
-                        key={option.value}
-                        onClick={() => handleConversationStatusChange(option.value)}
-                        className={cn(
-                          "rounded-lg px-3 py-2 text-xs font-medium text-[#333333] focus:bg-[#F8F8F9]",
-                          option.value === conversation.status && "bg-[#F8F8F9]",
-                        )}
-                      >
-                        {option.label}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
                 <button
                   type="button"
                   onClick={() => setIsContextExpanded((current) => !current)}
