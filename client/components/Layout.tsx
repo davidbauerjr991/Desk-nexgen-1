@@ -2496,7 +2496,7 @@ function LeftQueueRail() {
           )}
           aria-hidden={isOpen}
         >
-          <div className="flex w-full flex-col items-center gap-2.5 px-1 pt-0">
+          <div className="flex h-full w-full flex-col items-center gap-2.5 px-1 pt-0">
             {!isOpen && (
               <button
                 type="button"
@@ -2510,42 +2510,44 @@ function LeftQueueRail() {
             )}
             <div
               className={cn(
-                "flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out",
+                "min-h-0 w-full flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
                 isOpen ? "pointer-events-none opacity-0" : "opacity-100",
               )}
               aria-hidden={isOpen}
             >
-              {railQueuePreviewItems.map((item) => {
-                const ItemIcon = item.icon;
-                const activeDuration = formatStatusDuration(
-                  Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
-                );
+              <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
+                {railQueuePreviewItems.map((item) => {
+                  const ItemIcon = item.icon;
+                  const activeDuration = formatStatusDuration(
+                    Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
+                  );
 
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={cn(
-                      "flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
-                      item.isActive
-                        ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
-                        : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
-                    )}
-                    aria-label={`${item.name} queue item`}
-                    onClick={() => selectAssignment(item.id)}
-                  >
-                    <ItemIcon className="h-5 w-5 text-[#16A34A]" />
-                    <span
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
                       className={cn(
-                        "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
-                        item.isActive ? "text-[#006DAD]" : "text-[#667085]",
+                        "flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
+                        item.isActive
+                          ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
+                          : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
                       )}
+                      aria-label={`${item.name} queue item`}
+                      onClick={() => selectAssignment(item.id)}
                     >
-                      {activeDuration}
-                    </span>
-                  </button>
-                );
-              })}
+                      <ItemIcon className="h-5 w-5 text-[#16A34A]" />
+                      <span
+                        className={cn(
+                          "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
+                          item.isActive ? "text-[#006DAD]" : "text-[#667085]",
+                        )}
+                      >
+                        {activeDuration}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </aside>
