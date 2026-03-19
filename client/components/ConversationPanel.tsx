@@ -297,9 +297,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     : null;
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
-  const lastActivityAt = conversation.timelineLabel.includes("·")
-    ? conversation.timelineLabel.split("·").slice(1).join("·").trim()
-    : conversation.timelineLabel;
   const shouldShowSuggestion =
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
@@ -635,10 +632,8 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
         <div ref={contextHeaderRef} className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
           <div className="flex w-full flex-col">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0 flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
-                <span>{conversation.label.toUpperCase()}</span>
-                <span className="text-[#C9A74A]">•</span>
-                <span>{lastActivityAt}</span>
+              <div className="min-w-0 flex-1 text-sm font-medium leading-6 text-[#6B5A1B]">
+                <p className="line-clamp-2">{conversationOverview}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
