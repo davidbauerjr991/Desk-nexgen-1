@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
@@ -164,6 +164,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
+  const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
   const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
@@ -406,17 +407,24 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
   useEffect(() => {
     setDismissedSuggestionMessageId(null);
+    setIsSuggestionAdded(false);
   }, [latestCustomerMessage?.id, draftKey]);
 
+  useEffect(() => {
+    if (draft.trim().length === 0) {
+      setIsSuggestionAdded(false);
+    }
+  }, [draft]);
+
   const handleUseSuggestion = () => {
-    if (!inlineSuggestion) return;
+    if (!inlineSuggestion || isSuggestionAdded) return;
 
     if (!isContextVisible) {
       suppressProgrammaticContextRevealRef.current = true;
     }
 
     setDraft(inlineSuggestion.suggestedReply);
-    setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
+    setIsSuggestionAdded(true);
     onConversationChange?.({
       ...conversation,
       draft: inlineSuggestion.suggestedReply,
@@ -587,8 +595,20 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Button type="button" size="sm" className="h-9 rounded-lg bg-[#006DAD] px-4 text-white hover:bg-[#0A5E92]" onClick={handleUseSuggestion}>
-                        Use response
+                      <Button
+                        type="button"
+                        size="sm"
+                        className={cn(
+                          "h-9 rounded-lg px-4",
+                          isSuggestionAdded
+                            ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
+                            : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                        )}
+                        onClick={handleUseSuggestion}
+                        disabled={isSuggestionAdded}
+                      >
+                        {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                        {isSuggestionAdded ? "Added" : "Use response"}
                       </Button>
                       <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleDismissSuggestion}>
                         Dismiss
