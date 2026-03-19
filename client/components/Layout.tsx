@@ -2445,10 +2445,19 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const {
     selectedAssignment,
     selectAssignment,
   } = useLayoutContext();
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const sortedQueuePreviewItems = useMemo(
     () =>
@@ -2476,60 +2485,63 @@ function LeftQueueRail() {
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[315px]" : "w-[56px]",
+        isOpen ? "w-[315px]" : "w-[84px]",
       )}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
         <aside
           className={cn(
             "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
-            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[56px] opacity-100",
+            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[84px] opacity-100",
           )}
           aria-hidden={isOpen}
         >
-          <div className="flex flex-col items-center gap-2.5 pt-0">
+          <div className="flex w-full flex-col items-center gap-2.5 px-1.5 pt-0">
             {!isOpen && (
               <button
                 type="button"
                 onClick={toggleLeftRailOpen}
                 aria-label="Expand assignments rail"
                 aria-pressed={false}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+                className="flex h-12 w-[72px] items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
             )}
             <div
               className={cn(
-                "flex flex-col items-center gap-2.5 transition-opacity duration-200 ease-out",
+                "flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out",
                 isOpen ? "pointer-events-none opacity-0" : "opacity-100",
               )}
               aria-hidden={isOpen}
             >
               {railQueuePreviewItems.map((item) => {
                 const ItemIcon = item.icon;
+                const activeDuration = formatStatusDuration(
+                  Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
+                );
 
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-transform hover:scale-[1.03]"
+                    className={cn(
+                      "flex w-[72px] flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 text-center transition-all duration-200",
+                      item.isActive
+                        ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
+                        : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
+                    )}
                     aria-label={`${item.name} queue item`}
                     onClick={() => selectAssignment(item.id)}
                   >
+                    <ItemIcon className="h-8 w-8 text-[#16A34A]" />
                     <span
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl text-[16px] font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.06)] ${
-                        item.isActive
-                          ? "bg-[#006DAD] text-white"
-                          : "border border-black/15 bg-white text-[#0D5E8A]"
-                      }`}
+                      className={cn(
+                        "text-[11px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
+                        item.isActive ? "text-[#006DAD]" : "text-[#667085]",
+                      )}
                     >
-                      {item.initials}
-                    </span>
-                    <span
-                      className={`absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#F0F1F3] ${item.badgeColor}`}
-                    >
-                      <ItemIcon className="h-3 w-3 text-white" />
+                      {activeDuration}
                     </span>
                   </button>
                 );
