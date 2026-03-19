@@ -556,7 +556,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
             <div className="rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 py-4 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
               <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
                 <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
-                <p><span className="font-semibold text-[#7A5B00]">Customer issue:</span> {conversationOverview.customerIssue}</p>
                 <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
                 <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
               </div>
