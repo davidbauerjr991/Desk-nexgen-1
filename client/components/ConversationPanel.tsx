@@ -678,9 +678,21 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
                   <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      <span>AI Suggestion</span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>AI Suggestion</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDismissSuggestion}
+                        className="-mr-1 -mt-1 h-7 w-7 rounded-full text-[#5B7C74] hover:bg-[#D9F2EA] hover:text-[#25403B]"
+                        aria-label="Dismiss AI suggestion"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
                     <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -701,9 +713,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                       <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
                         Refresh
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleDismissSuggestion}>
-                        Dismiss
                       </Button>
                     </div>
                   </div>
