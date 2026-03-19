@@ -60,11 +60,11 @@ function formatConversationTimestamp(date: Date) {
   });
 }
 
-function getAgentChannelLabel(channel: CustomerChannel) {
+function getConversationChannelLabel(channel: CustomerChannel) {
   return conversationChannelOptions.find((option) => option.channel === channel)?.label ?? channel;
 }
 
-function formatAgentMessageTimestamp(time: string) {
+function formatConversationMessageTimestamp(time: string) {
   return `Today, ${time.replace(/\s/g, "")}`;
 }
 
@@ -731,24 +731,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                     message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
                   )}
                 >
-                  <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
-                    {message.role === "customer" && (
-                      <span className="ml-1 font-medium">{customerFirstName}</span>
-                    )}
-                    {message.role === "agent" && (
-                      <>
-                        <span className="mr-0.5 font-medium">You</span>
-                        {message.channel ? (
-                          <>
-                            <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                            <span className="font-medium">{getAgentChannelLabel(message.channel)}</span>
-                            <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                            <span>{formatAgentMessageTimestamp(message.time)}</span>
-                          </>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
                   <div
                     className={cn(
                       "rounded-2xl px-4 py-3 text-sm shadow-sm",
@@ -759,8 +741,15 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                   >
                     {message.content}
                   </div>
+                  <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                    <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
+                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                    <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
+                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                    <span>{formatConversationMessageTimestamp(message.time)}</span>
+                  </div>
                   {message.sentiment === "frustrated" && (
-                    <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-orange-500">
+                    <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-orange-500">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       Frustrated sentiment detected
                     </div>
