@@ -193,6 +193,25 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     });
   };
 
+  const queueScrollToBottomAfterLayout = () => {
+    let settleFrameId = 0;
+    const frameId = window.requestAnimationFrame(() => {
+      scrollToBottom("auto");
+      settleFrameId = window.requestAnimationFrame(() => {
+        scrollToBottom("auto");
+      });
+    });
+    const timeoutId = window.setTimeout(() => {
+      scrollToBottom("auto");
+    }, 320);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(settleFrameId);
+      window.clearTimeout(timeoutId);
+    };
+  };
+
   useEffect(() => {
     const viewport = getScrollViewport();
     if (!viewport) return;
@@ -272,12 +291,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     viewport.addEventListener("keydown", handleKeyDown);
     viewport.addEventListener("scroll", handleScroll, { passive: true });
 
-    const frameId = window.requestAnimationFrame(() => {
-      scrollToBottom("auto");
-    });
+    const cleanupQueuedScroll = queueScrollToBottomAfterLayout();
 
     return () => {
-      window.cancelAnimationFrame(frameId);
+      cleanupQueuedScroll();
       viewport.removeEventListener("wheel", handleWheel);
       viewport.removeEventListener("touchstart", handleTouchStart);
       viewport.removeEventListener("touchmove", handleTouchMove);
@@ -297,11 +314,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     setNewMessagesCount(0);
     setIsContextVisible(true);
 
-    const frameId = window.requestAnimationFrame(() => {
-      scrollToBottom("auto");
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
+    return queueScrollToBottomAfterLayout();
   }, [draftKey]);
 
   useEffect(() => {
