@@ -731,6 +731,11 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                     message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
                   )}
                 >
+                  <div className="mb-1 flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                    <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
+                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                    <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
+                  </div>
                   <div
                     className={cn(
                       "rounded-2xl px-4 py-3 text-sm shadow-sm",
@@ -742,10 +747,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                     {message.content}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-muted-foreground">
-                    <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
-                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                    <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
-                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
                     <span>{formatConversationMessageTimestamp(message.time)}</span>
                   </div>
                   {message.sentiment === "frustrated" && (
