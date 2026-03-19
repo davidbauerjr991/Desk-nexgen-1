@@ -16,6 +16,7 @@ export type ConversationMessage = {
   role: "customer" | "agent";
   content: string;
   time: string;
+  channel?: CustomerChannel;
   sentiment?: "frustrated";
 };
 
@@ -57,6 +58,14 @@ function formatConversationTimestamp(date: Date) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function getAgentChannelLabel(channel: CustomerChannel) {
+  return conversationChannelOptions.find((option) => option.channel === channel)?.label ?? channel;
+}
+
+function formatAgentMessageTimestamp(time: string) {
+  return `Today, ${time.replace(/\s/g, "")}`;
 }
 
 function isScrolledToBottom(viewport: HTMLDivElement) {
@@ -631,6 +640,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
           role: "agent",
           content: nextDraft,
           time: formatConversationTimestamp(new Date()),
+          channel: replyChannel,
         },
       ],
     };
@@ -721,12 +731,22 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                     message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
                   )}
                 >
-                  <div className="mb-1 flex items-end gap-2">
+                  <div className="mb-1 flex items-center gap-2 text-xs text-muted-foreground">
                     {message.role === "customer" && (
-                      <span className="ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
+                      <span className="ml-1 font-medium">{customerFirstName}</span>
                     )}
                     {message.role === "agent" && (
-                      <span className="mr-1 text-xs font-medium text-muted-foreground">You</span>
+                      <>
+                        <span className="mr-0.5 font-medium">You</span>
+                        {message.channel ? (
+                          <>
+                            <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                            <span className="font-medium">{getAgentChannelLabel(message.channel)}</span>
+                            <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                            <span>{formatAgentMessageTimestamp(message.time)}</span>
+                          </>
+                        ) : null}
+                      </>
                     )}
                   </div>
                   <div
