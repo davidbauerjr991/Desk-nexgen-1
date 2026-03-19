@@ -2534,7 +2534,7 @@ function LeftQueueRail() {
                     aria-label={`${item.name} queue item`}
                     onClick={() => selectAssignment(item.id)}
                   >
-                    <ItemIcon className="h-6 w-6 text-[#16A34A]" />
+                    <ItemIcon className="h-5 w-5 text-[#16A34A]" />
                     <span
                       className={cn(
                         "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
