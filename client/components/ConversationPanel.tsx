@@ -4,6 +4,7 @@ import { AlertTriangle, AudioLines, ChevronDown, Plus, Send, SlidersHorizontal, 
 import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import type { CustomerChannel } from "@/lib/customer-database";
@@ -178,6 +179,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     inlineSuggestion !== null &&
     !conversation.isCustomerTyping &&
     dismissedSuggestionMessageId !== latestCustomerMessage.id;
+  const hasDraft = draft.trim().length > 0;
 
   useEffect(() => {
     setDraft(conversation.draft);
@@ -707,40 +709,56 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
               >
                 <AudioLines className="h-4 w-4" />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]" size="icon" aria-label="Choose reply channel">
-                    <Send className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  side="top"
-                  sideOffset={12}
-                  className="z-[120] w-[220px] rounded-[12px] border border-black/10 bg-white p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
-                >
-                  {conversationChannelOptions.map(({ channel, label, renderIcon }) => {
-                    const isActiveReplyChannel = activeChannel === channel;
+              <HoverCard openDelay={80} closeDelay={120}>
+                <HoverCardTrigger asChild>
+                  <span tabIndex={-1} className="inline-flex">
+                    <Button
+                      type="button"
+                      className={cn(
+                        "h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]",
+                        !hasDraft && "cursor-not-allowed bg-[#D1D5DB] text-white hover:bg-[#D1D5DB]",
+                      )}
+                      size="icon"
+                      aria-label={hasDraft ? "Choose reply channel" : "Enter a response to send"}
+                      disabled={!hasDraft}
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                    </Button>
+                  </span>
+                </HoverCardTrigger>
+                {hasDraft ? (
+                  <HoverCardContent
+                    align="end"
+                    side="top"
+                    sideOffset={12}
+                    className="z-[120] w-[220px] rounded-[12px] border border-black/10 bg-white p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
+                  >
+                    <div className="space-y-1">
+                      {conversationChannelOptions.map(({ channel, label, renderIcon }) => {
+                        const isActiveReplyChannel = activeChannel === channel;
 
-                    return (
-                      <DropdownMenuItem
-                        key={channel}
-                        onClick={() => handleSend(channel)}
-                        className={cn(
-                          "rounded-[10px] px-3 py-2.5 text-sm text-[#333333] focus:bg-[#F8F8F9]",
-                          isActiveReplyChannel && "bg-[#F8FBFE] text-[#006DAD] focus:bg-[#EAF4FB] focus:text-[#006DAD]",
-                        )}
-                      >
-                        <span className="mr-3 flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-current">
-                          {renderIcon("h-4 w-4")}
-                        </span>
-                        <span className="flex-1">{label}</span>
-                        {isActiveReplyChannel ? <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">Current</span> : null}
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        return (
+                          <button
+                            key={channel}
+                            type="button"
+                            onClick={() => handleSend(channel)}
+                            className={cn(
+                              "flex w-full items-center rounded-[10px] px-3 py-2.5 text-left text-sm text-[#333333] transition-colors hover:bg-[#F8F8F9]",
+                              isActiveReplyChannel && "bg-[#F8FBFE] text-[#006DAD] hover:bg-[#EAF4FB]",
+                            )}
+                          >
+                            <span className="mr-3 flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-current">
+                              {renderIcon("h-4 w-4")}
+                            </span>
+                            <span className="flex-1">{label}</span>
+                            {isActiveReplyChannel ? <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">Current</span> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </HoverCardContent>
+                ) : null}
+              </HoverCard>
             </div>
           </div>
         </div>
