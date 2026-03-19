@@ -6,6 +6,7 @@ import { conversationChannelOptions } from "@/components/ConversationChannelTogg
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import type { CustomerChannel } from "@/lib/customer-database";
@@ -320,17 +321,20 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
-  const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
+  const latestMessageIsCustomer = latestMessage?.role === "customer";
   const generatedInlineSuggestion = latestCustomerMessage
     ? getInlineSuggestion(conversation, latestCustomerMessage, suggestionRefreshKey)
     : null;
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
   const shouldShowSuggestion =
+    latestMessageIsCustomer &&
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
     !conversation.isCustomerTyping &&
     dismissedSuggestionMessageId !== latestCustomerMessage.id;
+  const shouldShowContextOverview = latestCustomerMessage !== null;
   const hasDraft = draft.trim().length > 0;
 
   useEffect(() => {
@@ -593,16 +597,29 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                   )}
                 </div>
 
+                {shouldShowContextOverview && latestCustomerMessage?.id === message.id && (
+                  <div className="w-full max-w-[770px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
+                    <Accordion type="single" collapsible defaultValue="context-overview">
+                      <AccordionItem value="context-overview" className="border-b-0">
+                        <AccordionTrigger className="py-4 text-left text-sm font-semibold text-[#7A5B00] hover:no-underline">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <span>Context overview</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
+                            <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
+                            <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
+                            <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
+
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                  <>
-                    <div className="w-full max-w-[770px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 py-4 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
-                      <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
-                        <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
-                        <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
-                        <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
-                      </div>
-                    </div>
-                    <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                       <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
                         <Sparkles className="h-3.5 w-3.5" />
@@ -686,7 +703,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                     </div>
                   </div>
-                  </>
                 )}
               </div>
             ))}
