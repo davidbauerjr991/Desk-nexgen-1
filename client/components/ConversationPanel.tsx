@@ -553,14 +553,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
           <div className="mx-auto max-w-3xl space-y-6">
-            <div className="rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 py-4 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
-              <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
-                <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
-                <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
-                <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
-              </div>
-            </div>
-
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -602,8 +594,16 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                 </div>
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                    <div className="flex items-start justify-between gap-3">
+                  <>
+                    <div className="w-full max-w-[770px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 py-4 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
+                      <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
+                        <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
+                        <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
+                        <p><span className="font-semibold text-[#7A5B00]">Needed now:</span> {conversationOverview.remainingNeed}</p>
+                      </div>
+                    </div>
+                    <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                      <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
                         <Sparkles className="h-3.5 w-3.5" />
                         <span>AI Suggestion</span>
@@ -686,6 +686,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                     </div>
                   </div>
+                  </>
                 )}
               </div>
             ))}
