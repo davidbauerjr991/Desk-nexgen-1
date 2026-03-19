@@ -194,16 +194,20 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     if (!viewport) return;
 
     const handleScroll = () => {
-      const currentScrollTop = viewport.scrollTop;
+      const currentScrollTop = Math.max(0, viewport.scrollTop);
       const scrollDelta = currentScrollTop - previousScrollTopRef.current;
       const atBottom = isScrolledToBottom(viewport);
       shouldStickToBottomRef.current = atBottom;
 
       if (currentScrollTop <= 8) {
         setIsContextVisible(true);
-      } else if (scrollDelta > 6) {
+      } else if (atBottom) {
+        if (scrollDelta < -12) {
+          setIsContextVisible(true);
+        }
+      } else if (scrollDelta > 12) {
         setIsContextVisible(false);
-      } else if (scrollDelta < -6) {
+      } else if (scrollDelta < -12) {
         setIsContextVisible(true);
       }
 
