@@ -1325,6 +1325,7 @@ function CombinedInteractionPanel({
   customerRecordId,
   customerName,
   customerId,
+  panelSelection,
   showConversationTab,
   showCanvasTab,
   canvasTabLabel,
@@ -1347,6 +1348,7 @@ function CombinedInteractionPanel({
   customerRecordId: string;
   customerName: string;
   customerId: string;
+  panelSelection: DeskPanelSelection;
   showConversationTab: boolean;
   showCanvasTab: boolean;
   canvasTabLabel: string;
@@ -1470,7 +1472,11 @@ function CombinedInteractionPanel({
             </TabsContent>
           )}
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
-            <NotesPanel initialTab="Overview" customerId={customerRecordId} />
+            <NotesPanel
+              initialTab={panelSelection?.initialTab ?? "Overview"}
+              initialTicketId={panelSelection?.ticketId}
+              customerId={customerRecordId}
+            />
           </TabsContent>
           {showCanvasTab && (
             <TabsContent value="canvas" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
@@ -1511,6 +1517,7 @@ function DockedCustomerInfoPanel({
   customerRecordId,
   customerName,
   customerId,
+  panelSelection,
   onWidthChange,
   onClose,
   onUndockStart,
@@ -1522,6 +1529,7 @@ function DockedCustomerInfoPanel({
   customerRecordId: string;
   customerName: string;
   customerId: string;
+  panelSelection: DeskPanelSelection;
   onWidthChange: (width: number) => void;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1598,7 +1606,11 @@ function DockedCustomerInfoPanel({
           </button>
         </div>
 
-        <NotesPanel initialTab="Overview" customerId={customerRecordId} />
+        <NotesPanel
+          initialTab={panelSelection?.initialTab ?? "Overview"}
+          initialTicketId={panelSelection?.ticketId}
+          customerId={customerRecordId}
+        />
       </div>
 
       {isOpen && (
@@ -1631,6 +1643,7 @@ function CustomerInfoPopunder({
   customerRecordId,
   customerName,
   customerId,
+  panelSelection,
   zIndex,
   onPositionChange,
   onSizeChange,
@@ -1644,6 +1657,7 @@ function CustomerInfoPopunder({
   customerRecordId: string;
   customerName: string;
   customerId: string;
+  panelSelection: DeskPanelSelection;
   zIndex: number;
   onPositionChange: (position: CustomerInfoPopunderPosition) => void;
   onSizeChange: (size: CustomerInfoPopunderSize) => void;
@@ -1774,7 +1788,11 @@ function CustomerInfoPopunder({
         </div>
       </div>
 
-      <NotesPanel initialTab="Overview" customerId={customerRecordId} />
+      <NotesPanel
+        initialTab={panelSelection?.initialTab ?? "Overview"}
+        initialTicketId={panelSelection?.ticketId}
+        customerId={customerRecordId}
+      />
 
       <button
         type="button"
@@ -3797,6 +3815,8 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const closeCustomerInfoPanel = () => {
+    setDeskPanelSelection(null);
+
     if (isCombinedInteractionPanel) {
       closeCombinedInteractionPanel();
       return;
@@ -3873,7 +3893,8 @@ export default function Layout({ children }: LayoutProps) {
 
   const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
     setDeskPanelSelection(selection ?? null);
-    setActiveRightPanel("desk");
+    setActiveRightPanel(null);
+    openCustomerInfoPanel();
 
     if (location.pathname !== "/activity") {
       navigate("/activity", { state: { hideMainCanvasPanel: true } });
@@ -4245,6 +4266,7 @@ export default function Layout({ children }: LayoutProps) {
             customerRecordId={selectedAssignment.id}
             customerName={selectedAssignment.name}
             customerId={selectedAssignment.customerId}
+            panelSelection={deskPanelSelection}
             showConversationTab
             showCanvasTab={isCanvasMergedIntoCombinedPanel}
             canvasTabLabel={deskCanvasTabLabel}
@@ -4325,6 +4347,7 @@ export default function Layout({ children }: LayoutProps) {
               customerRecordId={selectedAssignment.id}
               customerName={selectedAssignment.name}
               customerId={selectedAssignment.customerId}
+              panelSelection={deskPanelSelection}
               showConversationTab={false}
               showCanvasTab
               canvasTabLabel={deskCanvasTabLabel}
@@ -4402,6 +4425,7 @@ export default function Layout({ children }: LayoutProps) {
               customerRecordId={selectedAssignment.id}
               customerName={selectedAssignment.name}
               customerId={selectedAssignment.customerId}
+              panelSelection={deskPanelSelection}
               onWidthChange={setDockedCustomerInfoWidth}
               onClose={closeCustomerInfoPanel}
               showTrailingGap={isMainCanvasVisible}
@@ -4481,6 +4505,7 @@ export default function Layout({ children }: LayoutProps) {
           customerRecordId={selectedAssignment.id}
           customerName={selectedAssignment.name}
           customerId={selectedAssignment.customerId}
+          panelSelection={deskPanelSelection}
           zIndex={getFloatingPanelZIndex("customerInfo")}
           onPositionChange={setCustomerInfoPopunderPosition}
           onSizeChange={setCustomerInfoPopunderSize}
