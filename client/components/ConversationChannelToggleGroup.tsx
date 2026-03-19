@@ -27,7 +27,7 @@ function WhatsAppIcon({ className }: { className?: string }) {
   );
 }
 
-const channels: Array<{
+export const conversationChannelOptions: Array<{
   channel: CustomerChannel;
   label: string;
   renderIcon: (className: string) => React.ReactNode;
@@ -67,7 +67,7 @@ export default function ConversationChannelToggleGroup({
 }) {
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-      {channels.map(({ channel, label, renderIcon }) => {
+      {conversationChannelOptions.map(({ channel, label, renderIcon }) => {
         const isActive = activeChannel === channel;
 
         return (

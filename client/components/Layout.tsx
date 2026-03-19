@@ -44,7 +44,6 @@ import ConversationPanel, { type SharedConversationData } from "@/components/Con
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
-import ConversationChannelToggleGroup from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 import {
@@ -1071,7 +1070,7 @@ function DockedConversationPanel({
   maxWidth: number;
   conversation: SharedConversationData;
   activeChannel: CustomerChannel;
-  onConversationChange: (conversation: SharedConversationData) => void;
+  onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
@@ -1171,12 +1170,6 @@ function DockedConversationPanel({
                   shouldStackHeaderActions ? "pl-7" : "shrink-0",
                 )}
               >
-                <ConversationChannelToggleGroup
-                  activeChannel={activeChannel}
-                  onSelectChannel={onSelectChannel}
-                  className="shrink-0 pt-0.5"
-                  buttonClassName="h-8 w-8"
-                />
                 <Button
                   type="button"
                   variant="outline"
@@ -1210,8 +1203,10 @@ function DockedConversationPanel({
 
             <ConversationPanel
               conversation={conversation}
+              activeChannel={activeChannel}
               draftKey={`docked-${conversation.label}-${conversation.customerName}`}
               onConversationChange={onConversationChange}
+              onSelectChannel={onSelectChannel}
             />
           </>
         )}
@@ -1247,6 +1242,7 @@ function CombinedInteractionPanel({
   maxWidth,
   activeTab,
   conversation,
+  activeChannel,
   customerRecordId,
   customerName,
   customerId,
@@ -1255,6 +1251,7 @@ function CombinedInteractionPanel({
   canvasContent,
   isFullWidth,
   onConversationChange,
+  onSelectChannel,
   onTabChange,
   onWidthChange,
   onClose,
@@ -1264,6 +1261,7 @@ function CombinedInteractionPanel({
   maxWidth: number;
   activeTab: CombinedInteractionPanelTab;
   conversation: SharedConversationData;
+  activeChannel: CustomerChannel;
   customerRecordId: string;
   customerName: string;
   customerId: string;
@@ -1271,7 +1269,8 @@ function CombinedInteractionPanel({
   canvasTabLabel: string;
   canvasContent: React.ReactNode;
   isFullWidth: boolean;
-  onConversationChange: (conversation: SharedConversationData) => void;
+  onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
+  onSelectChannel: (channel: CustomerChannel) => void;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1371,8 +1370,10 @@ function CombinedInteractionPanel({
             <ConversationPanel
               className="min-h-0 flex-1"
               conversation={conversation}
+              activeChannel={activeChannel}
               draftKey={`combined-${conversation.label}-${conversation.customerName}`}
               onConversationChange={onConversationChange}
+              onSelectChannel={onSelectChannel}
             />
           </TabsContent>
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
@@ -2006,7 +2007,7 @@ function ConversationPopunder({
   zIndex: number;
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
-  onConversationChange: (conversation: SharedConversationData) => void;
+  onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
@@ -2136,12 +2137,6 @@ function ConversationPopunder({
             shouldStackHeaderActions ? "pl-7" : "",
           )}
         >
-          <ConversationChannelToggleGroup
-            activeChannel={activeChannel}
-            onSelectChannel={onSelectChannel}
-            className="shrink-0"
-            buttonClassName="h-8 w-8"
-          />
           <Button
             type="button"
             variant="outline"
@@ -2187,8 +2182,10 @@ function ConversationPopunder({
 
       <ConversationPanel
         conversation={conversation}
+        activeChannel={activeChannel}
         draftKey={`popunder-${conversation.label}-${conversation.customerName}`}
         onConversationChange={onConversationChange}
+        onSelectChannel={onSelectChannel}
       />
 
       <button
@@ -2976,9 +2973,9 @@ export default function Layout({ children }: LayoutProps) {
     });
   }, [activeConversationChannel, activeConversationStateKey, selectedAssignment.id]);
 
-  const handleConversationStateChange = (nextConversation: SharedConversationData) => {
+  const handleConversationStateChange = (nextConversation: SharedConversationData, channel?: CustomerChannel) => {
     const targetCustomerId = selectedAssignment.id;
-    const targetChannel = activeConversationChannel;
+    const targetChannel = channel ?? activeConversationChannel;
     const targetConversationStateKey = getConversationStateKey(targetCustomerId, targetChannel);
 
     if (customerReplyTimeoutsRef.current[targetConversationStateKey] !== undefined) {
@@ -4069,6 +4066,7 @@ export default function Layout({ children }: LayoutProps) {
             maxWidth={conversationPanelMaxWidth}
             activeTab={combinedInteractionPanelTab}
             conversation={conversationState}
+            activeChannel={activeConversationChannel}
             customerRecordId={selectedAssignment.id}
             customerName={selectedAssignment.name}
             customerId={selectedAssignment.customerId}
@@ -4077,6 +4075,7 @@ export default function Layout({ children }: LayoutProps) {
             canvasContent={children}
             isFullWidth={isCanvasMergedIntoCombinedPanel}
             onConversationChange={handleConversationStateChange}
+            onSelectChannel={setActiveConversationChannel}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
