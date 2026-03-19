@@ -2485,25 +2485,25 @@ function LeftQueueRail() {
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[315px]" : "w-[84px]",
+        isOpen ? "w-[315px]" : "w-[60px]",
       )}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
         <aside
           className={cn(
             "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
-            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[84px] opacity-100",
+            isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[60px] opacity-100",
           )}
           aria-hidden={isOpen}
         >
-          <div className="flex w-full flex-col items-center gap-2.5 px-1.5 pt-0">
+          <div className="flex w-full flex-col items-center gap-2.5 px-1 pt-0">
             {!isOpen && (
               <button
                 type="button"
                 onClick={toggleLeftRailOpen}
                 aria-label="Expand assignments rail"
                 aria-pressed={false}
-                className="flex h-12 w-[72px] items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
+                className="flex h-12 w-[52px] items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -2526,7 +2526,7 @@ function LeftQueueRail() {
                     key={item.id}
                     type="button"
                     className={cn(
-                      "flex w-[72px] flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 text-center transition-all duration-200",
+                      "flex w-[52px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-3 text-center transition-all duration-200",
                       item.isActive
                         ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
                         : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
@@ -2537,7 +2537,7 @@ function LeftQueueRail() {
                     <ItemIcon className="h-6 w-6 text-[#16A34A]" />
                     <span
                       className={cn(
-                        "text-[11px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
+                        "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
                         item.isActive ? "text-[#006DAD]" : "text-[#667085]",
                       )}
                     >
@@ -2608,17 +2608,12 @@ function LeftQueueRail() {
 }
 
 function formatStatusDuration(totalSeconds: number) {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  const normalizedTotalSeconds = Math.max(0, totalSeconds);
+  const hours = Math.floor(normalizedTotalSeconds / 3600) % 100;
+  const minutes = Math.floor((normalizedTotalSeconds % 3600) / 60);
+  const seconds = normalizedTotalSeconds % 60;
 
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds
-      .toString()
-      .padStart(2, "0")}`;
-  }
-
-  return `${minutes.toString().padStart(2, "0")}:${seconds
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
     .toString()
     .padStart(2, "0")}`;
 }
