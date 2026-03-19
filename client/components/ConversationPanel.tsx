@@ -150,6 +150,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
   const previousScrollTopRef = useRef(0);
+  const lastUserScrollDirectionRef = useRef<"up" | "down" | null>(null);
+  const lastUserScrollIntentAtRef = useRef(0);
+  const touchStartYRef = useRef<number | null>(null);
+  const suppressProgrammaticContextRevealRef = useRef(false);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
@@ -193,22 +197,65 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     const viewport = getScrollViewport();
     if (!viewport) return;
 
+    const registerUserScrollIntent = (direction: "up" | "down") => {
+      lastUserScrollDirectionRef.current = direction;
+      lastUserScrollIntentAtRef.current = Date.now();
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) < 2) return;
+      registerUserScrollIntent(event.deltaY > 0 ? "down" : "up");
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      touchStartYRef.current = event.touches[0]?.clientY ?? null;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentTouchY = event.touches[0]?.clientY;
+      if (touchStartYRef.current === null || typeof currentTouchY !== "number") return;
+
+      const deltaY = touchStartYRef.current - currentTouchY;
+      if (Math.abs(deltaY) >= 2) {
+        registerUserScrollIntent(deltaY > 0 ? "down" : "up");
+        touchStartYRef.current = currentTouchY;
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (["ArrowUp", "PageUp", "Home"].includes(event.key)) {
+        registerUserScrollIntent("up");
+        return;
+      }
+
+      if (["ArrowDown", "PageDown", "End", " "].includes(event.key)) {
+        registerUserScrollIntent("down");
+      }
+    };
+
     const handleScroll = () => {
       const currentScrollTop = Math.max(0, viewport.scrollTop);
       const scrollDelta = currentScrollTop - previousScrollTopRef.current;
       const atBottom = isScrolledToBottom(viewport);
+      const hasRecentUserUpIntent =
+        lastUserScrollDirectionRef.current === "up" && Date.now() - lastUserScrollIntentAtRef.current < 240;
       shouldStickToBottomRef.current = atBottom;
 
       if (currentScrollTop <= 8) {
+        suppressProgrammaticContextRevealRef.current = false;
         setIsContextVisible(true);
       } else if (atBottom) {
-        if (scrollDelta < -12) {
+        if (scrollDelta < -12 && (!suppressProgrammaticContextRevealRef.current || hasRecentUserUpIntent)) {
+          suppressProgrammaticContextRevealRef.current = false;
           setIsContextVisible(true);
         }
       } else if (scrollDelta > 12) {
         setIsContextVisible(false);
       } else if (scrollDelta < -12) {
-        setIsContextVisible(true);
+        if (!suppressProgrammaticContextRevealRef.current || hasRecentUserUpIntent) {
+          suppressProgrammaticContextRevealRef.current = false;
+          setIsContextVisible(true);
+        }
       }
 
       previousScrollTopRef.current = currentScrollTop;
@@ -219,6 +266,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     };
 
     handleScroll();
+    viewport.addEventListener("wheel", handleWheel, { passive: true });
+    viewport.addEventListener("touchstart", handleTouchStart, { passive: true });
+    viewport.addEventListener("touchmove", handleTouchMove, { passive: true });
+    viewport.addEventListener("keydown", handleKeyDown);
     viewport.addEventListener("scroll", handleScroll, { passive: true });
 
     const frameId = window.requestAnimationFrame(() => {
@@ -227,6 +278,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
     return () => {
       window.cancelAnimationFrame(frameId);
+      viewport.removeEventListener("wheel", handleWheel);
+      viewport.removeEventListener("touchstart", handleTouchStart);
+      viewport.removeEventListener("touchmove", handleTouchMove);
+      viewport.removeEventListener("keydown", handleKeyDown);
       viewport.removeEventListener("scroll", handleScroll);
     };
   }, []);
@@ -235,6 +290,10 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     previousMessageCountRef.current = conversation.messages.length;
     shouldStickToBottomRef.current = true;
     previousScrollTopRef.current = 0;
+    lastUserScrollDirectionRef.current = null;
+    lastUserScrollIntentAtRef.current = 0;
+    touchStartYRef.current = null;
+    suppressProgrammaticContextRevealRef.current = false;
     setNewMessagesCount(0);
     setIsContextVisible(true);
 
@@ -307,13 +366,17 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const handleUseSuggestion = () => {
     if (!inlineSuggestion) return;
 
+    if (!isContextVisible) {
+      suppressProgrammaticContextRevealRef.current = true;
+    }
+
     setDraft(inlineSuggestion.suggestedReply);
     setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
     onConversationChange?.({
       ...conversation,
       draft: inlineSuggestion.suggestedReply,
     });
-    textareaRef.current?.focus();
+    textareaRef.current?.focus({ preventScroll: true });
   };
 
   const handleDismissSuggestion = () => {
