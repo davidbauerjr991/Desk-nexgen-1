@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import type { CustomerChannel } from "@/lib/customer-database";
@@ -62,8 +63,54 @@ function isScrolledToBottom(viewport: HTMLDivElement) {
   return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 24;
 }
 
+type InlineSuggestion = {
+  summary: string;
+  suggestedReply: string;
+};
+
 function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
   return variants[((refreshKey % variants.length) + variants.length) % variants.length];
+}
+
+function applySuggestionEdit(
+  suggestion: InlineSuggestion,
+  instruction: string,
+  conversation: SharedConversationData,
+): InlineSuggestion {
+  const normalizedInstruction = instruction.trim().toLowerCase();
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const updateClauses: string[] = [];
+  const replyClauses: string[] = [];
+
+  if (normalizedInstruction.includes("attachment") || normalizedInstruction.includes("file") || normalizedInstruction.includes("screenshot")) {
+    updateClauses.push("mention that the customer can attach a file or screenshot in this thread");
+    replyClauses.push("If it helps, please attach a screenshot or file here and I’ll review it with you right away.");
+  }
+
+  if (normalizedInstruction.includes("ticket") || normalizedInstruction.includes("case")) {
+    updateClauses.push("confirm that you will update the support ticket as part of the next step");
+    replyClauses.push("I’ll document this in the support ticket so the latest update is captured while we continue here.");
+  }
+
+  if (normalizedInstruction.includes("account number") || normalizedInstruction.includes("account #") || normalizedInstruction.includes("account")) {
+    updateClauses.push(`ask ${customerFirstName} to confirm the account number needed for verification`);
+    replyClauses.push("Please share the account number tied to this request so I can verify the record before the next step.");
+  }
+
+  if (normalizedInstruction.includes("billing") || normalizedInstruction.includes("payment")) {
+    updateClauses.push("include a billing verification step before the customer retries");
+    replyClauses.push("I’m also going to verify the billing details tied to the latest attempt before we move forward.");
+  }
+
+  if (updateClauses.length === 0) {
+    updateClauses.push(`incorporate this agent request: ${instruction.trim()}`);
+    replyClauses.push(`I’m also taking this additional step into account: ${instruction.trim()}.`);
+  }
+
+  return {
+    summary: `${suggestion.summary} Update it to ${updateClauses.join(", ")}.`,
+    suggestedReply: `${suggestion.suggestedReply} ${replyClauses.join(" ")}`.trim(),
+  };
 }
 
 function getInlineSuggestion(
@@ -245,15 +292,19 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
   const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
+  const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
+  const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
+  const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
   const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
-  const inlineSuggestion = latestCustomerMessage
+  const generatedInlineSuggestion = latestCustomerMessage
     ? getInlineSuggestion(conversation, latestCustomerMessage, suggestionRefreshKey)
     : null;
+  const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
   const lastActivityAt = conversation.timelineLabel.includes("·")
     ? conversation.timelineLabel.split("·").slice(1).join("·").trim()
@@ -491,6 +542,9 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   useEffect(() => {
     setDismissedSuggestionMessageId(null);
     setSuggestionRefreshKey(0);
+    setSuggestionEditPrompt("");
+    setEditedInlineSuggestion(null);
+    setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
   }, [latestCustomerMessage?.id, draftKey]);
 
@@ -518,6 +572,23 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
   const handleRefreshSuggestion = () => {
     setSuggestionRefreshKey((currentValue) => currentValue + 1);
+    setSuggestionEditPrompt("");
+    setEditedInlineSuggestion(null);
+    setIsSuggestionEditorOpen(false);
+    setIsSuggestionAdded(false);
+  };
+
+  const handleOpenSuggestionEditor = () => {
+    setIsSuggestionEditorOpen(true);
+  };
+
+  const handleApplySuggestionEdit = () => {
+    const nextInstruction = suggestionEditPrompt.trim();
+    if (!inlineSuggestion || !nextInstruction) return;
+
+    setEditedInlineSuggestion(applySuggestionEdit(inlineSuggestion, nextInstruction, conversation));
+    setSuggestionEditPrompt("");
+    setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
   };
 
@@ -695,6 +766,48 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
+                    {isSuggestionEditorOpen ? (
+                      <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2D6A5F]">
+                          Edit AI suggestion
+                        </div>
+                        <Input
+                          value={suggestionEditPrompt}
+                          onChange={(event) => setSuggestionEditPrompt(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              handleApplySuggestionEdit();
+                            }
+                          }}
+                          placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
+                          className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
+                        />
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 rounded-lg bg-[#2D6A5F] px-3 text-white hover:bg-[#25574E]"
+                            onClick={handleApplySuggestionEdit}
+                            disabled={suggestionEditPrompt.trim().length === 0}
+                          >
+                            Update suggestion
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                            onClick={() => {
+                              setSuggestionEditPrompt("");
+                              setIsSuggestionEditorOpen(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <Button
                         type="button"
@@ -713,6 +826,9 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                       <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
                         Refresh
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
+                        Edit
                       </Button>
                     </div>
                   </div>
