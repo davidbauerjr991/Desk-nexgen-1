@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type SharedConversationData } from "@/components/ConversationPanel";
@@ -2396,6 +2397,68 @@ function HeaderIconButton({
   );
 }
 
+function QueueAssignmentCard({
+  item,
+  onSelectAssignment,
+  className,
+  style,
+}: {
+  item: QueuePreviewItem;
+  onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const ItemIcon = item.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelectAssignment(item.id)}
+      className={cn(
+        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+        item.isActive
+          ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
+          : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
+        className,
+      )}
+      style={style}
+    >
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-1 rounded-l-[8px]",
+          item.isActive ? "bg-[#006DAD]" : "bg-[#F59E0B]",
+        )}
+      />
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-[14px] font-semibold leading-5 text-[#333333]">{item.name}</span>
+              <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.priorityClassName)}>
+                {item.priority.toLowerCase()}
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#333333]" />
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
+          <span className="inline-flex items-center gap-1.5">
+            <ItemIcon className="h-4 w-4 text-[#16A34A]" />
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {item.time}
+          </span>
+        </div>
+
+        <div className="mt-2 text-[13px] leading-5 text-[#5B5B5B]">{item.preview}</div>
+      </div>
+    </button>
+  );
+}
+
 function QueueOverlayList({
   items,
   isOpen,
@@ -2407,58 +2470,15 @@ function QueueOverlayList({
 }) {
   return (
     <div className="space-y-3 bg-transparent p-3">
-      {items.map((item, index) => {
-        const ItemIcon = item.icon;
-
-        return (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelectAssignment(item.id)}
-            className={cn(
-              "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
-              item.isActive
-                ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
-                : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
-              isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0",
-            )}
-            style={{ transitionDelay: `${index * 35}ms` }}
-          >
-            <span
-              className={cn(
-                "absolute inset-y-0 left-0 w-1 rounded-l-[8px]",
-                item.isActive ? "bg-[#006DAD]" : "bg-[#F59E0B]",
-              )}
-            />
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate text-[14px] font-semibold leading-5 text-[#333333]">{item.name}</span>
-                    <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.priorityClassName)}>
-                      {item.priority.toLowerCase()}
-                    </span>
-                  </div>
-                </div>
-                <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#333333]" />
-              </div>
-
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
-                <span className="inline-flex items-center gap-1.5">
-                  <ItemIcon className="h-4 w-4 text-[#16A34A]" />
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  {item.time}
-                </span>
-              </div>
-
-              <div className="mt-2 text-[13px] leading-5 text-[#5B5B5B]">{item.preview}</div>
-            </div>
-          </button>
-        );
-      })}
+      {items.map((item, index) => (
+        <QueueAssignmentCard
+          key={item.id}
+          item={item}
+          onSelectAssignment={onSelectAssignment}
+          className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
+          style={{ transitionDelay: `${index * 35}ms` }}
+        />
+      ))}
     </div>
   );
 }
@@ -2546,32 +2566,43 @@ function LeftQueueRail() {
                   const priorityIconClassName = priorityIconClassNameMap[priorityKey] ?? "text-[#98A2B3]";
 
                   return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className={cn(
-                        "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
-                        item.isActive
-                          ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
-                          : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
-                      )}
-                      aria-label={`${item.name} queue item`}
-                      onClick={() => selectAssignment(item.id)}
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
-                      />
-                      <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
-                      <span
-                        className={cn(
-                          "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
-                          item.isActive ? "text-[#006DAD]" : "text-[#667085]",
-                        )}
+                    <HoverCard key={item.id} openDelay={120} closeDelay={80}>
+                      <HoverCardTrigger asChild>
+                        <button
+                          type="button"
+                          className={cn(
+                            "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
+                            item.isActive
+                              ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
+                              : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
+                          )}
+                          aria-label={`${item.name} queue item`}
+                          onClick={() => selectAssignment(item.id)}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
+                          />
+                          <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
+                          <span
+                            className={cn(
+                              "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
+                              item.isActive ? "text-[#006DAD]" : "text-[#667085]",
+                            )}
+                          >
+                            {activeDuration}
+                          </span>
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent
+                        side="right"
+                        align="start"
+                        sideOffset={14}
+                        className="w-[295px] border-none bg-transparent p-0 shadow-none"
                       >
-                        {activeDuration}
-                      </span>
-                    </button>
+                        <QueueAssignmentCard item={item} onSelectAssignment={selectAssignment} />
+                      </HoverCardContent>
+                    </HoverCard>
                   );
                 })}
               </div>
