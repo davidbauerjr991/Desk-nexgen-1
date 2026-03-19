@@ -2490,19 +2490,10 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
-  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const {
     selectedAssignment,
     selectAssignment,
   } = useLayoutContext();
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setCurrentTimestamp(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   const orderedQueuePreviewItems = useMemo(() => {
     const nextItems = queuePreviewItems.map((item) => ({
@@ -2562,9 +2553,6 @@ function LeftQueueRail() {
               <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
                 {orderedQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
-                  const activeDuration = formatStatusDuration(
-                    Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
-                  );
                   const priorityKey = item.priority.toLowerCase();
                   const priorityDotClassName = priorityDotClassNameMap[priorityKey] ?? "bg-[#98A2B3]";
                   const priorityIconClassName = priorityIconClassNameMap[priorityKey] ?? "text-[#98A2B3]";
@@ -2594,7 +2582,7 @@ function LeftQueueRail() {
                               item.isActive ? "text-[#006DAD]" : "text-[#667085]",
                             )}
                           >
-                            {activeDuration}
+                            {item.time}
                           </span>
                         </button>
                       </HoverCardTrigger>
