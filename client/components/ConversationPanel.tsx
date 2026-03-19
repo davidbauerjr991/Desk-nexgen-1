@@ -147,6 +147,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
+  const contextHeaderRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
   const previousScrollTopRef = useRef(0);
@@ -160,6 +161,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
   const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
+  const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
 
   useEffect(() => {
     setDraft(conversation.draft);
@@ -172,6 +174,31 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
+
+  useEffect(() => {
+    const headerElement = contextHeaderRef.current;
+    if (!headerElement) return;
+
+    const updateHeaderHeight = () => {
+      setContextHeaderHeight(Math.max(0, Math.ceil(headerElement.getBoundingClientRect().height)));
+    };
+
+    updateHeaderHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeaderHeight();
+    });
+
+    resizeObserver.observe(headerElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [conversationOverview, isContextExpanded]);
 
   const getScrollViewport = () => {
     if (scrollViewportRef.current) return scrollViewportRef.current;
@@ -427,14 +454,14 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   };
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+    <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
       <div
         className={cn(
-          "shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
-          isContextVisible ? "max-h-[220px] opacity-100 translate-y-0" : "max-h-0 -translate-y-4 opacity-0",
+          "absolute inset-x-0 top-0 z-10 transition-[opacity,transform] duration-300 ease-out",
+          isContextVisible ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0",
         )}
       >
-        <div className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3">
+        <div ref={contextHeaderRef} className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
           <div className="flex w-full flex-col">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
@@ -493,7 +520,7 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
-          <div className="mx-auto max-w-3xl space-y-6">
+          <div className="mx-auto max-w-3xl space-y-6" style={{ paddingTop: contextHeaderHeight }}>
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
