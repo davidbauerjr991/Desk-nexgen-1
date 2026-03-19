@@ -62,54 +62,134 @@ function isScrolledToBottom(viewport: HTMLDivElement) {
   return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 24;
 }
 
-function getInlineSuggestion(conversation: SharedConversationData, customerMessage: ConversationMessage) {
+function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
+  return variants[((refreshKey % variants.length) + variants.length) % variants.length];
+}
+
+function getInlineSuggestion(
+  conversation: SharedConversationData,
+  customerMessage: ConversationMessage,
+  refreshKey = 0,
+) {
   const normalizedMessage = customerMessage.content.toLowerCase();
 
   if (normalizedMessage.includes("same error") || normalizedMessage.includes("tried again") || normalizedMessage.includes("retry") || normalizedMessage.includes("retried") || normalizedMessage.includes("still")) {
-    return {
-      summary:
-        "Recommend confirming the latest account status, then offer a manual refresh so the customer can retry without leaving the conversation.",
-      suggestedReply:
-        "I’ve confirmed the latest account status on my side. I’m running a manual refresh now so you can retry without leaving this conversation.",
-    };
+    return getSuggestionVariant([
+      {
+        summary:
+          "Recommend confirming the latest account status, then offer a manual refresh so the customer can retry without leaving the conversation.",
+        suggestedReply:
+          "I’ve confirmed the latest account status on my side. I’m running a manual refresh now so you can retry without leaving this conversation.",
+      },
+      {
+        summary:
+          "Acknowledge that the retry failed again, confirm you are checking the latest status, and keep the customer in the same thread while you reset the flow.",
+        suggestedReply:
+          "Thanks for trying that again. I’m checking the latest status now, and I’ll reset the flow from my side so you can retry here without starting over.",
+      },
+      {
+        summary:
+          "Show ownership of the repeated failure, explain you are refreshing the account state, and give the customer one immediate next step.",
+        suggestedReply:
+          "I can see the same error is still blocking the attempt. I’m refreshing the account state now, and I’ll let you know as soon as it’s ready for one more retry.",
+      },
+    ], refreshKey);
   }
 
   if (normalizedMessage.includes("charged twice") || normalizedMessage.includes("double charge")) {
-    return {
-      summary: "Reassure the customer they will not be charged twice, then guide them through a safe retry.",
-      suggestedReply:
-        "You will not be charged twice for the same upgrade attempt. I’ll verify the previous authorization, then I’ll let you know the safest time to retry.",
-    };
+    return getSuggestionVariant([
+      {
+        summary: "Reassure the customer they will not be charged twice, then guide them through a safe retry.",
+        suggestedReply:
+          "You will not be charged twice for the same upgrade attempt. I’ll verify the previous authorization, then I’ll let you know the safest time to retry.",
+      },
+      {
+        summary: "Reduce anxiety about duplicate billing, confirm you are reviewing the payment authorization, and set up the next action clearly.",
+        suggestedReply:
+          "I understand the concern. I’m reviewing the previous authorization now to make sure there isn’t a duplicate charge, and then I’ll guide you through the next safe step.",
+      },
+      {
+        summary: "Confirm you are checking the billing history, reassure them the original attempt is being reviewed, and avoid asking them to retry too early.",
+        suggestedReply:
+          "I’m checking the billing history on my side first so we do not risk a duplicate charge. Once I confirm the original attempt status, I’ll tell you whether it’s safe to retry.",
+      },
+    ], refreshKey);
   }
 
   if (normalizedMessage.includes("billing") || normalizedMessage.includes("zip") || normalizedMessage.includes("match")) {
-    return {
-      summary: "Confirm the billing details on file, then guide the customer to the field most likely causing the mismatch.",
-      suggestedReply:
-        "I can see a billing detail mismatch on the latest attempt. Please confirm the billing zip code on the card, and I’ll stay with you while you try it again.",
-    };
+    return getSuggestionVariant([
+      {
+        summary: "Confirm the billing details on file, then guide the customer to the field most likely causing the mismatch.",
+        suggestedReply:
+          "I can see a billing detail mismatch on the latest attempt. Please confirm the billing zip code on the card, and I’ll stay with you while you try it again.",
+      },
+      {
+        summary: "Point the customer to the billing field most likely causing the failure and keep the instruction focused on one correction at a time.",
+        suggestedReply:
+          "The latest attempt looks like it failed on a billing detail check. Please verify the billing zip code exactly as it appears with your card issuer, and I’ll stay with you for the retry.",
+      },
+      {
+        summary: "Keep the response specific, ask for the most important billing confirmation, and reduce the chance of another mismatch.",
+        suggestedReply:
+          "Before we try again, please confirm the billing zip code tied to the card. That is the field most likely causing the mismatch I’m seeing on the payment check.",
+      },
+    ], refreshKey);
   }
 
   if (normalizedMessage.includes("today") || normalizedMessage.includes("urgent") || normalizedMessage.includes("meeting")) {
-    return {
-      summary: "Acknowledge the urgency, confirm the next action, and keep the customer in the conversation while you resolve it.",
-      suggestedReply:
-        "I understand this is time-sensitive. I’m checking the blocking step now, and I’ll keep you updated here so you can complete the upgrade as quickly as possible.",
-    };
+    return getSuggestionVariant([
+      {
+        summary: "Acknowledge the urgency, confirm the next action, and keep the customer in the conversation while you resolve it.",
+        suggestedReply:
+          "I understand this is time-sensitive. I’m checking the blocking step now, and I’ll keep you updated here so you can complete the upgrade as quickly as possible.",
+      },
+      {
+        summary: "Lead with urgency, explain that you are actively checking the blocker, and reassure the customer they will not need to repeat everything.",
+        suggestedReply:
+          "I know this is urgent. I’m reviewing the blocking step right now, and I’ll stay with you here so we can move this forward without making you repeat the process.",
+      },
+      {
+        summary: "Recognize the deadline, confirm immediate ownership, and give the customer confidence that the next update is coming soon.",
+        suggestedReply:
+          "Thanks for flagging the urgency. I’m on the blocking issue now, and I’ll update you here with the next step as soon as I confirm what’s holding it up.",
+      },
+    ], refreshKey);
   }
 
   if (normalizedMessage.includes("worked") || normalizedMessage.includes("thank you")) {
-    return {
-      summary: "Confirm the issue is resolved and tell the customer what to watch for next.",
-      suggestedReply:
-        "Glad that worked. Your upgrade should now continue normally, and I’ll stay available here in case anything else comes up.",
-    };
+    return getSuggestionVariant([
+      {
+        summary: "Confirm the issue is resolved and tell the customer what to watch for next.",
+        suggestedReply:
+          "Glad that worked. Your upgrade should now continue normally, and I’ll stay available here in case anything else comes up.",
+      },
+      {
+        summary: "Close the loop clearly, confirm the path forward is back on track, and keep the tone supportive.",
+        suggestedReply:
+          "Great, that means the issue is resolved and the upgrade flow should continue normally from here. I’ll stay available in case anything unexpected comes up.",
+      },
+      {
+        summary: "Acknowledge the positive update and let the customer know what should happen next so the thread can wind down cleanly.",
+        suggestedReply:
+          "Happy to hear that worked. Everything should move forward normally now, but I’ll remain here if you need help with the next step.",
+      },
+    ], refreshKey);
   }
 
-  return {
-    summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s latest update and giving them one clear next step.`,
-    suggestedReply: "Thanks for the update. I’m checking the latest attempt now and I’ll give you the next step in just a moment.",
-  };
+  return getSuggestionVariant([
+    {
+      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s latest update and giving them one clear next step.`,
+      suggestedReply: "Thanks for the update. I’m checking the latest attempt now and I’ll give you the next step in just a moment.",
+    },
+    {
+      summary: `Recommend confirming ${conversation.customerName.split(" ")[0]}'s latest update, then setting expectations for the next follow-up in this thread.`,
+      suggestedReply: "Thanks for the update. I’m reviewing the latest activity now, and I’ll follow up here with the clearest next step in just a moment.",
+    },
+    {
+      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s message and giving them one immediate action while you continue checking the issue.`,
+      suggestedReply: "I appreciate the update. I’m checking the latest attempt now and I’ll reply here with the best next step shortly.",
+    },
+  ], refreshKey);
 }
 
 function getConversationOverview(conversation: SharedConversationData) {
@@ -164,13 +244,16 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
+  const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
   const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
-  const inlineSuggestion = latestCustomerMessage ? getInlineSuggestion(conversation, latestCustomerMessage) : null;
+  const inlineSuggestion = latestCustomerMessage
+    ? getInlineSuggestion(conversation, latestCustomerMessage, suggestionRefreshKey)
+    : null;
   const conversationOverview = getConversationOverview(conversation);
   const lastActivityAt = conversation.timelineLabel.includes("·")
     ? conversation.timelineLabel.split("·").slice(1).join("·").trim()
@@ -407,6 +490,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
 
   useEffect(() => {
     setDismissedSuggestionMessageId(null);
+    setSuggestionRefreshKey(0);
     setIsSuggestionAdded(false);
   }, [latestCustomerMessage?.id, draftKey]);
 
@@ -430,6 +514,11 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
       draft: inlineSuggestion.suggestedReply,
     });
     textareaRef.current?.focus({ preventScroll: true });
+  };
+
+  const handleRefreshSuggestion = () => {
+    setSuggestionRefreshKey((currentValue) => currentValue + 1);
+    setIsSuggestionAdded(false);
   };
 
   const handleDismissSuggestion = () => {
@@ -609,6 +698,9 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       >
                         {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
                         {isSuggestionAdded ? "Added" : "Use response"}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
+                        Refresh
                       </Button>
                       <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleDismissSuggestion}>
                         Dismiss
