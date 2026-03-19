@@ -1246,10 +1246,12 @@ function CombinedInteractionPanel({
   customerRecordId,
   customerName,
   customerId,
+  showConversationTab,
   showCanvasTab,
   canvasTabLabel,
   canvasContent,
   isFullWidth,
+  showCloseButton = !isFullWidth,
   onConversationChange,
   onSelectChannel,
   onTabChange,
@@ -1265,10 +1267,12 @@ function CombinedInteractionPanel({
   customerRecordId: string;
   customerName: string;
   customerId: string;
+  showConversationTab: boolean;
   showCanvasTab: boolean;
   canvasTabLabel: string;
   canvasContent: React.ReactNode;
   isFullWidth: boolean;
+  showCloseButton?: boolean;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
@@ -1277,6 +1281,8 @@ function CombinedInteractionPanel({
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
+  const visibleTabCount = [showConversationTab, true, showCanvasTab].filter(Boolean).length;
+  const panelTitle = showConversationTab ? "Conversation & Customer" : `${canvasTabLabel} & Customer`;
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -1329,12 +1335,12 @@ function CombinedInteractionPanel({
           <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation & Customer</h3>
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{panelTitle}</h3>
                 <p className="truncate text-xs text-[#7A7A7A]">
                   {customerName} · {customerId}
                 </p>
               </div>
-              {!isFullWidth && (
+              {showCloseButton && (
                 <button
                   type="button"
                   aria-label="Close combined interaction panel"
@@ -1349,12 +1355,14 @@ function CombinedInteractionPanel({
             <TabsList
               className={cn(
                 "mt-3 grid h-auto w-full gap-1 rounded-lg bg-[#F1F3F5] p-1",
-                showCanvasTab ? "grid-cols-3" : "grid-cols-2",
+                visibleTabCount === 3 ? "grid-cols-3" : visibleTabCount === 2 ? "grid-cols-2" : "grid-cols-1",
               )}
             >
-              <TabsTrigger value="conversation" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
-                Conversation
-              </TabsTrigger>
+              {showConversationTab && (
+                <TabsTrigger value="conversation" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
+                  Conversation
+                </TabsTrigger>
+              )}
               <TabsTrigger value="customerInfo" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
                 Customer
               </TabsTrigger>
@@ -1366,16 +1374,18 @@ function CombinedInteractionPanel({
             </TabsList>
           </div>
 
-          <TabsContent value="conversation" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
-            <ConversationPanel
-              className="min-h-0 flex-1"
-              conversation={conversation}
-              activeChannel={activeChannel}
-              draftKey={`combined-${conversation.label}-${conversation.customerName}`}
-              onConversationChange={onConversationChange}
-              onSelectChannel={onSelectChannel}
-            />
-          </TabsContent>
+          {showConversationTab && (
+            <TabsContent value="conversation" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
+              <ConversationPanel
+                className="min-h-0 flex-1"
+                conversation={conversation}
+                activeChannel={activeChannel}
+                draftKey={`combined-${conversation.label}-${conversation.customerName}`}
+                onConversationChange={onConversationChange}
+                onSelectChannel={onSelectChannel}
+              />
+            </TabsContent>
+          )}
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
             <NotesPanel initialTab="Overview" customerId={customerRecordId} />
           </TabsContent>
@@ -2920,19 +2930,18 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
+  const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const shouldCombineDockedCustomerAndDeskPanels =
     isDeskRoute &&
+    !isCombinedInteractionPanel &&
     isCustomerInfoPanelOpen &&
     !isCustomerInfoPopunderOpen &&
     isCombinedInteractionPanelCanvasEnabled;
-  const isCombinedInteractionPanel =
-    shouldCombineDockedCustomerAndDeskPanels ||
-    (isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled);
-  const isCanvasMergedIntoCombinedPanel = shouldCombineDockedCustomerAndDeskPanels;
+  const isCanvasMergedIntoCombinedPanel = isCombinedInteractionPanel || shouldCombineDockedCustomerAndDeskPanels;
   const isDeskCustomerInfoVisible =
     isCustomerInfoCanvasVisible &&
     isCustomerInfoPanelOpen &&
-    !isCombinedInteractionPanel &&
+    !isCanvasMergedIntoCombinedPanel &&
     isCustomerInfoPanelAllowed &&
     !isCustomerInfoPopunderOpen;
   const isDockedConversationVisible = !isCombinedInteractionPanel && isConversationPanelOpen;
@@ -3435,12 +3444,21 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    setCombinedInteractionPanelTab("canvas");
-    setIsConversationPanelOpen(true);
+    setCombinedInteractionPanelTab((current) => {
+      if (isCombinedInteractionPanel) {
+        return "canvas";
+      }
+
+      return current === "conversation" ? "canvas" : current;
+    });
     setIsCustomerInfoPanelOpen(true);
-    setIsConversationPopunderOpen(false);
     setIsCustomerInfoPopunderOpen(false);
-  }, [isCanvasMergedIntoCombinedPanel, location.pathname, location.search]);
+
+    if (isCombinedInteractionPanel) {
+      setIsConversationPanelOpen(true);
+      setIsConversationPopunderOpen(false);
+    }
+  }, [isCanvasMergedIntoCombinedPanel, isCombinedInteractionPanel, location.pathname, location.search]);
 
   const bringFloatingPanelToFront = (panelId: FloatingPanelId) => {
     setFloatingPanelOrder((current) => [...current.filter((id) => id !== panelId), panelId]);
@@ -3573,6 +3591,14 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    if (isDeskRoute && isCombinedInteractionPanelCanvasEnabled) {
+      setCombinedInteractionPanelTab("customerInfo");
+      setIsCustomerInfoPanelOpen(true);
+      setIsCustomerInfoPopunderOpen(false);
+      setCustomerInfoDragActivation(null);
+      return;
+    }
+
     const { conversationWidth, customerInfoWidth } = getBalancedDockedPanelWidths({
       hasDesktopRightPanel: activeRightPanel !== null,
       reserveMainWorkspace: isMainCanvasVisible,
@@ -3598,6 +3624,14 @@ export default function Layout({ children }: LayoutProps) {
 
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("customerInfo");
+      return;
+    }
+
+    if (isDeskRoute && isCombinedInteractionPanelCanvasEnabled) {
+      setCombinedInteractionPanelTab("customerInfo");
+      setIsCustomerInfoPanelOpen(true);
+      setIsCustomerInfoPopunderOpen(false);
+      setCustomerInfoDragActivation(null);
       return;
     }
 
@@ -3628,6 +3662,14 @@ export default function Layout({ children }: LayoutProps) {
   const dockCustomerInfoPanel = () => {
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("customerInfo");
+      return;
+    }
+
+    if (isDeskRoute && isCombinedInteractionPanelCanvasEnabled) {
+      setCombinedInteractionPanelTab("customerInfo");
+      setIsCustomerInfoPanelOpen(true);
+      setIsCustomerInfoPopunderOpen(false);
+      setCustomerInfoDragActivation(null);
       return;
     }
 
@@ -4077,6 +4119,7 @@ export default function Layout({ children }: LayoutProps) {
             customerRecordId={selectedAssignment.id}
             customerName={selectedAssignment.name}
             customerId={selectedAssignment.customerId}
+            showConversationTab
             showCanvasTab={isCanvasMergedIntoCombinedPanel}
             canvasTabLabel={deskCanvasTabLabel}
             canvasContent={children}
@@ -4093,6 +4136,82 @@ export default function Layout({ children }: LayoutProps) {
             onWidthChange={setDockedConversationWidth}
             onClose={closeCombinedInteractionPanel}
           />
+        ) : shouldCombineDockedCustomerAndDeskPanels ? (
+          <>
+            <DockedConversationPanel
+              isOpen={isConversationPanelOpen}
+              width={dockedConversationWidth}
+              maxWidth={conversationPanelMaxWidth}
+              conversation={conversationState}
+              activeChannel={activeConversationChannel}
+              onConversationChange={handleConversationStateChange}
+              onSelectChannel={setActiveConversationChannel}
+              onOpenCall={layoutContextValue.toggleCallPopunder}
+              onOpenCustomerInfo={openCustomerInfoPopunder}
+              isCallDisabled={status === "In a Call" || status !== "Available"}
+              onWidthChange={setDockedConversationWidth}
+              onClose={closeConversationPanel}
+              showTrailingGap
+              onUndockStart={(event) => {
+                if (typeof window === "undefined") return;
+
+                event.preventDefault();
+
+                const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                if (!bounds) return;
+
+                const margin = CONVERSATION_POPOUNDER_MARGIN;
+                const nextPosition = {
+                  x: Math.min(
+                    Math.max(margin, bounds.left),
+                    window.innerWidth - conversationPopunderSize.width - margin,
+                  ),
+                  y: Math.min(
+                    Math.max(margin, bounds.top),
+                    window.innerHeight - conversationPopunderSize.height - margin,
+                  ),
+                };
+
+                bringFloatingPanelToFront("conversation");
+                setConversationPopunderPosition(nextPosition);
+                setIsConversationPanelOpen(false);
+                setIsConversationPopunderOpen(true);
+                setConversationDragActivation({
+                  id: Date.now(),
+                  offset: {
+                    x: event.clientX - nextPosition.x,
+                    y: event.clientY - nextPosition.y,
+                  },
+                });
+              }}
+            />
+            <CombinedInteractionPanel
+              isOpen={isCustomerInfoPanelOpen}
+              width={dockedCustomerInfoWidth}
+              maxWidth={customerInfoPanelMaxWidth}
+              activeTab={combinedInteractionPanelTab}
+              conversation={conversationState}
+              activeChannel={activeConversationChannel}
+              customerRecordId={selectedAssignment.id}
+              customerName={selectedAssignment.name}
+              customerId={selectedAssignment.customerId}
+              showConversationTab={false}
+              showCanvasTab
+              canvasTabLabel={deskCanvasTabLabel}
+              canvasContent={children}
+              isFullWidth
+              showCloseButton
+              onConversationChange={handleConversationStateChange}
+              onSelectChannel={setActiveConversationChannel}
+              onTabChange={(tab) => {
+                setCombinedInteractionPanelTab(tab === "conversation" ? "customerInfo" : tab);
+                setIsCustomerInfoPanelOpen(true);
+                setIsCustomerInfoPopunderOpen(false);
+              }}
+              onWidthChange={setDockedCustomerInfoWidth}
+              onClose={closeCustomerInfoPanel}
+            />
+          </>
         ) : (
           <>
             <DockedConversationPanel
@@ -4108,7 +4227,7 @@ export default function Layout({ children }: LayoutProps) {
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
-              showTrailingGap={isDeskCustomerInfoVisible || isMainCanvasVisible}
+              showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
