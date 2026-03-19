@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, AudioLines, Check, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { getRelevantCustomerTicket } from "@/components/NotesPanel";
 import type { CustomerChannel } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +39,10 @@ interface ConversationPanelProps {
   activeChannel: CustomerChannel;
   draftKey: string;
   className?: string;
+  customerId?: string;
   onConversationChange?: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenDeskPanel?: (selection?: { initialTab?: string; ticketId?: string }) => void;
 }
 
 const conversationFooterMenuItems = [
@@ -76,6 +79,13 @@ function isScrolledToBottom(viewport: HTMLDivElement) {
 type InlineSuggestion = {
   summary: string;
   suggestedReply: string;
+};
+
+type SuggestionAction = {
+  id: string;
+  label: string;
+  initialTab: string;
+  ticketId?: string;
 };
 
 function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
@@ -330,7 +340,16 @@ function getConversationOverview(conversation: SharedConversationData) {
   };
 }
 
-export default function ConversationPanel({ conversation, activeChannel, draftKey, className, onConversationChange, onSelectChannel }: ConversationPanelProps) {
+export default function ConversationPanel({
+  conversation,
+  activeChannel,
+  draftKey,
+  className,
+  customerId,
+  onConversationChange,
+  onSelectChannel,
+  onOpenDeskPanel,
+}: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -361,6 +380,37 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     !conversation.isCustomerTyping &&
     dismissedSuggestionMessageId !== latestCustomerMessage.id;
   const shouldShowContextOverview = latestCustomerMessage !== null;
+  const suggestionActions = useMemo(() => {
+    if (!inlineSuggestion || !latestCustomerMessage || !customerId || !onOpenDeskPanel) {
+      return [] as SuggestionAction[];
+    }
+
+    const actionContext = `${inlineSuggestion.summary} ${inlineSuggestion.suggestedReply} ${conversationOverview.remainingNeed} ${latestCustomerMessage.content}`.toLowerCase();
+    const nextActions: SuggestionAction[] = [];
+    const relevantTicket = getRelevantCustomerTicket(customerId, actionContext);
+
+    if (
+      relevantTicket
+      && ["ticket", "case", "billing", "payment", "retry", "declined", "charge", "blocked", "flag", "issue", "support", "upgrade"].some((keyword) => actionContext.includes(keyword))
+    ) {
+      nextActions.push({
+        id: `ticket-${relevantTicket.id}`,
+        label: "View ticket",
+        initialTab: "Tickets",
+        ticketId: relevantTicket.id,
+      });
+    }
+
+    if (["account", "billing", "profile", "verification", "status", "zip", "security", "refresh"].some((keyword) => actionContext.includes(keyword))) {
+      nextActions.push({
+        id: "review-account",
+        label: "Review account",
+        initialTab: "Accounts",
+      });
+    }
+
+    return nextActions;
+  }, [conversationOverview.remainingNeed, customerId, inlineSuggestion, latestCustomerMessage, onOpenDeskPanel]);
   const hasDraft = draft.trim().length > 0;
 
   useEffect(() => {
@@ -541,6 +591,10 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
   };
 
+  const handleOpenSuggestionAction = (action: SuggestionAction) => {
+    onOpenDeskPanel?.({ initialTab: action.initialTab, ticketId: action.ticketId });
+  };
+
   const handleClearDraft = () => {
     setDraft("");
     onConversationChange?.({
@@ -663,6 +717,22 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
                       </Button>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
+                    {suggestionActions.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {suggestionActions.map((action) => (
+                          <Button
+                            key={action.id}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#2D6A5F] hover:bg-white"
+                            onClick={() => handleOpenSuggestionAction(action)}
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
                     {isSuggestionEditorOpen ? (
                       <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2D6A5F]">

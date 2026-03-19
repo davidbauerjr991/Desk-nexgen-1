@@ -63,6 +63,10 @@ type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot" | "notes" | "add";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
+type DeskPanelSelection = {
+  initialTab?: string;
+  ticketId?: string;
+} | null;
 
 interface LayoutContextValue {
   activeRightPanel: RightPanelView;
@@ -77,10 +81,12 @@ interface LayoutContextValue {
   isConversationPopunderOpen: boolean;
   activeConversationChannel: CustomerChannel;
   selectedAssignment: QueuePreviewItem;
+  deskPanelSelection: DeskPanelSelection;
   recentInteractions: RecentInteractionItem[];
   conversationState: SharedConversationData;
   toggleInfo: () => void;
   toggleDesk: () => void;
+  openDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   toggleInteractions: () => void;
   toggleConversationPanel: () => void;
   openConversationPanel: () => void;
@@ -1112,8 +1118,10 @@ function DockedConversationPanel({
   maxWidth,
   conversation,
   activeChannel,
+  customerRecordId,
   onConversationChange,
   onSelectChannel,
+  onOpenDeskPanel,
   onOpenCall,
   onOpenCustomerInfo,
   onConversationStatusChange,
@@ -1128,8 +1136,10 @@ function DockedConversationPanel({
   maxWidth: number;
   conversation: SharedConversationData;
   activeChannel: CustomerChannel;
+  customerRecordId: string;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
@@ -1271,9 +1281,11 @@ function DockedConversationPanel({
             <ConversationPanel
               conversation={conversation}
               activeChannel={activeChannel}
+              customerId={customerRecordId}
               draftKey={`docked-${conversation.label}-${conversation.customerName}`}
               onConversationChange={onConversationChange}
               onSelectChannel={onSelectChannel}
+              onOpenDeskPanel={onOpenDeskPanel}
             />
           </>
         )}
@@ -1321,6 +1333,7 @@ function CombinedInteractionPanel({
   showCloseButton = !isFullWidth,
   onConversationChange,
   onSelectChannel,
+  onOpenDeskPanel,
   onTabChange,
   onWidthChange,
   onClose,
@@ -1342,6 +1355,7 @@ function CombinedInteractionPanel({
   showCloseButton?: boolean;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
   onWidthChange: (width: number) => void;
   onClose: () => void;
@@ -1447,9 +1461,11 @@ function CombinedInteractionPanel({
                 className="min-h-0 flex-1"
                 conversation={conversation}
                 activeChannel={activeChannel}
+                customerId={customerRecordId}
                 draftKey={`combined-${conversation.label}-${conversation.customerName}`}
                 onConversationChange={onConversationChange}
                 onSelectChannel={onSelectChannel}
+                onOpenDeskPanel={onOpenDeskPanel}
               />
             </TabsContent>
           )}
@@ -2065,11 +2081,13 @@ function ConversationPopunder({
   size,
   conversation,
   activeChannel,
+  customerRecordId,
   zIndex,
   onPositionChange,
   onSizeChange,
   onConversationChange,
   onSelectChannel,
+  onOpenDeskPanel,
   onOpenCall,
   onOpenCustomerInfo,
   onConversationStatusChange,
@@ -2082,11 +2100,13 @@ function ConversationPopunder({
   size: ConversationPopunderSize;
   conversation: SharedConversationData;
   activeChannel: CustomerChannel;
+  customerRecordId: string;
   zIndex: number;
   onPositionChange: (position: ConversationPopunderPosition) => void;
   onSizeChange: (size: ConversationPopunderSize) => void;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
+  onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
@@ -2270,9 +2290,11 @@ function ConversationPopunder({
       <ConversationPanel
         conversation={conversation}
         activeChannel={activeChannel}
+        customerId={customerRecordId}
         draftKey={`popunder-${conversation.label}-${conversation.customerName}`}
         onConversationChange={onConversationChange}
         onSelectChannel={onSelectChannel}
+        onOpenDeskPanel={onOpenDeskPanel}
       />
 
       <button
@@ -2841,6 +2863,7 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [status, setStatus] = useState<AgentStatus>("Available");
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
+  const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
@@ -3848,6 +3871,15 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/activity", { state: { hideMainCanvasPanel: true } });
   };
 
+  const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
+    setDeskPanelSelection(selection ?? null);
+    setActiveRightPanel("desk");
+
+    if (location.pathname !== "/activity") {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
+  };
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -3862,18 +3894,22 @@ export default function Layout({ children }: LayoutProps) {
       isConversationPopunderOpen,
       activeConversationChannel,
       selectedAssignment,
+      deskPanelSelection,
       recentInteractions,
       conversationState,
       toggleInfo: () => {
+        setDeskPanelSelection(null);
         setActiveRightPanel((current) =>
           current === "info" ? null : "info",
         );
       },
       toggleDesk: () => {
+        setDeskPanelSelection(null);
         setActiveRightPanel((current) =>
           current === "desk" ? null : "desk",
         );
       },
+      openDeskPanel,
       toggleInteractions: () => {
         setActiveRightPanel((current) =>
           current === "interactions" ? null : "interactions",
@@ -3885,9 +3921,13 @@ export default function Layout({ children }: LayoutProps) {
       closeConversationPopunder,
       setActiveConversationChannel,
       setConversationState: handleConversationStateChange,
-      closeRightPanel: () => setActiveRightPanel(null),
+      closeRightPanel: () => {
+        setDeskPanelSelection(null);
+        setActiveRightPanel(null);
+      },
       undockDeskPanel,
       selectAssignment: (assignmentId) => {
+        setDeskPanelSelection(null);
         setSelectedAssignmentId(assignmentId);
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
@@ -3946,6 +3986,7 @@ export default function Layout({ children }: LayoutProps) {
       activeRightPanel,
       activeConversationChannel,
       conversationState,
+      deskPanelSelection,
       customerInfoPopunderSize.height,
       customerInfoPopunderSize.width,
       dockedConversationWidth,
@@ -3963,6 +4004,7 @@ export default function Layout({ children }: LayoutProps) {
       recentInteractions,
       location.pathname,
       openCustomerInfoPanel,
+      openDeskPanel,
       shouldPreserveFloatingCustomerInfoPanel,
       deskCanvasPopunderView,
       selectedAssignment,
@@ -4210,6 +4252,7 @@ export default function Layout({ children }: LayoutProps) {
             isFullWidth={isCanvasMergedIntoCombinedPanel}
             onConversationChange={handleConversationStateChange}
             onSelectChannel={setActiveConversationChannel}
+            onOpenDeskPanel={openDeskPanel}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
@@ -4228,8 +4271,10 @@ export default function Layout({ children }: LayoutProps) {
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
               activeChannel={activeConversationChannel}
+              customerRecordId={selectedAssignment.id}
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
+              onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenCustomerInfo={openCustomerInfoPopunder}
               onConversationStatusChange={handleConversationStatusChange}
@@ -4288,6 +4333,7 @@ export default function Layout({ children }: LayoutProps) {
               showCloseButton
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
+              onOpenDeskPanel={openDeskPanel}
               onTabChange={(tab) => {
                 setCombinedInteractionPanelTab(tab === "conversation" ? "customerInfo" : tab);
                 setIsCustomerInfoPanelOpen(true);
@@ -4305,8 +4351,10 @@ export default function Layout({ children }: LayoutProps) {
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
               activeChannel={activeConversationChannel}
+              customerRecordId={selectedAssignment.id}
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
+              onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenCustomerInfo={openCustomerInfoPopunder}
               onConversationStatusChange={handleConversationStatusChange}
@@ -4409,11 +4457,13 @@ export default function Layout({ children }: LayoutProps) {
           size={conversationPopunderSize}
           conversation={conversationState}
           activeChannel={activeConversationChannel}
+          customerRecordId={selectedAssignment.id}
           zIndex={getFloatingPanelZIndex("conversation")}
           onPositionChange={setConversationPopunderPosition}
           onSizeChange={setConversationPopunderSize}
           onConversationChange={handleConversationStateChange}
           onSelectChannel={setActiveConversationChannel}
+          onOpenDeskPanel={openDeskPanel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
           onOpenCustomerInfo={openCustomerInfoPopunder}
           onConversationStatusChange={handleConversationStatusChange}

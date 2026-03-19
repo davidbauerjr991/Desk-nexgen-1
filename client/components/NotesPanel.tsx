@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import CustomerInfoPanel from "@/components/CustomerInfoPanel";
+import CustomerInfoPanel, { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 import OverviewDashboard from "@/components/OverviewDashboard";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -60,7 +60,8 @@ const initialNotes = [
   },
 ];
 
-type CustomerTicket = {
+export type CustomerTicket = {
+  customerId?: string;
   id: string;
   priority: "Low" | "Medium" | "High" | "Urgent";
   type: "Complaint" | "Question" | "Task" | "Incident" | "Problem" | "Request";
@@ -94,16 +95,18 @@ type TicketColumn = {
 
 const customerTickets: CustomerTicket[] = [
   {
+    customerId: "alex",
     id: "CASE-56",
-    priority: "Medium",
-    type: "Complaint",
-    subject: "Test Ticket",
+    priority: "High",
+    type: "Incident",
+    subject: "Pro plan upgrade blocked by billing mismatch",
     status: "Open",
     agent: "David Bauer",
     agentTeam: "Digital Care",
     modifiedBy: "DAVID.BAUER",
   },
   {
+    customerId: "priya",
     id: "CASE-84",
     priority: "High",
     type: "Incident",
@@ -114,6 +117,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "PRIYA.SHAH",
   },
   {
+    customerId: "noah",
     id: "CASE-112",
     priority: "Low",
     type: "Question",
@@ -124,16 +128,18 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "MARCUS.LEE",
   },
   {
+    customerId: "alex",
     id: "CASE-139",
     priority: "Urgent",
     type: "Problem",
-    subject: "Wire transfer locked after fraud screening review",
+    subject: "Billing security flag still blocking repeat checkout",
     status: "Needing Attention",
     agent: "Elena Petrova",
     agentTeam: "Risk Response",
     modifiedBy: "ELENA.PETROVA",
   },
   {
+    customerId: "olivia",
     id: "CASE-147",
     priority: "Medium",
     type: "Request",
@@ -144,6 +150,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "CHRIS.NOLAN",
   },
   {
+    customerId: "david",
     id: "CASE-163",
     priority: "High",
     type: "Complaint",
@@ -154,6 +161,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "SOFIA.RAMIREZ",
   },
   {
+    customerId: "miguel",
     id: "CASE-188",
     priority: "Low",
     type: "Task",
@@ -164,6 +172,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "BEN.CARTER",
   },
   {
+    customerId: "sarah",
     id: "CASE-204",
     priority: "Medium",
     type: "Request",
@@ -174,6 +183,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "LINA.PARK",
   },
   {
+    customerId: "emily",
     id: "CASE-219",
     priority: "High",
     type: "Incident",
@@ -184,6 +194,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "OWEN.BROOKS",
   },
   {
+    customerId: "hannah",
     id: "CASE-233",
     priority: "Low",
     type: "Question",
@@ -194,6 +205,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "AVA.THOMPSON",
   },
   {
+    customerId: "jamal",
     id: "CASE-248",
     priority: "Medium",
     type: "Problem",
@@ -204,6 +216,7 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "NOAH.KIM",
   },
   {
+    customerId: "lauren",
     id: "CASE-271",
     priority: "Urgent",
     type: "Complaint",
@@ -214,6 +227,60 @@ const customerTickets: CustomerTicket[] = [
     modifiedBy: "MILA.FISCHER",
   },
 ];
+
+export function getCustomerTickets(customerId?: string) {
+  return customerId ? customerTickets.filter((ticket) => ticket.customerId === customerId) : customerTickets;
+}
+
+function getCustomerTicketById(ticketId?: string, customerId?: string) {
+  if (!ticketId) return null;
+
+  return getCustomerTickets(customerId).find((ticket) => ticket.id === ticketId)
+    ?? customerTickets.find((ticket) => ticket.id === ticketId)
+    ?? null;
+}
+
+export function getRelevantCustomerTicket(customerId: string | undefined, issueContext: string) {
+  const availableTickets = getCustomerTickets(customerId);
+
+  if (availableTickets.length === 0) {
+    return null;
+  }
+
+  const normalizedContext = issueContext.toLowerCase();
+  const keywordMatchers: Array<{ keywords: string[]; ticketKeywords: string[] }> = [
+    {
+      keywords: ["billing", "payment", "zip", "declined", "retry", "charge", "upgrade"],
+      ticketKeywords: ["billing", "payment", "upgrade", "checkout", "duplicate"],
+    },
+    {
+      keywords: ["urgent", "today", "meeting", "deadline"],
+      ticketKeywords: ["urgent", "vip", "open", "attention"],
+    },
+    {
+      keywords: ["account", "security", "flag", "review", "verification"],
+      ticketKeywords: ["account", "risk", "review", "security", "profile"],
+    },
+  ];
+
+  for (const matcher of keywordMatchers) {
+    if (!matcher.keywords.some((keyword) => normalizedContext.includes(keyword))) {
+      continue;
+    }
+
+    const matchingTicket = availableTickets.find((ticket) => {
+      const ticketText = `${ticket.subject} ${ticket.type} ${ticket.status} ${ticket.agentTeam}`.toLowerCase();
+      return matcher.ticketKeywords.some((keyword) => ticketText.includes(keyword));
+    });
+
+    if (matchingTicket) {
+      return matchingTicket;
+    }
+  }
+
+  return availableTickets.find((ticket) => ["Open", "In Progress", "Pending Customer", "Needing Attention"].includes(ticket.status))
+    ?? availableTickets[0];
+}
 
 function formatNoteTimestamp(date: Date) {
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -467,7 +534,7 @@ function TicketRecordView({ ticket }: { ticket: CustomerTicket }) {
   );
 }
 
-function TicketsDataGrid({ onOpenTicket }: { onOpenTicket: (ticket: CustomerTicket) => void }) {
+function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?: CustomerTicket[]; onOpenTicket: (ticket: CustomerTicket) => void }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [columnOrder, setColumnOrder] = useState<TicketColumnKey[]>(() => [...INITIAL_TICKET_COLUMN_ORDER]);
@@ -484,9 +551,9 @@ function TicketsDataGrid({ onOpenTicket }: { onOpenTicket: (ticket: CustomerTick
   const filteredTickets = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    if (!query) return customerTickets;
+    if (!query) return tickets;
 
-    return customerTickets.filter((ticket) =>
+    return tickets.filter((ticket) =>
       [
         ticket.priority,
         ticket.id,
@@ -498,7 +565,7 @@ function TicketsDataGrid({ onOpenTicket }: { onOpenTicket: (ticket: CustomerTick
         ticket.modifiedBy,
       ].some((value) => value.toLowerCase().includes(query)),
     );
-  }, [searchQuery]);
+  }, [searchQuery, tickets]);
 
   const totalPages = Math.max(1, Math.ceil(filteredTickets.length / TICKET_PAGE_SIZE));
 
@@ -702,22 +769,29 @@ function TicketsDataGrid({ onOpenTicket }: { onOpenTicket: (ticket: CustomerTick
 
 interface NotesPanelProps {
   initialTab?: string;
+  initialTicketId?: string;
   notesOnly?: boolean;
   addNoteTrigger?: number;
   customerId?: string;
 }
 
 export default function NotesPanel({
-  initialTab = "Overview",
+  initialTab,
+  initialTicketId,
   notesOnly = false,
   addNoteTrigger = 0,
   customerId,
 }: NotesPanelProps) {
-  const [activeTab, setActiveTab] = useState(notesOnly ? "Notes" : initialTab);
+  const availableTickets = useMemo(() => getCustomerTickets(customerId), [customerId]);
+  const requestedTicket = useMemo(() => getCustomerTicketById(initialTicketId, customerId), [customerId, initialTicketId]);
+  const defaultInitialTab = notesOnly ? (initialTab ?? "Notes") : (initialTab ?? "Overview");
+  const [activeTab, setActiveTab] = useState(requestedTicket?.id ?? defaultInitialTab);
   const [activeSwitchableTab, setActiveSwitchableTab] = useState<string>(
-    !notesOnly && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])
-      ? initialTab
-      : DEFAULT_SWITCHABLE_TAB,
+    requestedTicket
+      ? "Tickets"
+      : !notesOnly && initialTab && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])
+        ? initialTab
+        : DEFAULT_SWITCHABLE_TAB,
   );
   const [showMoreTabs, setShowMoreTabs] = useState(false);
   const [notesData, setNotesData] = useState(initialNotes);
@@ -729,15 +803,22 @@ export default function NotesPanel({
   const moreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    setActiveTab(notesOnly ? "Notes" : initialTab);
+    if (requestedTicket) {
+      setOpenTickets((current) => (current.some((ticket) => ticket.id === requestedTicket.id) ? current : [...current, requestedTicket]));
+      setActiveSwitchableTab("Tickets");
+      setActiveTab(requestedTicket.id);
+      return;
+    }
 
-    if (!notesOnly && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])) {
+    setActiveTab(defaultInitialTab);
+
+    if (!notesOnly && initialTab && SWITCHABLE_TABS.includes(initialTab as (typeof SWITCHABLE_TABS)[number])) {
       setActiveSwitchableTab(initialTab);
       return;
     }
 
     setActiveSwitchableTab(DEFAULT_SWITCHABLE_TAB);
-  }, [initialTab, notesOnly]);
+  }, [defaultInitialTab, initialTab, notesOnly, requestedTicket]);
 
   useEffect(() => {
     if (addNoteTrigger === 0) return;
@@ -1003,7 +1084,23 @@ export default function NotesPanel({
         </div>
       )}
 
-      {activeTab === "Tickets" && <TicketsDataGrid onOpenTicket={handleOpenTicket} />}
+      {activeTab === "Tickets" && <TicketsDataGrid tickets={availableTickets} onOpenTicket={handleOpenTicket} />}
+
+      {activeTab === "Accounts" && (
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <ScrollArea className="h-full min-h-0 w-full">
+              {customerId ? (
+                <CustomerOverviewCard customerId={customerId} />
+              ) : (
+                <div className="flex min-h-[280px] items-center justify-center text-xs text-[#9CA3AF]">
+                  No account details to display
+                </div>
+              )}
+            </ScrollArea>
+          </div>
+        </div>
+      )}
 
       {activeTab === "Interactions" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
@@ -1013,7 +1110,7 @@ export default function NotesPanel({
 
       {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Tickets" && activeTab !== "Interactions" && !activeTicket && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Accounts" && activeTab !== "Tickets" && activeTab !== "Interactions" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>

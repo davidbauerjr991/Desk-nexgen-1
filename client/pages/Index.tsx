@@ -25,8 +25,24 @@ import {
 const CONVERSATION_CONTENT_DELAY_MS = 300;
 const RIGHT_PANEL_CONTENT_DELAY_MS = 300;
 
-function DeskPanel({ addNoteTrigger }: { addNoteTrigger: number }) {
-  return <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />;
+function DeskPanel({
+  addNoteTrigger,
+  customerId,
+  selection,
+}: {
+  addNoteTrigger: number;
+  customerId: string;
+  selection: { initialTab?: string; ticketId?: string } | null;
+}) {
+  return (
+    <NotesPanel
+      notesOnly
+      addNoteTrigger={addNoteTrigger}
+      customerId={customerId}
+      initialTab={selection?.initialTab}
+      initialTicketId={selection?.ticketId}
+    />
+  );
 }
 
 export default function Index() {
@@ -38,6 +54,7 @@ export default function Index() {
     isAgentAvailable,
     isAgentInCall,
     selectedAssignment,
+    deskPanelSelection,
     recentInteractions,
     toggleInteractions,
     toggleCallPopunder,
@@ -45,6 +62,8 @@ export default function Index() {
     conversationState,
     setConversationState,
     activeConversationChannel,
+    setActiveConversationChannel,
+    openDeskPanel,
   } = useLayoutContext();
   const [isConversationContentVisible, setIsConversationContentVisible] = useState(true);
   const [isRightPanelContentVisible, setIsRightPanelContentVisible] = useState(isRightPanelOpen);
@@ -162,8 +181,12 @@ export default function Index() {
             {isConversationContentVisible && (
               <ConversationPanel
                 conversation={conversationState}
+                activeChannel={activeConversationChannel}
+                customerId={selectedAssignment.id}
                 draftKey={`mobile-${activeConversationChannel}`}
                 onConversationChange={setConversationState}
+                onSelectChannel={setActiveConversationChannel}
+                onOpenDeskPanel={openDeskPanel}
               />
             )}
           </div>
@@ -228,7 +251,7 @@ export default function Index() {
                   {isInteractionsOpen ? (
                     <RecentInteractionsPanel injectedInteractions={recentInteractions} />
                   ) : isDeskOpen ? (
-                    <DeskPanel addNoteTrigger={addNoteTrigger} />
+                    <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.id} selection={deskPanelSelection} />
                   ) : null}
                 </>
               )}
