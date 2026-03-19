@@ -149,11 +149,13 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
+  const previousScrollTopRef = useRef(0);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
   const [isContextExpanded, setIsContextExpanded] = useState(true);
+  const [isContextVisible, setIsContextVisible] = useState(true);
 
   useEffect(() => {
     setDraft(conversation.draft);
@@ -192,8 +194,20 @@ export default function ConversationPanel({ conversation, draftKey, className, o
     if (!viewport) return;
 
     const handleScroll = () => {
+      const currentScrollTop = viewport.scrollTop;
+      const scrollDelta = currentScrollTop - previousScrollTopRef.current;
       const atBottom = isScrolledToBottom(viewport);
       shouldStickToBottomRef.current = atBottom;
+
+      if (currentScrollTop <= 8) {
+        setIsContextVisible(true);
+      } else if (scrollDelta > 6) {
+        setIsContextVisible(false);
+      } else if (scrollDelta < -6) {
+        setIsContextVisible(true);
+      }
+
+      previousScrollTopRef.current = currentScrollTop;
 
       if (atBottom) {
         setNewMessagesCount(0);
@@ -216,7 +230,9 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   useEffect(() => {
     previousMessageCountRef.current = conversation.messages.length;
     shouldStickToBottomRef.current = true;
+    previousScrollTopRef.current = 0;
     setNewMessagesCount(0);
+    setIsContextVisible(true);
 
     const frameId = window.requestAnimationFrame(() => {
       scrollToBottom("auto");
@@ -332,59 +348,66 @@ export default function ConversationPanel({ conversation, draftKey, className, o
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
-      <div className="shrink-0 border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3">
-        <div className="flex w-full flex-col">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
-              <span>{conversation.label.toUpperCase()}</span>
-              <span className="text-[#C9A74A]">•</span>
-              <span>{lastActivityAt}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
-                      getStatusChipClasses(conversation.status),
-                    )}
-                  >
-                    <span>{statusOptions.find((option) => option.value === conversation.status)?.label ?? "Open"}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-32 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
-                  {statusOptions.map((option) => (
-                    <DropdownMenuItem
-                      key={option.value}
-                      onClick={() => handleConversationStatusChange(option.value)}
+      <div
+        className={cn(
+          "shrink-0 overflow-hidden transition-[max-height,opacity,transform] duration-300 ease-out",
+          isContextVisible ? "max-h-[220px] opacity-100 translate-y-0" : "max-h-0 -translate-y-4 opacity-0",
+        )}
+      >
+        <div className="border-b border-[#E7D7A6] bg-[#FFF9E8] px-6 py-3">
+          <div className="flex w-full flex-col">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex flex-wrap items-center gap-2 text-xs font-medium text-[#8C6A00]">
+                <span>{conversation.label.toUpperCase()}</span>
+                <span className="text-[#C9A74A]">•</span>
+                <span>{lastActivityAt}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
                       className={cn(
-                        "rounded-lg px-3 py-2 text-xs font-medium text-[#333333] focus:bg-[#F8F8F9]",
-                        option.value === conversation.status && "bg-[#F8F8F9]",
+                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                        getStatusChipClasses(conversation.status),
                       )}
                     >
-                      {option.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button
-                type="button"
-                onClick={() => setIsContextExpanded((current) => !current)}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-[#8C6A00] transition-colors hover:bg-[#F6E7B8]"
-                aria-label={isContextExpanded ? "Collapse AI overview" : "Expand AI overview"}
-              >
-                <span>AI Overview</span>
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isContextExpanded && "rotate-180")} />
-              </button>
+                      <span>{statusOptions.find((option) => option.value === conversation.status)?.label ?? "Open"}</span>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-32 rounded-xl border border-black/10 bg-white p-1 shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
+                    {statusOptions.map((option) => (
+                      <DropdownMenuItem
+                        key={option.value}
+                        onClick={() => handleConversationStatusChange(option.value)}
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-xs font-medium text-[#333333] focus:bg-[#F8F8F9]",
+                          option.value === conversation.status && "bg-[#F8F8F9]",
+                        )}
+                      >
+                        {option.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <button
+                  type="button"
+                  onClick={() => setIsContextExpanded((current) => !current)}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-[#8C6A00] transition-colors hover:bg-[#F6E7B8]"
+                  aria-label={isContextExpanded ? "Collapse AI overview" : "Expand AI overview"}
+                >
+                  <span>AI Overview</span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isContextExpanded && "rotate-180")} />
+                </button>
+              </div>
             </div>
+            {isContextExpanded && (
+              <div className="mt-3 border-t border-[#E7D7A6] pt-3 text-sm leading-6 text-[#6B5A1B]">
+                {conversationOverview}
+              </div>
+            )}
           </div>
-          {isContextExpanded && (
-            <div className="mt-3 border-t border-[#E7D7A6] pt-3 text-sm leading-6 text-[#6B5A1B]">
-              {conversationOverview}
-            </div>
-          )}
         </div>
       </div>
 
