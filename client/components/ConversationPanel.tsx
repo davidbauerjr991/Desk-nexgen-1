@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
@@ -287,7 +287,6 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
-  const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
   const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
@@ -339,7 +338,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     return () => {
       resizeObserver.disconnect();
     };
-  }, [conversationOverview, isContextExpanded]);
+  }, [conversationOverview]);
 
   const getScrollViewport = () => {
     if (scrollViewportRef.current) return scrollViewportRef.current;
@@ -635,23 +634,7 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
               <div className="min-w-0 flex-1 text-sm font-medium leading-6 text-[#6B5A1B]">
                 <p className="line-clamp-2">{conversationOverview}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsContextExpanded((current) => !current)}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-[#8C6A00] transition-colors hover:bg-[#F6E7B8]"
-                  aria-label={isContextExpanded ? "Collapse AI overview" : "Expand AI overview"}
-                >
-                  <span>AI Overview</span>
-                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isContextExpanded && "rotate-180")} />
-                </button>
-              </div>
             </div>
-            {isContextExpanded && (
-              <div className="mt-3 border-t border-[#E7D7A6] pt-3 text-sm leading-6 text-[#6B5A1B]">
-                {conversationOverview}
-              </div>
-            )}
           </div>
         </div>
       </div>
