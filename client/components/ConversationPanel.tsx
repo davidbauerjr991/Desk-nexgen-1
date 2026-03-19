@@ -162,6 +162,18 @@ export default function ConversationPanel({ conversation, draftKey, className, o
   const [isContextExpanded, setIsContextExpanded] = useState(true);
   const [isContextVisible, setIsContextVisible] = useState(true);
   const [contextHeaderHeight, setContextHeaderHeight] = useState(88);
+  const latestMessage = conversation.messages[conversation.messages.length - 1];
+  const latestCustomerMessage = latestMessage?.role === "customer" ? latestMessage : null;
+  const inlineSuggestion = latestCustomerMessage ? getInlineSuggestion(conversation, latestCustomerMessage) : null;
+  const conversationOverview = getConversationOverview(conversation);
+  const lastActivityAt = conversation.timelineLabel.includes("·")
+    ? conversation.timelineLabel.split("·").slice(1).join("·").trim()
+    : conversation.timelineLabel;
+  const shouldShowSuggestion =
+    latestCustomerMessage !== null &&
+    inlineSuggestion !== null &&
+    !conversation.isCustomerTyping &&
+    dismissedSuggestionMessageId !== latestCustomerMessage.id;
 
   useEffect(() => {
     setDraft(conversation.draft);
