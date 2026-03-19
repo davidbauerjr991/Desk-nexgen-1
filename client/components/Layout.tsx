@@ -2526,7 +2526,7 @@ function LeftQueueRail() {
                     key={item.id}
                     type="button"
                     className={cn(
-                      "flex w-[52px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1 py-3 text-center transition-all duration-200",
+                      "flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
                       item.isActive
                         ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
                         : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
