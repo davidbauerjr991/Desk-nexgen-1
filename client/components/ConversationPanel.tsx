@@ -262,41 +262,47 @@ function getSummarySnippet(content: string | undefined, maxLength = 170) {
 }
 
 function getRemainingSupportNeed(issueSummary: string | null, latestCustomerMessage: ConversationMessage | undefined) {
-  const normalizedIssue = `${issueSummary ?? ""} ${latestCustomerMessage?.content ?? ""}`.toLowerCase();
+  const normalizedReply = latestCustomerMessage?.content.toLowerCase() ?? "";
+  const normalizedIssue = issueSummary?.toLowerCase() ?? "";
+  const evaluationText = `${normalizedReply} ${normalizedIssue}`.trim();
 
-  if (normalizedIssue.includes("where should i update") || normalizedIssue.includes("old zip") || normalizedIssue.includes("recently moved")) {
-    return "tell the customer exactly where to update the billing details, confirm which field is wrong, and keep them from retrying until the profile is corrected";
+  if (normalizedReply.includes("where should i update") || normalizedReply.includes("old zip") || normalizedReply.includes("recently moved")) {
+    return "Show the customer exactly where to update the billing details, point to the field that is wrong, and ask them to wait to retry until that profile update is complete.";
   }
 
-  if (normalizedIssue.includes("duplicate charge") || normalizedIssue.includes("charged twice") || normalizedIssue.includes("double charge")) {
-    return "confirm whether any duplicate authorization exists, explain the billing risk clearly, and only then tell the customer if it is safe to retry";
+  if (normalizedReply.includes("duplicate charge") || normalizedReply.includes("charged twice") || normalizedReply.includes("double charge")) {
+    return "Check whether any duplicate authorization exists, explain the billing risk clearly, and then tell the customer if it is safe to retry.";
   }
 
-  if (normalizedIssue.includes("payment link") || normalizedIssue.includes("secure link") || normalizedIssue.includes("send it over") || normalizedIssue.includes("inbox")) {
-    return "send the promised follow-up, confirm where it was delivered, and tell the customer what to do as soon as it arrives";
+  if (normalizedReply.includes("payment link") || normalizedReply.includes("secure link") || normalizedReply.includes("send it over") || normalizedReply.includes("inbox")) {
+    return "Send the promised follow-up now, confirm where it was delivered, and tell the customer the exact step to take once it arrives.";
   }
 
-  if (normalizedIssue.includes("full page") || normalizedIssue.includes("payment section") || normalizedIssue.includes("screenshot") || normalizedIssue.includes("photo")) {
-    return "tell the customer exactly what evidence to send, explain why it is needed, and confirm what you will review once it arrives";
+  if (normalizedReply.includes("full page") || normalizedReply.includes("payment section") || normalizedReply.includes("screenshot") || normalizedReply.includes("photo")) {
+    return "Specify exactly what screenshot or evidence the customer should send, confirm how to send it, and review it before asking for another retry.";
   }
 
-  if (normalizedIssue.includes("should i retry") || normalizedIssue.includes("retry it now") || normalizedIssue.includes("what should i do next")) {
-    return "answer the customer's direct question with one clear action, explain whether they should retry now, and state what must happen first if they should wait";
+  if (normalizedReply.includes("should i retry") || normalizedReply.includes("retry it now") || normalizedReply.includes("what should i do next")) {
+    return "Answer the customer's question directly with one clear next action and make it explicit whether they should retry now or wait for another fix first.";
   }
 
-  if (normalizedIssue.includes("same error") || normalizedIssue.includes("still") || normalizedIssue.includes("retry") || normalizedIssue.includes("declined") || normalizedIssue.includes("blocked")) {
-    return "pinpoint what is still blocking the latest attempt, explain what changed since the failed retry, and give the customer one concrete next step instead of another generic retry";
+  if (normalizedReply.includes("worked") || normalizedReply.includes("thank you")) {
+    return "Confirm the issue is resolved, tell the customer what to watch for next, and close the loop cleanly unless another problem appears.";
   }
 
-  if (normalizedIssue.includes("billing") || normalizedIssue.includes("zip") || normalizedIssue.includes("card") || normalizedIssue.includes("payment")) {
-    return "verify the billing details, clear the payment mismatch, and confirm exactly when the customer should retry";
+  if (evaluationText.includes("same error") || evaluationText.includes("still") || evaluationText.includes("retry") || evaluationText.includes("declined") || evaluationText.includes("blocked")) {
+    return "Explain what is still blocking the latest attempt, describe what changed since the failed retry, and give the customer one new action instead of repeating the previous step.";
   }
 
-  if (normalizedIssue.includes("urgent") || normalizedIssue.includes("today") || normalizedIssue.includes("meeting") || normalizedIssue.includes("deadline")) {
-    return "take immediate ownership, remove the blocker, and respond with a time-sensitive resolution path the customer can act on right away";
+  if (evaluationText.includes("billing") || evaluationText.includes("zip") || evaluationText.includes("card") || evaluationText.includes("payment")) {
+    return "Verify the billing details on file, call out the exact field that needs attention, and confirm when the customer should try again.";
   }
 
-  return "identify the exact blocker, resolve what is still incomplete, and give the customer a specific path forward that reflects the customer's latest reply";
+  if (evaluationText.includes("urgent") || evaluationText.includes("today") || evaluationText.includes("meeting") || evaluationText.includes("deadline")) {
+    return "Take immediate ownership of the blocker and reply with a time-sensitive resolution path the customer can act on right away.";
+  }
+
+  return "Respond directly to the customer's latest reply and turn it into one specific next action they can take now.";
 }
 
 function getConversationOverview(conversation: SharedConversationData) {
@@ -314,7 +320,7 @@ function getConversationOverview(conversation: SharedConversationData) {
   const priorHelp = priorHelpSummary
     ? `The previous agent or AI already tried to help by saying or doing this: ${priorHelpSummary}`
     : "The previous agent or AI has not yet documented a meaningful action that would unblock the issue.";
-  const remainingNeed = `What is still needed now is to ${getRemainingSupportNeed(issueSummary, latestCustomerMessage)}.`;
+  const remainingNeed = getRemainingSupportNeed(issueSummary, latestCustomerMessage);
 
   return {
     assignmentReason,
