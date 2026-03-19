@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles } from "lucide-react";
+import { AlertTriangle, AudioLines, ChevronDown, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
@@ -435,6 +435,15 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
     });
   };
 
+  const handleClearDraft = () => {
+    setDraft("");
+    onConversationChange?.({
+      ...conversation,
+      draft: "",
+    });
+    textareaRef.current?.focus({ preventScroll: true });
+  };
+
   const handleSend = (replyChannel: CustomerChannel = activeChannel) => {
     if (replyChannel !== activeChannel) {
       onSelectChannel(replyChannel);
@@ -709,6 +718,20 @@ export default function ConversationPanel({ conversation, activeChannel, draftKe
               >
                 <AudioLines className="h-4 w-4" />
               </Button>
+              {hasDraft ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={handleClearDraft}
+                  className="h-8 rounded-full border border-black/10 bg-white px-3 text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  aria-label="Clear input"
+                >
+                  <X className="mr-1.5 h-3.5 w-3.5" />
+                  Clear
+                </Button>
+              ) : null}
               <HoverCard openDelay={80} closeDelay={120}>
                 <HoverCardTrigger asChild>
                   <span tabIndex={-1} className="inline-flex">
