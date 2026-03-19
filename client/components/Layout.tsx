@@ -179,6 +179,20 @@ const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) =>
   updatedAt: customer.queue.updatedAt,
 }));
 
+const priorityRankMap: Record<string, number> = {
+  critical: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
+};
+
+const priorityDotClassNameMap: Record<string, string> = {
+  critical: "bg-[#F04438]",
+  high: "bg-[#F79009]",
+  medium: "bg-[#2E90FA]",
+  low: "bg-[#12B76A]",
+};
+
 type CallPopunderPosition = {
   x: number;
   y: number;
@@ -2459,23 +2473,22 @@ function LeftQueueRail() {
     return () => window.clearInterval(interval);
   }, []);
 
-  const sortedQueuePreviewItems = useMemo(
-    () =>
-      queuePreviewItems.map((item) => ({
-        ...item,
-        isActive: item.id === selectedAssignment.id,
-      })),
-    [selectedAssignment.id],
-  );
+  const orderedQueuePreviewItems = useMemo(() => {
+    const nextItems = queuePreviewItems.map((item) => ({
+      ...item,
+      isActive: item.id === selectedAssignment.id,
+    }));
 
-  const railQueuePreviewItems = useMemo(
-    () =>
-      queuePreviewItems.map((item) => ({
-        ...item,
-        isActive: item.id === selectedAssignment.id,
-      })),
-    [selectedAssignment.id],
-  );
+    if (!isPriorityAssistEnabled) {
+      return nextItems;
+    }
+
+    return [...nextItems].sort(
+      (left, right) =>
+        (priorityRankMap[left.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER) -
+        (priorityRankMap[right.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER),
+    );
+  }, [isPriorityAssistEnabled, selectedAssignment.id]);
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
@@ -2516,18 +2529,19 @@ function LeftQueueRail() {
               aria-hidden={isOpen}
             >
               <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
-                {railQueuePreviewItems.map((item) => {
+                {orderedQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
                   const activeDuration = formatStatusDuration(
                     Math.max(0, Math.floor((currentTimestamp - new Date(item.createdAt).getTime()) / 1000)),
                   );
+                  const priorityDotClassName = priorityDotClassNameMap[item.priority.toLowerCase()] ?? "bg-[#98A2B3]";
 
                   return (
                     <button
                       key={item.id}
                       type="button"
                       className={cn(
-                        "flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
+                        "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
                         item.isActive
                           ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
                           : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
@@ -2535,6 +2549,10 @@ function LeftQueueRail() {
                       aria-label={`${item.name} queue item`}
                       onClick={() => selectAssignment(item.id)}
                     >
+                      <span
+                        aria-hidden="true"
+                        className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
+                      />
                       <ItemIcon className="h-5 w-5 text-[#16A34A]" />
                       <span
                         className={cn(
@@ -2579,7 +2597,7 @@ function LeftQueueRail() {
                     </button>
                     <div className="min-w-0">
                       <h3 className="text-base font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                      <p className="text-sm text-[#7A7A7A]">0/{sortedQueuePreviewItems.length} completed</p>
+                      <p className="text-sm text-[#7A7A7A]">0/{orderedQueuePreviewItems.length} completed</p>
                     </div>
                   </div>
                   <div className="flex items-start justify-between gap-3">
@@ -2599,7 +2617,7 @@ function LeftQueueRail() {
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto">
-                <QueueOverlayList items={sortedQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
+                <QueueOverlayList items={orderedQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
               </div>
             </div>
           </div>
