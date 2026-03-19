@@ -138,6 +138,10 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
 
 const defaultConversationState: SharedConversationData = createConversationState(defaultCustomerId, "sms");
 
+function getConversationStateKey(customerId: string, channel: CustomerChannel) {
+  return `${customerId}:${channel}`;
+}
+
 type QueueSortOption = "created-desc" | "created-asc" | "updated-desc" | "updated-asc";
 
 type QueuePreviewItem = {
@@ -2810,7 +2814,9 @@ export default function Layout({ children }: LayoutProps) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [activeConversationChannel, setActiveConversationChannel] = useState<CustomerChannel>("sms");
-  const [conversationState, setConversationState] = useState<SharedConversationData>(defaultConversationState);
+  const [conversationStatesByKey, setConversationStatesByKey] = useState<Record<string, SharedConversationData>>(() => ({
+    [getConversationStateKey(defaultCustomerId, "sms")]: defaultConversationState,
+  }));
   const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
     getBalancedDockedPanelWidths({
       hasDesktopRightPanel: false,
@@ -2876,7 +2882,7 @@ export default function Layout({ children }: LayoutProps) {
   });
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const callConnectTimeoutRef = useRef<number | null>(null);
-  const customerReplyTimeoutRef = useRef<number | null>(null);
+  const customerReplyTimeoutsRef = useRef<Record<string, number>>({});
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
@@ -2898,9 +2904,9 @@ export default function Layout({ children }: LayoutProps) {
         window.clearTimeout(callConnectTimeoutRef.current);
       }
 
-      if (customerReplyTimeoutRef.current !== null) {
-        window.clearTimeout(customerReplyTimeoutRef.current);
-      }
+      Object.values(customerReplyTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
     };
   }, []);
 
@@ -2911,6 +2917,16 @@ export default function Layout({ children }: LayoutProps) {
   const selectedAssignment = useMemo(
     () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
     [selectedAssignmentId],
+  );
+  const activeConversationStateKey = useMemo(
+    () => getConversationStateKey(selectedAssignment.id, activeConversationChannel),
+    [activeConversationChannel, selectedAssignment.id],
+  );
+  const conversationState = useMemo(
+    () =>
+      conversationStatesByKey[activeConversationStateKey] ??
+      createConversationState(selectedAssignment.id, activeConversationChannel),
+    [activeConversationChannel, activeConversationStateKey, conversationStatesByKey, selectedAssignment.id],
   );
   const isActivityRoute = location.pathname === "/activity";
   const isExpandedCanvasRoute =
@@ -2960,53 +2976,76 @@ export default function Layout({ children }: LayoutProps) {
         : "Desk";
 
   useEffect(() => {
-    setConversationState(createConversationState(selectedAssignment.id, activeConversationChannel));
-  }, [activeConversationChannel, selectedAssignment.id]);
+    setConversationStatesByKey((currentStates) => {
+      if (currentStates[activeConversationStateKey]) {
+        return currentStates;
+      }
+
+      return {
+        ...currentStates,
+        [activeConversationStateKey]: createConversationState(selectedAssignment.id, activeConversationChannel),
+      };
+    });
+  }, [activeConversationChannel, activeConversationStateKey, selectedAssignment.id]);
 
   const handleConversationStateChange = (nextConversation: SharedConversationData) => {
-    if (customerReplyTimeoutRef.current !== null) {
-      window.clearTimeout(customerReplyTimeoutRef.current);
-      customerReplyTimeoutRef.current = null;
+    const targetCustomerId = selectedAssignment.id;
+    const targetChannel = activeConversationChannel;
+    const targetConversationStateKey = getConversationStateKey(targetCustomerId, targetChannel);
+
+    if (customerReplyTimeoutsRef.current[targetConversationStateKey] !== undefined) {
+      window.clearTimeout(customerReplyTimeoutsRef.current[targetConversationStateKey]);
+      delete customerReplyTimeoutsRef.current[targetConversationStateKey];
     }
 
     const latestMessage = nextConversation.messages[nextConversation.messages.length - 1];
     const shouldShowTyping = latestMessage?.role === "agent";
-
-    setConversationState({
+    const persistedConversationState = {
       ...nextConversation,
       isCustomerTyping: shouldShowTyping,
-    });
+    };
+
+    setConversationStatesByKey((currentStates) => ({
+      ...currentStates,
+      [targetConversationStateKey]: persistedConversationState,
+    }));
 
     if (!latestMessage || latestMessage.role !== "agent") {
       return;
     }
 
-    customerReplyTimeoutRef.current = window.setTimeout(() => {
-      setConversationState((current) => {
-        const currentLatestMessage = current.messages[current.messages.length - 1];
+    customerReplyTimeoutsRef.current[targetConversationStateKey] = window.setTimeout(() => {
+      setConversationStatesByKey((currentStates) => {
+        const currentConversationState =
+          currentStates[targetConversationStateKey] ?? createConversationState(targetCustomerId, targetChannel);
+        const currentLatestMessage = currentConversationState.messages[currentConversationState.messages.length - 1];
+
         if (
-          current.customerName !== nextConversation.customerName ||
-          current.label !== nextConversation.label ||
+          currentConversationState.customerName !== nextConversation.customerName ||
+          currentConversationState.label !== nextConversation.label ||
           currentLatestMessage?.id !== latestMessage.id
         ) {
-          return current;
+          return currentStates;
         }
 
         return {
-          ...current,
-          isCustomerTyping: false,
-          messages: [
-            ...current.messages,
-            {
-              id: current.messages.reduce((maxId, message) => Math.max(maxId, message.id), 0) + 1,
-              role: "customer",
-              content: generateSimulatedCustomerReply(current, latestMessage.content),
-              time: formatConversationReplyTime(new Date()),
-            },
-          ],
+          ...currentStates,
+          [targetConversationStateKey]: {
+            ...currentConversationState,
+            isCustomerTyping: false,
+            messages: [
+              ...currentConversationState.messages,
+              {
+                id: currentConversationState.messages.reduce((maxId, message) => Math.max(maxId, message.id), 0) + 1,
+                role: "customer",
+                content: generateSimulatedCustomerReply(currentConversationState, latestMessage.content),
+                time: formatConversationReplyTime(new Date()),
+              },
+            ],
+          },
         };
       });
-      customerReplyTimeoutRef.current = null;
+      delete customerReplyTimeoutsRef.current[targetConversationStateKey];
     }, 1200);
   };
 
