@@ -1299,26 +1299,6 @@ function DockedConversationPanel({
         )}
       </div>
 
-      {isOpen && isContentVisible && !isEqualSplit && (
-        <button
-          type="button"
-          aria-label="Resize docked conversation panel"
-          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[800px]:flex"
-          onMouseDown={(event) => {
-            event.preventDefault();
-            isResizingRef.current = true;
-            resizeStartRef.current = {
-              mouseX: event.clientX,
-              width,
-            };
-            document.body.style.userSelect = "none";
-          }}
-        >
-          <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
-            <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
-          </span>
-        </button>
-      )}
     </div>
   );
 }
@@ -1632,26 +1612,6 @@ function DockedCustomerInfoPanel({
         />
       </div>
 
-      {isOpen && !isEqualSplit && (
-        <button
-          type="button"
-          aria-label="Resize docked customer information panel"
-          className="absolute inset-y-0 -right-2 z-10 hidden w-4 cursor-col-resize items-center justify-center min-[1024px]:flex"
-          onMouseDown={(event) => {
-            event.preventDefault();
-            isResizingRef.current = true;
-            resizeStartRef.current = {
-              mouseX: event.clientX,
-              width,
-            };
-            document.body.style.userSelect = "none";
-          }}
-        >
-          <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm">
-            <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
-          </span>
-        </button>
-      )}
     </div>
   );
 }
