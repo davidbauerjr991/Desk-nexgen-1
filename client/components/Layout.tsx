@@ -3876,14 +3876,28 @@ export default function Layout({ children }: LayoutProps) {
     setActiveRightPanel(null);
     setIsNotesPopoverOpen(false);
     setIsAddNewPopoverOpen(false);
-    setDeskCanvasDragActivation(null);
-    setDeskCanvasPopunderView(null);
     setConversationDragActivation(null);
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
+
+    if (deskCanvasPopunderView !== null) {
+      bringFloatingPanelToFront("deskCanvas");
+      setDeskCanvasPopunderView(view);
+
+      if (view === "customer") {
+        setDeskPanelSelection({ initialTab: "Overview" });
+        return;
+      }
+
+      setDeskPanelSelection(null);
+      return;
+    }
+
+    setDeskCanvasDragActivation(null);
+    setDeskCanvasPopunderView(null);
 
     if (view === "customer") {
       setDeskPanelSelection({ initialTab: "Overview" });
@@ -4164,7 +4178,7 @@ export default function Layout({ children }: LayoutProps) {
               <HeaderIconButton
                 ariaLabel="Open notifications"
                 onClick={() => openHeaderAppPanel("notifications")}
-                isActive={activeDeskRouteView === "notifications"}
+                isActive={deskCanvasPopunderView === "notifications" || activeDeskRouteView === "notifications"}
               >
                 <div className="relative">
                   <Bell className="h-4 w-4 stroke-[1.8]" />
