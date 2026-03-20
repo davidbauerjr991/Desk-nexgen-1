@@ -89,6 +89,8 @@ interface LayoutContextValue {
   toggleDesk: () => void;
   openDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   closeAppSpacePanel: () => void;
+  closeFloatingAppSpacePanel: () => void;
+  isAppSpacePanelInDragMode: boolean;
   toggleInteractions: () => void;
   toggleConversationPanel: () => void;
   openConversationPanel: () => void;
@@ -2523,6 +2525,8 @@ function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const {
+    closeFloatingAppSpacePanel,
+    isAppSpacePanelInDragMode,
     selectedAssignment,
     selectAssignment,
   } = useLayoutContext();
@@ -2652,7 +2656,14 @@ function LeftQueueRail() {
                   <div className="mb-3 flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={toggleLeftRailOpen}
+                      onClick={() => {
+                        if (isAppSpacePanelInDragMode) {
+                          closeFloatingAppSpacePanel();
+                          return;
+                        }
+
+                        toggleLeftRailOpen();
+                      }}
                       aria-label="Collapse assignments rail"
                       aria-pressed={true}
                       className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
@@ -3829,10 +3840,14 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/activity", { state: { hideMainCanvasPanel: true } });
   };
 
-  const closeAppSpacePanel = () => {
-    setDeskPanelSelection(null);
+  const closeFloatingAppSpacePanel = () => {
     setDeskCanvasPopunderView(null);
     setDeskCanvasDragActivation(null);
+  };
+
+  const closeAppSpacePanel = () => {
+    setDeskPanelSelection(null);
+    closeFloatingAppSpacePanel();
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
@@ -3903,6 +3918,8 @@ export default function Layout({ children }: LayoutProps) {
       },
       openDeskPanel,
       closeAppSpacePanel,
+      closeFloatingAppSpacePanel,
+      isAppSpacePanelInDragMode: deskCanvasPopunderView !== null,
       toggleInteractions: () => {
         setActiveRightPanel((current) =>
           current === "interactions" ? null : "interactions",
