@@ -3772,9 +3772,18 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(false);
   };
 
-  const closeDeskCanvasPopunder = () => {
+  const clearDeskCanvasPopunderState = () => {
     setDeskCanvasDragActivation(null);
     setDeskCanvasPopunderView(null);
+  };
+
+  const closeDeskCanvasPopunder = () => {
+    setDeskPanelSelection(null);
+    clearDeskCanvasPopunderState();
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+    navigate("/activity", { state: { hideMainCanvasPanel: true } });
   };
 
   const dockDeskCanvasPopunder = () => {
@@ -3792,7 +3801,7 @@ export default function Layout({ children }: LayoutProps) {
               ? "/desk?view=notifications"
               : "/desk";
 
-    closeDeskCanvasPopunder();
+    clearDeskCanvasPopunderState();
     navigate(nextRoute);
   };
 
@@ -3841,17 +3850,16 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const closeFloatingAppSpacePanel = () => {
-    setDeskCanvasPopunderView(null);
-    setDeskCanvasDragActivation(null);
-  };
-
-  const closeAppSpacePanel = () => {
     setDeskPanelSelection(null);
-    closeFloatingAppSpacePanel();
+    clearDeskCanvasPopunderState();
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
     navigate("/activity", { state: { hideMainCanvasPanel: true } });
+  };
+
+  const closeAppSpacePanel = () => {
+    closeFloatingAppSpacePanel();
   };
 
   const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
