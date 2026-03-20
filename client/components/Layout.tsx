@@ -3678,8 +3678,8 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openCustomerInfoPopunder = (event?: React.MouseEvent<HTMLElement>) => {
-    if (isCustomerInfoPanelOpen) {
-      closeCustomerInfoPanel();
+    if (isDeskRoute && activeDeskRouteView === "customer") {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
       return;
     }
 
@@ -3688,48 +3688,33 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    if (isDeskRoute && isCombinedInteractionPanelCanvasEnabled) {
-      setCombinedInteractionPanelTab("customerInfo");
+    if (!isCustomerInfoPanelAllowed) {
+      const anchorRect = event?.currentTarget.getBoundingClientRect();
+      const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
+
+      bringFloatingPanelToFront("customerInfo");
+      setCustomerInfoPopunderPosition(nextPosition);
       setIsCustomerInfoPanelOpen(true);
-      setIsCustomerInfoPopunderOpen(false);
-      setCustomerInfoDragActivation(null);
+      setIsCustomerInfoPopunderOpen(true);
+      setCustomerInfoDragActivation(
+        event
+          ? {
+              id: Date.now(),
+              offset: {
+                x: event.clientX - nextPosition.x,
+                y: event.clientY - nextPosition.y,
+              },
+            }
+          : null,
+      );
       return;
     }
 
-    if (isCustomerInfoPanelAllowed) {
-      setIsCustomerInfoPanelOpen(true);
-      setIsCustomerInfoPopunderOpen(false);
-      setCustomerInfoDragActivation(null);
-
-      if (location.pathname !== "/desk" && !isExpandedCanvasRoute) {
-        navigate("/activity", { state: { hideMainCanvasPanel: true } });
-      }
-
-      return;
-    }
-
-    const anchorRect = event?.currentTarget.getBoundingClientRect();
-    const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
-
-    bringFloatingPanelToFront("customerInfo");
-    setCustomerInfoPopunderPosition(nextPosition);
-    setIsCustomerInfoPanelOpen(true);
-    setIsCustomerInfoPopunderOpen(true);
-    setCustomerInfoDragActivation(
-      event
-        ? {
-            id: Date.now(),
-            offset: {
-              x: event.clientX - nextPosition.x,
-              y: event.clientY - nextPosition.y,
-            },
-          }
-        : null,
-    );
-
-    if (location.pathname !== "/desk" && !isExpandedCanvasRoute) {
-      navigate("/activity", { state: { hideMainCanvasPanel: true } });
-    }
+    setDeskPanelSelection({ initialTab: "Overview" });
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+    navigate("/desk?view=customer");
   };
 
   const dockCustomerInfoPanel = () => {
@@ -3846,11 +3831,11 @@ export default function Layout({ children }: LayoutProps) {
   const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
     setDeskPanelSelection(selection ?? null);
     setActiveRightPanel(null);
-    openCustomerInfoPanel();
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
 
-    if (location.pathname !== "/activity") {
-      navigate("/activity", { state: { hideMainCanvasPanel: true } });
-    }
+    navigate("/desk?view=customer");
   };
 
   const openHeaderAppPanel = (view: DeskCanvasView) => {
@@ -3862,20 +3847,17 @@ export default function Layout({ children }: LayoutProps) {
     setConversationDragActivation(null);
     setIsConversationPanelOpen(true);
     setIsConversationPopunderOpen(false);
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
 
     if (view === "customer") {
       setDeskPanelSelection({ initialTab: "Overview" });
-      setIsCustomerInfoPanelOpen(true);
-      setIsCustomerInfoPopunderOpen(false);
-      setCustomerInfoDragActivation(null);
-      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+      navigate("/desk?view=customer");
       return;
     }
 
     setDeskPanelSelection(null);
-    setIsCustomerInfoPanelOpen(false);
-    setIsCustomerInfoPopunderOpen(false);
-    setCustomerInfoDragActivation(null);
     navigate(view === "desk" ? "/desk" : `/desk?view=${view}`);
   };
 
@@ -4129,7 +4111,6 @@ export default function Layout({ children }: LayoutProps) {
                 isActive={
                   deskCanvasPopunderView === "customer"
                   || activeDeskRouteView === "customer"
-                  || (isExpandedCanvasRoute && isCustomerInfoPanelOpen)
                 }
               >
                 <User className="h-4 w-4 stroke-[1.8]" />
