@@ -16,6 +16,7 @@ import {
   Mic,
   Monitor,
   Pause,
+  User,
   Phone,
   PhoneOff,
   Plus,
@@ -60,7 +61,7 @@ interface LayoutProps {
 }
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
-type DeskCanvasView = "desk" | "copilot" | "notes" | "add";
+type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 type DeskPanelSelection = {
@@ -1921,6 +1922,7 @@ function DeskCanvasPopunder({
   view,
   position,
   size,
+  customerId,
   zIndex,
   onPositionChange,
   onSizeChange,
@@ -1932,6 +1934,7 @@ function DeskCanvasPopunder({
   view: DeskCanvasView;
   position: DeskCanvasPopunderPosition;
   size: DeskCanvasPopunderSize;
+  customerId: string;
   zIndex: number;
   onPositionChange: (position: DeskCanvasPopunderPosition) => void;
   onSizeChange: (size: DeskCanvasPopunderSize) => void;
@@ -1945,7 +1948,15 @@ function DeskCanvasPopunder({
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
   const minWidth = getDeskCanvasPopunderMinWidth(view);
-  const panelLabel = view === "copilot" ? "Copilot" : view === "notes" ? "Notes" : view === "add" ? "Add" : "Desk";
+  const panelLabel = view === "copilot"
+    ? "Copilot"
+    : view === "notes"
+      ? "Notes"
+      : view === "add"
+        ? "Add"
+        : view === "customer"
+          ? "Customer Information"
+          : "Desk";
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -2068,7 +2079,15 @@ function DeskCanvasPopunder({
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {view === "copilot" ? <CopilotContent /> : view === "notes" ? <NotesPanel notesOnly /> : view === "add" ? <AddPanelContent /> : <DeskDataTable />}
+        {view === "copilot"
+          ? <CopilotContent />
+          : view === "notes"
+            ? <NotesPanel notesOnly />
+            : view === "add"
+              ? <AddPanelContent />
+              : view === "customer"
+                ? <NotesPanel customerId={customerId} />
+                : <DeskDataTable />}
       </div>
 
       <button
@@ -3841,7 +3860,9 @@ export default function Layout({ children }: LayoutProps) {
         ? "/desk?view=notes"
         : deskCanvasPopunderView === "add"
           ? "/desk?view=add"
-          : "/desk";
+          : deskCanvasPopunderView === "customer"
+            ? "/desk?view=customer"
+            : "/desk";
 
     closeDeskCanvasPopunder();
     navigate(nextRoute);
@@ -4139,6 +4160,14 @@ export default function Layout({ children }: LayoutProps) {
 
           {!isHeaderSearchOpen && (
             <>
+              <HeaderIconButton
+                ariaLabel="Open customer information in desk panel"
+                onClick={() => navigate("/desk?view=customer")}
+                isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "customer"}
+              >
+                <User className="h-4 w-4 stroke-[1.8]" />
+              </HeaderIconButton>
+
               <HeaderIconButton
                 ariaLabel="Open Desk"
                 onClick={() => navigate("/desk")}
@@ -4521,6 +4550,7 @@ export default function Layout({ children }: LayoutProps) {
           view={deskCanvasPopunderView}
           position={deskCanvasPopunderPosition}
           size={deskCanvasPopunderSize}
+          customerId={selectedAssignment.customerId}
           zIndex={getFloatingPanelZIndex("deskCanvas")}
           onPositionChange={setDeskCanvasPopunderPosition}
           onSizeChange={setDeskCanvasPopunderSize}

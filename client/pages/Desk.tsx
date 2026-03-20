@@ -10,13 +10,30 @@ import NotesPanel from "@/components/NotesPanel";
 export default function Desk() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { undockDeskPanel } = useLayoutContext();
+  const { selectedAssignment, undockDeskPanel } = useLayoutContext();
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
   const isNotesView = view === "notes";
   const isAddView = view === "add";
-  const panelLabel = isCopilotView ? "Copilot" : isNotesView ? "Notes" : isAddView ? "Add" : "Desk";
-  const panelView = isCopilotView ? "copilot" : isNotesView ? "notes" : isAddView ? "add" : "desk";
+  const isCustomerView = view === "customer";
+  const panelLabel = isCopilotView
+    ? "Copilot"
+    : isNotesView
+      ? "Notes"
+      : isAddView
+        ? "Add"
+        : isCustomerView
+          ? "Customer Information"
+          : "Desk";
+  const panelView = isCopilotView
+    ? "copilot"
+    : isNotesView
+      ? "notes"
+      : isAddView
+        ? "add"
+        : isCustomerView
+          ? "customer"
+          : "desk";
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -42,7 +59,15 @@ export default function Desk() {
         </button>
       </div>
 
-      {isCopilotView ? <CopilotContent /> : isNotesView ? <NotesPanel notesOnly /> : isAddView ? <AddPanelContent /> : <DeskDataTable />}
+      {isCopilotView
+        ? <CopilotContent />
+        : isNotesView
+          ? <NotesPanel notesOnly />
+          : isAddView
+            ? <AddPanelContent />
+            : isCustomerView
+              ? <NotesPanel customerId={selectedAssignment.customerId} />
+              : <DeskDataTable />}
     </div>
   );
 }
