@@ -3080,6 +3080,8 @@ export default function Layout({ children }: LayoutProps) {
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
+  const isInlineConversationSplitPanelVisible = isAppSpaceSplitLayout && !isConversationPopunderOpen;
+  const isInlineAppSpacePanelVisible = isAppSpaceSplitLayout && !deskCanvasPopunderView && !isCustomerInfoPopunderOpen;
   const shouldCombineDockedCustomerAndDeskPanels =
     isDeskRoute &&
     !isCombinedInteractionPanel &&
@@ -4333,73 +4335,24 @@ export default function Layout({ children }: LayoutProps) {
           />
         ) : isAppSpaceSplitLayout ? (
           <>
-            <DockedConversationPanel
-              isOpen={isAppSpaceSplitLayout || isConversationPanelOpen}
-              width={dockedConversationWidth}
-              maxWidth={conversationPanelMaxWidth}
-              conversation={conversationState}
-              activeChannel={activeConversationChannel}
-              customerRecordId={selectedAssignment.id}
-              onConversationChange={handleConversationStateChange}
-              onSelectChannel={setActiveConversationChannel}
-              onOpenDeskPanel={openDeskPanel}
-              onOpenCall={layoutContextValue.toggleCallPopunder}
-              onOpenCustomerInfo={openCustomerInfoPopunder}
-              onConversationStatusChange={handleConversationStatusChange}
-              isCallDisabled={status === "In a Call" || status !== "Available"}
-              onWidthChange={setDockedConversationWidth}
-              onClose={closeConversationPanel}
-              showTrailingGap
-              isEqualSplit
-              onUndockStart={(event) => {
-                if (typeof window === "undefined") return;
-
-                event.preventDefault();
-
-                const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-                if (!bounds) return;
-
-                const margin = CONVERSATION_POPOUNDER_MARGIN;
-                const nextPosition = {
-                  x: Math.min(
-                    Math.max(margin, bounds.left),
-                    window.innerWidth - conversationPopunderSize.width - margin,
-                  ),
-                  y: Math.min(
-                    Math.max(margin, bounds.top),
-                    window.innerHeight - conversationPopunderSize.height - margin,
-                  ),
-                };
-
-                bringFloatingPanelToFront("conversation");
-                setConversationPopunderPosition(nextPosition);
-                setIsConversationPanelOpen(false);
-                setIsConversationPopunderOpen(true);
-                setConversationDragActivation({
-                  id: Date.now(),
-                  offset: {
-                    x: event.clientX - nextPosition.x,
-                    y: event.clientY - nextPosition.y,
-                  },
-                });
-              }}
-            />
-            {isDeskRoute ? (
-              <div className="flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                {children}
-              </div>
-            ) : (
-              <DockedCustomerInfoPanel
+            {isInlineConversationSplitPanelVisible ? (
+              <DockedConversationPanel
                 isOpen
-                width={dockedCustomerInfoWidth}
-                maxWidth={customerInfoPanelMaxWidth}
+                width={dockedConversationWidth}
+                maxWidth={conversationPanelMaxWidth}
+                conversation={conversationState}
+                activeChannel={activeConversationChannel}
                 customerRecordId={selectedAssignment.id}
-                customerName={selectedAssignment.name}
-                customerId={selectedAssignment.customerId}
-                panelSelection={deskPanelSelection}
-                onWidthChange={setDockedCustomerInfoWidth}
-                onClose={closeCustomerInfoPanel}
-                showTrailingGap={false}
+                onConversationChange={handleConversationStateChange}
+                onSelectChannel={setActiveConversationChannel}
+                onOpenDeskPanel={openDeskPanel}
+                onOpenCall={layoutContextValue.toggleCallPopunder}
+                onOpenCustomerInfo={openCustomerInfoPopunder}
+                onConversationStatusChange={handleConversationStatusChange}
+                isCallDisabled={status === "In a Call" || status !== "Available"}
+                onWidthChange={setDockedConversationWidth}
+                onClose={closeConversationPanel}
+                showTrailingGap={isInlineAppSpacePanelVisible}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -4409,22 +4362,23 @@ export default function Layout({ children }: LayoutProps) {
                   const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
                   if (!bounds) return;
 
-                  const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+                  const margin = CONVERSATION_POPOUNDER_MARGIN;
                   const nextPosition = {
                     x: Math.min(
                       Math.max(margin, bounds.left),
-                      window.innerWidth - customerInfoPopunderSize.width - margin,
+                      window.innerWidth - conversationPopunderSize.width - margin,
                     ),
                     y: Math.min(
                       Math.max(margin, bounds.top),
-                      window.innerHeight - customerInfoPopunderSize.height - margin,
+                      window.innerHeight - conversationPopunderSize.height - margin,
                     ),
                   };
 
-                  bringFloatingPanelToFront("customerInfo");
-                  setCustomerInfoPopunderPosition(nextPosition);
-                  setIsCustomerInfoPopunderOpen(true);
-                  setCustomerInfoDragActivation({
+                  bringFloatingPanelToFront("conversation");
+                  setConversationPopunderPosition(nextPosition);
+                  setIsConversationPanelOpen(false);
+                  setIsConversationPopunderOpen(true);
+                  setConversationDragActivation({
                     id: Date.now(),
                     offset: {
                       x: event.clientX - nextPosition.x,
@@ -4433,7 +4387,59 @@ export default function Layout({ children }: LayoutProps) {
                   });
                 }}
               />
-            )}
+            ) : null}
+            {isInlineAppSpacePanelVisible ? (
+              isDeskRoute ? (
+                <div className="flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  {children}
+                </div>
+              ) : (
+                <DockedCustomerInfoPanel
+                  isOpen
+                  width={dockedCustomerInfoWidth}
+                  maxWidth={customerInfoPanelMaxWidth}
+                  customerRecordId={selectedAssignment.id}
+                  customerName={selectedAssignment.name}
+                  customerId={selectedAssignment.customerId}
+                  panelSelection={deskPanelSelection}
+                  onWidthChange={setDockedCustomerInfoWidth}
+                  onClose={closeCustomerInfoPanel}
+                  showTrailingGap={false}
+                  isEqualSplit
+                  onUndockStart={(event) => {
+                    if (typeof window === "undefined") return;
+
+                    event.preventDefault();
+
+                    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                    if (!bounds) return;
+
+                    const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+                    const nextPosition = {
+                      x: Math.min(
+                        Math.max(margin, bounds.left),
+                        window.innerWidth - customerInfoPopunderSize.width - margin,
+                      ),
+                      y: Math.min(
+                        Math.max(margin, bounds.top),
+                        window.innerHeight - customerInfoPopunderSize.height - margin,
+                      ),
+                    };
+
+                    bringFloatingPanelToFront("customerInfo");
+                    setCustomerInfoPopunderPosition(nextPosition);
+                    setIsCustomerInfoPopunderOpen(true);
+                    setCustomerInfoDragActivation({
+                      id: Date.now(),
+                      offset: {
+                        x: event.clientX - nextPosition.x,
+                        y: event.clientY - nextPosition.y,
+                      },
+                    });
+                  }}
+                />
+              )
+            ) : null}
           </>
         ) : (
           <>
