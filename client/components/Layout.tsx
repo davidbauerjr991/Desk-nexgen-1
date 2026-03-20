@@ -280,6 +280,7 @@ const DOCKED_CONVERSATION_MIN_WIDTH = 360;
 const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
+const DOCKED_SPLIT_RESIZE_HANDLE_WIDTH = 16;
 const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
 const MIN_MAIN_WORKSPACE_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_MIN_WIDTH = 360;
@@ -1132,6 +1133,7 @@ function DockedConversationPanel({
   onUndockStart,
   showTrailingGap,
   isEqualSplit = false,
+  equalSplitWidth,
 }: {
   isOpen: boolean;
   width: number;
@@ -1151,6 +1153,7 @@ function DockedConversationPanel({
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
   isEqualSplit?: boolean;
+  equalSplitWidth?: number;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1210,11 +1213,12 @@ function DockedConversationPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[800px]:block",
-        isEqualSplit && "min-w-0 flex-1 basis-0",
+        isEqualSplit && equalSplitWidth === undefined && "min-w-0 flex-1 basis-0",
+        isEqualSplit && equalSplitWidth !== undefined && "shrink-0",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none min-[800px]:-translate-x-4 min-[800px]:opacity-0",
       )}
       style={{
-        width: isEqualSplit ? undefined : isOpen ? width : 0,
+        width: isEqualSplit ? equalSplitWidth : isOpen ? width : 0,
         marginRight: isOpen && showTrailingGap ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
@@ -1532,6 +1536,7 @@ function DockedCustomerInfoPanel({
   onUndockStart,
   showTrailingGap,
   isEqualSplit = false,
+  equalSplitWidth,
 }: {
   isOpen: boolean;
   width: number;
@@ -1545,6 +1550,7 @@ function DockedCustomerInfoPanel({
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
   isEqualSplit?: boolean;
+  equalSplitWidth?: number;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1583,13 +1589,14 @@ function DockedCustomerInfoPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1024px]:block",
-        isEqualSplit && "min-w-0 flex-1 basis-0",
+        isEqualSplit && equalSplitWidth === undefined && "min-w-0 flex-1 basis-0",
+        isEqualSplit && equalSplitWidth !== undefined && "shrink-0",
         isOpen
           ? "min-[1024px]:translate-x-0 min-[1024px]:opacity-100"
           : "pointer-events-none min-[1024px]:-translate-x-4 min-[1024px]:opacity-0",
       )}
       style={{
-        width: isEqualSplit ? undefined : isOpen ? width : 0,
+        width: isEqualSplit ? equalSplitWidth : isOpen ? width : 0,
         marginRight: isOpen && showTrailingGap ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
@@ -3008,6 +3015,8 @@ export default function Layout({ children }: LayoutProps) {
     x: 420,
     y: 72,
   }));
+  const splitPanelsContainerRef = useRef<HTMLDivElement | null>(null);
+  const dockedSplitResizeStartRef = useRef<{ mouseX: number; conversationWidth: number; totalWidth: number } | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => defaultCustomerId);
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -3085,6 +3094,10 @@ export default function Layout({ children }: LayoutProps) {
   const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
   const isInlineConversationSplitPanelVisible = isAppSpaceSplitLayout && !isConversationPopunderOpen;
   const isInlineAppSpacePanelVisible = isAppSpaceSplitLayout && !deskCanvasPopunderView && !isCustomerInfoPopunderOpen;
+  const isDockedSplitResizeVisible = isInlineConversationSplitPanelVisible && isInlineAppSpacePanelVisible;
+  const inlineAppSpaceMinWidth = isDeskRoute
+    ? getDeskCanvasPopunderMinWidth(activeDeskRouteView ?? "desk")
+    : CUSTOMER_INFO_PANEL_MIN_WIDTH;
   const shouldCombineDockedCustomerAndDeskPanels =
     isDeskRoute &&
     !isCombinedInteractionPanel &&
@@ -3459,7 +3472,61 @@ export default function Layout({ children }: LayoutProps) {
   }, [dockedCustomerInfoWidth]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || isCombinedInteractionPanel) {
+    if (typeof window === "undefined" || !isDockedSplitResizeVisible) {
+      dockedSplitResizeStartRef.current = null;
+      return;
+    }
+
+    const syncDockedSplitPanelWidths = () => {
+      const containerWidth = splitPanelsContainerRef.current?.getBoundingClientRect().width;
+      if (!containerWidth) return;
+
+      const totalWidth = Math.max(0, containerWidth - DOCKED_SPLIT_RESIZE_HANDLE_WIDTH);
+      const maxConversationWidth = Math.max(DOCKED_CONVERSATION_MIN_WIDTH, totalWidth - inlineAppSpaceMinWidth);
+      const nextConversationWidth = Math.min(
+        maxConversationWidth,
+        Math.max(DOCKED_CONVERSATION_MIN_WIDTH, dockedConversationWidthRef.current),
+      );
+      const nextAppWidth = Math.max(inlineAppSpaceMinWidth, totalWidth - nextConversationWidth);
+
+      setDockedConversationWidth(nextConversationWidth);
+      setDockedCustomerInfoWidth(nextAppWidth);
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const resizeState = dockedSplitResizeStartRef.current;
+      if (!resizeState) return;
+
+      const nextConversationWidth = Math.min(
+        resizeState.totalWidth - inlineAppSpaceMinWidth,
+        Math.max(DOCKED_CONVERSATION_MIN_WIDTH, resizeState.conversationWidth + event.clientX - resizeState.mouseX),
+      );
+      const nextAppWidth = Math.max(inlineAppSpaceMinWidth, resizeState.totalWidth - nextConversationWidth);
+
+      setDockedConversationWidth(nextConversationWidth);
+      setDockedCustomerInfoWidth(nextAppWidth);
+    };
+
+    const handleMouseUp = () => {
+      dockedSplitResizeStartRef.current = null;
+      document.body.style.userSelect = "";
+    };
+
+    syncDockedSplitPanelWidths();
+    window.addEventListener("resize", syncDockedSplitPanelWidths);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("resize", syncDockedSplitPanelWidths);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.userSelect = "";
+    };
+  }, [inlineAppSpaceMinWidth, isDockedSplitResizeVisible]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isCombinedInteractionPanel || isAppSpaceSplitLayout) {
       return;
     }
 
@@ -4356,7 +4423,7 @@ export default function Layout({ children }: LayoutProps) {
             onClose={closeCombinedInteractionPanel}
           />
         ) : isAppSpaceSplitLayout ? (
-          <>
+          <div ref={splitPanelsContainerRef} className="flex min-w-0 flex-1 items-stretch">
             {isInlineConversationSplitPanelVisible ? (
               <DockedConversationPanel
                 isOpen
@@ -4374,8 +4441,9 @@ export default function Layout({ children }: LayoutProps) {
                 isCallDisabled={status === "In a Call" || status !== "Available"}
                 onWidthChange={setDockedConversationWidth}
                 onClose={closeConversationPanel}
-                showTrailingGap={isInlineAppSpacePanelVisible}
+                showTrailingGap={false}
                 isEqualSplit
+                equalSplitWidth={isDockedSplitResizeVisible ? dockedConversationWidth : undefined}
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
 
@@ -4410,9 +4478,38 @@ export default function Layout({ children }: LayoutProps) {
                 }}
               />
             ) : null}
+            {isDockedSplitResizeVisible ? (
+              <button
+                type="button"
+                aria-label="Resize docked panels"
+                className="group flex w-4 shrink-0 cursor-col-resize items-center justify-center"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  const containerWidth = splitPanelsContainerRef.current?.getBoundingClientRect().width;
+                  if (!containerWidth) return;
+
+                  dockedSplitResizeStartRef.current = {
+                    mouseX: event.clientX,
+                    conversationWidth: dockedConversationWidth,
+                    totalWidth: Math.max(0, containerWidth - DOCKED_SPLIT_RESIZE_HANDLE_WIDTH),
+                  };
+                  document.body.style.userSelect = "none";
+                }}
+              >
+                <span className="relative h-16 w-2 rounded-full border border-black/10 bg-white shadow-sm transition-colors group-hover:border-[#B8D7F0] group-hover:bg-[#F8FBFD]">
+                  <span className="absolute inset-y-3 left-1/2 w-px -translate-x-1/2 bg-black/15" />
+                </span>
+              </button>
+            ) : null}
             {isInlineAppSpacePanelVisible ? (
               isDeskRoute ? (
-                <div className="flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div
+                  className={cn(
+                    "flex min-w-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+                    isDockedSplitResizeVisible ? "shrink-0" : "flex-1 basis-0",
+                  )}
+                  style={{ width: isDockedSplitResizeVisible ? dockedCustomerInfoWidth : undefined }}
+                >
                   {children}
                 </div>
               ) : (
@@ -4428,6 +4525,7 @@ export default function Layout({ children }: LayoutProps) {
                   onClose={closeCustomerInfoPanel}
                   showTrailingGap={false}
                   isEqualSplit
+                  equalSplitWidth={isDockedSplitResizeVisible ? dockedCustomerInfoWidth : undefined}
                   onUndockStart={(event) => {
                     if (typeof window === "undefined") return;
 
@@ -4462,7 +4560,7 @@ export default function Layout({ children }: LayoutProps) {
                 />
               )
             ) : null}
-          </>
+          </div>
         ) : (
           <>
             <DockedConversationPanel
