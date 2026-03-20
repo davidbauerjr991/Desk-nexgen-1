@@ -120,6 +120,7 @@ type WorkspaceOption = {
   id: string;
   name: string;
   description: string;
+  routePath?: string;
 };
 
 const statusOptions: Array<{
@@ -135,11 +136,11 @@ const statusOptions: Array<{
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
-  { id: "desktop", name: "Desktop", description: "" },
-  { id: "wem", name: "WEM", description: "" },
-  { id: "schedule", name: "Schedule", description: "" },
-  { id: "settings", name: "Settings", description: "" },
-  { id: "reporting", name: "Reporting", description: "" },
+  { id: "desktop", name: "Desktop", description: "", routePath: "/activity" },
+  { id: "wem", name: "WEM", description: "", routePath: "/wem" },
+  { id: "schedule", name: "Schedule", description: "", routePath: "/schedule" },
+  { id: "settings", name: "Settings", description: "", routePath: "/settings" },
+  { id: "reporting", name: "Reporting", description: "", routePath: "/reporting" },
 ];
 
 const conversationStatusOptions: Array<{ value: ConversationStatus; label: string }> = [
@@ -3095,6 +3096,25 @@ export default function Layout({ children }: LayoutProps) {
     () => workspaceOptions.find((workspace) => workspace.id === activeWorkspaceId) ?? workspaceOptions[0],
     [activeWorkspaceId, workspaceOptions],
   );
+
+  useEffect(() => {
+    const matchedWorkspace = workspaceOptions.find((workspace) => {
+      if (!workspace.routePath) {
+        return false;
+      }
+
+      if (workspace.id === "desktop") {
+        return location.pathname === "/activity" || location.pathname === "/desk";
+      }
+
+      return location.pathname === workspace.routePath;
+    });
+
+    if (matchedWorkspace && matchedWorkspace.id !== activeWorkspaceId) {
+      setActiveWorkspaceId(matchedWorkspace.id);
+    }
+  }, [activeWorkspaceId, location.pathname, workspaceOptions]);
+
   const deskCanvasTabLabel = isCopilotDeskView
     ? "AI"
     : new URLSearchParams(location.search).get("view") === "notes"
@@ -4160,7 +4180,13 @@ export default function Layout({ children }: LayoutProps) {
                   return (
                     <DropdownMenuItem
                       key={workspace.id}
-                      onClick={() => setActiveWorkspaceId(workspace.id)}
+                      onClick={() => {
+                        setActiveWorkspaceId(workspace.id);
+
+                        if (workspace.routePath && location.pathname !== workspace.routePath) {
+                          navigate(workspace.routePath);
+                        }
+                      }}
                       className="rounded-xl px-3 py-3 focus:bg-[#F8F8F9]"
                     >
                       <div className="flex min-w-0 items-start gap-3">
