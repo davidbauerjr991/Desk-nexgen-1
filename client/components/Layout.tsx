@@ -3074,9 +3074,12 @@ export default function Layout({ children }: LayoutProps) {
   const isActivityRoute = location.pathname === "/activity";
   const isExpandedCanvasRoute =
     isActivityRoute && Boolean((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel);
-  const isCopilotDeskView = location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "copilot";
-  const isDeskView = location.pathname === "/desk" && !isCopilotDeskView;
-  const isDeskRoute = isDeskView || isCopilotDeskView;
+  const activeDeskRouteView: DeskCanvasView | null = location.pathname === "/desk"
+    ? ((new URLSearchParams(location.search).get("view") as DeskCanvasView | null) ?? "desk")
+    : null;
+  const isCopilotDeskView = activeDeskRouteView === "copilot";
+  const isDeskView = activeDeskRouteView === "desk";
+  const isDeskRoute = activeDeskRouteView !== null;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
@@ -3938,6 +3941,24 @@ export default function Layout({ children }: LayoutProps) {
     }
   };
 
+  const openHeaderAppPanel = (view: DeskCanvasView) => {
+    if (deskCanvasPopunderView) {
+      bringFloatingPanelToFront("deskCanvas");
+      setDeskCanvasDragActivation(null);
+      setDeskCanvasPopunderView(view);
+      setDeskPanelSelection(view === "customer" ? { initialTab: "Overview" } : null);
+      return;
+    }
+
+    if (view === "customer") {
+      openDeskPanel({ initialTab: "Overview" });
+      return;
+    }
+
+    setDeskPanelSelection(null);
+    navigate(view === "desk" ? "/desk" : `/desk?view=${view}`);
+  };
+
   const layoutContextValue = useMemo(
     () => ({
       activeRightPanel,
@@ -4178,9 +4199,10 @@ export default function Layout({ children }: LayoutProps) {
             <>
               <HeaderIconButton
                 ariaLabel="Open customer information"
-                onClick={() => openDeskPanel({ initialTab: "Overview" })}
+                onClick={() => openHeaderAppPanel("customer")}
                 isActive={
-                  (location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "customer")
+                  deskCanvasPopunderView === "customer"
+                  || activeDeskRouteView === "customer"
                   || (isExpandedCanvasRoute && isCustomerInfoPanelOpen)
                 }
               >
@@ -4189,8 +4211,8 @@ export default function Layout({ children }: LayoutProps) {
 
               <HeaderIconButton
                 ariaLabel="Open Desk"
-                onClick={() => navigate("/desk")}
-                isActive={isDeskView}
+                onClick={() => openHeaderAppPanel("desk")}
+                isActive={deskCanvasPopunderView === "desk" || isDeskView}
               >
                 <Monitor className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
@@ -4207,9 +4229,9 @@ export default function Layout({ children }: LayoutProps) {
                   ariaLabel="Open notes in desk panel"
                   onClick={() => {
                     setIsNotesPopoverOpen(false);
-                    navigate("/desk?view=notes");
+                    openHeaderAppPanel("notes");
                   }}
-                  isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "notes"}
+                  isActive={deskCanvasPopunderView === "notes" || activeDeskRouteView === "notes"}
                 >
                   <FileText className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
@@ -4220,9 +4242,9 @@ export default function Layout({ children }: LayoutProps) {
                   ariaLabel="Open add in desk panel"
                   onClick={() => {
                     setIsAddNewPopoverOpen(false);
-                    navigate("/desk?view=add");
+                    openHeaderAppPanel("add");
                   }}
-                  isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "add"}
+                  isActive={deskCanvasPopunderView === "add" || activeDeskRouteView === "add"}
                 >
                   <Plus className="h-4 w-4 stroke-[1.8]" />
                 </HeaderIconButton>
@@ -4234,8 +4256,8 @@ export default function Layout({ children }: LayoutProps) {
             <div ref={copilotButtonRef}>
               <HeaderIconButton
                 ariaLabel="Open Copilot"
-                onClick={() => navigate("/desk?view=copilot")}
-                isActive={isCopilotDeskView}
+                onClick={() => openHeaderAppPanel("copilot")}
+                isActive={deskCanvasPopunderView === "copilot" || isCopilotDeskView}
               >
                 <Bot className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
