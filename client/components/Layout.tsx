@@ -4175,9 +4175,12 @@ export default function Layout({ children }: LayoutProps) {
           {!isHeaderSearchOpen && (
             <>
               <HeaderIconButton
-                ariaLabel="Open customer information in desk panel"
-                onClick={() => navigate("/desk?view=customer")}
-                isActive={location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "customer"}
+                ariaLabel="Open customer information"
+                onClick={() => openDeskPanel({ initialTab: "Overview" })}
+                isActive={
+                  (location.pathname === "/desk" && new URLSearchParams(location.search).get("view") === "customer")
+                  || (isExpandedCanvasRoute && isCustomerInfoPanelOpen)
+                }
               >
                 <User className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
