@@ -61,7 +61,7 @@ interface LayoutProps {
 }
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
-type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer";
+type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer" | "notifications";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 type DeskPanelSelection = {
@@ -2957,6 +2957,7 @@ export default function Layout({ children }: LayoutProps) {
   const [combinedInteractionPanelTab, setCombinedInteractionPanelTab] = useState<CombinedInteractionPanelTab>("conversation");
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
+  const [shouldForceEqualSplit, setShouldForceEqualSplit] = useState(false);
   const wasExpandedCanvasRouteRef = useRef(false);
   const [floatingPanelOrder, setFloatingPanelOrder] = useState<FloatingPanelId[]>([
     "call",
@@ -3043,7 +3044,7 @@ export default function Layout({ children }: LayoutProps) {
   );
   const isActivityRoute = location.pathname === "/activity";
   const isExpandedCanvasRoute =
-    isActivityRoute && Boolean((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel);
+    isActivityRoute && ((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel ?? true);
   const activeDeskRouteView: DeskCanvasView | null = location.pathname === "/desk"
     ? ((new URLSearchParams(location.search).get("view") as DeskCanvasView | null) ?? "desk")
     : null;
@@ -3123,7 +3124,9 @@ export default function Layout({ children }: LayoutProps) {
         ? "Add"
         : new URLSearchParams(location.search).get("view") === "customer"
           ? "Customer Information"
-          : "Desk";
+          : new URLSearchParams(location.search).get("view") === "notifications"
+            ? "Notifications"
+            : "Desk";
 
   useEffect(() => {
     setConversationStatesByKey((currentStates) => {
@@ -3504,6 +3507,32 @@ export default function Layout({ children }: LayoutProps) {
       document.body.style.userSelect = "";
     };
   }, [inlineAppSpaceMinWidth, isDockedSplitResizeVisible]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !shouldForceEqualSplit || !isDockedSplitResizeVisible) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      const containerWidth = splitPanelsContainerRef.current?.getBoundingClientRect().width;
+      if (!containerWidth) {
+        return;
+      }
+
+      const totalWidth = Math.max(0, containerWidth - DOCKED_SPLIT_RESIZE_HANDLE_WIDTH);
+      const nextConversationWidth = Math.min(
+        totalWidth - inlineAppSpaceMinWidth,
+        Math.max(DOCKED_CONVERSATION_MIN_WIDTH, totalWidth / 2),
+      );
+      const nextAppWidth = Math.max(inlineAppSpaceMinWidth, totalWidth - nextConversationWidth);
+
+      setDockedConversationWidth(nextConversationWidth);
+      setDockedCustomerInfoWidth(nextAppWidth);
+      setShouldForceEqualSplit(false);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [inlineAppSpaceMinWidth, isDockedSplitResizeVisible, shouldForceEqualSplit]);
 
   useEffect(() => {
     if (typeof window === "undefined" || isCombinedInteractionPanel || isAppSpaceSplitLayout) {
@@ -3928,7 +3957,9 @@ export default function Layout({ children }: LayoutProps) {
           ? "/desk?view=add"
           : deskCanvasPopunderView === "customer"
             ? "/desk?view=customer"
-            : "/desk";
+            : deskCanvasPopunderView === "notifications"
+              ? "/desk?view=notifications"
+              : "/desk";
 
     closeDeskCanvasPopunder();
     navigate(nextRoute);
@@ -3989,20 +4020,29 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openHeaderAppPanel = (view: DeskCanvasView) => {
-    if (deskCanvasPopunderView) {
-      bringFloatingPanelToFront("deskCanvas");
-      setDeskCanvasDragActivation(null);
-      setDeskCanvasPopunderView(view);
-      setDeskPanelSelection(view === "customer" ? { initialTab: "Overview" } : null);
-      return;
-    }
+    setActiveRightPanel(null);
+    setIsNotesPopoverOpen(false);
+    setIsAddNewPopoverOpen(false);
+    setDeskCanvasDragActivation(null);
+    setDeskCanvasPopunderView(null);
+    setConversationDragActivation(null);
+    setIsConversationPanelOpen(true);
+    setIsConversationPopunderOpen(false);
+    setShouldForceEqualSplit(true);
 
     if (view === "customer") {
-      openDeskPanel({ initialTab: "Overview" });
+      setDeskPanelSelection({ initialTab: "Overview" });
+      setIsCustomerInfoPanelOpen(true);
+      setIsCustomerInfoPopunderOpen(false);
+      setCustomerInfoDragActivation(null);
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
       return;
     }
 
     setDeskPanelSelection(null);
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
     navigate(view === "desk" ? "/desk" : `/desk?view=${view}`);
   };
 
@@ -4270,7 +4310,11 @@ export default function Layout({ children }: LayoutProps) {
                 <Monitor className="h-4 w-4 stroke-[1.8]" />
               </HeaderIconButton>
 
-              <HeaderIconButton>
+              <HeaderIconButton
+                ariaLabel="Open notifications"
+                onClick={() => openHeaderAppPanel("notifications")}
+                isActive={activeDeskRouteView === "notifications"}
+              >
                 <div className="relative">
                   <Bell className="h-4 w-4 stroke-[1.8]" />
                   <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />

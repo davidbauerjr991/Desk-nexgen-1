@@ -1,4 +1,4 @@
-import { GripHorizontal, X } from "lucide-react";
+import { Bell, GripHorizontal, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import AddPanelContent from "@/components/AddPanelContent";
@@ -6,6 +6,8 @@ import { CopilotContent } from "@/components/CopilotPopunder";
 import { useLayoutContext } from "@/components/Layout";
 import DeskDataTable from "@/components/DeskDataTable";
 import NotesPanel from "@/components/NotesPanel";
+
+import Placeholder from "./Placeholder";
 
 export default function Desk() {
   const location = useLocation();
@@ -16,6 +18,7 @@ export default function Desk() {
   const isNotesView = view === "notes";
   const isAddView = view === "add";
   const isCustomerView = view === "customer";
+  const isNotificationsView = view === "notifications";
   const panelLabel = isCopilotView
     ? "Copilot"
     : isNotesView
@@ -24,7 +27,9 @@ export default function Desk() {
         ? "Add"
         : isCustomerView
           ? "Customer Information"
-          : "Desk";
+          : isNotificationsView
+            ? "Notifications"
+            : "Desk";
   const panelView = isCopilotView
     ? "copilot"
     : isNotesView
@@ -33,7 +38,9 @@ export default function Desk() {
         ? "add"
         : isCustomerView
           ? "customer"
-          : "desk";
+          : isNotificationsView
+            ? "notifications"
+            : "desk";
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -67,7 +74,15 @@ export default function Desk() {
             ? <AddPanelContent />
             : isCustomerView
               ? <NotesPanel customerId={selectedAssignment.customerId} />
-              : <DeskDataTable />}
+              : isNotificationsView
+                ? (
+                  <Placeholder
+                    title="Notifications"
+                    description="Review alerts, workflow updates, and queue notices alongside the current conversation."
+                    icon={Bell}
+                  />
+                )
+                : <DeskDataTable />}
     </div>
   );
 }
