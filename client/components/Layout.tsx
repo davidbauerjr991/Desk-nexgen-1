@@ -4278,7 +4278,7 @@ export default function Layout({ children }: LayoutProps) {
             onClose={closeCombinedInteractionPanel}
           />
         ) : isAppSpaceSplitLayout ? (
-          <div className="flex min-w-0 flex-1 items-stretch">
+          <div className="flex min-w-0 flex-1 items-stretch gap-4">
             {isInlineConversationSplitPanelVisible ? (
               <DockedConversationPanel
                 isOpen
