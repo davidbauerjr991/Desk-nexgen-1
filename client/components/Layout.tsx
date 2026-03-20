@@ -1531,6 +1531,7 @@ function DockedCustomerInfoPanel({
   onClose,
   onUndockStart,
   showTrailingGap,
+  isEqualSplit = false,
 }: {
   isOpen: boolean;
   width: number;
@@ -1543,6 +1544,7 @@ function DockedCustomerInfoPanel({
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
+  isEqualSplit?: boolean;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1581,12 +1583,13 @@ function DockedCustomerInfoPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1024px]:block",
+        isEqualSplit && "min-w-0 flex-1 basis-0",
         isOpen
           ? "min-[1024px]:translate-x-0 min-[1024px]:opacity-100"
           : "pointer-events-none min-[1024px]:-translate-x-4 min-[1024px]:opacity-0",
       )}
       style={{
-        width: isOpen ? width : 0,
+        width: isEqualSplit ? undefined : isOpen ? width : 0,
         marginRight: isOpen && showTrailingGap ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
@@ -1622,7 +1625,7 @@ function DockedCustomerInfoPanel({
         />
       </div>
 
-      {isOpen && (
+      {isOpen && !isEqualSplit && (
         <button
           type="button"
           aria-label="Resize docked customer information panel"
@@ -4378,36 +4381,56 @@ export default function Layout({ children }: LayoutProps) {
                 });
               }}
             />
-            <CombinedInteractionPanel
-              isOpen
-              width={dockedCustomerInfoWidth}
-              maxWidth={customerInfoPanelMaxWidth}
-              activeTab={isDeskRoute ? combinedInteractionPanelTab : "customerInfo"}
-              conversation={conversationState}
-              activeChannel={activeConversationChannel}
-              customerRecordId={selectedAssignment.id}
-              customerName={selectedAssignment.name}
-              customerId={selectedAssignment.customerId}
-              panelSelection={deskPanelSelection}
-              showConversationTab={false}
-              showCanvasTab={isDeskRoute}
-              canvasTabLabel={deskCanvasTabLabel}
-              canvasContent={children}
-              isFullWidth={false}
-              panelTitle="App Space"
-              isEqualSplit
-              showCloseButton={false}
-              onConversationChange={handleConversationStateChange}
-              onSelectChannel={setActiveConversationChannel}
-              onOpenDeskPanel={openDeskPanel}
-              onTabChange={(tab) => {
-                setCombinedInteractionPanelTab(tab === "conversation" ? "customerInfo" : tab);
-                setIsCustomerInfoPanelOpen(true);
-                setIsCustomerInfoPopunderOpen(false);
-              }}
-              onWidthChange={setDockedCustomerInfoWidth}
-              onClose={closeCustomerInfoPanel}
-            />
+            {isDeskRoute ? (
+              <div className="flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                {children}
+              </div>
+            ) : (
+              <DockedCustomerInfoPanel
+                isOpen
+                width={dockedCustomerInfoWidth}
+                maxWidth={customerInfoPanelMaxWidth}
+                customerRecordId={selectedAssignment.id}
+                customerName={selectedAssignment.name}
+                customerId={selectedAssignment.customerId}
+                panelSelection={deskPanelSelection}
+                onWidthChange={setDockedCustomerInfoWidth}
+                onClose={closeCustomerInfoPanel}
+                showTrailingGap={false}
+                isEqualSplit
+                onUndockStart={(event) => {
+                  if (typeof window === "undefined") return;
+
+                  event.preventDefault();
+
+                  const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                  if (!bounds) return;
+
+                  const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+                  const nextPosition = {
+                    x: Math.min(
+                      Math.max(margin, bounds.left),
+                      window.innerWidth - customerInfoPopunderSize.width - margin,
+                    ),
+                    y: Math.min(
+                      Math.max(margin, bounds.top),
+                      window.innerHeight - customerInfoPopunderSize.height - margin,
+                    ),
+                  };
+
+                  bringFloatingPanelToFront("customerInfo");
+                  setCustomerInfoPopunderPosition(nextPosition);
+                  setIsCustomerInfoPopunderOpen(true);
+                  setCustomerInfoDragActivation({
+                    id: Date.now(),
+                    offset: {
+                      x: event.clientX - nextPosition.x,
+                      y: event.clientY - nextPosition.y,
+                    },
+                  });
+                }}
+              />
+            )}
           </>
         ) : (
           <>
