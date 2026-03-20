@@ -88,6 +88,7 @@ interface LayoutContextValue {
   toggleInfo: () => void;
   toggleDesk: () => void;
   openDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
+  closeAppSpacePanel: () => void;
   toggleInteractions: () => void;
   toggleConversationPanel: () => void;
   openConversationPanel: () => void;
@@ -3679,7 +3680,7 @@ export default function Layout({ children }: LayoutProps) {
 
   const openCustomerInfoPopunder = (event?: React.MouseEvent<HTMLElement>) => {
     if (isDeskRoute && activeDeskRouteView === "customer") {
-      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+      closeAppSpacePanel();
       return;
     }
 
@@ -3828,6 +3829,16 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/activity", { state: { hideMainCanvasPanel: true } });
   };
 
+  const closeAppSpacePanel = () => {
+    setDeskPanelSelection(null);
+    setDeskCanvasPopunderView(null);
+    setDeskCanvasDragActivation(null);
+    setIsCustomerInfoPanelOpen(false);
+    setIsCustomerInfoPopunderOpen(false);
+    setCustomerInfoDragActivation(null);
+    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+  };
+
   const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
     setDeskPanelSelection(selection ?? null);
     setActiveRightPanel(null);
@@ -3891,6 +3902,7 @@ export default function Layout({ children }: LayoutProps) {
         );
       },
       openDeskPanel,
+      closeAppSpacePanel,
       toggleInteractions: () => {
         setActiveRightPanel((current) =>
           current === "interactions" ? null : "interactions",

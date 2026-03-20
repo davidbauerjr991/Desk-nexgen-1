@@ -1,5 +1,5 @@
 import { Bell, GripHorizontal, X } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 import AddPanelContent from "@/components/AddPanelContent";
 import { CopilotContent } from "@/components/CopilotPopunder";
@@ -11,8 +11,7 @@ import Placeholder from "./Placeholder";
 
 export default function Desk() {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { selectedAssignment, undockDeskPanel } = useLayoutContext();
+  const { closeAppSpacePanel, selectedAssignment, undockDeskPanel } = useLayoutContext();
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
   const isNotesView = view === "notes";
@@ -59,7 +58,7 @@ export default function Desk() {
           type="button"
           aria-label={`Close ${panelLabel} container`}
           onMouseDown={(event) => event.stopPropagation()}
-          onClick={() => navigate("/activity", { state: { hideMainCanvasPanel: true } })}
+          onClick={closeAppSpacePanel}
           className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
         >
           <X className="h-4 w-4" />
