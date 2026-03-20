@@ -3051,7 +3051,7 @@ export default function Layout({ children }: LayoutProps) {
   const isCopilotDeskView = activeDeskRouteView === "copilot";
   const isDeskView = activeDeskRouteView === "desk";
   const isDeskRoute = activeDeskRouteView !== null;
-  const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
+  const isCustomerInfoCanvasVisible = isDeskRoute || (isExpandedCanvasRoute && isCustomerInfoPanelOpen);
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
   const isInlineConversationSplitPanelVisible = isAppSpaceSplitLayout && !isConversationPopunderOpen;
@@ -3871,6 +3871,19 @@ export default function Layout({ children }: LayoutProps) {
       setIsCustomerInfoPanelOpen(true);
       setIsCustomerInfoPopunderOpen(false);
       setCustomerInfoDragActivation(null);
+      return;
+    }
+
+    if (isCustomerInfoPanelAllowed) {
+      setShouldForceEqualSplit(true);
+      setIsCustomerInfoPanelOpen(true);
+      setIsCustomerInfoPopunderOpen(false);
+      setCustomerInfoDragActivation(null);
+
+      if (location.pathname !== "/desk" && !isExpandedCanvasRoute) {
+        navigate("/activity", { state: { hideMainCanvasPanel: true } });
+      }
+
       return;
     }
 
