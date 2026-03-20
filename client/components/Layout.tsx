@@ -1131,6 +1131,7 @@ function DockedConversationPanel({
   onClose,
   onUndockStart,
   showTrailingGap,
+  isEqualSplit = false,
 }: {
   isOpen: boolean;
   width: number;
@@ -1149,6 +1150,7 @@ function DockedConversationPanel({
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
+  isEqualSplit?: boolean;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -1208,10 +1210,11 @@ function DockedConversationPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[800px]:block",
+        isEqualSplit && "min-w-0 flex-1 basis-0",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none min-[800px]:-translate-x-4 min-[800px]:opacity-0",
       )}
       style={{
-        width: isOpen ? width : 0,
+        width: isEqualSplit ? undefined : isOpen ? width : 0,
         marginRight: isOpen && showTrailingGap ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
@@ -1292,7 +1295,7 @@ function DockedConversationPanel({
         )}
       </div>
 
-      {isOpen && isContentVisible && (
+      {isOpen && isContentVisible && !isEqualSplit && (
         <button
           type="button"
           aria-label="Resize docked conversation panel"
@@ -1333,6 +1336,8 @@ function CombinedInteractionPanel({
   canvasContent,
   isFullWidth,
   showCloseButton = !isFullWidth,
+  panelTitle,
+  isEqualSplit = false,
   onConversationChange,
   onSelectChannel,
   onOpenDeskPanel,
@@ -1356,6 +1361,8 @@ function CombinedInteractionPanel({
   canvasContent: React.ReactNode;
   isFullWidth: boolean;
   showCloseButton?: boolean;
+  panelTitle?: string;
+  isEqualSplit?: boolean;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
@@ -1366,7 +1373,8 @@ function CombinedInteractionPanel({
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
   const visibleTabCount = [showConversationTab, true, showCanvasTab].filter(Boolean).length;
-  const panelTitle = showConversationTab ? "Conversation & Customer" : `${canvasTabLabel} & Customer`;
+  const resolvedPanelTitle = panelTitle ?? (showConversationTab ? "Conversation & Customer" : "App Space");
+  const customerTabLabel = showConversationTab ? "Customer" : "Customer Information";
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -1402,11 +1410,11 @@ function CombinedInteractionPanel({
       aria-hidden={!isOpen}
       className={cn(
         "relative min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out",
-        isFullWidth && "min-w-0 flex-1",
+        (isFullWidth || isEqualSplit) && "min-w-0 flex-1 basis-0",
         isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
       )}
       style={{
-        width: isFullWidth ? undefined : isOpen ? width : 0,
+        width: isFullWidth || isEqualSplit ? undefined : isOpen ? width : 0,
         marginRight: isFullWidth ? 0 : isOpen ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
@@ -1419,7 +1427,7 @@ function CombinedInteractionPanel({
           <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{panelTitle}</h3>
+                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{resolvedPanelTitle}</h3>
                 <p className="truncate text-xs text-[#7A7A7A]">
                   {customerName} · {customerId}
                 </p>
@@ -1448,7 +1456,7 @@ function CombinedInteractionPanel({
                 </TabsTrigger>
               )}
               <TabsTrigger value="customerInfo" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
-                Customer
+                {customerTabLabel}
               </TabsTrigger>
               {showCanvasTab && (
                 <TabsTrigger value="canvas" className="rounded-md px-3 py-2 text-xs font-semibold text-[#5B5B5B] data-[state=active]:bg-white data-[state=active]:text-[#111827] data-[state=active]:shadow-sm">
@@ -1487,7 +1495,7 @@ function CombinedInteractionPanel({
         </Tabs>
       </div>
 
-      {isOpen && !isFullWidth && (
+      {isOpen && !isFullWidth && !isEqualSplit && (
         <button
           type="button"
           aria-label="Resize combined interaction panel"
@@ -3068,13 +3076,14 @@ export default function Layout({ children }: LayoutProps) {
   const isDeskRoute = isDeskView || isCopilotDeskView;
   const isCustomerInfoCanvasVisible = isDeskRoute || isExpandedCanvasRoute;
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
+  const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
   const shouldCombineDockedCustomerAndDeskPanels =
     isDeskRoute &&
     !isCombinedInteractionPanel &&
     isCustomerInfoPanelOpen &&
     !isCustomerInfoPopunderOpen &&
     isCombinedInteractionPanelCanvasEnabled;
-  const isCanvasMergedIntoCombinedPanel = isCombinedInteractionPanel || shouldCombineDockedCustomerAndDeskPanels;
+  const isCanvasMergedIntoCombinedPanel = isCombinedInteractionPanel || shouldCombineDockedCustomerAndDeskPanels || isAppSpaceSplitLayout;
   const isDeskCustomerInfoVisible =
     isCustomerInfoCanvasVisible &&
     isCustomerInfoPanelOpen &&
@@ -3106,12 +3115,14 @@ export default function Layout({ children }: LayoutProps) {
     [activeWorkspaceId, workspaceOptions],
   );
   const deskCanvasTabLabel = isCopilotDeskView
-    ? "Copilot"
+    ? "AI"
     : new URLSearchParams(location.search).get("view") === "notes"
       ? "Notes"
       : new URLSearchParams(location.search).get("view") === "add"
         ? "Add"
-        : "Desk";
+        : new URLSearchParams(location.search).get("view") === "customer"
+          ? "Customer Information"
+          : "Desk";
 
   useEffect(() => {
     setConversationStatesByKey((currentStates) => {
@@ -3598,11 +3609,11 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
 
-    if (isCombinedInteractionPanel) {
+    if (isCombinedInteractionPanel || isAppSpaceSplitLayout) {
       setIsConversationPanelOpen(true);
       setIsConversationPopunderOpen(false);
     }
-  }, [isCanvasMergedIntoCombinedPanel, isCombinedInteractionPanel, location.pathname, location.search]);
+  }, [isAppSpaceSplitLayout, isCanvasMergedIntoCombinedPanel, isCombinedInteractionPanel, location.pathname, location.search]);
 
   const bringFloatingPanelToFront = (panelId: FloatingPanelId) => {
     setFloatingPanelOrder((current) => [...current.filter((id) => id !== panelId), panelId]);
@@ -4314,10 +4325,10 @@ export default function Layout({ children }: LayoutProps) {
             onWidthChange={setDockedConversationWidth}
             onClose={closeCombinedInteractionPanel}
           />
-        ) : shouldCombineDockedCustomerAndDeskPanels ? (
+        ) : isAppSpaceSplitLayout ? (
           <>
             <DockedConversationPanel
-              isOpen={isConversationPanelOpen}
+              isOpen={isAppSpaceSplitLayout || isConversationPanelOpen}
               width={dockedConversationWidth}
               maxWidth={conversationPanelMaxWidth}
               conversation={conversationState}
@@ -4333,6 +4344,7 @@ export default function Layout({ children }: LayoutProps) {
               onWidthChange={setDockedConversationWidth}
               onClose={closeConversationPanel}
               showTrailingGap
+              isEqualSplit
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -4367,10 +4379,10 @@ export default function Layout({ children }: LayoutProps) {
               }}
             />
             <CombinedInteractionPanel
-              isOpen={isCustomerInfoPanelOpen}
+              isOpen
               width={dockedCustomerInfoWidth}
               maxWidth={customerInfoPanelMaxWidth}
-              activeTab={combinedInteractionPanelTab}
+              activeTab={isDeskRoute ? combinedInteractionPanelTab : "customerInfo"}
               conversation={conversationState}
               activeChannel={activeConversationChannel}
               customerRecordId={selectedAssignment.id}
@@ -4378,11 +4390,13 @@ export default function Layout({ children }: LayoutProps) {
               customerId={selectedAssignment.customerId}
               panelSelection={deskPanelSelection}
               showConversationTab={false}
-              showCanvasTab
+              showCanvasTab={isDeskRoute}
               canvasTabLabel={deskCanvasTabLabel}
               canvasContent={children}
-              isFullWidth
-              showCloseButton
+              isFullWidth={false}
+              panelTitle="App Space"
+              isEqualSplit
+              showCloseButton={false}
               onConversationChange={handleConversationStateChange}
               onSelectChannel={setActiveConversationChannel}
               onOpenDeskPanel={openDeskPanel}
