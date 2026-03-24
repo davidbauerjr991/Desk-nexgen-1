@@ -6,7 +6,6 @@ import { conversationChannelOptions } from "@/components/ConversationChannelTogg
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { getRelevantCustomerTicket } from "@/components/NotesPanel";
@@ -379,7 +378,6 @@ export default function ConversationPanel({
     inlineSuggestion !== null &&
     !conversation.isCustomerTyping &&
     dismissedSuggestionMessageId !== latestCustomerMessage.id;
-  const shouldShowContextOverview = latestCustomerMessage !== null;
   const suggestionActions = useMemo(() => {
     if (!inlineSuggestion || !latestCustomerMessage || !customerId || !onOpenDeskPanel) {
       return [] as SuggestionAction[];
@@ -676,25 +674,6 @@ export default function ConversationPanel({
                     </div>
                   )}
                 </div>
-
-                {shouldShowContextOverview && latestCustomerMessage?.id === message.id && (
-                  <div className="w-full max-w-[770px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] px-5 shadow-[0_1px_0_rgba(231,215,166,0.65)]">
-                    <Accordion type="single" collapsible defaultValue="context-overview">
-                      <AccordionItem value="context-overview" className="border-b-0">
-                        <AccordionTrigger className="py-4 text-left text-sm font-semibold text-[#7A5B00] hover:no-underline">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span>Context overview</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-4">
-                          <div className="text-sm leading-6 text-[#6B5A1B]">
-                            <p>{conversationOverview.assignmentReason}</p>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-                )}
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
                   <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">

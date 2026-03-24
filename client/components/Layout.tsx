@@ -45,6 +45,7 @@ import ConversationPanel, { type ConversationStatus, type SharedConversationData
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
+import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 import {
@@ -576,6 +577,59 @@ function ConversationStatusDropdown({
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function getConversationOverviewSummary(conversation: SharedConversationData) {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
+
+  return latestCustomerMessage?.sentiment === "frustrated"
+    ? `${customerFirstName} was routed to this agent because the issue is still unresolved and the customer is showing frustration in the current ${conversation.label.toLowerCase()} thread.`
+    : `${customerFirstName} was routed to this agent because the current ${conversation.label.toLowerCase()} thread still needs active ownership to move the issue forward.`;
+}
+
+function ConversationHeaderSubhead({
+  conversation,
+  activeChannel,
+}: {
+  conversation: SharedConversationData;
+  activeChannel: CustomerChannel;
+}) {
+  const channelLabel = conversationChannelOptions.find((option) => option.channel === activeChannel)?.label ?? activeChannel;
+  const overviewSummary = getConversationOverviewSummary(conversation);
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#7A7A7A]">
+      <span className="font-medium text-[#5B5B5B]">{conversation.customerName}</span>
+      <span aria-hidden="true">·</span>
+      <span>{channelLabel}</span>
+      <span aria-hidden="true">·</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-[#5B5B5B] transition-colors hover:bg-black/5 hover:text-[#333333]"
+          >
+            <span>Overview</span>
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          sideOffset={8}
+          className="w-[320px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
+        >
+          <div className="border-b border-[#E7D7A6] px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A5B00]">Context overview</p>
+          </div>
+          <div className="px-4 py-3 text-sm leading-6 text-[#6B5A1B]">
+            <p>{overviewSummary}</p>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -1210,9 +1264,7 @@ function DockedConversationPanel({
                       />
                     </div>
                   </div>
-                  <p className="truncate text-xs text-[#7A7A7A]">
-                    {conversation.customerName} · {conversation.label}
-                  </p>
+                  <ConversationHeaderSubhead conversation={conversation} activeChannel={activeChannel} />
                 </div>
               </div>
               <div
@@ -2150,7 +2202,7 @@ function ConversationPopunder({
                   />
                 </div>
               </div>
-              <p className="text-xs text-[#7A7A7A]">{conversation.customerName} · {conversation.label}</p>
+              <ConversationHeaderSubhead conversation={conversation} activeChannel={activeChannel} />
             </div>
           </div>
           {shouldStackHeaderActions && onDock ? (
