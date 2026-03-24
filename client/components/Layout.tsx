@@ -1284,17 +1284,6 @@ function DockedConversationPanel({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
-                  disabled={isCallDisabled}
-                  className="h-8 rounded-full border-black/10 px-3"
-                >
-                  <Phone className="mr-2 h-4 w-4" /> Call
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
                   onMouseDown={(event) => {
                     event.stopPropagation();
                     onOpenCustomerInfo(event);
@@ -1485,6 +1474,8 @@ function DockedCustomerInfoPanel({
   customerId,
   panelSelection,
   onWidthChange,
+  onOpenCall,
+  isCallDisabled,
   onClose,
   onUndockStart,
   showTrailingGap,
@@ -1499,6 +1490,8 @@ function DockedCustomerInfoPanel({
   customerId: string;
   panelSelection: DeskPanelSelection;
   onWidthChange: (width: number) => void;
+  onOpenCall: (anchorRect?: DOMRect | null) => void;
+  isCallDisabled: boolean;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
@@ -1567,15 +1560,28 @@ function DockedCustomerInfoPanel({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-            aria-label="Close customer information panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+              disabled={isCallDisabled}
+              className="h-8 rounded-full border-black/10 px-3"
+            >
+              <Phone className="mr-2 h-4 w-4" /> Call
+            </Button>
+            <button
+              type="button"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={onClose}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+              aria-label="Close customer information panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <NotesPanel
@@ -1600,6 +1606,8 @@ function CustomerInfoPopunder({
   zIndex,
   onPositionChange,
   onSizeChange,
+  onOpenCall,
+  isCallDisabled,
   onClose,
   onDock,
   dragActivation = null,
@@ -1614,6 +1622,8 @@ function CustomerInfoPopunder({
   zIndex: number;
   onPositionChange: (position: CustomerInfoPopunderPosition) => void;
   onSizeChange: (size: CustomerInfoPopunderSize) => void;
+  onOpenCall: (anchorRect?: DOMRect | null) => void;
+  isCallDisabled: boolean;
   onClose: () => void;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -1717,6 +1727,17 @@ function CustomerInfoPopunder({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+            disabled={isCallDisabled}
+            className="h-8 rounded-full border-black/10 px-3"
+          >
+            <Phone className="mr-2 h-4 w-4" /> Call
+          </Button>
           {onDock ? (
             <Button
               type="button"
@@ -2234,17 +2255,6 @@ function ConversationPopunder({
             shouldStackHeaderActions ? "pl-7" : "",
           )}
         >
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
-            disabled={isCallDisabled}
-            className="h-8 rounded-full border-black/10 px-3"
-          >
-            <Phone className="mr-2 h-4 w-4" /> Call
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -4447,6 +4457,8 @@ export default function Layout({ children }: LayoutProps) {
                   customerId={selectedAssignment.customerId}
                   panelSelection={deskPanelSelection}
                   onWidthChange={setDockedCustomerInfoWidth}
+                  onOpenCall={layoutContextValue.toggleCallPopunder}
+                  isCallDisabled={status === "In a Call" || status !== "Available"}
                   onClose={closeCustomerInfoPanel}
                   showTrailingGap={false}
                   isEqualSplit
@@ -4545,6 +4557,8 @@ export default function Layout({ children }: LayoutProps) {
               customerId={selectedAssignment.customerId}
               panelSelection={deskPanelSelection}
               onWidthChange={setDockedCustomerInfoWidth}
+              onOpenCall={layoutContextValue.toggleCallPopunder}
+              isCallDisabled={status === "In a Call" || status !== "Available"}
               onClose={closeCustomerInfoPanel}
               showTrailingGap={isMainCanvasVisible}
               onUndockStart={(event) => {
@@ -4627,6 +4641,8 @@ export default function Layout({ children }: LayoutProps) {
           zIndex={getFloatingPanelZIndex("customerInfo")}
           onPositionChange={setCustomerInfoPopunderPosition}
           onSizeChange={setCustomerInfoPopunderSize}
+          onOpenCall={layoutContextValue.toggleCallPopunder}
+          isCallDisabled={status === "In a Call" || status !== "Available"}
           onClose={closeCustomerInfoPanel}
           onDock={isCustomerInfoPanelAllowed ? dockCustomerInfoPanel : undefined}
           dragActivation={customerInfoDragActivation}
