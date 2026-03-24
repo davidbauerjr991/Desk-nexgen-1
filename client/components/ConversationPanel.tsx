@@ -687,10 +687,8 @@ export default function ConversationPanel({
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="pb-4">
-                          <div className="space-y-1.5 text-sm leading-6 text-[#6B5A1B]">
-                            <p><span className="font-semibold text-[#7A5B00]">Why assigned:</span> {conversationOverview.assignmentReason}</p>
-                            <p><span className="font-semibold text-[#7A5B00]">Prior help:</span> {conversationOverview.priorHelp}</p>
-                            <p><span className="font-semibold text-[#7A5B00]">Next steps:</span> {conversationOverview.remainingNeed}</p>
+                          <div className="text-sm leading-6 text-[#6B5A1B]">
+                            <p>{conversationOverview.assignmentReason}</p>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
