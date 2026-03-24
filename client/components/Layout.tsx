@@ -1246,14 +1246,21 @@ function DockedConversationPanel({
         {isContentVisible && (
           <>
             <div
+              data-conversation-panel-header
               className={cn(
-                "flex min-h-[68px] cursor-grab border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing",
+                "flex min-h-[68px] border-b border-border bg-background/50 px-5 py-4",
                 shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-start justify-between gap-3",
               )}
-              onMouseDown={onUndockStart}
             >
               <div className="flex items-start gap-3">
-                <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+                <button
+                  type="button"
+                  aria-label="Undock conversation panel"
+                  onMouseDown={onUndockStart}
+                  className="mt-0.5 flex h-6 w-6 flex-shrink-0 cursor-grab items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333] active:cursor-grabbing"
+                >
+                  <GripHorizontal className="h-4 w-4" />
+                </button>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
@@ -4392,7 +4399,8 @@ export default function Layout({ children }: LayoutProps) {
 
                   event.preventDefault();
 
-                  const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                  const bounds = event.currentTarget.closest("[data-conversation-panel-header]")?.getBoundingClientRect()
+                    ?? event.currentTarget.parentElement?.getBoundingClientRect();
                   if (!bounds) return;
 
                   const margin = CONVERSATION_POPOUNDER_MARGIN;
@@ -4444,8 +4452,9 @@ export default function Layout({ children }: LayoutProps) {
 
                     event.preventDefault();
 
-                    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
-                    if (!bounds) return;
+                    const bounds = event.currentTarget.closest("[data-conversation-panel-header]")?.getBoundingClientRect()
+                    ?? event.currentTarget.parentElement?.getBoundingClientRect();
+                  if (!bounds) return;
 
                     const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
                     const nextPosition = {
@@ -4495,7 +4504,8 @@ export default function Layout({ children }: LayoutProps) {
 
                 event.preventDefault();
 
-                const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+                const bounds = event.currentTarget.closest("[data-conversation-panel-header]")?.getBoundingClientRect()
+                  ?? event.currentTarget.parentElement?.getBoundingClientRect();
                 if (!bounds) return;
 
                 const margin = CONVERSATION_POPOUNDER_MARGIN;
