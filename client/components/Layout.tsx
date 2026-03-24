@@ -3864,7 +3864,8 @@ export default function Layout({ children }: LayoutProps) {
 
     const minWidth = getDeskCanvasPopunderMinWidth(view);
     const defaultWidth = getDeskCanvasPopunderDefaultWidth(view);
-    const bounds = event.currentTarget.parentElement?.getBoundingClientRect();
+    const bounds = event.currentTarget.closest("[data-desk-panel-header]")?.getBoundingClientRect()
+      ?? event.currentTarget.parentElement?.getBoundingClientRect();
     const width = Math.min(
       Math.max(minWidth, bounds?.width ?? defaultWidth),
       window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2,
