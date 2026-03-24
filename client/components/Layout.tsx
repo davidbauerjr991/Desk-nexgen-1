@@ -1458,6 +1458,7 @@ function CombinedInteractionPanel({
           )}
           <TabsContent value="customerInfo" className="mt-0 min-h-0 flex-1 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
             <NotesPanel
+              key={customerRecordId}
               initialTab={panelSelection?.initialTab ?? "Overview"}
               initialTicketId={panelSelection?.ticketId}
               customerId={customerRecordId}
@@ -1578,6 +1579,7 @@ function DockedCustomerInfoPanel({
         </div>
 
         <NotesPanel
+          key={customerRecordId}
           initialTab={panelSelection?.initialTab ?? "Overview"}
           initialTicketId={panelSelection?.ticketId}
           customerId={customerRecordId}
@@ -1740,6 +1742,7 @@ function CustomerInfoPopunder({
       </div>
 
       <NotesPanel
+        key={customerRecordId}
         initialTab={panelSelection?.initialTab ?? "Overview"}
         initialTicketId={panelSelection?.ticketId}
         customerId={customerRecordId}
@@ -2036,7 +2039,7 @@ function DeskCanvasPopunder({
             : view === "add"
               ? <AddPanelContent />
               : view === "customer"
-                ? <NotesPanel customerId={customerId} />
+                ? <NotesPanel key={customerId} customerId={customerId} />
                 : <DeskDataTable />}
       </div>
 
@@ -4636,7 +4639,7 @@ export default function Layout({ children }: LayoutProps) {
           view={deskCanvasPopunderView}
           position={deskCanvasPopunderPosition}
           size={deskCanvasPopunderSize}
-          customerId={selectedAssignment.customerId}
+          customerId={selectedAssignment.id}
           zIndex={getFloatingPanelZIndex("deskCanvas")}
           onPositionChange={setDeskCanvasPopunderPosition}
           onSizeChange={setDeskCanvasPopunderSize}

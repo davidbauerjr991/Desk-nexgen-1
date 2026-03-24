@@ -79,7 +79,7 @@ export default function Desk() {
           : isAddView
             ? <AddPanelContent />
             : isCustomerView
-              ? <NotesPanel customerId={selectedAssignment.customerId} />
+              ? <NotesPanel key={selectedAssignment.id} customerId={selectedAssignment.id} />
               : isNotificationsView
                 ? (
                   <Placeholder

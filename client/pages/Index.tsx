@@ -285,7 +285,7 @@ export default function Index() {
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
-              <NotesPanel initialTab={mobileDetailsTab} customerId={selectedAssignment.id} />
+              <NotesPanel key={selectedAssignment.id} initialTab={mobileDetailsTab} customerId={selectedAssignment.id} />
             </div>
           </div>
         </div>
