@@ -13,26 +13,9 @@ type DeskCustomerRow = {
   firstName: string;
   lastName: string;
   group: string;
-  phone: string;
-  email: string;
-  priority: string;
-  priorityClassName: string;
-  lastUpdated: string;
 };
 
 const customerGroups = ["Priority Care", "Billing", "Growth", "Support", "Retention"];
-
-function getRowEmail(firstName: string, lastName: string, customerId: string) {
-  const first = firstName.trim().toLowerCase();
-  const last = lastName.trim().toLowerCase();
-  const normalizedCustomerId = customerId.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-  if (first && last) {
-    return `${first}.${last}@${normalizedCustomerId}.demo`;
-  }
-
-  return `${normalizedCustomerId}@demo`;
-}
 
 export default function DeskDataTable() {
   const {
@@ -55,11 +38,6 @@ export default function DeskDataTable() {
       firstName,
       lastName,
       group: customerGroups[index % customerGroups.length],
-      phone: customer.overview.contactNumber,
-      email: getRowEmail(firstName, lastName, customer.customerId),
-      priority: customer.queue.priority,
-      priorityClassName: customer.queue.priorityClassName,
-      lastUpdated: customer.lastUpdated,
     };
   }), []);
 
@@ -91,7 +69,7 @@ export default function DeskDataTable() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-auto">
-        <div className="min-w-[1080px]">
+        <div className="min-w-[860px]">
           <ScrollArea className="h-full min-h-0">
             <div className="space-y-3 p-4">
           {rows.map((row) => {
@@ -107,7 +85,7 @@ export default function DeskDataTable() {
                     : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
                 )}
               >
-                <div className="grid grid-cols-[160px_260px_160px_220px_280px] items-center gap-4">
+                <div className="grid grid-cols-[180px_240px_280px] items-center gap-4">
                   <button
                     type="button"
                     onClick={() => selectAssignment(row.id)}
@@ -117,23 +95,12 @@ export default function DeskDataTable() {
                     <span className="mt-1 whitespace-nowrap text-sm font-semibold text-[#111827]">
                       {row.firstName} {row.lastName}
                     </span>
-                    <span className="mt-1 text-sm text-[#667085]">Primary contact on file</span>
-                  </button>
-
-                  <div />
-
-                  <div className="flex items-center">
-                    <span className="inline-flex rounded-full border border-[#D0D5DD] bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#344054]">
+                    <span className="mt-2 inline-flex rounded-full border border-[#D0D5DD] bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#344054]">
                       {row.group}
                     </span>
-                  </div>
+                  </button>
 
-                  <div className="min-w-0 space-y-1 text-sm text-[#475467]">
-                    <p className="whitespace-nowrap font-medium text-[#344054]">{row.phone}</p>
-                    <p className="whitespace-nowrap text-[#667085]">{row.email}</p>
-                  </div>
-
-                  <div className="flex flex-nowrap items-center justify-end gap-2">
+                  <div className="flex flex-nowrap items-center justify-start gap-2">
                     <Button
                       type="button"
                       size="sm"
