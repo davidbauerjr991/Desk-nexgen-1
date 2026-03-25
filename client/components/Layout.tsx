@@ -616,20 +616,17 @@ function ConversationHeaderSubhead({
 
 function ConversationOverviewButton({
   conversation,
-  assignmentKey,
+  isOpen,
+  onOpenChange,
 }: {
   conversation: SharedConversationData;
-  assignmentKey: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const overviewSummary = getConversationOverviewSummary(conversation);
-  const [isOpen, setIsOpen] = useState(true);
-
-  useEffect(() => {
-    setIsOpen(true);
-  }, [assignmentKey]);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
+    <Popover open={isOpen} onOpenChange={onOpenChange} modal={false}>
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -1211,6 +1208,8 @@ function DockedConversationPanel({
   onOpenCall,
   onOpenCustomerInfo,
   onConversationStatusChange,
+  overviewIsOpen,
+  onOverviewOpenChange,
   isCallDisabled,
   onClose,
   onUndockStart,
@@ -1228,6 +1227,8 @@ function DockedConversationPanel({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
+  overviewIsOpen: boolean;
+  onOverviewOpenChange: (open: boolean) => void;
   isCallDisabled: boolean;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
@@ -1309,7 +1310,11 @@ function DockedConversationPanel({
                   shouldStackHeaderActions ? "pl-7" : "shrink-0",
                 )}
               >
-                <ConversationOverviewButton conversation={conversation} assignmentKey={customerRecordId} />
+                <ConversationOverviewButton
+                  conversation={conversation}
+                  isOpen={overviewIsOpen}
+                  onOpenChange={onOverviewOpenChange}
+                />
                 <Button
                   type="button"
                   variant="outline"
@@ -2132,6 +2137,8 @@ function ConversationPopunder({
   onOpenCall,
   onOpenCustomerInfo,
   onConversationStatusChange,
+  overviewIsOpen,
+  onOverviewOpenChange,
   isCallDisabled,
   onDock,
   dragActivation = null,
@@ -2151,6 +2158,8 @@ function ConversationPopunder({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
+  overviewIsOpen: boolean;
+  onOverviewOpenChange: (open: boolean) => void;
   isCallDisabled: boolean;
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
@@ -2285,7 +2294,11 @@ function ConversationPopunder({
             shouldStackHeaderActions ? "pl-7" : "",
           )}
         >
-          <ConversationOverviewButton conversation={conversation} assignmentKey={customerRecordId} />
+          <ConversationOverviewButton
+            conversation={conversation}
+            isOpen={overviewIsOpen}
+            onOpenChange={onOverviewOpenChange}
+          />
           <Button
             type="button"
             variant="outline"
@@ -3009,6 +3022,7 @@ export default function Layout({ children }: LayoutProps) {
     y: 72,
   }));
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => defaultCustomerId);
+  const [overviewOpenByAssignmentId, setOverviewOpenByAssignmentId] = useState<Record<string, boolean>>({});
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
@@ -4442,6 +4456,13 @@ export default function Layout({ children }: LayoutProps) {
                 onOpenCall={layoutContextValue.toggleCallPopunder}
                 onOpenCustomerInfo={openCustomerInfoPopunder}
                 onConversationStatusChange={handleConversationStatusChange}
+                overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
+                onOverviewOpenChange={(open) => {
+                  setOverviewOpenByAssignmentId((currentState) => ({
+                    ...currentState,
+                    [selectedAssignment.id]: open,
+                  }));
+                }}
                 isCallDisabled={status === "In a Call" || status !== "Available"}
                 onClose={closeConversationPanel}
                 showTrailingGap={false}
@@ -4550,6 +4571,13 @@ export default function Layout({ children }: LayoutProps) {
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenCustomerInfo={openCustomerInfoPopunder}
               onConversationStatusChange={handleConversationStatusChange}
+              overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
+              onOverviewOpenChange={(open) => {
+                setOverviewOpenByAssignmentId((currentState) => ({
+                  ...currentState,
+                  [selectedAssignment.id]: open,
+                }));
+              }}
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
@@ -4662,6 +4690,13 @@ export default function Layout({ children }: LayoutProps) {
           onOpenCall={layoutContextValue.toggleCallPopunder}
           onOpenCustomerInfo={openCustomerInfoPopunder}
           onConversationStatusChange={handleConversationStatusChange}
+          overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
+          onOverviewOpenChange={(open) => {
+            setOverviewOpenByAssignmentId((currentState) => ({
+              ...currentState,
+              [selectedAssignment.id]: open,
+            }));
+          }}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           onDock={dockConversationPanel}
           dragActivation={conversationDragActivation}
