@@ -133,7 +133,7 @@ const statusOptions: Array<{
   dotClassName: string;
   textClassName: string;
 }> = [
-  { label: "Available", dotClassName: "bg-[#2D6A5F]", textClassName: "text-[#2D6A5F]" },
+  { label: "Available", dotClassName: "bg-[#369D3F]", textClassName: "text-[#369D3F]" },
   { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#B42318]" },
   { label: "Away", dotClassName: "bg-[#F79009]", textClassName: "text-[#B54708]" },
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
@@ -156,7 +156,7 @@ const conversationStatusOptions: Array<{ value: ConversationStatus; label: strin
 
 function getConversationStatusChipClasses(status: ConversationStatus) {
   if (status === "open") {
-    return "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F] hover:bg-[#D9F2EA]";
+    return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F] hover:bg-[#D9F2EA]";
   }
 
   if (status === "pending") {
@@ -231,14 +231,14 @@ const priorityDotClassNameMap: Record<string, string> = {
   critical: "bg-[#F04438]",
   high: "bg-[#F79009]",
   medium: "bg-[#006DAD]",
-  low: "bg-[#2D6A5F]",
+  low: "bg-[#369D3F]",
 };
 
 const priorityIconClassNameMap: Record<string, string> = {
   critical: "text-[#F04438]",
   high: "text-[#F79009]",
   medium: "text-[#006DAD]",
-  low: "text-[#2D6A5F]",
+  low: "text-[#369D3F]",
 };
 
 type CallPopunderPosition = {
@@ -524,7 +524,7 @@ function formatRecentInteractionTimestamp(date: Date) {
 }
 
 function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) {
-  if (disposition === "Resolved") return "bg-[#2D6A5F]";
+  if (disposition === "Resolved") return "bg-[#369D3F]";
   if (disposition === "Escalated") return "bg-[#F04438]";
   return "bg-[#F79009]";
 }
@@ -917,7 +917,7 @@ function CallControlsPopunder({
               type="button"
               onClick={onLaunchCall}
               disabled={!accountNumber.trim()}
-              className="w-full bg-[#2D6A5F] text-white hover:bg-[#25574E]"
+              className="w-full bg-[#369D3F] text-white hover:bg-[#2E8A36]"
             >
               Launch Call
             </Button>
@@ -2602,7 +2602,7 @@ function QueueAssignmentCard({
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
           <span className="inline-flex items-center gap-1.5">
-            <ItemIcon className="h-4 w-4 text-[#2D6A5F]" />
+            <ItemIcon className="h-4 w-4 text-[#369D3F]" />
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />

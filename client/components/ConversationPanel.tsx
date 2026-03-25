@@ -685,7 +685,7 @@ export default function ConversationPanel({
                     <Accordion type="single" collapsible defaultValue="ai-suggestion">
                       <AccordionItem value="ai-suggestion" className="border-b-0">
                         <AccordionTrigger className="py-4 text-left hover:no-underline">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
                             <Sparkles className="h-3.5 w-3.5" />
                             <span>AI Suggestion</span>
                           </div>
@@ -700,7 +700,7 @@ export default function ConversationPanel({
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#2D6A5F] hover:bg-white"
+                                  className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white"
                                   onClick={() => handleOpenSuggestionAction(action)}
                                 >
                                   {action.label}
@@ -710,7 +710,7 @@ export default function ConversationPanel({
                           ) : null}
                           {isSuggestionEditorOpen ? (
                             <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2D6A5F]">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
                                 Edit AI suggestion
                               </div>
                               <Input
@@ -729,7 +729,7 @@ export default function ConversationPanel({
                                 <Button
                                   type="button"
                                   size="sm"
-                                  className="h-8 rounded-lg bg-[#2D6A5F] px-3 text-white hover:bg-[#25574E]"
+                                  className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
                                   onClick={handleApplySuggestionEdit}
                                   disabled={suggestionEditPrompt.trim().length === 0}
                                 >
@@ -758,7 +758,7 @@ export default function ConversationPanel({
                                 className={cn(
                                   "h-9 rounded-lg px-4",
                                   isSuggestionAdded
-                                    ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
+                                    ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
                                     : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
                                 )}
                                 onClick={handleUseSuggestion}

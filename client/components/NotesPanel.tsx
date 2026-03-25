@@ -304,14 +304,14 @@ function getPriorityTone(priority: CustomerTicket["priority"]) {
     case "Medium":
       return "bg-[#006DAD]";
     default:
-      return "bg-[#2D6A5F]";
+      return "bg-[#369D3F]";
   }
 }
 
 function getStatusBadgeClasses(status: CustomerTicket["status"]) {
   switch (status) {
     case "Open":
-      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]";
+      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
     case "Escalated":
     case "Needing Attention":
       return "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]";
@@ -327,7 +327,7 @@ function getStatusBadgeClasses(status: CustomerTicket["status"]) {
     case "De-Escalated":
       return "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]";
     default:
-      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]";
+      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
   }
 }
 

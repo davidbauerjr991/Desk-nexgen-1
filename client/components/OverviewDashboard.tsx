@@ -160,9 +160,9 @@ function TicketsCard() {
                     <span
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
-                        ticket.status === "Open" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]",
+                        ticket.status === "Open" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
                         ticket.status === "Pending" && "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]",
-                        ticket.status === "Resolved" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]",
+                        ticket.status === "Resolved" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
                         ticket.status === "Closed" && "border-black/10 bg-white text-[#6B7280]",
                       )}
                     >

@@ -44,7 +44,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#2D6A5F]",
+    statusColor: "bg-[#369D3F]",
   },
   {
     id: 3,
@@ -55,7 +55,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#2D6A5F]",
+    statusColor: "bg-[#369D3F]",
   },
   {
     id: 4,
@@ -66,7 +66,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "Inbound Voice - Mortgage Queue",
-    statusColor: "bg-[#2D6A5F]",
+    statusColor: "bg-[#369D3F]",
   },
   {
     id: 5,
@@ -149,7 +149,7 @@ function InteractionTypeIcon({
       ? "text-[#006DAD]"
       : isAiAgent
         ? "text-[#006DAD]"
-        : "text-[#2D6A5F]";
+        : "text-[#369D3F]";
   const DirectionIcon = direction === "inbound" ? ArrowDown : ArrowUp;
   const BaseIcon = isEmail ? Mail : isVoice ? Phone : isAiAgent ? Bot : MessageSquare;
 

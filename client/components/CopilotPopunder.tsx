@@ -85,8 +85,8 @@ export function CopilotContent() {
                     Live Interaction Context
                   </div>
                   <span className="relative flex h-2 w-2 flex-shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2D6A5F] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2D6A5F]" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#369D3F] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#369D3F]" />
                   </span>
                 </div>
               </AccordionTrigger>
@@ -164,7 +164,7 @@ export function CopilotContent() {
           </div>
           <div className="space-y-2">
             <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
-              <div className="mt-0.5 rounded-md bg-[#EAF8F4] p-1.5 text-[#2D6A5F]">
+              <div className="mt-0.5 rounded-md bg-[#EAF8F4] p-1.5 text-[#369D3F]">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
