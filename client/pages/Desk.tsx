@@ -1,7 +1,8 @@
-import { Bell, GripHorizontal, X } from "lucide-react";
+import { Bell, GripHorizontal, Phone, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import AddPanelContent from "@/components/AddPanelContent";
+import { Button } from "@/components/ui/button";
 import { CopilotContent } from "@/components/CopilotPopunder";
 import { useLayoutContext } from "@/components/Layout";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -11,7 +12,14 @@ import Placeholder from "./Placeholder";
 
 export default function Desk() {
   const location = useLocation();
-  const { closeAppSpacePanel, selectedAssignment, undockDeskPanel } = useLayoutContext();
+  const {
+    closeAppSpacePanel,
+    selectedAssignment,
+    undockDeskPanel,
+    toggleCallPopunder,
+    isAgentInCall,
+    isAgentAvailable,
+  } = useLayoutContext();
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
   const isNotesView = view === "notes";
@@ -61,15 +69,30 @@ export default function Desk() {
           </div>
         </div>
 
-        <button
-          type="button"
-          aria-label={`Close ${panelLabel} container`}
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={closeAppSpacePanel}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {isCustomerView ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
+              disabled={isAgentInCall || !isAgentAvailable}
+              className="h-8 rounded-full border-black/10 px-3"
+            >
+              <Phone className="mr-2 h-4 w-4" /> Call
+            </Button>
+          ) : null}
+          <button
+            type="button"
+            aria-label={`Close ${panelLabel} container`}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={closeAppSpacePanel}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {isCopilotView
