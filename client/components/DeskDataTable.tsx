@@ -92,14 +92,6 @@ export default function DeskDataTable() {
 
       <div className="min-h-0 flex-1 overflow-x-auto">
         <div className="min-w-[1080px]">
-          <div className="grid grid-cols-[160px_260px_160px_220px_280px] items-center gap-4 border-b border-black/10 bg-[#FCFCFD] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
-            <span>Customer ID</span>
-            <span>Name</span>
-            <span>Group</span>
-            <span>Contact</span>
-            <span className="text-right">Actions</span>
-          </div>
-
           <ScrollArea className="h-full min-h-0">
             <div className="space-y-3 p-4">
           {rows.map((row) => {
