@@ -84,6 +84,7 @@ interface LayoutContextValue {
   isConversationPanelOpen: boolean;
   isConversationPopunderOpen: boolean;
   activeConversationChannel: CustomerChannel;
+  activeConversationTabs: CustomerChannel[];
   selectedAssignment: QueuePreviewItem;
   deskPanelSelection: DeskPanelSelection;
   recentInteractions: RecentInteractionItem[];
@@ -100,6 +101,7 @@ interface LayoutContextValue {
   openConversationPopunder: (anchorRect?: DOMRect | null) => void;
   closeConversationPopunder: () => void;
   setActiveConversationChannel: (channel: CustomerChannel) => void;
+  openCustomerConversation: (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email">) => void;
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -167,8 +169,6 @@ function getConversationStatusChipClasses(status: ConversationStatus) {
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
 }
 
-const defaultConversationState: SharedConversationData = createConversationState(defaultCustomerId, "sms");
-
 function getConversationStateKey(customerId: string, channel: CustomerChannel) {
   return `${customerId}:${channel}`;
 }
@@ -227,6 +227,39 @@ const visibleAssignmentNames = new Set([
   "Olivia Reed",
   "Ethan Zhang",
 ]);
+
+const initialVisibleAssignmentIds = queuePreviewItems
+  .filter((item) => visibleAssignmentNames.has(item.name))
+  .map((item) => item.id);
+
+const initialSelectedAssignmentId = initialVisibleAssignmentIds[0] ?? defaultCustomerId;
+const initialConversationAssignmentIds = Array.from(new Set([initialSelectedAssignmentId, ...initialVisibleAssignmentIds]));
+const defaultConversationState: SharedConversationData = createConversationState(initialSelectedAssignmentId, "sms");
+
+type AssignmentConversationTabs = {
+  openChannels: CustomerChannel[];
+  activeChannel: CustomerChannel;
+};
+
+function createInitialAssignmentConversationTabs(activeChannel: CustomerChannel = "sms"): AssignmentConversationTabs {
+  return {
+    openChannels: [activeChannel],
+    activeChannel,
+  };
+}
+
+function createFreshConversationState(customerId: string, channel: CustomerChannel): SharedConversationData {
+  const conversation = createConversationState(customerId, channel);
+
+  return {
+    ...conversation,
+    timelineLabel: `${conversation.label} · New conversation`,
+    messages: [],
+    draft: "",
+    status: "open",
+    isCustomerTyping: false,
+  };
+}
 
 const priorityDotClassNameMap: Record<string, string> = {
   critical: "bg-[#F04438]",
@@ -1266,6 +1299,7 @@ function AddNewPopoverContent({
 function DockedConversationPanel({
   isOpen,
   conversation,
+  openChannels,
   activeChannel,
   customerRecordId,
   onConversationChange,
@@ -1285,6 +1319,7 @@ function DockedConversationPanel({
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
+  openChannels: CustomerChannel[];
   activeChannel: CustomerChannel;
   customerRecordId: string;
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
@@ -1425,6 +1460,7 @@ function DockedConversationPanel({
 
             <ConversationPanel
               conversation={conversation}
+              openChannels={openChannels}
               activeChannel={activeChannel}
               customerId={customerRecordId}
               draftKey={`docked-${conversation.label}-${conversation.customerName}`}
@@ -1446,6 +1482,7 @@ function CombinedInteractionPanel({
   maxWidth,
   activeTab,
   conversation,
+  openChannels,
   activeChannel,
   customerRecordId,
   customerName,
@@ -1470,6 +1507,7 @@ function CombinedInteractionPanel({
   maxWidth: number;
   activeTab: CombinedInteractionPanelTab;
   conversation: SharedConversationData;
+  openChannels: CustomerChannel[];
   activeChannel: CustomerChannel;
   customerRecordId: string;
   customerName: string;
@@ -1559,6 +1597,7 @@ function CombinedInteractionPanel({
               <ConversationPanel
                 className="min-h-0 flex-1"
                 conversation={conversation}
+                openChannels={openChannels}
                 activeChannel={activeChannel}
                 customerId={customerRecordId}
                 draftKey={`combined-${conversation.label}-${conversation.customerName}`}
@@ -2321,6 +2360,7 @@ function ConversationPopunder({
   position,
   size,
   conversation,
+  openChannels,
   activeChannel,
   customerRecordId,
   zIndex,
@@ -2342,6 +2382,7 @@ function ConversationPopunder({
   position: ConversationPopunderPosition;
   size: ConversationPopunderSize;
   conversation: SharedConversationData;
+  openChannels: CustomerChannel[];
   activeChannel: CustomerChannel;
   customerRecordId: string;
   zIndex: number;
@@ -2522,6 +2563,7 @@ function ConversationPopunder({
 
       <ConversationPanel
         conversation={conversation}
+        openChannels={openChannels}
         activeChannel={activeChannel}
         customerId={customerRecordId}
         draftKey={`popunder-${conversation.label}-${conversation.customerName}`}
@@ -2863,13 +2905,18 @@ function QueueOverlayList({
   );
 }
 
-function LeftQueueRail() {
+function LeftQueueRail({
+  visibleAssignmentIds,
+  onRemoveAssignment,
+}: {
+  visibleAssignmentIds: QueuePreviewItem["id"][];
+  onRemoveAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+}) {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const [queueStatuses, setQueueStatuses] = useState<Record<string, ConversationStatus>>(() => (
     Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, ConversationStatus>
   ));
-  const [dismissedAssignmentIds, setDismissedAssignmentIds] = useState<Record<string, boolean>>({});
   const {
     closeFloatingAppSpacePanel,
     isAppSpacePanelInDragMode,
@@ -2895,17 +2942,9 @@ function LeftQueueRail() {
   }, [isPriorityAssistEnabled, selectedAssignment.id]);
 
   const visibleQueuePreviewItems = useMemo(
-    () => orderedQueuePreviewItems.filter((item) => visibleAssignmentNames.has(item.name) && !dismissedAssignmentIds[item.id]),
-    [dismissedAssignmentIds, orderedQueuePreviewItems],
+    () => orderedQueuePreviewItems.filter((item) => visibleAssignmentIds.includes(item.id)),
+    [orderedQueuePreviewItems, visibleAssignmentIds],
   );
-
-  useEffect(() => {
-    if (visibleQueuePreviewItems.some((item) => item.id === selectedAssignment.id) || visibleQueuePreviewItems.length === 0) {
-      return;
-    }
-
-    selectAssignment(visibleQueuePreviewItems[0].id);
-  }, [selectAssignment, selectedAssignment.id, visibleQueuePreviewItems]);
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
@@ -2919,10 +2958,7 @@ function LeftQueueRail() {
   };
 
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
-    setDismissedAssignmentIds((currentIds) => ({
-      ...currentIds,
-      [assignmentId]: true,
-    }));
+    onRemoveAssignment(assignmentId);
   };
 
   return (
@@ -3229,10 +3265,13 @@ export default function Layout({ children }: LayoutProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
+  const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>(() => initialVisibleAssignmentIds);
+  const [assignmentConversationTabsById, setAssignmentConversationTabsById] = useState<Record<string, AssignmentConversationTabs>>(() => (
+    Object.fromEntries(initialConversationAssignmentIds.map((assignmentId) => [assignmentId, createInitialAssignmentConversationTabs()]))
+  ));
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
-  const [activeConversationChannel, setActiveConversationChannel] = useState<CustomerChannel>("sms");
   const [conversationStatesByKey, setConversationStatesByKey] = useState<Record<string, SharedConversationData>>(() => ({
-    [getConversationStateKey(defaultCustomerId, "sms")]: defaultConversationState,
+    [getConversationStateKey(initialSelectedAssignmentId, "sms")]: defaultConversationState,
   }));
   const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
     getBalancedDockedPanelWidths({
@@ -3282,7 +3321,7 @@ export default function Layout({ children }: LayoutProps) {
     x: 420,
     y: 72,
   }));
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => defaultCustomerId);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => initialSelectedAssignmentId);
   const [overviewOpenByAssignmentId, setOverviewOpenByAssignmentId] = useState<Record<string, boolean>>({});
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -3336,6 +3375,12 @@ export default function Layout({ children }: LayoutProps) {
     () => queuePreviewItems.find((item) => item.id === selectedAssignmentId) ?? queuePreviewItems[0],
     [selectedAssignmentId],
   );
+  const activeConversationTabsState = useMemo(
+    () => assignmentConversationTabsById[selectedAssignment.id] ?? createInitialAssignmentConversationTabs(),
+    [assignmentConversationTabsById, selectedAssignment.id],
+  );
+  const activeConversationTabs = activeConversationTabsState.openChannels;
+  const activeConversationChannel = activeConversationTabsState.activeChannel;
   const activeConversationStateKey = useMemo(
     () => getConversationStateKey(selectedAssignment.id, activeConversationChannel),
     [activeConversationChannel, selectedAssignment.id],
@@ -3429,6 +3474,35 @@ export default function Layout({ children }: LayoutProps) {
             : "Desk";
 
   useEffect(() => {
+    setAssignmentConversationTabsById((currentTabs) => {
+      if (currentTabs[selectedAssignment.id]) {
+        return currentTabs;
+      }
+
+      return {
+        ...currentTabs,
+        [selectedAssignment.id]: createInitialAssignmentConversationTabs(),
+      };
+    });
+  }, [selectedAssignment.id]);
+
+  const setActiveConversationChannel = (channel: CustomerChannel) => {
+    setAssignmentConversationTabsById((currentTabs) => {
+      const selectedTabs = currentTabs[selectedAssignment.id] ?? createInitialAssignmentConversationTabs();
+
+      return {
+        ...currentTabs,
+        [selectedAssignment.id]: {
+          openChannels: selectedTabs.openChannels.includes(channel)
+            ? selectedTabs.openChannels
+            : [...selectedTabs.openChannels, channel],
+          activeChannel: channel,
+        },
+      };
+    });
+  };
+
+  useEffect(() => {
     setConversationStatesByKey((currentStates) => {
       if (currentStates[activeConversationStateKey]) {
         return currentStates;
@@ -3445,6 +3519,9 @@ export default function Layout({ children }: LayoutProps) {
     const targetCustomerId = selectedAssignment.id;
     const targetChannel = channel ?? activeConversationChannel;
     const targetConversationStateKey = getConversationStateKey(targetCustomerId, targetChannel);
+    const currentConversationState =
+      conversationStatesByKey[targetConversationStateKey] ?? createConversationState(targetCustomerId, targetChannel);
+    const currentLatestMessage = currentConversationState.messages[currentConversationState.messages.length - 1];
 
     if (customerReplyTimeoutsRef.current[targetConversationStateKey] !== undefined) {
       window.clearTimeout(customerReplyTimeoutsRef.current[targetConversationStateKey]);
@@ -3452,10 +3529,16 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     const latestMessage = nextConversation.messages[nextConversation.messages.length - 1];
-    const shouldShowTyping = latestMessage?.role === "agent";
+    const shouldScheduleCustomerReply =
+      latestMessage?.role === "agent"
+      && (
+        currentConversationState.messages.length !== nextConversation.messages.length
+        || currentLatestMessage?.id !== latestMessage.id
+        || currentLatestMessage?.role !== latestMessage.role
+      );
     const persistedConversationState = {
       ...nextConversation,
-      isCustomerTyping: shouldShowTyping,
+      isCustomerTyping: shouldScheduleCustomerReply,
     };
 
     setConversationStatesByKey((currentStates) => ({
@@ -3463,7 +3546,7 @@ export default function Layout({ children }: LayoutProps) {
       [targetConversationStateKey]: persistedConversationState,
     }));
 
-    if (!latestMessage || latestMessage.role !== "agent") {
+    if (!latestMessage || !shouldScheduleCustomerReply) {
       return;
     }
 
@@ -3997,6 +4080,58 @@ export default function Layout({ children }: LayoutProps) {
     setConversationDragActivation(null);
   };
 
+  const openCustomerConversation = (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email">) => {
+    const isExistingAssignment = visibleAssignmentIds.includes(assignmentId);
+
+    setDeskPanelSelection(null);
+    setSelectedAssignmentId(assignmentId);
+    setVisibleAssignmentIds((currentIds) => currentIds.includes(assignmentId) ? currentIds : [...currentIds, assignmentId]);
+    setAssignmentConversationTabsById((currentTabs) => {
+      if (!isExistingAssignment) {
+        return {
+          ...currentTabs,
+          [assignmentId]: {
+            openChannels: [channel],
+            activeChannel: channel,
+          },
+        };
+      }
+
+      const assignmentTabs = currentTabs[assignmentId] ?? createInitialAssignmentConversationTabs();
+
+      return {
+        ...currentTabs,
+        [assignmentId]: {
+          openChannels: assignmentTabs.openChannels.includes(channel)
+            ? assignmentTabs.openChannels
+            : [...assignmentTabs.openChannels, channel],
+          activeChannel: channel,
+        },
+      };
+    });
+
+    if (!isExistingAssignment) {
+      setConversationStatesByKey((currentStates) => ({
+        ...currentStates,
+        [getConversationStateKey(assignmentId, channel)]: createFreshConversationState(assignmentId, channel),
+      }));
+    }
+
+    openConversationPanel();
+  };
+
+  const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"]) => {
+    setVisibleAssignmentIds((currentIds) => {
+      const nextIds = currentIds.filter((currentId) => currentId !== assignmentId);
+
+      if (selectedAssignmentId === assignmentId && nextIds.length > 0) {
+        setSelectedAssignmentId(nextIds[0]);
+      }
+
+      return nextIds;
+    });
+  };
+
   const dockConversationPanel = () => {
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("conversation");
@@ -4309,6 +4444,7 @@ export default function Layout({ children }: LayoutProps) {
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
+      activeConversationTabs,
       selectedAssignment,
       deskPanelSelection,
       recentInteractions,
@@ -4339,6 +4475,7 @@ export default function Layout({ children }: LayoutProps) {
       openConversationPopunder,
       closeConversationPopunder,
       setActiveConversationChannel,
+      openCustomerConversation,
       setConversationState: handleConversationStateChange,
       closeRightPanel: () => {
         setDeskPanelSelection(null);
@@ -4348,6 +4485,16 @@ export default function Layout({ children }: LayoutProps) {
       selectAssignment: (assignmentId) => {
         setDeskPanelSelection(null);
         setSelectedAssignmentId(assignmentId);
+        setAssignmentConversationTabsById((currentTabs) => {
+          if (currentTabs[assignmentId]) {
+            return currentTabs;
+          }
+
+          return {
+            ...currentTabs,
+            [assignmentId]: createInitialAssignmentConversationTabs(),
+          };
+        });
 
         if (location.pathname === "/desk" || isExpandedCanvasRoute) {
           if (!isCustomerInfoPanelOpen) {
@@ -4404,6 +4551,7 @@ export default function Layout({ children }: LayoutProps) {
     [
       activeRightPanel,
       activeConversationChannel,
+      activeConversationTabs,
       conversationState,
       deskPanelSelection,
       customerInfoPopunderSize.height,
@@ -4420,6 +4568,7 @@ export default function Layout({ children }: LayoutProps) {
       navigate,
       handleConversationStateChange,
       openConversationPanel,
+      openCustomerConversation,
       recentInteractions,
       location.pathname,
       openCustomerInfoPanel,
@@ -4430,6 +4579,7 @@ export default function Layout({ children }: LayoutProps) {
       status,
       toggleConversationPanel,
       undockDeskPanel,
+      setActiveConversationChannel,
       isCombinedInteractionPanel,
     ],
   );
@@ -4673,7 +4823,10 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden gap-0 pb-4 pr-4 pt-0">
-        <LeftQueueRail />
+        <LeftQueueRail
+          visibleAssignmentIds={visibleAssignmentIds}
+          onRemoveAssignment={handleRemoveVisibleAssignment}
+        />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
             isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
@@ -4681,6 +4834,7 @@ export default function Layout({ children }: LayoutProps) {
             maxWidth={conversationPanelMaxWidth}
             activeTab={combinedInteractionPanelTab}
             conversation={conversationState}
+            openChannels={activeConversationTabs}
             activeChannel={activeConversationChannel}
             customerRecordId={selectedAssignment.id}
             customerName={selectedAssignment.name}
@@ -4709,6 +4863,7 @@ export default function Layout({ children }: LayoutProps) {
               <DockedConversationPanel
                 isOpen
                 conversation={conversationState}
+                openChannels={activeConversationTabs}
                 activeChannel={activeConversationChannel}
                 customerRecordId={selectedAssignment.id}
                 onConversationChange={handleConversationStateChange}
@@ -4823,6 +4978,7 @@ export default function Layout({ children }: LayoutProps) {
             <DockedConversationPanel
               isOpen={isConversationPanelOpen}
               conversation={conversationState}
+              openChannels={activeConversationTabs}
               activeChannel={activeConversationChannel}
               customerRecordId={selectedAssignment.id}
               onConversationChange={handleConversationStateChange}
@@ -4939,6 +5095,7 @@ export default function Layout({ children }: LayoutProps) {
           position={conversationPopunderPosition}
           size={conversationPopunderSize}
           conversation={conversationState}
+          openChannels={activeConversationTabs}
           activeChannel={activeConversationChannel}
           customerRecordId={selectedAssignment.id}
           zIndex={getFloatingPanelZIndex("conversation")}

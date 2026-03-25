@@ -35,6 +35,7 @@ export type SharedConversationData = {
 
 interface ConversationPanelProps {
   conversation: SharedConversationData;
+  openChannels: CustomerChannel[];
   activeChannel: CustomerChannel;
   draftKey: string;
   className?: string;
@@ -348,6 +349,7 @@ function getConversationOverview(conversation: SharedConversationData) {
 
 export default function ConversationPanel({
   conversation,
+  openChannels,
   activeChannel,
   draftKey,
   className,
@@ -654,6 +656,29 @@ export default function ConversationPanel({
 
   return (
     <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
+      {openChannels.length > 0 && (
+        <div className="shrink-0 border-b border-[rgba(0,0,0,0.1)] px-1">
+          <div className="overflow-x-auto overflow-y-hidden">
+            <div className="flex min-w-max items-center">
+              {openChannels.map((channel) => (
+                <button
+                  key={channel}
+                  type="button"
+                  onClick={() => onSelectChannel(channel)}
+                  className={cn(
+                    "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
+                    activeChannel === channel
+                      ? "text-[#006DAD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#006DAD]"
+                      : "text-[#6B7280] hover:text-[#333]",
+                  )}
+                >
+                  {getConversationChannelLabel(channel)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <ScrollArea ref={scrollAreaRef} className="h-full p-6">
           <div className="mx-auto max-w-3xl space-y-6">
@@ -868,7 +893,14 @@ export default function ConversationPanel({
             ref={textareaRef}
             placeholder="Type your live response..."
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              const nextDraft = event.target.value;
+              setDraft(nextDraft);
+              onConversationChange?.({
+                ...conversation,
+                draft: nextDraft,
+              }, activeChannel);
+            }}
             onFocus={() => setIsDraftFocused(true)}
             onBlur={() => setIsDraftFocused(false)}
             onKeyDown={(event) => {

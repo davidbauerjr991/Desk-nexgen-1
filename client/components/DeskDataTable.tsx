@@ -27,8 +27,7 @@ export default function DeskDataTable() {
     selectedAssignment,
     selectAssignment,
     toggleCallPopunder,
-    openConversationPanel,
-    setActiveConversationChannel,
+    openCustomerConversation,
     isAgentAvailable,
     isAgentInCall,
   } = useLayoutContext();
@@ -68,9 +67,7 @@ export default function DeskDataTable() {
   }, [rows, searchQuery]);
 
   const handleOpenChannel = (customerId: string, channel: Extract<CustomerChannel, "sms" | "email">) => {
-    selectAssignment(customerId);
-    setActiveConversationChannel(channel);
-    openConversationPanel();
+    openCustomerConversation(customerId, channel);
   };
 
   const handleStartCall = (customerId: string, anchorRect?: DOMRect | null) => {

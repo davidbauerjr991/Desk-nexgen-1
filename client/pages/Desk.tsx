@@ -25,8 +25,7 @@ export default function Desk() {
     toggleCallPopunder,
     isAgentInCall,
     isAgentAvailable,
-    openConversationPanel,
-    setActiveConversationChannel,
+    openCustomerConversation,
   } = useLayoutContext();
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
@@ -58,8 +57,7 @@ export default function Desk() {
             : "desk";
 
   const handleOpenChannel = (channel: "sms" | "email") => {
-    setActiveConversationChannel(channel);
-    openConversationPanel();
+    openCustomerConversation(selectedAssignment.id, channel);
   };
 
   return (

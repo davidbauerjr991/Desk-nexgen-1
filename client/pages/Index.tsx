@@ -62,6 +62,7 @@ export default function Index() {
     conversationState,
     setConversationState,
     activeConversationChannel,
+    activeConversationTabs,
     setActiveConversationChannel,
     openDeskPanel,
   } = useLayoutContext();
@@ -181,6 +182,7 @@ export default function Index() {
             {isConversationContentVisible && (
               <ConversationPanel
                 conversation={conversationState}
+                openChannels={activeConversationTabs}
                 activeChannel={activeConversationChannel}
                 customerId={selectedAssignment.id}
                 draftKey={`mobile-${activeConversationChannel}`}
