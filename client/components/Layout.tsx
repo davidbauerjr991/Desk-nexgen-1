@@ -293,7 +293,8 @@ const DOCKED_CONVERSATION_MIN_WIDTH = 360;
 const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
-const DOCKED_CONVERSATION_CONTENT_DELAY_MS = 300;
+const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 120;
+const DOCKED_CONVERSATION_CONTENT_TRANSITION_MS = 220;
 const MIN_MAIN_WORKSPACE_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_MIN_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 425;
@@ -1300,6 +1301,7 @@ function DockedConversationPanel({
 }) {
   const contentInitializedRef = useRef(false);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
+  const [isContentEntered, setIsContentEntered] = useState(isOpen);
   const shouldStackHeaderActions = false;
 
   useEffect(() => {
@@ -1308,23 +1310,45 @@ function DockedConversationPanel({
       return;
     }
 
+    let timeoutId: number | undefined;
+    let frameId: number | undefined;
+
     if (!isOpen) {
-      setIsContentVisible(false);
-      return;
+      setIsContentEntered(false);
+      timeoutId = window.setTimeout(() => {
+        setIsContentVisible(false);
+      }, DOCKED_CONVERSATION_CONTENT_TRANSITION_MS);
+
+      return () => {
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+      };
     }
 
-    const timeoutId = window.setTimeout(() => {
-      setIsContentVisible(true);
-    }, DOCKED_CONVERSATION_CONTENT_DELAY_MS);
+    setIsContentVisible(true);
+    timeoutId = window.setTimeout(() => {
+      frameId = window.requestAnimationFrame(() => {
+        setIsContentEntered(true);
+      });
+    }, DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
   }, [isOpen]);
 
   return (
     <div
       aria-hidden={!isOpen}
       className={cn(
-        "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-300 ease-out min-[800px]:block",
+        "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-400 ease-out min-[800px]:block",
         isOpen && (!isEqualSplit || equalSplitWidth === undefined) && "min-w-0 flex-1 basis-0",
         isOpen && isEqualSplit && equalSplitWidth !== undefined && "min-w-0 shrink-0",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
@@ -1334,7 +1358,12 @@ function DockedConversationPanel({
         marginRight: isOpen && showTrailingGap ? DOCKED_CONVERSATION_GAP : 0,
       }}
     >
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-200 ease-out will-change-[opacity,transform]",
+          isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+        )}
+      >
         {isContentVisible && (
           <>
             <div
