@@ -2772,17 +2772,17 @@ function LeftQueueRail() {
 
         <div
           className={cn(
-            "h-full overflow-hidden transition-[width,opacity] duration-300 ease-out",
+            "h-full min-h-0 overflow-hidden transition-[width,opacity] duration-300 ease-out",
             isOpen ? "w-[315px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div
             className={cn(
-              "flex h-full w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
+              "flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
-            <div className="flex h-full flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-[#F8F8F9]">
               <div className="shrink-0 px-4 pb-4 pt-0">
                 <div className="rounded-[8px] bg-white px-3 py-3">
                   <div className="mb-3 flex items-center gap-3">
