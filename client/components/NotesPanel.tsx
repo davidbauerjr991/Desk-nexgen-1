@@ -11,12 +11,11 @@ import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
 
 const PRIMARY_TABS = ["Overview", "Details"] as const;
-const OVERFLOW_TABS = ["Accounts"] as const;
-const SWITCHABLE_TABS = ["Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History"] as const;
+const SWITCHABLE_TABS = ["Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History"] as const;
 const DEFAULT_SWITCHABLE_TAB = "Tickets";
 const TICKET_PAGE_SIZE = 6;
 
-export const NOTES_PANEL_MENU_ITEMS = [...PRIMARY_TABS, ...OVERFLOW_TABS, ...SWITCHABLE_TABS];
+export const NOTES_PANEL_MENU_ITEMS = [...PRIMARY_TABS, ...SWITCHABLE_TABS];
 
 const DEFAULT_NOTE_AGENT = {
   name: "Jordan Doe",
@@ -876,7 +875,7 @@ export default function NotesPanel({
   };
 
   const visibleTabs = [...PRIMARY_TABS, activeSwitchableTab];
-  const moreTabs = [...OVERFLOW_TABS, ...SWITCHABLE_TABS.filter((tab) => tab !== activeSwitchableTab)];
+  const moreTabs = SWITCHABLE_TABS.filter((tab) => tab !== activeSwitchableTab);
   const activeTicket = openTickets.find((ticket) => ticket.id === activeTab) ?? null;
 
   const handleOpenTicket = (ticket: CustomerTicket) => {
@@ -995,9 +994,7 @@ export default function NotesPanel({
                   key={tab}
                   type="button"
                   onClick={() => {
-                    if (SWITCHABLE_TABS.includes(tab as (typeof SWITCHABLE_TABS)[number])) {
-                      setActiveSwitchableTab(tab);
-                    }
+                    setActiveSwitchableTab(tab);
                     setActiveTab(tab);
                     setShowMoreTabs(false);
                   }}
