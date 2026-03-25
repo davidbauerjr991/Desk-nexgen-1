@@ -1554,11 +1554,11 @@ function DockedCustomerInfoPanel({
     >
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div
-          className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+          className="flex min-h-[68px] cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
           onMouseDown={onUndockStart}
         >
-          <div className="flex items-start gap-3">
-            <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div className="flex items-center gap-3">
+            <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div className="min-w-0">
               <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer</h3>
               <p className="truncate text-xs text-[#7A7A7A]">
@@ -1872,11 +1872,11 @@ function DockedCopilotPanel({
 
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <div
-          className="flex min-h-[68px] cursor-grab items-start justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+          className="flex min-h-[68px] cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
           onMouseDown={onUndockStart}
         >
-          <div className="flex items-start gap-3">
-            <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div className="flex items-center gap-3">
+            <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div>
               <h3 className="text-sm font-semibold tracking-tight text-[#333333]">NiCE Copilot</h3>
             </div>
