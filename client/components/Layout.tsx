@@ -47,7 +47,6 @@ import ConversationPanel, { type ConversationStatus, type SharedConversationData
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
-import { VoiceAIGuidanceCard } from "@/components/VoiceGuidanceContent";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -1101,19 +1100,15 @@ function CallControlsPopunder({
             </Button>
           </>
         ) : mode === "connecting" ? (
-          <>
-            <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E6F3FA] text-[#006DAD] animate-pulse">
-                <Phone className="h-5 w-5" />
-              </div>
-              <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
-              <p className="mt-1 text-xs leading-5 text-[#6B7280]">
-                We’re reaching the customer now. AI guidance is ready and the transcript will appear once the call is live.
-              </p>
+          <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E6F3FA] text-[#006DAD] animate-pulse">
+              <Phone className="h-5 w-5" />
             </div>
-
-            <VoiceAIGuidanceCard />
-          </>
+            <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
+            <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+              We’re reaching the customer now. The transcript will appear once the call is live.
+            </p>
+          </div>
         ) : mode === "controls" ? (
           <div className="flex flex-shrink-0 items-stretch gap-2">
             <Button
