@@ -66,75 +66,73 @@ export default function DeskDataTable() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-x-auto">
-        <div className="min-w-[780px]">
-          <ScrollArea className="h-full min-h-0">
-            <div className="space-y-3 p-4">
-          {rows.map((row) => {
-            const isSelected = selectedAssignment.id === row.id;
+      <div className="min-h-0 flex-1">
+        <ScrollArea className="h-full min-h-0">
+          <div className="space-y-3 p-4">
+            {rows.map((row) => {
+              const isSelected = selectedAssignment.id === row.id;
 
-            return (
-              <div
-                key={row.id}
-                className={cn(
-                  "rounded-2xl border bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all",
-                  isSelected
-                    ? "border-[#006DAD] shadow-[0_10px_28px_rgba(0,109,173,0.14)]"
-                    : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
-                )}
-              >
-                <div className="grid grid-cols-[180px_220px_280px] items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => selectAssignment(row.id)}
-                    className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
-                  >
-                    <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">{row.customerId}</span>
-                    <span className="mt-1 whitespace-nowrap text-sm font-semibold text-[#111827]">
-                      {row.firstName} {row.lastName}
-                    </span>
-                    <span className="mt-2 whitespace-nowrap text-xs text-[#667085]">
-                      Updated {row.lastUpdated}
-                    </span>
-                  </button>
+              return (
+                <div
+                  key={row.id}
+                  className={cn(
+                    "min-w-0 rounded-2xl border bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all",
+                    isSelected
+                      ? "border-[#006DAD] shadow-[0_10px_28px_rgba(0,109,173,0.14)]"
+                      : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
+                  )}
+                >
+                  <div className="flex flex-col gap-3">
+                    <button
+                      type="button"
+                      onClick={() => selectAssignment(row.id)}
+                      className="flex w-full min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
+                    >
+                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">{row.customerId}</span>
+                      <span className="mt-1 break-words text-sm font-semibold text-[#111827]">
+                        {row.firstName} {row.lastName}
+                      </span>
+                      <span className="mt-2 text-xs text-[#667085]">
+                        Updated {row.lastUpdated}
+                      </span>
+                    </button>
 
-                  <div className="flex flex-nowrap items-center justify-start gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={(event) => handleStartCall(row.id, event.currentTarget.getBoundingClientRect())}
-                      disabled={!isAgentAvailable || isAgentInCall}
-                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                    >
-                      <Phone className="mr-2 h-4 w-4" /> Call
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenChannel(row.id, "sms")}
-                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" /> SMS
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenChannel(row.id, "email")}
-                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                    >
-                      <Mail className="mr-2 h-4 w-4" /> Email
-                    </Button>
-                  </div>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => handleStartCall(row.id, event.currentTarget.getBoundingClientRect())}
+                        disabled={!isAgentAvailable || isAgentInCall}
+                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                      >
+                        <Phone className="mr-2 h-4 w-4" /> Call
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenChannel(row.id, "sms")}
+                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" /> SMS
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenChannel(row.id, "email")}
+                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                      >
+                        <Mail className="mr-2 h-4 w-4" /> Email
+                      </Button>
+                    </div>
                 </div>
               </div>
             );
-          })}
-            </div>
-          </ScrollArea>
-        </div>
+            })}
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );
