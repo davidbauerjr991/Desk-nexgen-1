@@ -169,7 +169,7 @@ function getConversationStatusChipClasses(status: ConversationStatus) {
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
 }
 
-type AssignmentChannel = Extract<CustomerChannel, "sms" | "email" | "voice">;
+type AssignmentChannel = Extract<CustomerChannel, "chat" | "sms" | "email" | "voice">;
 
 function getConversationStateKey(assignmentId: string) {
   return assignmentId;
@@ -203,15 +203,20 @@ const queueIconMap: Record<CustomerQueueIcon, typeof Phone> = {
 };
 
 const launchedAssignmentIconMap: Record<AssignmentChannel, typeof Phone> = {
+  chat: MessageSquare,
   sms: MessageSquare,
   email: Mail,
   voice: Phone,
 };
 
+const baseAssignmentChannelByCustomerRecordId: Partial<Record<string, AssignmentChannel>> = {
+  olivia: "chat",
+};
+
 const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) => ({
   id: customer.id,
   customerRecordId: customer.id,
-  channel: "sms",
+  channel: baseAssignmentChannelByCustomerRecordId[customer.id] ?? "sms",
   initials: customer.initials,
   name: customer.name,
   customerId: customer.customerId,
