@@ -2460,12 +2460,6 @@ function ConversationPopunder({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-                <div className="shrink-0" onMouseDown={(event) => event.stopPropagation()}>
-                  <ConversationStatusDropdown
-                    status={conversation.status}
-                    onStatusChange={onConversationStatusChange}
-                  />
-                </div>
               </div>
               <ConversationHeaderSubhead conversation={conversation} activeChannel={activeChannel} />
             </div>
