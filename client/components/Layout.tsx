@@ -39,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
@@ -603,39 +604,61 @@ function ConversationHeaderSubhead({
   activeChannel: CustomerChannel;
 }) {
   const channelLabel = conversationChannelOptions.find((option) => option.channel === activeChannel)?.label ?? activeChannel;
-  const overviewSummary = getConversationOverviewSummary(conversation);
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#7A7A7A]">
       <span className="font-medium text-[#5B5B5B]">{conversation.customerName}</span>
       <span aria-hidden="true">·</span>
       <span>{channelLabel}</span>
-      <span aria-hidden="true">·</span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            onMouseDown={(event) => event.stopPropagation()}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-[#5B5B5B] transition-colors hover:bg-black/5 hover:text-[#333333]"
-          >
-            <span>Overview</span>
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          sideOffset={8}
-          className="w-[320px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
-        >
-          <div className="border-b border-[#E7D7A6] px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A5B00]">Context overview</p>
-          </div>
-          <div className="px-4 py-3 text-sm leading-6 text-[#6B5A1B]">
-            <p>{overviewSummary}</p>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
+  );
+}
+
+function ConversationOverviewButton({
+  conversation,
+  assignmentKey,
+}: {
+  conversation: SharedConversationData;
+  assignmentKey: string;
+}) {
+  const overviewSummary = getConversationOverviewSummary(conversation);
+  const [isOpen, setIsOpen] = useState(true);
+
+  useEffect(() => {
+    setIsOpen(true);
+  }, [assignmentKey]);
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen} modal={false}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onMouseDown={(event) => event.stopPropagation()}
+          className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+        >
+          <span>Overview</span>
+          <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        side="bottom"
+        sideOffset={8}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
+        className="w-[320px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
+      >
+        <div className="border-b border-[#E7D7A6] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A5B00]">Context overview</p>
+        </div>
+        <div className="px-4 py-3 text-sm leading-6 text-[#6B5A1B]">
+          <p>{overviewSummary}</p>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -1286,6 +1309,7 @@ function DockedConversationPanel({
                   shouldStackHeaderActions ? "pl-7" : "shrink-0",
                 )}
               >
+                <ConversationOverviewButton conversation={conversation} assignmentKey={customerRecordId} />
                 <Button
                   type="button"
                   variant="outline"
@@ -2261,6 +2285,7 @@ function ConversationPopunder({
             shouldStackHeaderActions ? "pl-7" : "",
           )}
         >
+          <ConversationOverviewButton conversation={conversation} assignmentKey={customerRecordId} />
           <Button
             type="button"
             variant="outline"
