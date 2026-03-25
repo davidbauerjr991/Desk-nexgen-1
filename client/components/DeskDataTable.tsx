@@ -1,293 +1,191 @@
-import { Box } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { useMemo } from "react";
+import { Mail, MessageSquare, Phone } from "lucide-react";
 
-type DeskRow = {
-  id: number;
+import { useLayoutContext } from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { type CustomerChannel, customerDatabase } from "@/lib/customer-database";
+import { cn } from "@/lib/utils";
+
+type DeskCustomerRow = {
+  id: string;
   customerId: string;
-  first: string;
-  last: string;
+  firstName: string;
+  lastName: string;
   group: string;
-  primaryPhone: string;
-  emailAddress: string;
-  address1: string;
-  city: string;
-  state: string;
+  phone: string;
+  email: string;
+  priority: string;
+  priorityClassName: string;
+  lastUpdated: string;
 };
 
-const deskColumns: GridColDef<DeskRow>[] = [
-  { field: "customerId", headerName: "CUSTOMER ID", minWidth: 110, flex: 1 },
-  { field: "first", headerName: "FIRST", minWidth: 86, flex: 0.85 },
-  { field: "last", headerName: "LAST", minWidth: 92, flex: 0.95 },
-  { field: "group", headerName: "GROUP", minWidth: 88, flex: 0.9 },
-  { field: "primaryPhone", headerName: "PRIMARY PHONE", minWidth: 130, flex: 1.15 },
-  { field: "emailAddress", headerName: "EMAIL ADDRESS", minWidth: 132, flex: 1.2 },
-  { field: "address1", headerName: "ADDRESS 1", minWidth: 118, flex: 1.05 },
-  { field: "city", headerName: "CITY", minWidth: 84, flex: 0.8 },
-  { field: "state", headerName: "STATE", minWidth: 78, flex: 0.7 },
-];
+const customerGroups = ["Priority Care", "Billing", "Growth", "Support", "Retention"];
 
-const baseRows: DeskRow[] = [
-  {
-    id: 1,
-    customerId: "2104",
-    first: "Christina",
-    last: "Adams",
-    group: "",
-    primaryPhone: "(716) 308-1763",
-    emailAddress: "THArrington2...",
-    address1: "1 SmartReach ...",
-    city: "Buffalo",
-    state: "New York",
-  },
-  {
-    id: 2,
-    customerId: "2457",
-    first: "Hannah",
-    last: "Mayer",
-    group: "Insurance",
-    primaryPhone: "(716) 331-4661",
-    emailAddress: "Teresa.Harrin...",
-    address1: "1 SmartReach ...",
-    city: "Buffalo",
-    state: "New York",
-  },
-  {
-    id: 3,
-    customerId: "6072818957",
-    first: "josh",
-    last: "robertson",
-    group: "",
-    primaryPhone: "(415) 671-6000",
-    emailAddress: "devera.e@gm...",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 4,
-    customerId: "ACCT33876",
-    first: "jane",
-    last: "Smith",
-    group: "",
-    primaryPhone: "(470) 207-9163",
-    emailAddress: "jane.smith@fi...",
-    address1: "3378 Main St",
-    city: "Chicago",
-    state: "CA",
-  },
-  {
-    id: 5,
-    customerId: "JJR",
-    first: "",
-    last: "",
-    group: "",
-    primaryPhone: "",
-    emailAddress: "",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 6,
-    customerId: "JJR_1",
-    first: "Jason",
-    last: "Queener",
-    group: "",
-    primaryPhone: "(607) 281-8957",
-    emailAddress: "",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 7,
-    customerId: "JJR_10",
-    first: "amanda",
-    last: "jack",
-    group: "",
-    primaryPhone: "(607) 281-8957",
-    emailAddress: "joshua.robert...",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 8,
-    customerId: "JJR_11",
-    first: "carey",
-    last: "diane",
-    group: "",
-    primaryPhone: "(607) 743-3206",
-    emailAddress: "",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 9,
-    customerId: "JJR_12",
-    first: "jill",
-    last: "carey",
-    group: "",
-    primaryPhone: "(607) 743-3206",
-    emailAddress: "",
-    address1: "",
-    city: "",
-    state: "",
-  },
-  {
-    id: 10,
-    customerId: "JJR_13",
-    first: "jack",
-    last: "jill",
-    group: "",
-    primaryPhone: "(607) 743-3206",
-    emailAddress: "",
-    address1: "",
-    city: "",
-    state: "",
-  },
-];
+function getRowEmail(firstName: string, lastName: string, customerId: string) {
+  const first = firstName.trim().toLowerCase();
+  const last = lastName.trim().toLowerCase();
+  const normalizedCustomerId = customerId.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-const generatedFirstNames = [
-  "Alex",
-  "Taylor",
-  "Morgan",
-  "Jordan",
-  "Parker",
-  "Avery",
-  "Riley",
-  "Quinn",
-  "Casey",
-  "Jamie",
-  "Dakota",
-];
-const generatedLastNames = [
-  "Bennett",
-  "Carter",
-  "Brooks",
-  "Diaz",
-  "Ellis",
-  "Foster",
-  "Gray",
-  "Hayes",
-  "Irwin",
-  "James",
-  "Knight",
-];
-const generatedGroups = ["Insurance", "Retail", "Support", "Sales", "Care"];
-const generatedCities = ["Buffalo", "Chicago", "Austin", "Phoenix", "New York"];
-const generatedStates = ["New York", "IL", "TX", "AZ", "NY"];
+  if (first && last) {
+    return `${first}.${last}@${normalizedCustomerId}.demo`;
+  }
 
-const generatedRows: DeskRow[] = Array.from({ length: 44 }, (_, index) => {
-  const first = generatedFirstNames[index % generatedFirstNames.length];
-  const last = generatedLastNames[index % generatedLastNames.length];
-  const city = generatedCities[index % generatedCities.length];
-  const state = generatedStates[index % generatedStates.length];
-
-  return {
-    id: index + 11,
-    customerId: `${3100 + index}`,
-    first,
-    last,
-    group: generatedGroups[index % generatedGroups.length],
-    primaryPhone: `(716) 555-${(1200 + index).toString().padStart(4, "0")}`,
-    emailAddress: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
-    address1: `${100 + index} Market St`,
-    city,
-    state,
-  };
-});
-
-const deskRows = [...baseRows, ...generatedRows];
+  return `${normalizedCustomerId}@demo`;
+}
 
 export default function DeskDataTable() {
+  const {
+    selectedAssignment,
+    selectAssignment,
+    toggleCallPopunder,
+    openConversationPanel,
+    setActiveConversationChannel,
+    isAgentAvailable,
+    isAgentInCall,
+  } = useLayoutContext();
+
+  const rows = useMemo<DeskCustomerRow[]>(() => customerDatabase.map((customer, index) => {
+    const [firstName = customer.name, ...lastNameParts] = customer.name.split(" ");
+    const lastName = lastNameParts.join(" ");
+
+    return {
+      id: customer.id,
+      customerId: customer.customerId,
+      firstName,
+      lastName,
+      group: customerGroups[index % customerGroups.length],
+      phone: customer.overview.contactNumber,
+      email: getRowEmail(firstName, lastName, customer.customerId),
+      priority: customer.queue.priority,
+      priorityClassName: customer.queue.priorityClassName,
+      lastUpdated: customer.lastUpdated,
+    };
+  }), []);
+
+  const handleOpenChannel = (customerId: string, channel: Extract<CustomerChannel, "sms" | "email">) => {
+    selectAssignment(customerId);
+    setActiveConversationChannel(channel);
+    openConversationPanel();
+  };
+
+  const handleStartCall = (customerId: string, anchorRect?: DOMRect | null) => {
+    selectAssignment(customerId);
+    toggleCallPopunder(anchorRect);
+  };
+
   return (
-    <Box className="flex min-h-0 flex-1 overflow-hidden bg-white">
-      <DataGrid
-        rows={deskRows}
-        columns={deskColumns}
-        disableRowSelectionOnClick
-        disableColumnFilter
-        disableColumnMenu
-        disableColumnSelector
-        hideFooterSelectedRowCount
-        rowHeight={38}
-        columnHeaderHeight={42}
-        pageSizeOptions={[25]}
-        initialState={{
-          pagination: {
-            paginationModel: { pageSize: 25, page: 0 },
-          },
-        }}
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? "desk-row-even" : "desk-row-odd"
-        }
-        sx={{
-          flex: 1,
-          minHeight: 0,
-          height: "100%",
-          overflow: "hidden",
-          border: 0,
-          fontSize: "13px",
-          color: "#333333",
-          backgroundColor: "#FFFFFF",
-          "& .MuiDataGrid-main": {
-            overflow: "hidden",
-          },
-          "& .MuiDataGrid-virtualScroller": {
-            overflowX: "auto",
-            overflowY: "auto",
-          },
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: "#F3F4F6",
-            borderBottom: "1px solid #D7DBE0",
-          },
-          "& .MuiDataGrid-columnHeader": {
-            paddingInline: "8px",
-          },
-          "& .MuiDataGrid-columnHeaderTitle": {
-            fontSize: "11px",
-            fontWeight: 700,
-            letterSpacing: "0.01em",
-            color: "#333333",
-          },
-          "& .MuiDataGrid-cell": {
-            borderColor: "#E2E8F0",
-            paddingInline: "8px",
-          },
-          "& .desk-row-even": {
-            backgroundColor: "#FFFFFF",
-          },
-          "& .desk-row-odd": {
-            backgroundColor: "#F9FAFB",
-          },
-          "& .MuiDataGrid-row:hover": {
-            backgroundColor: "#EEF6FC !important",
-          },
-          "& .MuiDataGrid-footerContainer": {
-            minHeight: "46px",
-            borderTop: "1px solid #D7DBE0",
-            backgroundColor: "#FFFFFF",
-            overflow: "hidden",
-          },
-          "& .MuiDataGrid-scrollbar--vertical": {
-            top: "var(--DataGrid-headersTotalHeight)",
-            bottom: "calc(var(--DataGrid-bottomContainerHeight) + var(--DataGrid-hasScrollX) * var(--DataGrid-scrollbarSize))",
-            height: "auto",
-          },
-          "& .MuiTablePagination-root": {
-            color: "#4B5563",
-            fontSize: "12px",
-          },
-          "& .MuiDataGrid-scrollbarFiller": {
-            backgroundColor: "#FFFFFF",
-          },
-          "& .MuiDataGrid-withBorderColor": {
-            borderColor: "#D7DBE0",
-          },
-        }}
-      />
-    </Box>
+    <div className="flex min-h-0 flex-1 flex-col bg-[#F8F8F9]">
+      <div className="border-b border-black/10 bg-white px-6 py-5">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-[#111827]">Customers</h2>
+            <p className="mt-1 text-sm text-[#667085]">
+              A simpler view of customer records with quick contact actions.
+            </p>
+          </div>
+          <div className="rounded-full border border-black/10 bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#475467]">
+            {rows.length} records
+          </div>
+        </div>
+      </div>
+
+      <div className="hidden items-center gap-4 border-b border-black/10 bg-[#FCFCFD] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085] min-[960px]:grid min-[960px]:grid-cols-[1.1fr_1.4fr_0.9fr_1fr_auto]">
+        <span>Customer ID</span>
+        <span>Name</span>
+        <span>Group</span>
+        <span>Contact</span>
+        <span className="text-right">Actions</span>
+      </div>
+
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="space-y-3 p-4">
+          {rows.map((row) => {
+            const isSelected = selectedAssignment.id === row.id;
+
+            return (
+              <div
+                key={row.id}
+                className={cn(
+                  "rounded-2xl border bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all",
+                  isSelected
+                    ? "border-[#006DAD] shadow-[0_10px_28px_rgba(0,109,173,0.14)]"
+                    : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
+                )}
+              >
+                <div className="flex flex-col gap-4 min-[960px]:grid min-[960px]:grid-cols-[1.1fr_1.4fr_0.9fr_1fr_auto] min-[960px]:items-center">
+                  <button
+                    type="button"
+                    onClick={() => selectAssignment(row.id)}
+                    className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
+                  >
+                    <span className="text-sm font-semibold text-[#111827]">{row.customerId}</span>
+                    <span className="mt-1 text-xs text-[#667085]">Updated {row.lastUpdated}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => selectAssignment(row.id)}
+                    className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-base font-semibold text-[#111827]">
+                        {row.firstName} {row.lastName}
+                      </span>
+                      <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", row.priorityClassName)}>
+                        {row.priority}
+                      </span>
+                    </div>
+                    <span className="mt-1 text-sm text-[#667085]">Primary contact on file</span>
+                  </button>
+
+                  <div className="flex items-center">
+                    <span className="inline-flex rounded-full border border-[#D0D5DD] bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#344054]">
+                      {row.group}
+                    </span>
+                  </div>
+
+                  <div className="min-w-0 space-y-1 text-sm text-[#475467]">
+                    <p className="truncate font-medium text-[#344054]">{row.phone}</p>
+                    <p className="truncate text-[#667085]">{row.email}</p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-start gap-2 min-[960px]:justify-end">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={(event) => handleStartCall(row.id, event.currentTarget.getBoundingClientRect())}
+                      disabled={!isAgentAvailable || isAgentInCall}
+                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                    >
+                      <Phone className="mr-2 h-4 w-4" /> Call
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenChannel(row.id, "sms")}
+                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" /> SMS
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleOpenChannel(row.id, "email")}
+                      className="h-9 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                    >
+                      <Mail className="mr-2 h-4 w-4" /> Email
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
