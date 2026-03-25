@@ -90,16 +90,18 @@ export default function DeskDataTable() {
         </div>
       </div>
 
-      <div className="hidden items-center gap-4 border-b border-black/10 bg-[#FCFCFD] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085] min-[960px]:grid min-[960px]:grid-cols-[1.1fr_1.4fr_0.9fr_1fr_auto]">
-        <span>Customer ID</span>
-        <span>Name</span>
-        <span>Group</span>
-        <span>Contact</span>
-        <span className="text-right">Actions</span>
-      </div>
+      <div className="min-h-0 flex-1 overflow-x-auto">
+        <div className="min-w-[1080px]">
+          <div className="grid grid-cols-[160px_260px_160px_220px_280px] items-center gap-4 border-b border-black/10 bg-[#FCFCFD] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">
+            <span>Customer ID</span>
+            <span>Name</span>
+            <span>Group</span>
+            <span>Contact</span>
+            <span className="text-right">Actions</span>
+          </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="space-y-3 p-4">
+          <ScrollArea className="h-full min-h-0">
+            <div className="space-y-3 p-4">
           {rows.map((row) => {
             const isSelected = selectedAssignment.id === row.id;
 
@@ -113,13 +115,13 @@ export default function DeskDataTable() {
                     : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
                 )}
               >
-                <div className="flex flex-col gap-4 min-[960px]:grid min-[960px]:grid-cols-[1.1fr_1.4fr_0.9fr_1fr_auto] min-[960px]:items-center">
+                <div className="grid grid-cols-[160px_260px_160px_220px_280px] items-center gap-4">
                   <button
                     type="button"
                     onClick={() => selectAssignment(row.id)}
                     className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
                   >
-                    <span className="text-sm font-semibold text-[#111827]">{row.customerId}</span>
+                    <span className="whitespace-nowrap text-sm font-semibold text-[#111827]">{row.customerId}</span>
                     <span className="mt-1 text-xs text-[#667085]">Updated {row.lastUpdated}</span>
                   </button>
 
@@ -129,7 +131,7 @@ export default function DeskDataTable() {
                     className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
                   >
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-base font-semibold text-[#111827]">
+                      <span className="whitespace-nowrap text-base font-semibold text-[#111827]">
                         {row.firstName} {row.lastName}
                       </span>
                       <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", row.priorityClassName)}>
@@ -146,11 +148,11 @@ export default function DeskDataTable() {
                   </div>
 
                   <div className="min-w-0 space-y-1 text-sm text-[#475467]">
-                    <p className="truncate font-medium text-[#344054]">{row.phone}</p>
-                    <p className="truncate text-[#667085]">{row.email}</p>
+                    <p className="whitespace-nowrap font-medium text-[#344054]">{row.phone}</p>
+                    <p className="whitespace-nowrap text-[#667085]">{row.email}</p>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-start gap-2 min-[960px]:justify-end">
+                  <div className="flex flex-nowrap items-center justify-end gap-2">
                     <Button
                       type="button"
                       size="sm"
@@ -184,8 +186,10 @@ export default function DeskDataTable() {
               </div>
             );
           })}
+            </div>
+          </ScrollArea>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
