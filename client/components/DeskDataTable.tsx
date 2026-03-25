@@ -113,25 +113,14 @@ export default function DeskDataTable() {
                     onClick={() => selectAssignment(row.id)}
                     className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
                   >
-                    <span className="whitespace-nowrap text-sm font-semibold text-[#111827]">{row.customerId}</span>
-                    <span className="mt-1 text-xs text-[#667085]">Updated {row.lastUpdated}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => selectAssignment(row.id)}
-                    className="flex min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="whitespace-nowrap text-base font-semibold text-[#111827]">
-                        {row.firstName} {row.lastName}
-                      </span>
-                      <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", row.priorityClassName)}>
-                        {row.priority}
-                      </span>
-                    </div>
+                    <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">{row.customerId}</span>
+                    <span className="mt-1 whitespace-nowrap text-sm font-semibold text-[#111827]">
+                      {row.firstName} {row.lastName}
+                    </span>
                     <span className="mt-1 text-sm text-[#667085]">Primary contact on file</span>
                   </button>
+
+                  <div />
 
                   <div className="flex items-center">
                     <span className="inline-flex rounded-full border border-[#D0D5DD] bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#344054]">
