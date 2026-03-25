@@ -2941,7 +2941,7 @@ function LeftQueueRail() {
     <div
       className={cn(
         "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-        isOpen ? "w-[315px]" : "w-[60px]",
+        isOpen ? "w-[347px]" : "w-[60px]",
       )}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
@@ -3032,12 +3032,12 @@ function LeftQueueRail() {
         <div
           className={cn(
             "h-full min-h-0 overflow-hidden transition-[width,opacity] duration-300 ease-out",
-            isOpen ? "w-[315px] opacity-100" : "w-0 opacity-0",
+            isOpen ? "w-[347px] opacity-100" : "w-0 opacity-0",
           )}
         >
           <div
             className={cn(
-              "ml-4 flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
+              "ml-4 mr-4 flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] transition-transform duration-300 ease-out",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
