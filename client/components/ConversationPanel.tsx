@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, ChevronLeft, ChevronRight, MoreHorizontal, Paperclip, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Paperclip, Plus, Send, SlidersHorizontal, Sparkles, Ticket, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
-import { getRelevantCustomerTicket } from "@/components/NotesPanel";
+import { getRelevantCustomerTicket, type CustomerTicket } from "@/components/NotesPanel";
 import { VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
 import { getCustomerRecord, type CustomerChannel } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
@@ -85,8 +85,9 @@ type InlineSuggestion = {
 type SuggestionAction = {
   id: string;
   label: string;
-  initialTab: string;
+  initialTab?: string;
   ticketId?: string;
+  ticket?: CustomerTicket;
 };
 
 function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
@@ -375,6 +376,119 @@ function getReplyEmailSubject(conversation: SharedConversationData) {
   return /^re:/i.test(baseSubject) ? baseSubject : `Re: ${baseSubject}`;
 }
 
+function getTicketPriorityDotClassName(priority: CustomerTicket["priority"]) {
+  switch (priority) {
+    case "Low":
+      return "bg-[#369D3F]";
+    case "Medium":
+      return "bg-[#006DAD]";
+    case "High":
+      return "bg-[#F79009]";
+    default:
+      return "bg-[#F04438]";
+  }
+}
+
+function getTicketStatusBadgeClasses(status: CustomerTicket["status"]) {
+  switch (status) {
+    case "Open":
+      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
+    case "In Progress":
+      return "border-[#F4E1A1] bg-[#FFF9E8] text-[#7A5B00]";
+    case "Pending Customer":
+    case "On-Hold":
+    case "Training Rescheduled":
+      return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]";
+    case "Escalated":
+    case "Needing Attention":
+      return "border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]";
+    default:
+      return "border-black/10 bg-white text-[#475467]";
+  }
+}
+
+function InlineTicketRecord({
+  ticket,
+  isOpen,
+  onToggle,
+}: {
+  ticket: CustomerTicket;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="mt-4 overflow-hidden rounded-[20px] border border-black/10 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 border-b border-black/10 px-5 py-4 text-left"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">
+              <Ticket className="h-3.5 w-3.5" />
+              {ticket.id}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-medium text-[#475467]">
+              <span className={cn("h-2.5 w-2.5 rounded-full", getTicketPriorityDotClassName(ticket.priority))} />
+              {ticket.priority} Priority
+            </span>
+          </div>
+          <h3 className="mt-3 text-[16px] font-semibold text-[#111827]">{ticket.subject}</h3>
+          <p className="mt-1 text-sm text-[#667085]">
+            {ticket.type} case owned by {ticket.agent} in {ticket.agentTeam}.
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
+              getTicketStatusBadgeClasses(ticket.status),
+            )}
+          >
+            <span>{ticket.status}</span>
+          </span>
+          <ChevronDown className={cn("h-4 w-4 text-[#667085] transition-transform", !isOpen && "-rotate-90")} />
+        </div>
+      </button>
+
+      {isOpen ? (
+        <div className="grid gap-4 bg-[#FCFCFD] p-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Details</div>
+            <dl className="mt-4 space-y-3 text-sm">
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-[#667085]">Ticket Number</dt>
+                <dd className="font-medium text-[#111827]">{ticket.id}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-[#667085]">Type</dt>
+                <dd className="font-medium text-[#111827]">{ticket.type}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-[#667085]">Modified By</dt>
+                <dd className="font-medium text-[#111827]">{ticket.modifiedBy}</dd>
+              </div>
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-[#667085]">Assigned Team</dt>
+                <dd className="font-medium text-[#111827]">{ticket.agentTeam}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Summary</div>
+            <p className="mt-4 text-sm leading-6 text-[#475467]">
+              This ticket record was opened directly from the AI suggestion so agents can review the case without leaving the active conversation. Collapse this section any time to return to the message thread.
+            </p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function EmailConversationView({
   conversation,
   customerId,
@@ -523,6 +637,8 @@ export default function ConversationPanel({
   const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
+  const [expandedSuggestionTicket, setExpandedSuggestionTicket] = useState<CustomerTicket | null>(null);
+  const [isExpandedSuggestionTicketOpen, setIsExpandedSuggestionTicketOpen] = useState(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
   const latestMessageIsCustomer = latestMessage?.role === "customer";
@@ -540,7 +656,7 @@ export default function ConversationPanel({
     inlineSuggestion !== null &&
     !conversation.isCustomerTyping;
   const suggestionActions = useMemo(() => {
-    if (!inlineSuggestion || !latestCustomerMessage || !customerId || !onOpenDeskPanel) {
+    if (!inlineSuggestion || !latestCustomerMessage || !customerId) {
       return [] as SuggestionAction[];
     }
 
@@ -557,6 +673,7 @@ export default function ConversationPanel({
         label: "View ticket",
         initialTab: "Tickets",
         ticketId: relevantTicket.id,
+        ticket: relevantTicket,
       });
     }
 
@@ -704,6 +821,8 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
+    setExpandedSuggestionTicket(null);
+    setIsExpandedSuggestionTicketOpen(false);
   }, [latestCustomerMessage?.id, draftKey]);
 
   useEffect(() => {
@@ -764,6 +883,15 @@ export default function ConversationPanel({
   };
 
   const handleOpenSuggestionAction = (action: SuggestionAction) => {
+    if (action.ticket) {
+      const isSameTicket = expandedSuggestionTicket?.id === action.ticket.id;
+      setExpandedSuggestionTicket(action.ticket);
+      setIsExpandedSuggestionTicketOpen(!isSameTicket || !isExpandedSuggestionTicketOpen);
+      shouldStickToBottomRef.current = true;
+      queueScrollToBottomAfterLayout();
+      return;
+    }
+
     onOpenDeskPanel?.({ initialTab: action.initialTab, ticketId: action.ticketId });
   };
 
@@ -892,19 +1020,33 @@ export default function ConversationPanel({
                               <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
                               {suggestionActions.length > 0 ? (
                                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                                  {suggestionActions.map((action) => (
-                                    <Button
-                                      key={action.id}
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white"
-                                      onClick={() => handleOpenSuggestionAction(action)}
-                                    >
-                                      {action.label}
-                                    </Button>
-                                  ))}
+                                  {suggestionActions.map((action) => {
+                                    const isTicketActionExpanded = action.ticket && expandedSuggestionTicket?.id === action.ticket.id && isExpandedSuggestionTicketOpen;
+
+                                    return (
+                                      <Button
+                                        key={action.id}
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className={cn(
+                                          "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
+                                          isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
+                                        )}
+                                        onClick={() => handleOpenSuggestionAction(action)}
+                                      >
+                                        {action.label}
+                                      </Button>
+                                    );
+                                  })}
                                 </div>
+                              ) : null}
+                              {expandedSuggestionTicket ? (
+                                <InlineTicketRecord
+                                  ticket={expandedSuggestionTicket}
+                                  isOpen={isExpandedSuggestionTicketOpen}
+                                  onToggle={() => setIsExpandedSuggestionTicketOpen((current) => !current)}
+                                />
                               ) : null}
                               {isSuggestionEditorOpen ? (
                                 <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
