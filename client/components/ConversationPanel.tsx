@@ -673,7 +673,7 @@ export default function ConversationPanel({
                     <span>{formatConversationMessageTimestamp(message.time)}</span>
                   </div>
                   {message.sentiment === "frustrated" && (
-                    <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-orange-500">
+                    <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       Frustrated sentiment detected
                     </div>

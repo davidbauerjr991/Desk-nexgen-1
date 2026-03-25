@@ -85,8 +85,8 @@ export function CopilotContent() {
                     Live Interaction Context
                   </div>
                   <span className="relative flex h-2 w-2 flex-shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2D6A5F] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#2D6A5F]" />
                   </span>
                 </div>
               </AccordionTrigger>
@@ -99,13 +99,13 @@ export function CopilotContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Sentiment</div>
-                      <Badge variant="outline" className="border-orange-200 bg-orange-50 font-medium text-orange-600">
+                      <Badge variant="outline" className="border-[#FEDF89] bg-[#FFFAEB] font-medium text-[#B54708]">
                         {insights.sentiment}
                       </Badge>
                     </div>
                     <div>
                       <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Churn Risk</div>
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-orange-600">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-[#B54708]">
                         <AlertTriangle className="h-4 w-4" />
                         {insights.churnRisk}
                       </div>
@@ -159,12 +159,12 @@ export function CopilotContent() {
 
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-foreground">
-            <Lightbulb className="h-4 w-4 text-amber-500" />
+            <Lightbulb className="h-4 w-4 text-[#F79009]" />
             <h4 className="text-sm font-semibold">Next Best Actions</h4>
           </div>
           <div className="space-y-2">
             <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
-              <div className="mt-0.5 rounded-md bg-green-100 p-1.5 text-green-700">
+              <div className="mt-0.5 rounded-md bg-[#EAF8F4] p-1.5 text-[#2D6A5F]">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
@@ -173,7 +173,7 @@ export function CopilotContent() {
               </div>
             </button>
             <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
-              <div className="mt-0.5 rounded-md bg-blue-100 p-1.5 text-blue-700">
+              <div className="mt-0.5 rounded-md bg-[#EEF6FC] p-1.5 text-[#006DAD]">
                 <FileText className="h-4 w-4" />
               </div>
               <div>

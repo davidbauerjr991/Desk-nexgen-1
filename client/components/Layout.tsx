@@ -133,11 +133,11 @@ const statusOptions: Array<{
   dotClassName: string;
   textClassName: string;
 }> = [
-  { label: "Available", dotClassName: "bg-[#2CC84D]", textClassName: "text-[#2CC84D]" },
-  { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
-  { label: "Away", dotClassName: "bg-[#F59E0B]", textClassName: "text-[#F59E0B]" },
+  { label: "Available", dotClassName: "bg-[#2D6A5F]", textClassName: "text-[#2D6A5F]" },
+  { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#B42318]" },
+  { label: "Away", dotClassName: "bg-[#F79009]", textClassName: "text-[#B54708]" },
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
-  { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#F04438]" },
+  { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#B42318]" },
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
@@ -156,11 +156,11 @@ const conversationStatusOptions: Array<{ value: ConversationStatus; label: strin
 
 function getConversationStatusChipClasses(status: ConversationStatus) {
   if (status === "open") {
-    return "border-[#98D38D] bg-[#EAF8E6] text-[#2F7D32] hover:bg-[#E2F3DC]";
+    return "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F] hover:bg-[#D9F2EA]";
   }
 
   if (status === "pending") {
-    return "border-[#E8C46A] bg-[#FFF3CD] text-[#9A6700] hover:bg-[#FDECB8]";
+    return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708] hover:bg-[#FEF0C7]";
   }
 
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
@@ -230,15 +230,15 @@ const visibleAssignmentNames = new Set([
 const priorityDotClassNameMap: Record<string, string> = {
   critical: "bg-[#F04438]",
   high: "bg-[#F79009]",
-  medium: "bg-[#2E90FA]",
-  low: "bg-[#12B76A]",
+  medium: "bg-[#006DAD]",
+  low: "bg-[#2D6A5F]",
 };
 
 const priorityIconClassNameMap: Record<string, string> = {
   critical: "text-[#F04438]",
   high: "text-[#F79009]",
-  medium: "text-[#2E90FA]",
-  low: "text-[#12B76A]",
+  medium: "text-[#006DAD]",
+  low: "text-[#2D6A5F]",
 };
 
 type CallPopunderPosition = {
@@ -524,9 +524,9 @@ function formatRecentInteractionTimestamp(date: Date) {
 }
 
 function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) {
-  if (disposition === "Resolved") return "bg-[#2CB770]";
-  if (disposition === "Escalated") return "bg-[#D0021B]";
-  return "bg-[#F59E0B]";
+  if (disposition === "Resolved") return "bg-[#2D6A5F]";
+  if (disposition === "Escalated") return "bg-[#F04438]";
+  return "bg-[#F79009]";
 }
 
 function CallAIGuidanceCard() {
@@ -917,7 +917,7 @@ function CallControlsPopunder({
               type="button"
               onClick={onLaunchCall}
               disabled={!accountNumber.trim()}
-              className="w-full bg-[#16A34A] text-white hover:bg-[#15803D]"
+              className="w-full bg-[#2D6A5F] text-white hover:bg-[#25574E]"
             >
               Launch Call
             </Button>
@@ -2602,7 +2602,7 @@ function QueueAssignmentCard({
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
           <span className="inline-flex items-center gap-1.5">
-            <ItemIcon className="h-4 w-4 text-[#16A34A]" />
+            <ItemIcon className="h-4 w-4 text-[#2D6A5F]" />
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />

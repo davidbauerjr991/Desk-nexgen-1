@@ -123,7 +123,7 @@ function TimelineCard({ customerId }: { customerId: string }) {
                 className={cn(
                   "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm",
                   item.tone === "critical" && "bg-[#F04438]",
-                  item.tone === "warning" && "bg-[#F59E0B]",
+                  item.tone === "warning" && "bg-[#F79009]",
                   item.tone === "info" && "bg-[#006DAD]",
                   item.tone === "default" && "bg-[#CBD5E1]",
                 )}
@@ -160,9 +160,9 @@ function TicketsCard() {
                     <span
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
-                        ticket.status === "Open" && "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
+                        ticket.status === "Open" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]",
                         ticket.status === "Pending" && "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]",
-                        ticket.status === "Resolved" && "border-[#ABEFC6] bg-[#ECFDF3] text-[#067647]",
+                        ticket.status === "Resolved" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#2D6A5F]",
                         ticket.status === "Closed" && "border-black/10 bg-white text-[#6B7280]",
                       )}
                     >
