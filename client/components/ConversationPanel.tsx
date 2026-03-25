@@ -368,6 +368,7 @@ export default function ConversationPanel({
   const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
   const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
+  const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
@@ -548,9 +549,23 @@ export default function ConversationPanel({
     setSuggestionRefreshKey(0);
     setSuggestionEditPrompt("");
     setEditedInlineSuggestion(null);
+    setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
   }, [latestCustomerMessage?.id, draftKey]);
+
+  useEffect(() => {
+    if (!shouldShowSuggestion) {
+      return;
+    }
+
+    if (suggestionAccordionValue !== "ai-suggestion" && !isSuggestionEditorOpen) {
+      return;
+    }
+
+    shouldStickToBottomRef.current = true;
+    return queueScrollToBottomAfterLayout();
+  }, [isSuggestionEditorOpen, shouldShowSuggestion, suggestionAccordionValue]);
 
   useEffect(() => {
     if (draft.trim().length === 0) {
@@ -576,11 +591,13 @@ export default function ConversationPanel({
     setSuggestionRefreshKey((currentValue) => currentValue + direction);
     setSuggestionEditPrompt("");
     setEditedInlineSuggestion(null);
+    setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
   };
 
   const handleOpenSuggestionEditor = () => {
+    setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(true);
   };
 
@@ -682,7 +699,12 @@ export default function ConversationPanel({
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
                   <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                    <Accordion type="single" collapsible defaultValue="ai-suggestion">
+                    <Accordion
+                      type="single"
+                      collapsible
+                      value={suggestionAccordionValue}
+                      onValueChange={(value) => setSuggestionAccordionValue(value)}
+                    >
                       <AccordionItem value="ai-suggestion" className="border-b-0">
                         <AccordionTrigger className="py-4 text-left hover:no-underline">
                           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
@@ -742,6 +764,7 @@ export default function ConversationPanel({
                                   className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
                                   onClick={() => {
                                     setSuggestionEditPrompt("");
+                                    setSuggestionAccordionValue("ai-suggestion");
                                     setIsSuggestionEditorOpen(false);
                                   }}
                                 >
