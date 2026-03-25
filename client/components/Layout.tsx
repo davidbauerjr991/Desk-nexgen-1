@@ -811,10 +811,8 @@ function CallControlsPopunder({
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
-  const transcriptScrollRef = useRef<HTMLDivElement | null>(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [isTestingAudio, setIsTestingAudio] = useState(false);
-  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
   const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
 
   useEffect(() => {
@@ -834,23 +832,6 @@ function CallControlsPopunder({
 
     return () => window.clearInterval(intervalId);
   }, [isTestingAudio, mode]);
-
-  useEffect(() => {
-    setIsTranscriptExpanded(mode === "controls");
-  }, [mode]);
-
-  useEffect(() => {
-    if (mode !== "controls" || !isTranscriptExpanded) return;
-
-    const frameId = window.requestAnimationFrame(() => {
-      transcriptScrollRef.current?.scrollTo({
-        top: transcriptScrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-    });
-
-    return () => window.cancelAnimationFrame(frameId);
-  }, [isTranscriptExpanded, mode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1052,71 +1033,34 @@ function CallControlsPopunder({
             <VoiceAIGuidanceCard />
           </>
         ) : mode === "controls" ? (
-          <>
-            <div className="flex flex-shrink-0 items-stretch gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
-              >
-                <ArrowRightLeft className="h-4 w-4" />
-                Transfer
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
-              >
-                <Pause className="h-4 w-4" />
-                Hold
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onEndCall}
-                className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
-              >
-                <PhoneOff className="h-4 w-4" />
-                End Call
-              </Button>
-            </div>
-
-            <div ref={transcriptScrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              <VoiceAIGuidanceCard />
-
-              <div className="rounded-xl border border-black/10 bg-white">
-                <button
-                  type="button"
-                  onClick={() => setIsTranscriptExpanded((current) => !current)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-[#333333]"
-                >
-                  <span>Transcript</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 text-[#7A7A7A] transition-transform",
-                      isTranscriptExpanded && "rotate-180",
-                    )}
-                  />
-                </button>
-
-                {isTranscriptExpanded && (
-                  <div className="border-t border-black/10 px-3 py-3 text-xs leading-5 text-[#333333]">
-                    <div className="rounded-lg border border-[#D7E7D4] bg-[#F4FAF2] px-3 py-2.5 text-[13px] leading-6 text-[#355E3B]">
-                      <p>Your call is connected. Please greet the customer and confirm the requested beverage package upgrade.</p>
-                      <p className="mt-2">
-                        Suggested opening: “Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.”
-                      </p>
-                    </div>
-                    <p className="mt-3">Agent: Hello Mr. Kowalski, I see you were chatting with our team about upgrading your beverage package, and I can take it from here.</p>
-                    <p className="mt-2 text-[#7A7A7A]">
-                      Customer: thanks - I just need to switch from Premium to Extended but they said I am not allowed to
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
+          <div className="flex flex-shrink-0 items-stretch gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Transfer
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+            >
+              <Pause className="h-4 w-4" />
+              Hold
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onEndCall}
+              className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+            >
+              <PhoneOff className="h-4 w-4" />
+              End Call
+            </Button>
+          </div>
         ) : (
           <>
             <p className="text-xs leading-5 text-[#7A7A7A]">
