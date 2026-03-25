@@ -1,8 +1,14 @@
 import { useMemo } from "react";
-import { Mail, MessageSquare, Phone } from "lucide-react";
+import { ChevronDown, Mail, MessageSquare, Phone } from "lucide-react";
 
 import { useLayoutContext } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { type CustomerChannel, customerDatabase } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
@@ -26,18 +32,22 @@ export default function DeskDataTable() {
     isAgentInCall,
   } = useLayoutContext();
 
-  const rows = useMemo<DeskCustomerRow[]>(() => customerDatabase.map((customer) => {
-    const [firstName = customer.name, ...lastNameParts] = customer.name.split(" ");
-    const lastName = lastNameParts.join(" ");
+  const rows = useMemo<DeskCustomerRow[]>(
+    () =>
+      customerDatabase.map((customer) => {
+        const [firstName = customer.name, ...lastNameParts] = customer.name.split(" ");
+        const lastName = lastNameParts.join(" ");
 
-    return {
-      id: customer.id,
-      customerId: customer.customerId,
-      firstName,
-      lastName,
-      lastUpdated: customer.lastUpdated,
-    };
-  }), []);
+        return {
+          id: customer.id,
+          customerId: customer.customerId,
+          firstName,
+          lastName,
+          lastUpdated: customer.lastUpdated,
+        };
+      }),
+    [],
+  );
 
   const handleOpenChannel = (customerId: string, channel: Extract<CustomerChannel, "sms" | "email">) => {
     selectAssignment(customerId);
@@ -82,13 +92,15 @@ export default function DeskDataTable() {
                       : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
                   )}
                 >
-                  <div className="flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => selectAssignment(row.id)}
-                      className="flex w-full min-w-0 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
+                      className="flex min-w-0 flex-1 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#006DAD] focus-visible:ring-2 focus-visible:ring-[#006DAD]/25"
                     >
-                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">{row.customerId}</span>
+                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">
+                        {row.customerId}
+                      </span>
                       <span className="mt-1 break-words text-sm font-semibold text-[#111827]">
                         {row.firstName} {row.lastName}
                       </span>
@@ -97,39 +109,48 @@ export default function DeskDataTable() {
                       </span>
                     </button>
 
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={(event) => handleStartCall(row.id, event.currentTarget.getBoundingClientRect())}
-                        disabled={!isAgentAvailable || isAgentInCall}
-                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 shrink-0 rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                        >
+                          Contact <ChevronDown className="ml-2 h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="w-44 rounded-2xl border border-black/10 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.14)]"
                       >
-                        <Phone className="mr-2 h-4 w-4" /> Call
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenChannel(row.id, "sms")}
-                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                      >
-                        <MessageSquare className="mr-2 h-4 w-4" /> SMS
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenChannel(row.id, "email")}
-                        className="h-9 w-full justify-center rounded-full border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                      >
-                        <Mail className="mr-2 h-4 w-4" /> Email
-                      </Button>
-                    </div>
+                        <DropdownMenuItem
+                          onClick={(event) => handleStartCall(row.id, event.currentTarget.getBoundingClientRect())}
+                          disabled={!isAgentAvailable || isAgentInCall}
+                          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                        >
+                          <Phone className="mr-2 h-4 w-4" />
+                          Call
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenChannel(row.id, "email")}
+                          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                        >
+                          <Mail className="mr-2 h-4 w-4" />
+                          Email
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleOpenChannel(row.id, "sms")}
+                          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          SMS
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-              </div>
-            );
+              );
             })}
           </div>
         </ScrollArea>
