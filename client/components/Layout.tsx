@@ -90,6 +90,7 @@ interface LayoutContextValue {
   deskPanelSelection: DeskPanelSelection;
   recentInteractions: RecentInteractionItem[];
   conversationState: SharedConversationData;
+  activeCallAssignmentId: QueuePreviewItem["id"] | null;
   toggleInfo: () => void;
   toggleDesk: () => void;
   openDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
@@ -109,6 +110,7 @@ interface LayoutContextValue {
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   undockDeskPanel: (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => void;
   toggleCallPopunder: (anchorRect?: DOMRect | null, customerRecordId?: string) => void;
+  openCallDisposition: (anchorRect?: DOMRect | null) => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
 }
@@ -291,7 +293,7 @@ function createFreshConversationState(customerId: string, channel: CustomerChann
 
 function getLaunchedAssignmentPreview(channel: AssignmentChannel) {
   if (channel === "voice") {
-    return "Voice call launched.";
+    return "Live call in progress.";
   }
 
   return `New ${channel.toUpperCase()} conversation started.`;
@@ -2830,6 +2832,53 @@ function HeaderIconButton({
   );
 }
 
+function ActiveVoiceAssignmentControls({
+  onOpenDisposition,
+}: {
+  onOpenDisposition: (anchorRect?: DOMRect | null) => void;
+}) {
+  return (
+    <div className="mt-3 flex items-stretch gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+      >
+        <ArrowRightLeft className="h-4 w-4" />
+        Transfer
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="h-auto flex-1 flex-col gap-1 border-black/10 px-2 py-2 text-[11px] text-[#333333]"
+      >
+        <Pause className="h-4 w-4" />
+        Hold
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenDisposition(event.currentTarget.getBoundingClientRect());
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+      >
+        <PhoneOff className="h-4 w-4" />
+        End Call
+      </Button>
+    </div>
+  );
+}
+
 function QueueAssignmentCard({
   item,
   status,
@@ -2850,6 +2899,8 @@ function QueueAssignmentCard({
   const ItemIcon = item.icon;
   const canRemove = status !== "open";
   const channelLabel = conversationChannelOptions.find((option) => option.channel === item.channel)?.label ?? item.channel;
+  const { activeCallAssignmentId, isAgentInCall, openCallDisposition } = useLayoutContext();
+  const showActiveVoiceControls = item.isActive && isAgentInCall && item.id === activeCallAssignmentId;
 
   return (
     <div
@@ -2919,6 +2970,7 @@ function QueueAssignmentCard({
         </div>
 
         <div className="mt-2 text-[13px] leading-5 text-[#5B5B5B]">{item.preview}</div>
+        {showActiveVoiceControls ? <ActiveVoiceAssignmentControls onOpenDisposition={openCallDisposition} /> : null}
       </div>
     </div>
   );
@@ -3367,6 +3419,7 @@ export default function Layout({ children }: LayoutProps) {
   const [assignmentStatusesById, setAssignmentStatusesById] = useState<Record<string, QueueAssignmentStatus>>(() => (
     Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, QueueAssignmentStatus>
   ));
+  const [activeCallAssignmentId, setActiveCallAssignmentId] = useState<QueuePreviewItem["id"] | null>(null);
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [pendingCallCustomerRecordId, setPendingCallCustomerRecordId] = useState(initialSelectedAssignment.customerRecordId);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -4128,6 +4181,8 @@ export default function Layout({ children }: LayoutProps) {
       [getConversationStateKey(nextAssignment.id)]: createFreshConversationState(customerRecordId, channel),
     }));
     openConversationPanel();
+
+    return nextAssignment;
   };
 
   const openRecentInteractionAssignment = (interaction: RecentInteractionItem) => {
@@ -4160,6 +4215,13 @@ export default function Layout({ children }: LayoutProps) {
       };
     });
     openConversationPanel();
+  };
+
+  const openCallDisposition = (anchorRect?: DOMRect | null) => {
+    bringFloatingPanelToFront("call");
+    setCallPopunderMode("disposition");
+    setCallPopunderPosition(getAnchoredCallPopunderPosition(anchorRect));
+    setIsCallPopunderOpen(true);
   };
 
   const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"]) => {
@@ -4200,6 +4262,10 @@ export default function Layout({ children }: LayoutProps) {
       delete nextStatuses[assignmentId];
       return nextStatuses;
     });
+
+    if (activeCallAssignmentId === assignmentId) {
+      setActiveCallAssignmentId(null);
+    }
   };
 
   const dockConversationPanel = () => {
@@ -4519,6 +4585,7 @@ export default function Layout({ children }: LayoutProps) {
       deskPanelSelection,
       recentInteractions,
       conversationState,
+      activeCallAssignmentId,
       toggleInfo: () => {
         setDeskPanelSelection(null);
         setActiveRightPanel((current) =>
@@ -4605,6 +4672,7 @@ export default function Layout({ children }: LayoutProps) {
         setCallPopunderPosition(getAnchoredCallPopunderPosition(anchorRect));
         setIsCallPopunderOpen(true);
       },
+      openCallDisposition,
       startCallStatus: () => {
         if (status !== "In a Call") {
           previousAgentStatusRef.current = status;
@@ -4625,6 +4693,7 @@ export default function Layout({ children }: LayoutProps) {
       deskPanelSelection,
       customerInfoPopunderSize.height,
       customerInfoPopunderSize.width,
+      activeCallAssignmentId,
       dockedConversationWidth,
       isAddNewPopoverOpen,
       isCallPopunderOpen,
@@ -4636,6 +4705,7 @@ export default function Layout({ children }: LayoutProps) {
       isExpandedCanvasRoute,
       navigate,
       handleConversationStateChange,
+      openCallDisposition,
       openConversationPanel,
       openCustomerConversation,
       openRecentInteractionAssignment,
@@ -5253,21 +5323,25 @@ export default function Layout({ children }: LayoutProps) {
             setCallPopunderMode("connecting");
             callConnectTimeoutRef.current = window.setTimeout(() => {
               layoutContextValue.startCallStatus();
-              openCustomerConversation(pendingCallCustomerRecordId, "voice");
+              const nextVoiceAssignment = openCustomerConversation(pendingCallCustomerRecordId, "voice");
+              setActiveCallAssignmentId(nextVoiceAssignment.id);
+              setIsCallPopunderOpen(false);
               setCallPopunderMode("controls");
               setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
               setIsCopilotPopoverOpen(true);
               callConnectTimeoutRef.current = null;
             }, 2000);
           }}
-          onEndCall={() => setCallPopunderMode("disposition")}
+          onEndCall={() => openCallDisposition()}
           onSelectDisposition={(disposition) => {
+            const dispositionTimestamp = new Date();
+            const formattedDispositionTimestamp = formatRecentInteractionTimestamp(dispositionTimestamp);
             setRecentInteractions((current) => [
               {
                 id: Date.now(),
                 direction: "outbound",
                 type: "voice",
-                createdAt: formatRecentInteractionTimestamp(new Date()),
+                createdAt: formattedDispositionTimestamp,
                 status: disposition,
                 customerName: selectedAssignment.name,
                 customerId: selectedAssignment.customerId,
@@ -5276,6 +5350,30 @@ export default function Layout({ children }: LayoutProps) {
               },
               ...current,
             ]);
+            if (activeCallAssignmentId) {
+              setAssignmentStatusesById((currentStatuses) => ({
+                ...currentStatuses,
+                [activeCallAssignmentId]: getRecentInteractionAssignmentStatus(disposition),
+              }));
+              setAssignmentItemsById((currentItems) => {
+                const activeCallAssignment = currentItems[activeCallAssignmentId];
+
+                if (!activeCallAssignment) {
+                  return currentItems;
+                }
+
+                return {
+                  ...currentItems,
+                  [activeCallAssignmentId]: {
+                    ...activeCallAssignment,
+                    preview: `Call ended · ${disposition}.`,
+                    lastUpdated: formattedDispositionTimestamp,
+                    updatedAt: dispositionTimestamp.toISOString(),
+                  },
+                };
+              });
+            }
+            setActiveCallAssignmentId(null);
             layoutContextValue.endCallStatus();
             if (callConnectTimeoutRef.current !== null) {
               window.clearTimeout(callConnectTimeoutRef.current);
