@@ -220,6 +220,12 @@ const priorityRankMap: Record<string, number> = {
   low: 3,
 };
 
+const visibleAssignmentNames = new Set([
+  "Noah Patel",
+  "Olivia Reed",
+  "Ethan Zhang",
+]);
+
 const priorityDotClassNameMap: Record<string, string> = {
   critical: "bg-[#F04438]",
   high: "bg-[#F79009]",
@@ -2620,6 +2626,19 @@ function LeftQueueRail() {
     );
   }, [isPriorityAssistEnabled, selectedAssignment.id]);
 
+  const visibleQueuePreviewItems = useMemo(
+    () => orderedQueuePreviewItems.filter((item) => visibleAssignmentNames.has(item.name)),
+    [orderedQueuePreviewItems],
+  );
+
+  useEffect(() => {
+    if (visibleAssignmentNames.has(selectedAssignment.name) || visibleQueuePreviewItems.length === 0) {
+      return;
+    }
+
+    selectAssignment(visibleQueuePreviewItems[0].id);
+  }, [selectedAssignment.name, selectAssignment, visibleQueuePreviewItems]);
+
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
   };
@@ -2659,7 +2678,7 @@ function LeftQueueRail() {
               aria-hidden={isOpen}
             >
               <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
-                {orderedQueuePreviewItems.map((item) => {
+                {visibleQueuePreviewItems.map((item) => {
                   const ItemIcon = item.icon;
                   const priorityKey = item.priority.toLowerCase();
                   const priorityDotClassName = priorityDotClassNameMap[priorityKey] ?? "bg-[#98A2B3]";
@@ -2744,7 +2763,7 @@ function LeftQueueRail() {
                     </button>
                     <div className="min-w-0">
                       <h3 className="text-base font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                      <p className="text-sm text-[#7A7A7A]">0/{orderedQueuePreviewItems.length} completed</p>
+                      <p className="text-sm text-[#7A7A7A]">0/{visibleQueuePreviewItems.length} completed</p>
                     </div>
                   </div>
                   <div className="flex items-start justify-between gap-3">
@@ -2764,7 +2783,7 @@ function LeftQueueRail() {
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <QueueOverlayList items={orderedQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
+                <QueueOverlayList items={visibleQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
               </div>
             </div>
           </div>
