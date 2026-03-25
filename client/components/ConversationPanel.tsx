@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, ChevronLeft, ChevronRight, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -132,15 +132,14 @@ function applySuggestionEdit(
   };
 }
 
-function getInlineSuggestion(
+function getInlineSuggestionVariants(
   conversation: SharedConversationData,
   customerMessage: ConversationMessage,
-  refreshKey = 0,
-) {
+): InlineSuggestion[] {
   const normalizedMessage = customerMessage.content.toLowerCase();
 
   if (normalizedMessage.includes("same error") || normalizedMessage.includes("tried again") || normalizedMessage.includes("retry") || normalizedMessage.includes("retried") || normalizedMessage.includes("still")) {
-    return getSuggestionVariant([
+    return [
       {
         summary:
           "Recommend confirming the latest account status, then offer a manual refresh so the customer can retry without leaving the conversation.",
@@ -159,11 +158,11 @@ function getInlineSuggestion(
         suggestedReply:
           "I can see the same error is still blocking the attempt. I’m refreshing the account state now, and I’ll let you know as soon as it’s ready for one more retry.",
       },
-    ], refreshKey);
+    ];
   }
 
   if (normalizedMessage.includes("charged twice") || normalizedMessage.includes("double charge")) {
-    return getSuggestionVariant([
+    return [
       {
         summary: "Reassure the customer they will not be charged twice, then guide them through a safe retry.",
         suggestedReply:
@@ -179,11 +178,11 @@ function getInlineSuggestion(
         suggestedReply:
           "I’m checking the billing history on my side first so we do not risk a duplicate charge. Once I confirm the original attempt status, I’ll tell you whether it’s safe to retry.",
       },
-    ], refreshKey);
+    ];
   }
 
   if (normalizedMessage.includes("billing") || normalizedMessage.includes("zip") || normalizedMessage.includes("match")) {
-    return getSuggestionVariant([
+    return [
       {
         summary: "Confirm the billing details on file, then guide the customer to the field most likely causing the mismatch.",
         suggestedReply:
@@ -199,11 +198,11 @@ function getInlineSuggestion(
         suggestedReply:
           "Before we try again, please confirm the billing zip code tied to the card. That is the field most likely causing the mismatch I’m seeing on the payment check.",
       },
-    ], refreshKey);
+    ];
   }
 
   if (normalizedMessage.includes("today") || normalizedMessage.includes("urgent") || normalizedMessage.includes("meeting")) {
-    return getSuggestionVariant([
+    return [
       {
         summary: "Acknowledge the urgency, confirm the next action, and keep the customer in the conversation while you resolve it.",
         suggestedReply:
@@ -219,11 +218,11 @@ function getInlineSuggestion(
         suggestedReply:
           "Thanks for flagging the urgency. I’m on the blocking issue now, and I’ll update you here with the next step as soon as I confirm what’s holding it up.",
       },
-    ], refreshKey);
+    ];
   }
 
   if (normalizedMessage.includes("worked") || normalizedMessage.includes("thank you")) {
-    return getSuggestionVariant([
+    return [
       {
         summary: "Confirm the issue is resolved and tell the customer what to watch for next.",
         suggestedReply:
@@ -239,10 +238,10 @@ function getInlineSuggestion(
         suggestedReply:
           "Happy to hear that worked. Everything should move forward normally now, but I’ll remain here if you need help with the next step.",
       },
-    ], refreshKey);
+    ];
   }
 
-  return getSuggestionVariant([
+  return [
     {
       summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s latest update and giving them one clear next step.`,
       suggestedReply: "Thanks for the update. I’m checking the latest attempt now and I’ll give you the next step in just a moment.",
@@ -255,7 +254,15 @@ function getInlineSuggestion(
       summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s message and giving them one immediate action while you continue checking the issue.`,
       suggestedReply: "I appreciate the update. I’m checking the latest attempt now and I’ll reply here with the best next step shortly.",
     },
-  ], refreshKey);
+  ];
+}
+
+function getInlineSuggestion(
+  conversation: SharedConversationData,
+  customerMessage: ConversationMessage,
+  refreshKey = 0,
+) {
+  return getSuggestionVariant(getInlineSuggestionVariants(conversation, customerMessage), refreshKey);
 }
 
 function getSummarySnippet(content: string | undefined, maxLength = 170) {
@@ -366,8 +373,11 @@ export default function ConversationPanel({
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
   const latestMessageIsCustomer = latestMessage?.role === "customer";
+  const suggestionVariants = latestCustomerMessage
+    ? getInlineSuggestionVariants(conversation, latestCustomerMessage)
+    : [];
   const generatedInlineSuggestion = latestCustomerMessage
-    ? getInlineSuggestion(conversation, latestCustomerMessage, suggestionRefreshKey)
+    ? getSuggestionVariant(suggestionVariants, suggestionRefreshKey)
     : null;
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
@@ -560,8 +570,10 @@ export default function ConversationPanel({
     textareaRef.current?.focus({ preventScroll: true });
   };
 
-  const handleRefreshSuggestion = () => {
-    setSuggestionRefreshKey((currentValue) => currentValue + 1);
+  const handleCycleSuggestion = (direction: -1 | 1) => {
+    if (suggestionVariants.length <= 1) return;
+
+    setSuggestionRefreshKey((currentValue) => currentValue + direction);
     setSuggestionEditPrompt("");
     setEditedInlineSuggestion(null);
     setIsSuggestionEditorOpen(false);
@@ -738,28 +750,51 @@ export default function ConversationPanel({
                               </div>
                             </div>
                           ) : null}
-                          <div className="mt-4 flex flex-wrap items-center gap-2">
-                            <Button
-                              type="button"
-                              size="sm"
-                              className={cn(
-                                "h-9 rounded-lg px-4",
-                                isSuggestionAdded
-                                  ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
-                                  : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                              )}
-                              onClick={handleUseSuggestion}
-                              disabled={isSuggestionAdded}
-                            >
-                              {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                              {isSuggestionAdded ? "Added" : "Use response"}
-                            </Button>
-                            <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
-                              Refresh
-                            </Button>
-                            <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
-                              Edit
-                            </Button>
+                          <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className={cn(
+                                  "h-9 rounded-lg px-4",
+                                  isSuggestionAdded
+                                    ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
+                                    : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                                )}
+                                onClick={handleUseSuggestion}
+                                disabled={isSuggestionAdded}
+                              >
+                                {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                                {isSuggestionAdded ? "Added" : "Use response"}
+                              </Button>
+                              <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
+                                Edit
+                              </Button>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2 self-end">
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                aria-label="Show previous AI suggestion"
+                                className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+                                onClick={() => handleCycleSuggestion(-1)}
+                                disabled={suggestionVariants.length <= 1}
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="outline"
+                                aria-label="Show next AI suggestion"
+                                className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+                                onClick={() => handleCycleSuggestion(1)}
+                                disabled={suggestionVariants.length <= 1}
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>
