@@ -2766,11 +2766,18 @@ function QueueAssignmentCard({
   const ItemIcon = item.icon;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelectAssignment(item.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelectAssignment(item.id);
+        }
+      }}
       className={cn(
-        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
         item.isActive
           ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
           : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
@@ -2785,9 +2792,14 @@ function QueueAssignmentCard({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="truncate text-[14px] font-semibold leading-5 text-[#333333]">{item.name}</span>
-              <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", item.priorityClassName)}>
-                {item.priority.toLowerCase()}
-              </span>
+              <div
+                className="shrink-0"
+                onClick={(event) => event.stopPropagation()}
+                onMouseDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+              >
+                <ConversationStatusDropdown status="open" onStatusChange={() => undefined} />
+              </div>
             </div>
           </div>
           <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#333333]" />
@@ -2805,7 +2817,7 @@ function QueueAssignmentCard({
 
         <div className="mt-2 text-[13px] leading-5 text-[#5B5B5B]">{item.preview}</div>
       </div>
-    </button>
+    </div>
   );
 }
 
