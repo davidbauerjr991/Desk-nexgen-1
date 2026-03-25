@@ -295,6 +295,8 @@ const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 120;
 const DOCKED_CONVERSATION_CONTENT_TRANSITION_MS = 220;
+const CUSTOMER_INFO_PANEL_CONTENT_ENTER_DELAY_MS = 120;
+const CUSTOMER_INFO_PANEL_CONTENT_TRANSITION_MS = 220;
 const MIN_MAIN_WORKSPACE_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_MIN_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 425;
@@ -1626,6 +1628,9 @@ function DockedCustomerInfoPanel({
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
+  const contentInitializedRef = useRef(false);
+  const [isContentVisible, setIsContentVisible] = useState(isOpen);
+  const [isContentEntered, setIsContentEntered] = useState(isOpen);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -1656,66 +1661,115 @@ function DockedCustomerInfoPanel({
     };
   }, [maxWidth, onWidthChange]);
 
+  useEffect(() => {
+    if (!contentInitializedRef.current) {
+      contentInitializedRef.current = true;
+      return;
+    }
+
+    let timeoutId: number | undefined;
+    let frameId: number | undefined;
+
+    if (!isOpen) {
+      setIsContentEntered(false);
+      timeoutId = window.setTimeout(() => {
+        setIsContentVisible(false);
+      }, CUSTOMER_INFO_PANEL_CONTENT_TRANSITION_MS);
+
+      return () => {
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+    }
+
+    setIsContentVisible(true);
+    timeoutId = window.setTimeout(() => {
+      frameId = window.requestAnimationFrame(() => {
+        setIsContentEntered(true);
+      });
+    }, CUSTOMER_INFO_PANEL_CONTENT_ENTER_DELAY_MS);
+
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isOpen]);
+
   return (
     <div
       aria-hidden={!isOpen}
       className={cn(
-        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out min-[1024px]:block",
+        "relative hidden min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-400 ease-out min-[1024px]:block",
         isEqualSplit && equalSplitWidth === undefined && "min-w-0 flex-1 basis-0",
         isEqualSplit && equalSplitWidth !== undefined && "shrink-0",
         isOpen
           ? "min-[1024px]:translate-x-0 min-[1024px]:opacity-100"
-          : "pointer-events-none min-[1024px]:-translate-x-4 min-[1024px]:opacity-0",
+          : "pointer-events-none min-[1024px]:translate-x-4 min-[1024px]:opacity-0",
       )}
       style={{
         width: isEqualSplit ? equalSplitWidth : isOpen ? width : 0,
         marginRight: isOpen && showTrailingGap ? CUSTOMER_INFO_PANEL_GAP : 0,
       }}
     >
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div
-          className="flex min-h-[68px] cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
-          onMouseDown={onUndockStart}
-        >
-          <div className="flex items-center gap-3">
-            <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer</h3>
-              <p className="truncate text-xs text-[#7A7A7A]">
-                {customerName} · {customerId}
-              </p>
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-200 ease-out will-change-[opacity,transform]",
+          isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+        )}
+      >
+        {isContentVisible ? (
+          <>
+            <div
+              className="flex min-h-[68px] cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
+              onMouseDown={onUndockStart}
+            >
+              <div className="flex items-center gap-3">
+                <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Customer</h3>
+                  <p className="truncate text-xs text-[#7A7A7A]">
+                    {customerName} · {customerId}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+                  disabled={isCallDisabled}
+                  className="h-8 rounded-full border-black/10 px-3"
+                >
+                  <Phone className="mr-2 h-4 w-4" /> Call
+                </Button>
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={onClose}
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+                  aria-label="Close customer information panel"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
-              disabled={isCallDisabled}
-              className="h-8 rounded-full border-black/10 px-3"
-            >
-              <Phone className="mr-2 h-4 w-4" /> Call
-            </Button>
-            <button
-              type="button"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onClose}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
-              aria-label="Close customer information panel"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
 
-        <NotesPanel
-          key={customerRecordId}
-          initialTab={panelSelection?.initialTab ?? "Overview"}
-          initialTicketId={panelSelection?.ticketId}
-          customerId={customerRecordId}
-        />
+            <NotesPanel
+              key={customerRecordId}
+              initialTab={panelSelection?.initialTab ?? "Overview"}
+              initialTicketId={panelSelection?.ticketId}
+              customerId={customerRecordId}
+            />
+          </>
+        ) : null}
       </div>
 
     </div>
