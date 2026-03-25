@@ -648,8 +648,16 @@ function ConversationOverviewButton({
         onInteractOutside={(event) => event.preventDefault()}
         className="z-[95] w-[320px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
       >
-        <div className="border-b border-[#E7D7A6] px-4 py-3">
+        <div className="flex items-center justify-between border-b border-[#E7D7A6] px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A5B00]">Context overview</p>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#7A5B00] transition-colors hover:bg-[#F6EDCF]"
+            aria-label="Close context overview"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
         <div className="px-4 py-3 text-sm leading-6 text-[#6B5A1B]">
           <p>{overviewSummary}</p>
