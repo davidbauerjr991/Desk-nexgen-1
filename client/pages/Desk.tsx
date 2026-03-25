@@ -57,7 +57,7 @@ export default function Desk() {
             : "desk";
 
   const handleOpenChannel = (channel: "sms" | "email") => {
-    openCustomerConversation(selectedAssignment.id, channel);
+    openCustomerConversation(selectedAssignment.customerRecordId, channel);
   };
 
   return (
@@ -99,7 +99,7 @@ export default function Desk() {
                 className="w-44 rounded-2xl border border-black/10 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.14)]"
               >
                 <DropdownMenuItem
-                  onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
+                  onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect(), selectedAssignment.customerRecordId)}
                   disabled={isAgentInCall || !isAgentAvailable}
                   className="rounded-xl px-3 py-2 text-sm text-[#111827]"
                 >
@@ -142,7 +142,7 @@ export default function Desk() {
           : isAddView
             ? <AddPanelContent />
             : isCustomerView
-              ? <NotesPanel key={selectedAssignment.id} customerId={selectedAssignment.id} />
+              ? <NotesPanel key={selectedAssignment.customerRecordId} customerId={selectedAssignment.customerRecordId} />
               : isNotificationsView
                 ? (
                   <Placeholder

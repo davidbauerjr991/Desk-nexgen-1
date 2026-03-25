@@ -120,7 +120,7 @@ export default function Index() {
                     variant="outline"
                     size="sm"
                     className="h-8 rounded-full border-black/10 px-3 min-[800px]:hidden"
-                    onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
+                    onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect(), selectedAssignment.customerRecordId)}
                     disabled={isAgentInCall || !isAgentAvailable}
                   >
                     <PhoneCall className="mr-2 h-4 w-4" /> Call
@@ -184,7 +184,7 @@ export default function Index() {
                 conversation={conversationState}
                 openChannels={activeConversationTabs}
                 activeChannel={activeConversationChannel}
-                customerId={selectedAssignment.id}
+                customerId={selectedAssignment.customerRecordId}
                 draftKey={`mobile-${activeConversationChannel}`}
                 onConversationChange={setConversationState}
                 onSelectChannel={setActiveConversationChannel}
@@ -201,7 +201,7 @@ export default function Index() {
             )}
           >
             <div className="flex min-h-0 flex-1 overflow-hidden">
-              <NotesPanel customerId={selectedAssignment.id} />
+              <NotesPanel customerId={selectedAssignment.customerRecordId} />
             </div>
           </div>
 
@@ -253,7 +253,7 @@ export default function Index() {
                   {isInteractionsOpen ? (
                     <RecentInteractionsPanel injectedInteractions={recentInteractions} />
                   ) : isDeskOpen ? (
-                    <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.id} selection={deskPanelSelection} />
+                    <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.customerRecordId} selection={deskPanelSelection} />
                   ) : null}
                 </>
               )}
@@ -287,7 +287,7 @@ export default function Index() {
               </Button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden">
-              <NotesPanel key={selectedAssignment.id} initialTab={mobileDetailsTab} customerId={selectedAssignment.id} />
+              <NotesPanel key={selectedAssignment.customerRecordId} initialTab={mobileDetailsTab} customerId={selectedAssignment.customerRecordId} />
             </div>
           </div>
         </div>

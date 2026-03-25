@@ -71,8 +71,7 @@ export default function DeskDataTable() {
   };
 
   const handleStartCall = (customerId: string, anchorRect?: DOMRect | null) => {
-    selectAssignment(customerId);
-    toggleCallPopunder(anchorRect);
+    toggleCallPopunder(anchorRect, customerId);
   };
 
   return (
@@ -104,7 +103,7 @@ export default function DeskDataTable() {
               </div>
             ) : (
               filteredRows.map((row) => {
-                const isSelected = selectedAssignment.id === row.id;
+                const isSelected = selectedAssignment.customerRecordId === row.id;
 
                 return (
                   <div
