@@ -12,6 +12,7 @@ import {
   FilePlus2,
   FileText,
   GripHorizontal,
+  Mail,
   MessageSquare,
   Mic,
   Monitor,
@@ -611,6 +612,59 @@ function ConversationHeaderSubhead({
       <span aria-hidden="true">·</span>
       <span>{channelLabel}</span>
     </div>
+  );
+}
+
+function CustomerContactDropdown({
+  onOpenCall,
+  onOpenChannel,
+  isCallDisabled,
+}: {
+  onOpenCall: (anchorRect?: DOMRect | null) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
+  isCallDisabled: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onMouseDown={(event) => event.stopPropagation()}
+          className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+        >
+          Contact <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-44 rounded-2xl border border-black/10 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.14)]"
+      >
+        <DropdownMenuItem
+          onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
+          disabled={isCallDisabled}
+          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+        >
+          <Phone className="mr-2 h-4 w-4" />
+          Call
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onOpenChannel("email")}
+          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+        >
+          <Mail className="mr-2 h-4 w-4" />
+          Email
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onOpenChannel("sms")}
+          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+        >
+          <MessageSquare className="mr-2 h-4 w-4" />
+          SMS
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
