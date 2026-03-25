@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, AudioLines, Check, Plus, Send, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -357,7 +358,6 @@ export default function ConversationPanel({
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
-  const [dismissedSuggestionMessageId, setDismissedSuggestionMessageId] = useState<number | null>(null);
   const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
   const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
@@ -375,8 +375,7 @@ export default function ConversationPanel({
     latestMessageIsCustomer &&
     latestCustomerMessage !== null &&
     inlineSuggestion !== null &&
-    !conversation.isCustomerTyping &&
-    dismissedSuggestionMessageId !== latestCustomerMessage.id;
+    !conversation.isCustomerTyping;
   const suggestionActions = useMemo(() => {
     if (!inlineSuggestion || !latestCustomerMessage || !customerId || !onOpenDeskPanel) {
       return [] as SuggestionAction[];
@@ -536,7 +535,6 @@ export default function ConversationPanel({
   };
 
   useEffect(() => {
-    setDismissedSuggestionMessageId(null);
     setSuggestionRefreshKey(0);
     setSuggestionEditPrompt("");
     setEditedInlineSuggestion(null);
@@ -582,10 +580,6 @@ export default function ConversationPanel({
     setSuggestionEditPrompt("");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
-  };
-
-  const handleDismissSuggestion = () => {
-    setDismissedSuggestionMessageId(latestCustomerMessage?.id ?? null);
   };
 
   const handleOpenSuggestionAction = (action: SuggestionAction) => {
@@ -675,105 +669,101 @@ export default function ConversationPanel({
                 </div>
 
                 {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                      <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <span>AI Suggestion</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleDismissSuggestion}
-                        className="-mr-1 -mt-1 h-7 w-7 rounded-full text-[#5B7C74] hover:bg-[#D9F2EA] hover:text-[#25403B]"
-                        aria-label="Dismiss AI suggestion"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
-                    {suggestionActions.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        {suggestionActions.map((action) => (
-                          <Button
-                            key={action.id}
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#2D6A5F] hover:bg-white"
-                            onClick={() => handleOpenSuggestionAction(action)}
-                          >
-                            {action.label}
-                          </Button>
-                        ))}
-                      </div>
-                    ) : null}
-                    {isSuggestionEditorOpen ? (
-                      <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2D6A5F]">
-                          Edit AI suggestion
-                        </div>
-                        <Input
-                          value={suggestionEditPrompt}
-                          onChange={(event) => setSuggestionEditPrompt(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              handleApplySuggestionEdit();
-                            }
-                          }}
-                          placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
-                          className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
-                        />
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 rounded-lg bg-[#2D6A5F] px-3 text-white hover:bg-[#25574E]"
-                            onClick={handleApplySuggestionEdit}
-                            disabled={suggestionEditPrompt.trim().length === 0}
-                          >
-                            Update suggestion
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                            onClick={() => {
-                              setSuggestionEditPrompt("");
-                              setIsSuggestionEditorOpen(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        className={cn(
-                          "h-9 rounded-lg px-4",
-                          isSuggestionAdded
-                            ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
-                            : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                        )}
-                        onClick={handleUseSuggestion}
-                        disabled={isSuggestionAdded}
-                      >
-                        {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                        {isSuggestionAdded ? "Added" : "Use response"}
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
-                        Refresh
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
-                        Edit
-                      </Button>
-                    </div>
+                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                    <Accordion type="single" collapsible defaultValue="ai-suggestion">
+                      <AccordionItem value="ai-suggestion" className="border-b-0">
+                        <AccordionTrigger className="py-4 text-left hover:no-underline">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2D6A5F]">
+                            <Sparkles className="h-3.5 w-3.5" />
+                            <span>AI Suggestion</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
+                          {suggestionActions.length > 0 ? (
+                            <div className="mt-4 flex flex-wrap items-center gap-2">
+                              {suggestionActions.map((action) => (
+                                <Button
+                                  key={action.id}
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#2D6A5F] hover:bg-white"
+                                  onClick={() => handleOpenSuggestionAction(action)}
+                                >
+                                  {action.label}
+                                </Button>
+                              ))}
+                            </div>
+                          ) : null}
+                          {isSuggestionEditorOpen ? (
+                            <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
+                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#2D6A5F]">
+                                Edit AI suggestion
+                              </div>
+                              <Input
+                                value={suggestionEditPrompt}
+                                onChange={(event) => setSuggestionEditPrompt(event.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter") {
+                                    event.preventDefault();
+                                    handleApplySuggestionEdit();
+                                  }
+                                }}
+                                placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
+                                className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
+                              />
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 rounded-lg bg-[#2D6A5F] px-3 text-white hover:bg-[#25574E]"
+                                  onClick={handleApplySuggestionEdit}
+                                  disabled={suggestionEditPrompt.trim().length === 0}
+                                >
+                                  Update suggestion
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                                  onClick={() => {
+                                    setSuggestionEditPrompt("");
+                                    setIsSuggestionEditorOpen(false);
+                                  }}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : null}
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              className={cn(
+                                "h-9 rounded-lg px-4",
+                                isSuggestionAdded
+                                  ? "bg-[#D9F2EA] text-[#2D6A5F] hover:bg-[#D9F2EA]"
+                                  : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                              )}
+                              onClick={handleUseSuggestion}
+                              disabled={isSuggestionAdded}
+                            >
+                              {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                              {isSuggestionAdded ? "Added" : "Use response"}
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleRefreshSuggestion}>
+                              Refresh
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
+                              Edit
+                            </Button>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </div>
                 )}
               </div>
