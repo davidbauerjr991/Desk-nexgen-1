@@ -2756,6 +2756,7 @@ function QueueAssignmentCard({
   item,
   status,
   onStatusChange,
+  onRemove,
   onSelectAssignment,
   className,
   style,
@@ -2763,11 +2764,13 @@ function QueueAssignmentCard({
   item: QueuePreviewItem;
   status: ConversationStatus;
   onStatusChange: (status: ConversationStatus) => void;
+  onRemove: () => void;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   className?: string;
   style?: React.CSSProperties;
 }) {
   const ItemIcon = item.icon;
+  const canRemove = status !== "open";
 
   return (
     <div
@@ -2806,7 +2809,21 @@ function QueueAssignmentCard({
               </div>
             </div>
           </div>
-          <ChevronRight className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#333333]" />
+          {canRemove ? (
+            <button
+              type="button"
+              aria-label={`Remove ${item.name} from left rail`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+              onMouseDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
+              className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
@@ -2829,12 +2846,14 @@ function QueueOverlayList({
   items,
   queueStatuses,
   onStatusChange,
+  onRemove,
   isOpen,
   onSelectAssignment,
 }: {
   items: QueuePreviewItem[];
   queueStatuses: Record<string, ConversationStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: ConversationStatus) => void;
+  onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
   isOpen: boolean;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
 }) {
@@ -2846,6 +2865,7 @@ function QueueOverlayList({
           item={item}
           status={queueStatuses[item.id] ?? "open"}
           onStatusChange={(status) => onStatusChange(item.id, status)}
+          onRemove={() => onRemove(item.id)}
           onSelectAssignment={onSelectAssignment}
           className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
           style={{ transitionDelay: `${index * 35}ms` }}
@@ -2861,6 +2881,7 @@ function LeftQueueRail() {
   const [queueStatuses, setQueueStatuses] = useState<Record<string, ConversationStatus>>(() => (
     Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, ConversationStatus>
   ));
+  const [dismissedAssignmentIds, setDismissedAssignmentIds] = useState<Record<string, boolean>>({});
   const {
     closeFloatingAppSpacePanel,
     isAppSpacePanelInDragMode,
@@ -2886,17 +2907,17 @@ function LeftQueueRail() {
   }, [isPriorityAssistEnabled, selectedAssignment.id]);
 
   const visibleQueuePreviewItems = useMemo(
-    () => orderedQueuePreviewItems.filter((item) => visibleAssignmentNames.has(item.name)),
-    [orderedQueuePreviewItems],
+    () => orderedQueuePreviewItems.filter((item) => visibleAssignmentNames.has(item.name) && !dismissedAssignmentIds[item.id]),
+    [dismissedAssignmentIds, orderedQueuePreviewItems],
   );
 
   useEffect(() => {
-    if (visibleAssignmentNames.has(selectedAssignment.name) || visibleQueuePreviewItems.length === 0) {
+    if (visibleQueuePreviewItems.some((item) => item.id === selectedAssignment.id) || visibleQueuePreviewItems.length === 0) {
       return;
     }
 
     selectAssignment(visibleQueuePreviewItems[0].id);
-  }, [selectedAssignment.name, selectAssignment, visibleQueuePreviewItems]);
+  }, [selectAssignment, selectedAssignment.id, visibleQueuePreviewItems]);
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
@@ -2906,6 +2927,13 @@ function LeftQueueRail() {
     setQueueStatuses((currentStatuses) => ({
       ...currentStatuses,
       [assignmentId]: status,
+    }));
+  };
+
+  const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
+    setDismissedAssignmentIds((currentIds) => ({
+      ...currentIds,
+      [assignmentId]: true,
     }));
   };
 
@@ -2989,6 +3017,7 @@ function LeftQueueRail() {
                           item={item}
                           status={queueStatuses[item.id] ?? "open"}
                           onStatusChange={(status) => handleQueueStatusChange(item.id, status)}
+                          onRemove={() => handleRemoveQueueItem(item.id)}
                           onSelectAssignment={selectAssignment}
                         />
                       </HoverCardContent>
@@ -3058,6 +3087,7 @@ function LeftQueueRail() {
                   items={visibleQueuePreviewItems}
                   queueStatuses={queueStatuses}
                   onStatusChange={handleQueueStatusChange}
+                  onRemove={handleRemoveQueueItem}
                   isOpen={isOpen}
                   onSelectAssignment={selectAssignment}
                 />
