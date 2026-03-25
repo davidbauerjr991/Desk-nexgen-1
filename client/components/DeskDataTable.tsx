@@ -12,10 +12,8 @@ type DeskCustomerRow = {
   customerId: string;
   firstName: string;
   lastName: string;
-  group: string;
+  lastUpdated: string;
 };
-
-const customerGroups = ["Priority Care", "Billing", "Growth", "Support", "Retention"];
 
 export default function DeskDataTable() {
   const {
@@ -28,7 +26,7 @@ export default function DeskDataTable() {
     isAgentInCall,
   } = useLayoutContext();
 
-  const rows = useMemo<DeskCustomerRow[]>(() => customerDatabase.map((customer, index) => {
+  const rows = useMemo<DeskCustomerRow[]>(() => customerDatabase.map((customer) => {
     const [firstName = customer.name, ...lastNameParts] = customer.name.split(" ");
     const lastName = lastNameParts.join(" ");
 
@@ -37,7 +35,7 @@ export default function DeskDataTable() {
       customerId: customer.customerId,
       firstName,
       lastName,
-      group: customerGroups[index % customerGroups.length],
+      lastUpdated: customer.lastUpdated,
     };
   }), []);
 
@@ -69,7 +67,7 @@ export default function DeskDataTable() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-x-auto">
-        <div className="min-w-[860px]">
+        <div className="min-w-[780px]">
           <ScrollArea className="h-full min-h-0">
             <div className="space-y-3 p-4">
           {rows.map((row) => {
@@ -85,7 +83,7 @@ export default function DeskDataTable() {
                     : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
                 )}
               >
-                <div className="grid grid-cols-[180px_240px_280px] items-center gap-4">
+                <div className="grid grid-cols-[180px_220px_280px] items-center gap-3">
                   <button
                     type="button"
                     onClick={() => selectAssignment(row.id)}
@@ -95,8 +93,8 @@ export default function DeskDataTable() {
                     <span className="mt-1 whitespace-nowrap text-sm font-semibold text-[#111827]">
                       {row.firstName} {row.lastName}
                     </span>
-                    <span className="mt-2 inline-flex rounded-full border border-[#D0D5DD] bg-[#F8F8F9] px-3 py-1 text-xs font-medium text-[#344054]">
-                      {row.group}
+                    <span className="mt-2 whitespace-nowrap text-xs text-[#667085]">
+                      Updated {row.lastUpdated}
                     </span>
                   </button>
 
