@@ -1,9 +1,15 @@
-import { Bell, GripHorizontal, Phone, X } from "lucide-react";
+import { Bell, ChevronDown, GripHorizontal, Mail, MessageSquare, Phone, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import AddPanelContent from "@/components/AddPanelContent";
 import { Button } from "@/components/ui/button";
 import { CopilotContent } from "@/components/CopilotPopunder";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useLayoutContext } from "@/components/Layout";
 import DeskDataTable from "@/components/DeskDataTable";
 import NotesPanel from "@/components/NotesPanel";
@@ -19,6 +25,8 @@ export default function Desk() {
     toggleCallPopunder,
     isAgentInCall,
     isAgentAvailable,
+    openConversationPanel,
+    setActiveConversationChannel,
   } = useLayoutContext();
   const view = new URLSearchParams(location.search).get("view");
   const isCopilotView = view === "copilot";
@@ -49,6 +57,11 @@ export default function Desk() {
             ? "notifications"
             : "desk";
 
+  const handleOpenChannel = (channel: "sms" | "email") => {
+    setActiveConversationChannel(channel);
+    openConversationPanel();
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div
@@ -71,17 +84,46 @@ export default function Desk() {
 
         <div className="flex items-center gap-2">
           {isCustomerView ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
-              disabled={isAgentInCall || !isAgentAvailable}
-              className="h-8 rounded-full border-black/10 px-3"
-            >
-              <Phone className="mr-2 h-4 w-4" /> Call
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+                >
+                  Contact <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-44 rounded-2xl border border-black/10 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.14)]"
+              >
+                <DropdownMenuItem
+                  onClick={(event) => toggleCallPopunder(event.currentTarget.getBoundingClientRect())}
+                  disabled={isAgentInCall || !isAgentAvailable}
+                  className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                >
+                  <Phone className="mr-2 h-4 w-4" />
+                  Call
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleOpenChannel("email")}
+                  className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleOpenChannel("sms")}
+                  className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  SMS
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
           <button
             type="button"
