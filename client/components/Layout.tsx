@@ -103,6 +103,7 @@ interface LayoutContextValue {
   closeConversationPopunder: () => void;
   setActiveConversationChannel: (channel: CustomerChannel) => void;
   openCustomerConversation: (customerRecordId: string, channel: AssignmentChannel) => void;
+  openRecentInteractionAssignment: (interaction: RecentInteractionItem) => void;
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -111,6 +112,8 @@ interface LayoutContextValue {
   startCallStatus: () => void;
   endCallStatus: () => void;
 }
+
+type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
@@ -152,19 +155,29 @@ const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "reporting", name: "Reporting", description: "", routePath: "/reporting" },
 ];
 
-const conversationStatusOptions: Array<{ value: ConversationStatus; label: string }> = [
+const conversationStatusOptions: Array<{ value: QueueAssignmentStatus; label: string }> = [
   { value: "open", label: "Open" },
-  { value: "closed", label: "Closed" },
   { value: "pending", label: "Pending" },
+  { value: "resolved", label: "Resolved" },
+  { value: "escalated", label: "Escalated" },
+  { value: "closed", label: "Closed" },
 ];
 
-function getConversationStatusChipClasses(status: ConversationStatus) {
+function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
   if (status === "open") {
     return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F] hover:bg-[#D9F2EA]";
   }
 
   if (status === "pending") {
     return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708] hover:bg-[#FEF0C7]";
+  }
+
+  if (status === "resolved") {
+    return "border-[#ABEFC6] bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]";
+  }
+
+  if (status === "escalated") {
+    return "border-[#FECDCA] bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]";
   }
 
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
@@ -301,6 +314,73 @@ function createLaunchedAssignment(customerRecordId: string, channel: AssignmentC
     preview: getLaunchedAssignmentPreview(channel),
     createdAt: isoTimestamp,
     updatedAt: isoTimestamp,
+  };
+}
+
+function getRecentInteractionAssignmentStatus(status: string): QueueAssignmentStatus {
+  const normalizedStatus = status.trim().toLowerCase();
+
+  if (normalizedStatus === "resolved") {
+    return "resolved";
+  }
+
+  if (normalizedStatus === "pending") {
+    return "pending";
+  }
+
+  if (normalizedStatus === "escalated") {
+    return "escalated";
+  }
+
+  if (normalizedStatus === "closed") {
+    return "closed";
+  }
+
+  return "open";
+}
+
+function getAssignmentChannelFromRecentInteractionType(type: RecentInteractionItem["type"]): AssignmentChannel {
+  if (type === "email") {
+    return "email";
+  }
+
+  if (type === "voice") {
+    return "voice";
+  }
+
+  if (type === "ai-agent") {
+    return "chat";
+  }
+
+  return "sms";
+}
+
+function formatRecentInteractionAssignmentTime(createdAt: string) {
+  const timeParts = createdAt.trim().split(" ");
+
+  return timeParts.slice(-2).join(" ") || createdAt;
+}
+
+function createRecentInteractionAssignment(
+  interaction: RecentInteractionItem,
+  customerRecordId: string,
+): QueuePreviewItem {
+  const baseAssignment = queuePreviewItemsByCustomerRecordId[customerRecordId] ?? queuePreviewItems[0];
+  const channel = getAssignmentChannelFromRecentInteractionType(interaction.type);
+  const directionLabel = interaction.direction === "inbound" ? "Inbound" : "Outbound";
+
+  return {
+    ...baseAssignment,
+    id: `recent-interaction-${customerRecordId}-${interaction.id}`,
+    customerRecordId: baseAssignment.customerRecordId,
+    channel,
+    icon: launchedAssignmentIconMap[channel],
+    isActive: false,
+    time: formatRecentInteractionAssignmentTime(interaction.createdAt),
+    lastUpdated: interaction.createdAt,
+    preview: `${directionLabel} · ${interaction.channel}`,
+    createdAt: interaction.createdAt,
+    updatedAt: interaction.createdAt,
   };
 }
 
@@ -614,8 +694,8 @@ function ConversationStatusDropdown({
   status,
   onStatusChange,
 }: {
-  status: ConversationStatus;
-  onStatusChange: (status: ConversationStatus) => void;
+  status: QueueAssignmentStatus;
+  onStatusChange: (status: QueueAssignmentStatus) => void;
 }) {
   return (
     <DropdownMenu>
@@ -2760,8 +2840,8 @@ function QueueAssignmentCard({
   style,
 }: {
   item: QueuePreviewItem;
-  status: ConversationStatus;
-  onStatusChange: (status: ConversationStatus) => void;
+  status: QueueAssignmentStatus;
+  onStatusChange: (status: QueueAssignmentStatus) => void;
   onRemove: () => void;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   className?: string;
@@ -2853,8 +2933,8 @@ function QueueOverlayList({
   onSelectAssignment,
 }: {
   items: QueuePreviewItem[];
-  queueStatuses: Record<string, ConversationStatus>;
-  onStatusChange: (assignmentId: QueuePreviewItem["id"], status: ConversationStatus) => void;
+  queueStatuses: Record<string, QueueAssignmentStatus>;
+  onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
   isOpen: boolean;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -2879,16 +2959,17 @@ function QueueOverlayList({
 
 function LeftQueueRail({
   visibleAssignments,
+  queueStatuses,
+  onStatusChange,
   onRemoveAssignment,
 }: {
   visibleAssignments: QueuePreviewItem[];
+  queueStatuses: Record<string, QueueAssignmentStatus>;
+  onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemoveAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
-  const [queueStatuses, setQueueStatuses] = useState<Record<string, ConversationStatus>>(() => (
-    Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, ConversationStatus>
-  ));
   const {
     closeFloatingAppSpacePanel,
     isAppSpacePanelInDragMode,
@@ -2915,13 +2996,6 @@ function LeftQueueRail({
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
-  };
-
-  const handleQueueStatusChange = (assignmentId: QueuePreviewItem["id"], status: ConversationStatus) => {
-    setQueueStatuses((currentStatuses) => ({
-      ...currentStatuses,
-      [assignmentId]: status,
-    }));
   };
 
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
@@ -3007,7 +3081,7 @@ function LeftQueueRail({
                         <QueueAssignmentCard
                           item={item}
                           status={queueStatuses[item.id] ?? "open"}
-                          onStatusChange={(status) => handleQueueStatusChange(item.id, status)}
+                          onStatusChange={(status) => onStatusChange(item.id, status)}
                           onRemove={() => handleRemoveQueueItem(item.id)}
                           onSelectAssignment={selectAssignment}
                         />
@@ -3076,7 +3150,7 @@ function LeftQueueRail({
                 <QueueOverlayList
                   items={visibleQueuePreviewItems}
                   queueStatuses={queueStatuses}
-                  onStatusChange={handleQueueStatusChange}
+                  onStatusChange={onStatusChange}
                   onRemove={handleRemoveQueueItem}
                   isOpen={isOpen}
                   onSelectAssignment={selectAssignment}
@@ -3290,6 +3364,9 @@ export default function Layout({ children }: LayoutProps) {
   }));
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => initialSelectedAssignmentId);
   const [overviewOpenByAssignmentId, setOverviewOpenByAssignmentId] = useState<Record<string, boolean>>({});
+  const [assignmentStatusesById, setAssignmentStatusesById] = useState<Record<string, QueueAssignmentStatus>>(() => (
+    Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, QueueAssignmentStatus>
+  ));
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [pendingCallCustomerRecordId, setPendingCallCustomerRecordId] = useState(initialSelectedAssignment.customerRecordId);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
@@ -3535,6 +3612,13 @@ export default function Layout({ children }: LayoutProps) {
       ...conversationState,
       status: nextStatus,
     });
+  };
+
+  const handleAssignmentStatusChange = (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => {
+    setAssignmentStatusesById((currentStatuses) => ({
+      ...currentStatuses,
+      [assignmentId]: status,
+    }));
   };
 
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
@@ -4034,11 +4118,47 @@ export default function Layout({ children }: LayoutProps) {
       [nextAssignment.id]: nextAssignment,
     }));
     setVisibleAssignmentIds((currentIds) => [nextAssignment.id, ...currentIds]);
+    setAssignmentStatusesById((currentStatuses) => ({
+      ...currentStatuses,
+      [nextAssignment.id]: "open",
+    }));
     setSelectedAssignmentId(nextAssignment.id);
     setConversationStatesByKey((currentStates) => ({
       ...currentStates,
       [getConversationStateKey(nextAssignment.id)]: createFreshConversationState(customerRecordId, channel),
     }));
+    openConversationPanel();
+  };
+
+  const openRecentInteractionAssignment = (interaction: RecentInteractionItem) => {
+    const matchedCustomer = customerDatabase.find((customer) => customer.customerId === interaction.customerId);
+    const customerRecordId = matchedCustomer?.id ?? selectedAssignment.customerRecordId;
+    const nextAssignment = createRecentInteractionAssignment(interaction, customerRecordId);
+    const nextStatus = getRecentInteractionAssignmentStatus(interaction.status);
+    const conversationStateKey = getConversationStateKey(nextAssignment.id);
+
+    setDeskPanelSelection(null);
+    setAssignmentItemsById((currentItems) => ({
+      ...currentItems,
+      [nextAssignment.id]: nextAssignment,
+    }));
+    setVisibleAssignmentIds((currentIds) => [nextAssignment.id, ...currentIds.filter((currentId) => currentId !== nextAssignment.id)]);
+    setAssignmentStatusesById((currentStatuses) => ({
+      ...currentStatuses,
+      [nextAssignment.id]: nextStatus,
+    }));
+    setSelectedAssignmentId(nextAssignment.id);
+    setPendingCallCustomerRecordId(customerRecordId);
+    setConversationStatesByKey((currentStates) => {
+      if (currentStates[conversationStateKey]) {
+        return currentStates;
+      }
+
+      return {
+        ...currentStates,
+        [conversationStateKey]: createConversationState(customerRecordId, nextAssignment.channel),
+      };
+    });
     openConversationPanel();
   };
 
@@ -4074,6 +4194,11 @@ export default function Layout({ children }: LayoutProps) {
       const nextOverviewState = { ...currentOverviewState };
       delete nextOverviewState[assignmentId];
       return nextOverviewState;
+    });
+    setAssignmentStatusesById((currentStatuses) => {
+      const nextStatuses = { ...currentStatuses };
+      delete nextStatuses[assignmentId];
+      return nextStatuses;
     });
   };
 
@@ -4421,6 +4546,7 @@ export default function Layout({ children }: LayoutProps) {
       closeConversationPopunder,
       setActiveConversationChannel,
       openCustomerConversation,
+      openRecentInteractionAssignment,
       setConversationState: handleConversationStateChange,
       closeRightPanel: () => {
         setDeskPanelSelection(null);
@@ -4512,6 +4638,7 @@ export default function Layout({ children }: LayoutProps) {
       handleConversationStateChange,
       openConversationPanel,
       openCustomerConversation,
+      openRecentInteractionAssignment,
       recentInteractions,
       location.pathname,
       openCustomerInfoPanel,
@@ -4768,6 +4895,8 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex min-h-0 flex-1 overflow-hidden gap-0 pb-4 pr-4 pt-0">
         <LeftQueueRail
           visibleAssignments={visibleAssignments}
+          queueStatuses={assignmentStatusesById}
+          onStatusChange={handleAssignmentStatusChange}
           onRemoveAssignment={handleRemoveVisibleAssignment}
         />
         {isCombinedInteractionPanel ? (

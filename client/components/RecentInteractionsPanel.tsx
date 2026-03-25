@@ -8,6 +8,7 @@ import {
   MessageSquare,
   Phone,
 } from "lucide-react";
+import { useLayoutContext } from "@/components/Layout";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -163,11 +164,24 @@ function InteractionTypeIcon({
 
 function InteractionRow({
   interaction,
+  onOpen,
 }: {
   interaction: RecentInteractionItem;
+  onOpen: (interaction: RecentInteractionItem) => void;
 }) {
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC]">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(interaction)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(interaction);
+        }
+      }}
+      className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30"
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9]">
           <InteractionTypeIcon
@@ -199,6 +213,9 @@ function InteractionRow({
               type="button"
               className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#E6F3FA] hover:text-[#006DAD]"
               aria-label="Interaction options"
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+              onKeyDown={(event) => event.stopPropagation()}
             >
               <MoreVertical className="h-4 w-4" />
             </button>
@@ -224,16 +241,29 @@ export default function RecentInteractionsPanel({
   injectedInteractions?: RecentInteractionItem[];
 }) {
   const [activeFilter, setActiveFilter] = useState<"all" | "sms" | "email" | "voice" | "ai-agent">("all");
+  const { selectedAssignment, openRecentInteractionAssignment } = useLayoutContext();
+
+  const seededInteractions = useMemo(
+    () => alexInteractions.map((interaction) => ({
+      ...interaction,
+      customerName: selectedAssignment.name,
+      customerId: selectedAssignment.customerId,
+    })),
+    [selectedAssignment.customerId, selectedAssignment.name],
+  );
 
   const filteredInteractions = useMemo(() => {
-    const interactions = [...injectedInteractions, ...alexInteractions];
+    const interactions = [
+      ...injectedInteractions.filter((interaction) => interaction.customerId === selectedAssignment.customerId),
+      ...seededInteractions,
+    ];
 
     if (activeFilter === "all") {
       return interactions;
     }
 
     return interactions.filter((interaction) => interaction.type === activeFilter);
-  }, [activeFilter, injectedInteractions]);
+  }, [activeFilter, injectedInteractions, seededInteractions, selectedAssignment.customerId]);
 
   return (
     <div className="flex h-full min-w-full flex-col lg:min-w-[380px]">
@@ -242,7 +272,7 @@ export default function RecentInteractionsPanel({
           <div className="flex items-center gap-1 text-sm font-semibold tracking-tight text-[#333333]">
             <span>Recent Interactions</span>
           </div>
-          <div className="mt-0.5 text-xs text-[#6B7280]">Alex Kowalski</div>
+          <div className="mt-0.5 text-xs text-[#6B7280]">{selectedAssignment.name}</div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -271,7 +301,11 @@ export default function RecentInteractionsPanel({
       <ScrollArea className="flex-1 px-4 py-4">
         <div className="space-y-3 pb-2">
           {filteredInteractions.map((interaction) => (
-            <InteractionRow key={interaction.id} interaction={interaction} />
+            <InteractionRow
+              key={interaction.id}
+              interaction={interaction}
+              onOpen={openRecentInteractionAssignment}
+            />
           ))}
         </div>
       </ScrollArea>
