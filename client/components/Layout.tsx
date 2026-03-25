@@ -2539,12 +2539,7 @@ function QueueAssignmentCard({
       )}
       style={style}
     >
-      <span
-        className={cn(
-          "absolute inset-y-0 left-0 w-1 rounded-l-[8px]",
-          item.isActive ? "bg-[#006DAD]" : "bg-[#F59E0B]",
-        )}
-      />
+      {item.isActive ? <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px] bg-[#006DAD]" /> : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
