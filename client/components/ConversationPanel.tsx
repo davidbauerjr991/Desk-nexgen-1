@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { getRelevantCustomerTicket } from "@/components/NotesPanel";
+import { VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
 import type { CustomerChannel } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
@@ -359,6 +360,7 @@ export default function ConversationPanel({
   onOpenDeskPanel,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const isVoiceChannel = activeChannel === "voice";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -688,186 +690,192 @@ export default function ConversationPanel({
               </span>
             </div>
 
-            {conversation.messages.map((message) => (
-              <div key={message.id} className="space-y-3">
-                <div
-                  className={cn(
-                    "flex max-w-[85%] flex-col",
-                    message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
-                  )}
-                >
-                  <div className="mb-1 flex items-center gap-2 px-1 text-xs text-[#475467]">
-                    <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
-                    <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                    <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
-                  </div>
-                  <div
-                    className={cn(
-                      "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                      message.role === "agent"
-                        ? "rounded-br-sm bg-primary text-primary-foreground"
-                        : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
-                    )}
-                  >
-                    {message.content}
-                  </div>
-                  <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-[#98A2B3]">
-                    <span>{formatConversationMessageTimestamp(message.time)}</span>
-                  </div>
-                  {message.sentiment === "frustrated" && (
-                    <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      Frustrated sentiment detected
-                    </div>
-                  )}
-                </div>
-
-                {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                  <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                    <Accordion
-                      type="single"
-                      collapsible
-                      value={suggestionAccordionValue}
-                      onValueChange={(value) => setSuggestionAccordionValue(value)}
+            {isVoiceChannel ? (
+              <VoiceGuidancePanel />
+            ) : (
+              <>
+                {conversation.messages.map((message) => (
+                  <div key={message.id} className="space-y-3">
+                    <div
+                      className={cn(
+                        "flex max-w-[85%] flex-col",
+                        message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
+                      )}
                     >
-                      <AccordionItem value="ai-suggestion" className="border-b-0">
-                        <AccordionTrigger className="py-4 text-left hover:no-underline">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span>AI Suggestion</span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-4">
-                          <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
-                          {suggestionActions.length > 0 ? (
-                            <div className="mt-4 flex flex-wrap items-center gap-2">
-                              {suggestionActions.map((action) => (
-                                <Button
-                                  key={action.id}
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white"
-                                  onClick={() => handleOpenSuggestionAction(action)}
-                                >
-                                  {action.label}
-                                </Button>
-                              ))}
-                            </div>
-                          ) : null}
-                          {isSuggestionEditorOpen ? (
-                            <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
-                              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
-                                Edit AI suggestion
+                      <div className="mb-1 flex items-center gap-2 px-1 text-xs text-[#475467]">
+                        <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
+                        <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                        <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
+                      </div>
+                      <div
+                        className={cn(
+                          "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                          message.role === "agent"
+                            ? "rounded-br-sm bg-primary text-primary-foreground"
+                            : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                        )}
+                      >
+                        {message.content}
+                      </div>
+                      <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-[#98A2B3]">
+                        <span>{formatConversationMessageTimestamp(message.time)}</span>
+                      </div>
+                      {message.sentiment === "frustrated" && (
+                        <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Frustrated sentiment detected
+                        </div>
+                      )}
+                    </div>
+
+                    {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
+                      <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                        <Accordion
+                          type="single"
+                          collapsible
+                          value={suggestionAccordionValue}
+                          onValueChange={(value) => setSuggestionAccordionValue(value)}
+                        >
+                          <AccordionItem value="ai-suggestion" className="border-b-0">
+                            <AccordionTrigger className="py-4 text-left hover:no-underline">
+                              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
+                                <Sparkles className="h-3.5 w-3.5" />
+                                <span>AI Suggestion</span>
                               </div>
-                              <Input
-                                value={suggestionEditPrompt}
-                                onChange={(event) => setSuggestionEditPrompt(event.target.value)}
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    handleApplySuggestionEdit();
-                                  }
-                                }}
-                                placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
-                                className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
-                              />
-                              <div className="mt-3 flex flex-wrap items-center gap-2">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
-                                  onClick={handleApplySuggestionEdit}
-                                  disabled={suggestionEditPrompt.trim().length === 0}
-                                >
-                                  Update suggestion
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                                  onClick={() => {
-                                    setSuggestionEditPrompt("");
-                                    setSuggestionAccordionValue("ai-suggestion");
-                                    setIsSuggestionEditorOpen(false);
-                                  }}
-                                >
-                                  Cancel
-                                </Button>
+                            </AccordionTrigger>
+                            <AccordionContent className="pb-4">
+                              <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
+                              {suggestionActions.length > 0 ? (
+                                <div className="mt-4 flex flex-wrap items-center gap-2">
+                                  {suggestionActions.map((action) => (
+                                    <Button
+                                      key={action.id}
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white"
+                                      onClick={() => handleOpenSuggestionAction(action)}
+                                    >
+                                      {action.label}
+                                    </Button>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {isSuggestionEditorOpen ? (
+                                <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
+                                  <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
+                                    Edit AI suggestion
+                                  </div>
+                                  <Input
+                                    value={suggestionEditPrompt}
+                                    onChange={(event) => setSuggestionEditPrompt(event.target.value)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === "Enter") {
+                                        event.preventDefault();
+                                        handleApplySuggestionEdit();
+                                      }
+                                    }}
+                                    placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
+                                    className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
+                                  />
+                                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
+                                      onClick={handleApplySuggestionEdit}
+                                      disabled={suggestionEditPrompt.trim().length === 0}
+                                    >
+                                      Update suggestion
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                                      onClick={() => {
+                                        setSuggestionEditPrompt("");
+                                        setSuggestionAccordionValue("ai-suggestion");
+                                        setIsSuggestionEditorOpen(false);
+                                      }}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : null}
+                              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className={cn(
+                                      "h-9 rounded-lg px-4",
+                                      isSuggestionAdded
+                                        ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                                        : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                                    )}
+                                    onClick={handleUseSuggestion}
+                                    disabled={isSuggestionAdded}
+                                  >
+                                    {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                                    {isSuggestionAdded ? "Added" : "Use response"}
+                                  </Button>
+                                  <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
+                                    Edit
+                                  </Button>
+                                </div>
+                                <div className="ml-auto flex items-center gap-2 self-end">
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    aria-label="Show previous AI suggestion"
+                                    className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+                                    onClick={() => handleCycleSuggestion(-1)}
+                                    disabled={suggestionVariants.length <= 1}
+                                  >
+                                    <ChevronLeft className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="outline"
+                                    aria-label="Show next AI suggestion"
+                                    className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+                                    onClick={() => handleCycleSuggestion(1)}
+                                    disabled={suggestionVariants.length <= 1}
+                                  >
+                                    <ChevronRight className="h-4 w-4" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          ) : null}
-                          <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                className={cn(
-                                  "h-9 rounded-lg px-4",
-                                  isSuggestionAdded
-                                    ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                                    : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                                )}
-                                onClick={handleUseSuggestion}
-                                disabled={isSuggestionAdded}
-                              >
-                                {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                                {isSuggestionAdded ? "Added" : "Use response"}
-                              </Button>
-                              <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
-                                Edit
-                              </Button>
-                            </div>
-                            <div className="ml-auto flex items-center gap-2 self-end">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                aria-label="Show previous AI suggestion"
-                                className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
-                                onClick={() => handleCycleSuggestion(-1)}
-                                disabled={suggestionVariants.length <= 1}
-                              >
-                                <ChevronLeft className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                aria-label="Show next AI suggestion"
-                                className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
-                                onClick={() => handleCycleSuggestion(1)}
-                                disabled={suggestionVariants.length <= 1}
-                              >
-                                <ChevronRight className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {conversation.isCustomerTyping && (
+                  <div className="mr-auto flex max-w-[85%] flex-col items-start">
+                    <span className="mb-1 ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
+                    <div className="rounded-2xl rounded-bl-sm border border-border/50 bg-muted px-4 py-3 shadow-sm">
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]"></span>
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]"></span>
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]"></span>
+                      </div>
+                    </div>
                   </div>
                 )}
-              </div>
-            ))}
-
-            {conversation.isCustomerTyping && (
-              <div className="mr-auto flex max-w-[85%] flex-col items-start">
-                <span className="mb-1 ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
-                <div className="rounded-2xl rounded-bl-sm border border-border/50 bg-muted px-4 py-3 shadow-sm">
-                  <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]"></span>
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]"></span>
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]"></span>
-                  </div>
-                </div>
-              </div>
+              </>
             )}
           </div>
         </ScrollArea>
 
-        {newMessagesCount > 0 && (
+        {!isVoiceChannel && newMessagesCount > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-6">
             <Button
               type="button"
@@ -881,134 +889,136 @@ export default function ConversationPanel({
         )}
       </div>
 
-      <div className="shrink-0 border-t border-border bg-background p-4">
-        <div
-          className={cn(
-            "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
-            isDraftFocused ? "border border-transparent shadow-none" : "border border-black/10",
-          )}
-        >
-          <Textarea
-            key={draftKey}
-            ref={textareaRef}
-            placeholder="Type your live response..."
-            value={draft}
-            onChange={(event) => {
-              const nextDraft = event.target.value;
-              setDraft(nextDraft);
-              onConversationChange?.({
-                ...conversation,
-                draft: nextDraft,
-              }, activeChannel);
-            }}
-            onFocus={() => setIsDraftFocused(true)}
-            onBlur={() => setIsDraftFocused(false)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSend();
-              }
-            }}
-            rows={1}
-            className="min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-          />
+      {!isVoiceChannel && (
+        <div className="shrink-0 border-t border-border bg-background p-4">
+          <div
+            className={cn(
+              "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
+              isDraftFocused ? "border border-transparent shadow-none" : "border border-black/10",
+            )}
+          >
+            <Textarea
+              key={draftKey}
+              ref={textareaRef}
+              placeholder="Type your live response..."
+              value={draft}
+              onChange={(event) => {
+                const nextDraft = event.target.value;
+                setDraft(nextDraft);
+                onConversationChange?.({
+                  ...conversation,
+                  draft: nextDraft,
+                }, activeChannel);
+              }}
+              onFocus={() => setIsDraftFocused(true)}
+              onBlur={() => setIsDraftFocused(false)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  handleSend();
+                }
+              }}
+              rows={1}
+              className="min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            />
 
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#5B5B5B] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    aria-label="Open conversation actions"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  side="top"
+                  sideOffset={12}
+                  className="z-[120] w-[320px] rounded-[8px] border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
+                >
+                  <div>
+                    {conversationFooterMenuItems.map((item) => (
+                      <DropdownMenuItem
+                        key={item}
+                        className="rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]"
+                      >
+                        {item}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                  <DropdownMenuSeparator className="my-0 bg-black/10" />
+                  <div>
+                    {conversationFooterSecondaryMenuItems.map((item) => (
+                      <DropdownMenuItem
+                        key={item}
+                        className={cn(
+                          "rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]",
+                          item === "Web search" && "text-[#0B7C86] focus:text-[#0B7C86]",
+                        )}
+                      >
+                        {item}
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#5B5B5B] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                  aria-label="Open conversation actions"
+                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  aria-label="Conversation options"
                 >
-                  <Plus className="h-4 w-4" />
+                  <SlidersHorizontal className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                side="top"
-                sideOffset={12}
-                className="z-[120] w-[320px] rounded-[8px] border border-black/10 bg-white p-0 shadow-[0_20px_50px_rgba(0,0,0,0.16)]"
-              >
-                <div>
-                  {conversationFooterMenuItems.map((item) => (
-                    <DropdownMenuItem
-                      key={item}
-                      className="rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]"
-                    >
-                      {item}
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-                <DropdownMenuSeparator className="my-0 bg-black/10" />
-                <div>
-                  {conversationFooterSecondaryMenuItems.map((item) => (
-                    <DropdownMenuItem
-                      key={item}
-                      className={cn(
-                        "rounded-xl px-4 py-4 text-[15px] text-[#333333] focus:bg-[#F8F8F9]",
-                        item === "Web search" && "text-[#0B7C86] focus:text-[#0B7C86]",
-                      )}
-                    >
-                      {item}
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                aria-label="Conversation options"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                aria-label="Voice input"
-              >
-                <AudioLines className="h-4 w-4" />
-              </Button>
-              {hasDraft ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={handleClearDraft}
-                  className="h-8 rounded-full border border-black/10 bg-white px-3 text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                  aria-label="Clear input"
+                  size="icon"
+                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  aria-label="Voice input"
                 >
-                  <X className="mr-1.5 h-3.5 w-3.5" />
-                  Clear
+                  <AudioLines className="h-4 w-4" />
                 </Button>
-              ) : null}
-              <Button
-                type="button"
-                onClick={() => handleSend()}
-                className={cn(
-                  "h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]",
-                  !hasDraft && "cursor-not-allowed bg-[#D1D5DB] text-white hover:bg-[#D1D5DB]",
-                )}
-                size="icon"
-                aria-label={hasDraft ? `Send via ${getConversationChannelLabel(activeChannel)}` : "Enter a response to send"}
-                disabled={!hasDraft}
-              >
-                <Send className="h-3.5 w-3.5" />
-              </Button>
+                {hasDraft ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={handleClearDraft}
+                    className="h-8 rounded-full border border-black/10 bg-white px-3 text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    aria-label="Clear input"
+                  >
+                    <X className="mr-1.5 h-3.5 w-3.5" />
+                    Clear
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  onClick={() => handleSend()}
+                  className={cn(
+                    "h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]",
+                    !hasDraft && "cursor-not-allowed bg-[#D1D5DB] text-white hover:bg-[#D1D5DB]",
+                  )}
+                  size="icon"
+                  aria-label={hasDraft ? `Send via ${getConversationChannelLabel(activeChannel)}` : "Enter a response to send"}
+                  disabled={!hasDraft}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

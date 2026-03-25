@@ -22,7 +22,6 @@ import {
   PhoneOff,
   Plus,
   Search,
-  Sparkles,
   Volume2,
   X,
 } from "lucide-react";
@@ -47,6 +46,7 @@ import ConversationPanel, { type ConversationStatus, type SharedConversationData
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
 import NotesPanel from "@/components/NotesPanel";
+import { VoiceAIGuidanceCard } from "@/components/VoiceGuidanceContent";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
@@ -101,7 +101,7 @@ interface LayoutContextValue {
   openConversationPopunder: (anchorRect?: DOMRect | null) => void;
   closeConversationPopunder: () => void;
   setActiveConversationChannel: (channel: CustomerChannel) => void;
-  openCustomerConversation: (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email">) => void;
+  openCustomerConversation: (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email" | "voice">) => void;
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -567,25 +567,6 @@ function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS
   return "bg-[#F79009]";
 }
 
-function CallAIGuidanceCard() {
-  return (
-    <div className="rounded-xl border border-[#B8D7F0] bg-[#EEF6FC] p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#006DAD]">
-        <Sparkles className="h-3.5 w-3.5" />
-        AI Guidance
-      </div>
-      <p className="mt-2 text-xs leading-5 text-[#333333]">
-        Acknowledge the prior assistant handoff, confirm the beverage package upgrade request, and keep the customer from repeating details.
-      </p>
-      <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6B7280]">
-        <li>• Pronunciation: Kowalski (“Koah-wall-skee”)</li>
-        <li>• Confirm whether the customer needs the upgrade completed today.</li>
-        <li>• Reference the failed chat attempt before moving into troubleshooting.</li>
-      </ul>
-    </div>
-  );
-}
-
 function ConversationStatusDropdown({
   status,
   onStatusChange,
@@ -1025,7 +1006,7 @@ function CallControlsPopunder({
               </p>
             </div>
 
-            <CallAIGuidanceCard />
+            <VoiceAIGuidanceCard />
           </>
         ) : mode === "controls" ? (
           <>
@@ -1059,7 +1040,7 @@ function CallControlsPopunder({
             </div>
 
             <div ref={transcriptScrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              <CallAIGuidanceCard />
+              <VoiceAIGuidanceCard />
 
               <div className="rounded-xl border border-black/10 bg-white">
                 <button
@@ -4080,7 +4061,7 @@ export default function Layout({ children }: LayoutProps) {
     setConversationDragActivation(null);
   };
 
-  const openCustomerConversation = (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email">) => {
+  const openCustomerConversation = (assignmentId: QueuePreviewItem["id"], channel: Extract<CustomerChannel, "sms" | "email" | "voice">) => {
     const isExistingAssignment = visibleAssignmentIds.includes(assignmentId);
 
     setDeskPanelSelection(null);
@@ -5181,6 +5162,7 @@ export default function Layout({ children }: LayoutProps) {
             setCallPopunderMode("connecting");
             callConnectTimeoutRef.current = window.setTimeout(() => {
               layoutContextValue.startCallStatus();
+              openCustomerConversation(selectedAssignment.id, "voice");
               setCallPopunderMode("controls");
               setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
               setIsCopilotPopoverOpen(true);

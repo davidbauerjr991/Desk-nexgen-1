@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, MessageSquare } from "lucide-react";
+import { Mail, MessageCircle, MessageSquare, Phone } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { CustomerChannel } from "@/lib/customer-database";
@@ -51,6 +51,11 @@ export const conversationChannelOptions: Array<{
     channel: "email",
     label: "Email",
     renderIcon: (className) => <Mail className={className} />,
+  },
+  {
+    channel: "voice",
+    label: "Voice",
+    renderIcon: (className) => <Phone className={className} />,
   },
 ];
 

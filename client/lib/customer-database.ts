@@ -1,6 +1,6 @@
 import type { ConversationMessage, SharedConversationData } from "@/components/ConversationPanel";
 
-export type CustomerChannel = "chat" | "sms" | "whatsapp" | "email";
+export type CustomerChannel = "chat" | "sms" | "whatsapp" | "email" | "voice";
 export type CustomerQueueIcon = "phone" | "clipboardList" | "messageSquare";
 export type CustomerOverviewTimelineTone = "critical" | "warning" | "info" | "default";
 
@@ -12,6 +12,8 @@ export type CustomerOverviewTimelineItem = {
   tone: CustomerOverviewTimelineTone;
   sortOrder: number;
 };
+
+type SeedConversationChannel = Exclude<CustomerChannel, "voice">;
 
 export type CustomerSeedRecord = {
   id: string;
@@ -39,7 +41,7 @@ export type CustomerSeedRecord = {
     updatedAt: string;
   };
   conversations: Record<
-    CustomerChannel,
+    SeedConversationChannel,
     {
       label: string;
       timelineLabel: string;
@@ -2405,11 +2407,25 @@ export function getChannelFromConversationLabel(label: string): CustomerChannel 
   if (label.toLowerCase() === "chat") return "chat";
   if (label.toLowerCase() === "sms") return "sms";
   if (label.toLowerCase() === "whatsapp") return "whatsapp";
+  if (label.toLowerCase() === "voice") return "voice";
   return "email";
 }
 
 export function createConversationState(customerId: string, channel: CustomerChannel): SharedConversationData {
   const customer = getCustomerRecord(customerId);
+
+  if (channel === "voice") {
+    return {
+      customerName: customer.name,
+      label: "Voice",
+      timelineLabel: "Voice call · Live guidance",
+      status: "open",
+      draft: "",
+      messages: [],
+      isCustomerTyping: false,
+    };
+  }
+
   const conversation = customer.conversations[channel];
 
   return {
