@@ -3037,11 +3037,11 @@ function LeftQueueRail() {
         >
           <div
             className={cn(
-              "flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
+              "ml-4 flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] pr-3 transition-transform duration-300 ease-out",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[4px] border border-black/[0.16] bg-[#F8F8F9]">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-black/[0.16] bg-white">
               <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
                 <div>
                   <div className="mb-3 flex items-center gap-3">
@@ -3063,7 +3063,6 @@ function LeftQueueRail() {
                     </button>
                     <div className="min-w-0">
                       <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                      <p className="text-sm text-[#7A7A7A]">0/{visibleQueuePreviewItems.length} completed</p>
                     </div>
                   </div>
                   <div className="flex items-start justify-between gap-3">
