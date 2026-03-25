@@ -4376,7 +4376,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <LayoutContext.Provider value={layoutContextValue}>
-      <div className="flex h-screen w-full flex-col bg-[#F8F8F9]">
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
       <header className="flex min-h-[60px] shrink-0 items-center gap-2 px-4 py-2 lg:gap-4">
         <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-3">
           <NiceLogoIcon />
@@ -4612,7 +4612,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-0 pb-4 pr-4 pt-0">
+      <div className="flex min-h-0 flex-1 overflow-hidden gap-0 pb-4 pr-4 pt-0">
         <LeftQueueRail />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
