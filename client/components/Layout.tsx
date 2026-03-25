@@ -13,6 +13,7 @@ import {
   FileText,
   GripHorizontal,
   Mail,
+  MessageCircle,
   MessageSquare,
   Mic,
   Monitor,
@@ -203,7 +204,7 @@ const queueIconMap: Record<CustomerQueueIcon, typeof Phone> = {
 };
 
 const launchedAssignmentIconMap: Record<AssignmentChannel, typeof Phone> = {
-  chat: MessageSquare,
+  chat: MessageCircle,
   sms: MessageSquare,
   email: Mail,
   voice: Phone,
@@ -213,24 +214,28 @@ const baseAssignmentChannelByCustomerRecordId: Partial<Record<string, Assignment
   olivia: "chat",
 };
 
-const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) => ({
-  id: customer.id,
-  customerRecordId: customer.id,
-  channel: baseAssignmentChannelByCustomerRecordId[customer.id] ?? "sms",
-  initials: customer.initials,
-  name: customer.name,
-  customerId: customer.customerId,
-  lastUpdated: customer.lastUpdated,
-  time: customer.queue.time,
-  preview: customer.queue.preview,
-  priority: customer.queue.priority,
-  priorityClassName: customer.queue.priorityClassName,
-  badgeColor: customer.queue.badgeColor,
-  icon: queueIconMap[customer.queue.icon],
-  isActive: customer.queue.isActive,
-  createdAt: customer.queue.createdAt,
-  updatedAt: customer.queue.updatedAt,
-}));
+const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) => {
+  const assignmentChannel = baseAssignmentChannelByCustomerRecordId[customer.id] ?? "sms";
+
+  return {
+    id: customer.id,
+    customerRecordId: customer.id,
+    channel: assignmentChannel,
+    initials: customer.initials,
+    name: customer.name,
+    customerId: customer.customerId,
+    lastUpdated: customer.lastUpdated,
+    time: customer.queue.time,
+    preview: customer.queue.preview,
+    priority: customer.queue.priority,
+    priorityClassName: customer.queue.priorityClassName,
+    badgeColor: customer.queue.badgeColor,
+    icon: assignmentChannel === "sms" ? queueIconMap[customer.queue.icon] : launchedAssignmentIconMap[assignmentChannel],
+    isActive: customer.queue.isActive,
+    createdAt: customer.queue.createdAt,
+    updatedAt: customer.queue.updatedAt,
+  };
+});
 
 const queuePreviewItemsByCustomerRecordId = Object.fromEntries(
   queuePreviewItems.map((item) => [item.customerRecordId, item]),
