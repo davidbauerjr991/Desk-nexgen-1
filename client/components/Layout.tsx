@@ -2754,11 +2754,15 @@ function HeaderIconButton({
 
 function QueueAssignmentCard({
   item,
+  status,
+  onStatusChange,
   onSelectAssignment,
   className,
   style,
 }: {
   item: QueuePreviewItem;
+  status: ConversationStatus;
+  onStatusChange: (status: ConversationStatus) => void;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   className?: string;
   style?: React.CSSProperties;
@@ -2798,7 +2802,7 @@ function QueueAssignmentCard({
                 onMouseDown={(event) => event.stopPropagation()}
                 onKeyDown={(event) => event.stopPropagation()}
               >
-                <ConversationStatusDropdown status="open" onStatusChange={() => undefined} />
+                <ConversationStatusDropdown status={status} onStatusChange={onStatusChange} />
               </div>
             </div>
           </div>
@@ -2823,10 +2827,14 @@ function QueueAssignmentCard({
 
 function QueueOverlayList({
   items,
+  queueStatuses,
+  onStatusChange,
   isOpen,
   onSelectAssignment,
 }: {
   items: QueuePreviewItem[];
+  queueStatuses: Record<string, ConversationStatus>;
+  onStatusChange: (assignmentId: QueuePreviewItem["id"], status: ConversationStatus) => void;
   isOpen: boolean;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
 }) {
@@ -2836,6 +2844,8 @@ function QueueOverlayList({
         <QueueAssignmentCard
           key={item.id}
           item={item}
+          status={queueStatuses[item.id] ?? "open"}
+          onStatusChange={(status) => onStatusChange(item.id, status)}
           onSelectAssignment={onSelectAssignment}
           className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
           style={{ transitionDelay: `${index * 35}ms` }}
@@ -2848,6 +2858,9 @@ function QueueOverlayList({
 function LeftQueueRail() {
   const [isOpen, setIsOpen] = useState(true);
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
+  const [queueStatuses, setQueueStatuses] = useState<Record<string, ConversationStatus>>(() => (
+    Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, ConversationStatus>
+  ));
   const {
     closeFloatingAppSpacePanel,
     isAppSpacePanelInDragMode,
@@ -2887,6 +2900,13 @@ function LeftQueueRail() {
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
+  };
+
+  const handleQueueStatusChange = (assignmentId: QueuePreviewItem["id"], status: ConversationStatus) => {
+    setQueueStatuses((currentStatuses) => ({
+      ...currentStatuses,
+      [assignmentId]: status,
+    }));
   };
 
   return (
@@ -2965,7 +2985,12 @@ function LeftQueueRail() {
                         sideOffset={14}
                         className="w-[295px] border-none bg-transparent p-0 shadow-none"
                       >
-                        <QueueAssignmentCard item={item} onSelectAssignment={selectAssignment} />
+                        <QueueAssignmentCard
+                          item={item}
+                          status={queueStatuses[item.id] ?? "open"}
+                          onStatusChange={(status) => handleQueueStatusChange(item.id, status)}
+                          onSelectAssignment={selectAssignment}
+                        />
                       </HoverCardContent>
                     </HoverCard>
                   );
@@ -3029,7 +3054,13 @@ function LeftQueueRail() {
                 </div>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <QueueOverlayList items={visibleQueuePreviewItems} isOpen={isOpen} onSelectAssignment={selectAssignment} />
+                <QueueOverlayList
+                  items={visibleQueuePreviewItems}
+                  queueStatuses={queueStatuses}
+                  onStatusChange={handleQueueStatusChange}
+                  isOpen={isOpen}
+                  onSelectAssignment={selectAssignment}
+                />
               </div>
             </div>
           </div>
