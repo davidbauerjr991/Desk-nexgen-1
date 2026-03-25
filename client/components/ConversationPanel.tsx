@@ -679,7 +679,7 @@ export default function ConversationPanel({
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="pb-4">
-                          <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.summary}</p>
+                          <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
                           {suggestionActions.length > 0 ? (
                             <div className="mt-4 flex flex-wrap items-center gap-2">
                               {suggestionActions.map((action) => (
