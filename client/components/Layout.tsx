@@ -293,8 +293,8 @@ const DOCKED_CONVERSATION_MIN_WIDTH = 360;
 const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
-const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 120;
-const DOCKED_CONVERSATION_CONTENT_TRANSITION_MS = 220;
+const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 0;
+const DOCKED_CONVERSATION_CONTENT_TRANSITION_MS = 520;
 const CUSTOMER_INFO_PANEL_CONTENT_ENTER_DELAY_MS = 120;
 const CUSTOMER_INFO_PANEL_CONTENT_TRANSITION_MS = 220;
 const INLINE_APP_SPACE_PANEL_ENTER_DELAY_MS = 20;
@@ -1351,7 +1351,7 @@ function DockedConversationPanel({
     <div
       aria-hidden={!isOpen}
       className={cn(
-        "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-400 ease-out min-[800px]:block",
+        "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-500 ease-out min-[800px]:block",
         isOpen && (!isEqualSplit || equalSplitWidth === undefined) && "min-w-0 flex-1 basis-0",
         isOpen && isEqualSplit && equalSplitWidth !== undefined && "min-w-0 shrink-0",
         isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
@@ -1363,7 +1363,7 @@ function DockedConversationPanel({
     >
       <div
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-200 ease-out will-change-[opacity,transform]",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-500 ease-out will-change-[opacity,transform]",
           isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
         )}
       >
