@@ -297,6 +297,7 @@ const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 120;
 const DOCKED_CONVERSATION_CONTENT_TRANSITION_MS = 220;
 const CUSTOMER_INFO_PANEL_CONTENT_ENTER_DELAY_MS = 120;
 const CUSTOMER_INFO_PANEL_CONTENT_TRANSITION_MS = 220;
+const INLINE_APP_SPACE_PANEL_ENTER_DELAY_MS = 20;
 const MIN_MAIN_WORKSPACE_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_MIN_WIDTH = 360;
 const CUSTOMER_INFO_PANEL_DEFAULT_WIDTH = 425;
@@ -1589,6 +1590,61 @@ function CombinedInteractionPanel({
         </Tabs>
       </div>
 
+    </div>
+  );
+}
+
+function InlineAppSpacePanel({
+  isOpen,
+  children,
+}: {
+  isOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [isEntered, setIsEntered] = useState(false);
+
+  useEffect(() => {
+    let timeoutId: number | undefined;
+    let frameId: number | undefined;
+
+    if (!isOpen) {
+      setIsEntered(false);
+      return;
+    }
+
+    timeoutId = window.setTimeout(() => {
+      frameId = window.requestAnimationFrame(() => {
+        setIsEntered(true);
+      });
+    }, INLINE_APP_SPACE_PANEL_ENTER_DELAY_MS);
+
+    return () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [isOpen]);
+
+  return (
+    <div
+      aria-hidden={!isOpen}
+      className={cn(
+        "min-h-0 overflow-hidden transition-[width,opacity,transform] duration-300 ease-out",
+        isOpen ? "min-w-0 flex-1 basis-0 opacity-100" : "pointer-events-none w-0 opacity-0",
+      )}
+    >
+      <div
+        className={cn(
+          "h-full min-h-0 w-full transition-[opacity,transform] duration-300 ease-out",
+          isOpen && isEntered ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0",
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -4647,60 +4703,59 @@ export default function Layout({ children }: LayoutProps) {
                 }}
               />
             ) : null}
-            {isInlineAppSpacePanelVisible ? (
-              isDeskRoute ? (
-                <div className="flex min-w-0 flex-1 basis-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                  {children}
-                </div>
-              ) : (
-                <DockedCustomerInfoPanel
-                  isOpen
-                  width={dockedCustomerInfoWidth}
-                  maxWidth={customerInfoPanelMaxWidth}
-                  customerRecordId={selectedAssignment.id}
-                  customerName={selectedAssignment.name}
-                  customerId={selectedAssignment.customerId}
-                  panelSelection={deskPanelSelection}
-                  onWidthChange={setDockedCustomerInfoWidth}
-                  onOpenCall={layoutContextValue.toggleCallPopunder}
-                  isCallDisabled={status === "In a Call" || status !== "Available"}
-                  onClose={closeCustomerInfoPanel}
-                  showTrailingGap={false}
-                  isEqualSplit
-                  onUndockStart={(event) => {
-                    if (typeof window === "undefined") return;
+            <InlineAppSpacePanel isOpen={isInlineAppSpacePanelVisible && isDeskRoute}>
+              <div className="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                {children}
+              </div>
+            </InlineAppSpacePanel>
+            {isInlineAppSpacePanelVisible && !isDeskRoute ? (
+              <DockedCustomerInfoPanel
+                isOpen
+                width={dockedCustomerInfoWidth}
+                maxWidth={customerInfoPanelMaxWidth}
+                customerRecordId={selectedAssignment.id}
+                customerName={selectedAssignment.name}
+                customerId={selectedAssignment.customerId}
+                panelSelection={deskPanelSelection}
+                onWidthChange={setDockedCustomerInfoWidth}
+                onOpenCall={layoutContextValue.toggleCallPopunder}
+                isCallDisabled={status === "In a Call" || status !== "Available"}
+                onClose={closeCustomerInfoPanel}
+                showTrailingGap={false}
+                isEqualSplit
+                onUndockStart={(event) => {
+                  if (typeof window === "undefined") return;
 
-                    event.preventDefault();
+                  event.preventDefault();
 
-                    const bounds = event.currentTarget.closest("[data-conversation-panel-header]")?.getBoundingClientRect()
-                    ?? event.currentTarget.parentElement?.getBoundingClientRect();
-                  if (!bounds) return;
+                  const bounds = event.currentTarget.closest("[data-conversation-panel-header]")?.getBoundingClientRect()
+                  ?? event.currentTarget.parentElement?.getBoundingClientRect();
+                if (!bounds) return;
 
-                    const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
-                    const nextPosition = {
-                      x: Math.min(
-                        Math.max(margin, bounds.left),
-                        window.innerWidth - customerInfoPopunderSize.width - margin,
-                      ),
-                      y: Math.min(
-                        Math.max(margin, bounds.top),
-                        window.innerHeight - customerInfoPopunderSize.height - margin,
-                      ),
-                    };
+                  const margin = CUSTOMER_INFO_POPOUNDER_MARGIN;
+                  const nextPosition = {
+                    x: Math.min(
+                      Math.max(margin, bounds.left),
+                      window.innerWidth - customerInfoPopunderSize.width - margin,
+                    ),
+                    y: Math.min(
+                      Math.max(margin, bounds.top),
+                      window.innerHeight - customerInfoPopunderSize.height - margin,
+                    ),
+                  };
 
-                    bringFloatingPanelToFront("customerInfo");
-                    setCustomerInfoPopunderPosition(nextPosition);
-                    setIsCustomerInfoPopunderOpen(true);
-                    setCustomerInfoDragActivation({
-                      id: Date.now(),
-                      offset: {
-                        x: event.clientX - nextPosition.x,
-                        y: event.clientY - nextPosition.y,
-                      },
-                    });
-                  }}
-                />
-              )
+                  bringFloatingPanelToFront("customerInfo");
+                  setCustomerInfoPopunderPosition(nextPosition);
+                  setIsCustomerInfoPopunderOpen(true);
+                  setCustomerInfoDragActivation({
+                    id: Date.now(),
+                    offset: {
+                      x: event.clientX - nextPosition.x,
+                      y: event.clientY - nextPosition.y,
+                    },
+                  });
+                }}
+              />
             ) : null}
           </div>
         ) : (
