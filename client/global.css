@@ -46,9 +46,46 @@
     --sidebar-border: 0 0% 88%;
     --sidebar-ring: 202 100% 34%;
   }
-}
 
-@layer base {
+  .dark {
+    --background: 222 14% 12%;
+    --foreground: 210 20% 90%;
+
+    --card: 222 14% 16%;
+    --card-foreground: 210 20% 90%;
+
+    --popover: 222 14% 16%;
+    --popover-foreground: 210 20% 90%;
+
+    --primary: 202 80% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 14% 22%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 222 14% 20%;
+    --muted-foreground: 215 10% 55%;
+
+    --accent: 202 50% 20%;
+    --accent-foreground: 202 80% 70%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 14% 24%;
+    --input: 222 14% 24%;
+    --ring: 202 80% 52%;
+
+    --sidebar-background: 222 14% 10%;
+    --sidebar-foreground: 210 20% 85%;
+    --sidebar-primary: 202 80% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 202 50% 20%;
+    --sidebar-accent-foreground: 202 80% 70%;
+    --sidebar-border: 222 14% 20%;
+    --sidebar-ring: 202 80% 52%;
+  }
+
   * {
     @apply border-border;
   }
@@ -71,6 +108,167 @@
   }
 }
 
+/* ─── Dark mode overrides for hardcoded Tailwind colors ─────────────────── */
+/* These live outside @layer so they come after Tailwind utilities in the    */
+/* cascade, winning without needing !important on every rule.               */
+
+.dark {
+  color-scheme: dark;
+}
+
+/* ── White / near-white surfaces ── */
+.dark .bg-white                { background-color: hsl(222 14% 16%) !important; }
+.dark .bg-\[\#F8F8F9\]        { background-color: hsl(222 14% 19%) !important; }
+.dark .bg-\[\#F9FAFB\]        { background-color: hsl(222 14% 19%) !important; }
+.dark .bg-\[\#FAFAFA\]        { background-color: hsl(222 14% 19%) !important; }
+.dark .bg-\[\#FCFCFD\]        { background-color: hsl(222 14% 17%) !important; }
+.dark .bg-\[\#F4F4F5\]        { background-color: hsl(222 14% 21%) !important; }
+.dark .bg-\[\#F3F4F6\]        { background-color: hsl(222 14% 21%) !important; }
+.dark .bg-\[\#F1F3F5\]        { background-color: hsl(222 14% 21%) !important; }
+.dark .bg-\[\#EFEFEF\]        { background-color: hsl(222 14% 21%) !important; }
+.dark .bg-\[\#E5E7EB\]        { background-color: hsl(222 14% 23%) !important; }
+.dark .bg-\[\#D1D5DB\]        { background-color: hsl(222 14% 29%) !important; }
+
+/* ── Coloured tint surfaces (keep hue, go dark) ── */
+.dark .bg-\[\#EAF8F4\]        { background-color: hsl(160 30% 14%) !important; }
+.dark .bg-\[\#D9F2EA\]        { background-color: hsl(160 30% 17%) !important; }
+.dark .bg-\[\#ECFDF3\]        { background-color: hsl(150 30% 14%) !important; }
+.dark .bg-\[\#EEF6FC\]        { background-color: hsl(202 40% 15%) !important; }
+.dark .bg-\[\#B8D7F0\]        { background-color: hsl(202 40% 22%) !important; }
+.dark .bg-\[\#FFFAEB\]        { background-color: hsl(45 30% 14%) !important; }
+.dark .bg-\[\#FFF9E8\]        { background-color: hsl(45 30% 14%) !important; }
+.dark .bg-\[\#FEF0C7\]        { background-color: hsl(45 30% 16%) !important; }
+.dark .bg-\[\#FEF3F2\]        { background-color: hsl(0 30% 14%) !important; }
+.dark .bg-\[\#FEE4E2\]        { background-color: hsl(0 30% 16%) !important; }
+.dark .bg-\[\#FFF5F5\]        { background-color: hsl(0 30% 14%) !important; }
+.dark .bg-\[\#F5F0FF\]        { background-color: hsl(270 30% 15%) !important; }
+
+/* ── Semi-transparent whites ── */
+.dark .bg-white\/70            { background-color: hsl(222 14% 20% / 0.7) !important; }
+.dark .bg-white\/80            { background-color: hsl(222 14% 20% / 0.8) !important; }
+.dark .bg-background\/50       { background-color: hsl(222 14% 12% / 0.5) !important; }
+
+/* ── Dark text → light ── */
+.dark .text-\[\#111827\]       { color: hsl(210 20% 88%) !important; }
+.dark .text-\[\#1D2939\]       { color: hsl(210 20% 86%) !important; }
+.dark .text-\[\#333333\]       { color: hsl(210 15% 82%) !important; }
+.dark .text-\[\#444444\]       { color: hsl(210 12% 75%) !important; }
+.dark .text-\[\#475467\]       { color: hsl(215 10% 62%) !important; }
+.dark .text-\[\#5B5B5B\]       { color: hsl(215 10% 68%) !important; }
+.dark .text-\[\#666666\]       { color: hsl(215 10% 65%) !important; }
+.dark .text-\[\#667085\]       { color: hsl(215 10% 60%) !important; }
+.dark .text-\[\#6B7280\]       { color: hsl(215 10% 60%) !important; }
+.dark .text-\[\#7A7A7A\]       { color: hsl(215 10% 58%) !important; }
+.dark .text-\[\#8A8A8A\]       { color: hsl(215 10% 55%) !important; }
+.dark .text-\[\#98A2B3\]       { color: hsl(215 10% 52%) !important; }
+.dark .text-\[\#A3A3A3\]       { color: hsl(215 10% 50%) !important; }
+.dark .text-\[\#AAAAAA\]       { color: hsl(215 10% 50%) !important; }
+.dark .text-\[\#C4C4C4\]       { color: hsl(215 10% 44%) !important; }
+/* Coloured text on tinted surfaces */
+.dark .text-\[\#25403B\]       { color: hsl(160 30% 72%) !important; }
+.dark .text-\[\#1E6F2E\]       { color: hsl(140 40% 60%) !important; }
+.dark .text-\[\#1A7A3C\]       { color: hsl(140 40% 60%) !important; }
+.dark .text-\[\#7A5B00\]       { color: hsl(45 60% 60%) !important; }
+
+/* ── Border overrides ── */
+.dark .border-black\/10        { border-color: hsl(222 14% 26%) !important; }
+.dark .border-black\/\[0\.06\] { border-color: hsl(222 14% 23%) !important; }
+.dark .divide-black\/5 > * + * { border-color: hsl(222 14% 22%) !important; }
+.dark .border-\[\#B7E6DD\]    { border-color: hsl(160 30% 28%) !important; }
+.dark .border-\[\#E7D7A6\]    { border-color: hsl(45 30% 28%) !important; }
+.dark .border-\[\#FEDF89\]    { border-color: hsl(45 50% 30%) !important; }
+.dark .border-\[\#FECDCA\]    { border-color: hsl(0 40% 30%) !important; }
+.dark .border-\[\#ABEFC6\]    { border-color: hsl(140 30% 28%) !important; }
+.dark .border-\[\#D0D5DD\]    { border-color: hsl(222 14% 32%) !important; }
+.dark .border-\[\#A1A1AA\]    { border-color: hsl(222 14% 36%) !important; }
+
+/* ── Inputs and textareas ── */
+.dark input:not([type="range"]),
+.dark textarea {
+  background-color: hsl(222 14% 18%) !important;
+  color: hsl(210 20% 86%) !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(215 10% 45%) !important;
+}
+
+/* ── Additional text colours (NotesPanel / tables) ── */
+.dark .text-\[\#101828\]       { color: hsl(210 20% 88%) !important; }
+.dark .text-\[\#344054\]       { color: hsl(210 15% 78%) !important; }
+.dark .text-\[\#333\]          { color: hsl(210 15% 82%) !important; }
+.dark .text-\[\#C0C4CC\]       { color: hsl(222 14% 36%) !important; }
+.dark .text-\[\#9CA3AF\]       { color: hsl(215 10% 50%) !important; }
+.dark .text-\[\#F8FAFC\]       { color: hsl(210 20% 90%) !important; }
+
+/* ── Badge & misc backgrounds ── */
+.dark .bg-\[\#CBD5E1\]         { background-color: hsl(222 14% 30%) !important; }
+.dark .bg-\[\#94A3B8\]         { background-color: hsl(222 14% 36%) !important; }
+.dark .bg-\[\#F8FAFC\]         { background-color: hsl(222 14% 20%) !important; }
+
+/* ── RGBA border / table dividers ── */
+.dark .border-\[rgba\(0\,0\,0\,0\.08\)\]  { border-color: hsl(222 14% 24%) !important; }
+.dark .border-\[rgba\(0\,0\,0\,0\.1\)\]   { border-color: hsl(222 14% 26%) !important; }
+
+/* ── Table & panel whites ── */
+.dark .bg-\[\#F9FAFB\]         { background-color: hsl(222 14% 17%) !important; }
+.dark tr.bg-white              { background-color: hsl(222 14% 16%) !important; }
+.dark td, .dark th             { background-color: inherit; }
+
+/* ── data-[state=active] tabs (Tailwind variant classes) ── */
+.dark [data-state="active"].rounded-md {
+  background-color: hsl(222 14% 22%) !important;
+  color: hsl(210 20% 88%) !important;
+}
+
+/* ── Hover / focus / active state overrides ── */
+
+/* Icon button hovers → subtle lighter dark surface */
+.dark .hover\:bg-white:hover              { background-color: hsl(222 14% 24%) !important; }
+.dark .hover\:bg-white\/70:hover          { background-color: hsl(222 14% 26% / 0.7) !important; }
+.dark .hover\:bg-white\/80:hover          { background-color: hsl(222 14% 26% / 0.8) !important; }
+.dark .hover\:bg-\[\#F8F8F9\]:hover      { background-color: hsl(222 14% 24%) !important; }
+.dark .hover\:bg-\[\#F9FAFB\]:hover      { background-color: hsl(222 14% 24%) !important; }
+.dark .hover\:bg-\[\#FCFCFD\]:hover      { background-color: hsl(222 14% 22%) !important; }
+.dark .hover\:bg-\[\#F4F4F5\]:hover      { background-color: hsl(222 14% 24%) !important; }
+.dark .hover\:bg-\[\#1F2937\]:hover      { background-color: hsl(222 14% 26%) !important; }
+
+/* Coloured hover tints */
+.dark .hover\:bg-\[\#EEF6FC\]:hover      { background-color: hsl(202 40% 20%) !important; }
+.dark .hover\:bg-\[\#E6F3FA\]:hover      { background-color: hsl(202 40% 20%) !important; }
+.dark .hover\:bg-\[\#FEF0C7\]:hover      { background-color: hsl(45 30% 18%) !important; }
+.dark .hover\:bg-\[\#F6EDCF\]:hover      { background-color: hsl(45 30% 18%) !important; }
+.dark .hover\:bg-\[\#D1FADF\]:hover      { background-color: hsl(140 30% 16%) !important; }
+.dark .hover\:bg-\[\#FEE4E2\]:hover      { background-color: hsl(0 30% 18%) !important; }
+.dark .hover\:bg-\[\#FFF5F5\]:hover      { background-color: hsl(0 30% 16%) !important; }
+.dark .hover\:bg-\[\#D9F2EA\]:hover      { background-color: hsl(160 30% 18%) !important; }
+
+/* Focus backgrounds (dropdown items, menu items) */
+.dark .focus\:bg-\[\#F8F8F9\]:focus      { background-color: hsl(222 14% 24%) !important; }
+.dark .focus\:bg-\[\#E6F3FA\]:focus      { background-color: hsl(202 40% 20%) !important; }
+.dark .focus\:bg-\[\#F8F8F9\]           { background-color: hsl(222 14% 19%) !important; }
+
+/* Hover text colours → keep readable in dark */
+.dark .hover\:text-\[\#333333\]:hover    { color: hsl(210 20% 88%) !important; }
+.dark .hover\:text-\[\#111827\]:hover    { color: hsl(210 20% 90%) !important; }
+.dark .hover\:text-\[\#333\]:hover       { color: hsl(210 20% 88%) !important; }
+
+/* Active / data-[state=open] backgrounds */
+.dark [data-state="open"] .hover\:bg-white\/70 { background-color: hsl(222 14% 26% / 0.7) !important; }
+
+/* ── Elevated floating panels in dark mode ── */
+/* Target all fixed floating panels by class substring match */
+.dark [class*="shadow-[0_20px"],
+.dark [class*="shadow-[0_18px"],
+.dark [class*="shadow-[0_16px"],
+.dark [class*="shadow-[0_8px_32"] {
+  box-shadow:
+    0 0 0 1px hsl(222 14% 30%),
+    0 24px 60px rgba(0, 0, 0, 0.6),
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
 @layer components {
   .overview-grid-layout {
     position: relative;
@@ -80,81 +278,10 @@
     transition: transform 200ms ease, width 200ms ease, height 200ms ease;
   }
 
-  .overview-grid-layout .react-grid-item.cssTransforms {
-    transition-property: transform, width, height;
-  }
-
   .overview-grid-layout .react-grid-item.react-grid-placeholder {
-    border-radius: 1rem;
-    border: 1px dashed rgba(0, 109, 173, 0.28);
-    background: rgba(0, 109, 173, 0.08);
-  }
-
-  .overview-grid-layout .react-grid-item.react-draggable-dragging,
-  .overview-grid-layout .react-grid-item.react-resizable-resizing {
-    z-index: 30;
-  }
-
-  .overview-grid-layout .react-resizable-handle {
-    position: absolute;
-    z-index: 20;
-    opacity: 0;
-    transition: opacity 160ms ease;
-  }
-
-  .overview-grid-layout .react-grid-item:hover .react-resizable-handle,
-  .overview-grid-layout .react-grid-item.react-resizable-resizing .react-resizable-handle {
+    background: hsl(var(--primary) / 0.1);
+    border: 2px dashed hsl(var(--primary) / 0.3);
+    border-radius: 8px;
     opacity: 1;
-  }
-
-  .overview-grid-layout .react-resizable-handle::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 999px;
-    background: rgba(0, 109, 173, 0.16);
-  }
-
-  .overview-grid-layout .react-resizable-handle-e,
-  .overview-grid-layout .react-resizable-handle-w {
-    top: 50%;
-    height: 56px;
-    width: 10px;
-    transform: translateY(-50%);
-    cursor: ew-resize;
-  }
-
-  .overview-grid-layout .react-resizable-handle-e {
-    right: 4px;
-  }
-
-  .overview-grid-layout .react-resizable-handle-w {
-    left: 4px;
-  }
-
-  .overview-grid-layout .react-resizable-handle-s {
-    bottom: 4px;
-    left: 50%;
-    height: 10px;
-    width: 56px;
-    transform: translateX(-50%);
-    cursor: ns-resize;
-  }
-
-  .overview-grid-layout .react-resizable-handle-se,
-  .overview-grid-layout .react-resizable-handle-sw {
-    bottom: 4px;
-    height: 14px;
-    width: 14px;
-  }
-
-  .overview-grid-layout .react-resizable-handle-se {
-    right: 4px;
-    cursor: nwse-resize;
-  }
-
-  .overview-grid-layout .react-resizable-handle-sw {
-    left: 4px;
-    cursor: nesw-resize;
   }
 }

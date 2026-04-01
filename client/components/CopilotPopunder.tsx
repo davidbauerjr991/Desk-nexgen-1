@@ -1,39 +1,14 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  AlertTriangle,
   BookOpen,
   Bot,
-  CheckCircle2,
-  FileText,
   GripHorizontal,
-  Lightbulb,
-  Sparkles,
-  ThumbsDown,
-  ThumbsUp,
+  Send,
+  Trash2,
   X,
 } from "lucide-react";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-
-const insights = {
-  sentiment: "Frustrated",
-  intent: "Subscription Upgrade / Payment Failure",
-  churnRisk: "Medium",
-};
-
-const customerContextFields = [
-  { label: "Account Number", value: "QAE12393" },
-  { label: "Phone Number", value: "(614) 788-0980" },
-  { label: "First Name", value: "James" },
-  { label: "Last Name", value: "Hasselhoffenbrau" },
-  { label: "Empty Field", value: "--" },
-  { label: "Long Field", value: "https://www.thisisalongemailaddress.com" },
-  { label: "Email Address", value: "email@email.com" },
-  { label: "Twitter", value: "@jphoffbrewer" },
-];
 
 export interface CopilotDragActivation {
   id: number;
@@ -59,150 +34,135 @@ interface CopilotPopunderProps {
   dragActivation?: CopilotDragActivation | null;
 }
 
+const DEFAULT_TOPICS = [
+  "Dispute a fraudulent Costco charge",
+  "Escalate to a supervisor",
+  "Document the information around it",
+];
+
 export function CopilotContent() {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [topics, setTopics] = useState<{ label: string; checked: boolean }[]>(() =>
+    DEFAULT_TOPICS.map((label) => ({ label, checked: false }))
+  );
 
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-
     const frameId = window.requestAnimationFrame(() => {
       container.scrollTop = container.scrollHeight;
     });
-
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
+  const handleSend = () => {
+    if (!chatInput.trim()) return;
+    setChatInput("");
+  };
+
+  const toggleTopic = (index: number) => {
+    setTopics((prev) => prev.map((t, i) => i === index ? { ...t, checked: !t.checked } : t));
+  };
+
+  const deleteTopic = (index: number) => {
+    setTopics((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
-    <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-      <div className="space-y-6 pb-1">
-        <Card className="border-border bg-background shadow-sm">
-          <Accordion type="single" collapsible defaultValue="live-interaction-context">
-            <AccordionItem value="live-interaction-context" className="border-b-0">
-              <AccordionTrigger className="px-4 py-4 text-left hover:no-underline">
-                <div className="flex min-w-0 items-center justify-between gap-3">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Live Interaction Context
-                  </div>
-                  <span className="relative flex h-2 w-2 flex-shrink-0">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#369D3F] opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#369D3F]" />
-                  </span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-4 pb-4">
-                <CardContent className="space-y-4 p-0">
-                  <div>
-                    <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Detected Intent</div>
-                    <div className="text-[14px] font-normal leading-[1.25] text-[#1D2939]">{insights.intent}</div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Sentiment</div>
-                      <Badge variant="outline" className="border-[#FEDF89] bg-[#FFFAEB] font-medium text-[#B54708]">
-                        {insights.sentiment}
-                      </Badge>
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">Churn Risk</div>
-                      <div className="flex items-center gap-1.5 text-sm font-medium text-[#B54708]">
-                        <AlertTriangle className="h-4 w-4" />
-                        {insights.churnRisk}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4 border-t border-border pt-4">
-                    {customerContextFields.map((field) => (
-                      <div key={field.label}>
-                        <div className="text-[11px] font-medium tracking-[0.01em] text-[#667085]">
-                          {field.label}
-                        </div>
-                        <div className="break-all text-[14px] font-normal leading-[1.25] text-[#1D2939]">{field.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </Card>
+    <>
+      {/* Scrollable content */}
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+        <div className="space-y-6 pb-1">
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <h4 className="text-sm font-semibold text-foreground">Suggested Response</h4>
-          </div>
-          <div className="group rounded-xl border border-primary/20 bg-primary/5 p-4 transition-colors hover:bg-primary/10">
-            <p className="text-sm leading-relaxed text-foreground/90">
-              "I see the transaction block. It appears our security system flagged it due to a recent mismatch in billing zip codes.
-              I&apos;ve just cleared that flag for you. You should be able to process the upgrade now."
-            </p>
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                  <ThumbsUp className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                  <ThumbsDown className="h-3.5 w-3.5" />
-                </Button>
+          {/* Conversation Topics */}
+          {topics.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conversation Topics</h4>
+              <div className="space-y-2">
+                {topics.map((topic, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => toggleTopic(i)}
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                        topic.checked
+                          ? "border-[#006DAD] bg-[#006DAD]"
+                          : "border-[#D0D5DD] bg-white hover:border-[#006DAD]"
+                      }`}
+                      aria-label={topic.checked ? "Uncheck topic" : "Check topic"}
+                    >
+                      {topic.checked && (
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                          <path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className={`flex-1 text-sm ${topic.checked ? "text-muted-foreground line-through" : "text-[#1D2939]"}`}>
+                      {topic.label}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteTopic(i)}
+                      className="shrink-0 text-[#D0D5DD] transition-colors hover:text-[#F04438]"
+                      aria-label="Remove topic"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-7 border border-border bg-background text-xs font-medium shadow-sm hover:bg-accent"
-              >
-                Apply to chat
-              </Button>
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-foreground">
-            <Lightbulb className="h-4 w-4 text-[#F79009]" />
-            <h4 className="text-sm font-semibold">Next Best Actions</h4>
-          </div>
-          <div className="space-y-2">
-            <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
-              <div className="mt-0.5 rounded-md bg-[#EAF8F4] p-1.5 text-[#369D3F]">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-sm font-medium transition-colors group-hover:text-primary">Clear Security Flag</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">Removes the hold on card ending in 4092</div>
-              </div>
-            </button>
-            <button className="group flex w-full items-start gap-3 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50">
-              <div className="mt-0.5 rounded-md bg-[#EEF6FC] p-1.5 text-[#006DAD]">
-                <FileText className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-sm font-medium transition-colors group-hover:text-primary">Send Payment Link</div>
-                <div className="mt-0.5 text-xs text-muted-foreground">Generate a secure one-time payment link</div>
-              </div>
-            </button>
-          </div>
-        </div>
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Relevant Articles</h4>
 
-        <div className="space-y-3 border-t border-border pt-2">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Relevant Articles</h4>
-          <ul className="space-y-2">
-            <li>
-              <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                <span className="truncate">Troubleshooting failed payments</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
-                <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                <span className="truncate">Manual clearance of security flags</span>
-              </button>
-            </li>
-          </ul>
+            <ul className="space-y-2">
+              <li>
+                <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="truncate">Troubleshooting failed payments</span>
+                </button>
+              </li>
+              <li>
+                <button type="button" className="flex items-center gap-2 text-sm text-primary hover:underline">
+                  <BookOpen className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <span className="truncate">Manual clearance of security flags</span>
+                </button>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Chat input footer */}
+      <div className="shrink-0 border-t border-border bg-background px-4 py-3">
+        <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-2 focus-within:border-[#006DAD]/40 focus-within:bg-white transition-colors">
+          <Bot className="h-4 w-4 shrink-0 text-[#7A7A7A]" />
+          <input
+            type="text"
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+            placeholder="Ask Copilot anything…"
+            className="min-w-0 flex-1 bg-transparent text-sm text-[#333333] placeholder:text-[#AAAAAA] focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!chatInput.trim()}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#006DAD] text-white transition-colors hover:bg-[#0A5E92] disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Send message"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 

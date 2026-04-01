@@ -17,12 +17,15 @@ import {
   MessageSquare,
   Mic,
   Monitor,
+  Moon,
+  PanelRight,
   Pause,
   User,
   Phone,
   PhoneOff,
   Plus,
   Search,
+  Sun,
   Volume2,
   X,
 } from "lucide-react";
@@ -42,6 +45,7 @@ import { Switch } from "@/components/ui/switch";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -54,6 +58,7 @@ import {
   createConversationState,
   customerDatabase,
   defaultCustomerId,
+  getCustomerRecord,
   type CustomerChannel,
   type CustomerQueueIcon,
 } from "@/lib/customer-database";
@@ -1341,6 +1346,90 @@ function AddNewPopoverContent({
   );
 }
 
+function CustomerProfilePopover({ customerRecordId, customerName }: { customerRecordId: string; customerName: string }) {
+  const customer = getCustomerRecord(customerRecordId);
+  const profile = customer?.profile;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-1 rounded-md text-sm font-semibold tracking-tight text-[#333333] hover:text-[#111827] focus-visible:outline-none"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          {customerName}
+          <ChevronDown className="h-3.5 w-3.5 text-[#7A7A7A]" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        sideOffset={8}
+        className="w-[360px] rounded-2xl border border-black/10 bg-white p-0 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {profile ? (
+          <div className="overflow-hidden rounded-2xl">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EBF4FA] text-[#006DAD]">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#111827] leading-tight">{customerName}</p>
+                  <p className="text-xs text-[#7A7A7A] leading-tight mt-0.5">{profile.department} · {profile.tenureYears} yrs tenure</p>
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">Total AUM</p>
+                <p className="text-sm font-bold text-[#111827] mt-0.5">{profile.totalAUM}</p>
+              </div>
+            </div>
+            {/* Financial details */}
+            <div className="border-t border-black/[0.06] px-4 py-3 space-y-2.5">
+              <div>
+                <p className="text-xs text-[#7A7A7A]">Financial Readiness</p>
+                <p className="mt-0.5 text-base font-bold text-[#1A7A3C] leading-none">{profile.financialReadiness} <span className="text-xs font-medium text-[#7A7A7A]">/ 100</span></p>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
+                  <div className="h-full rounded-full bg-[#1A7A3C]" style={{ width: `${profile.financialReadiness}%` }} />
+                </div>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-[#7A7A7A] shrink-0">Financial Advisor</p>
+                <div className="text-right">
+                  <p className="text-xs font-semibold text-[#111827]">{profile.financialAdvisor}</p>
+                  <p className="text-[11px] text-[#7A7A7A]">{profile.advisorTitle}</p>
+                </div>
+              </div>
+            </div>
+            {/* Tags */}
+            {profile.tags.length > 0 && (
+              <div className="border-t border-black/[0.06] px-4 py-3 flex flex-wrap gap-1.5">
+                {profile.tags.map((tag) => (
+                  <span key={tag} className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                    tag === "Premier"
+                      ? "border-[#C9B8FF] bg-[#F5F0FF] text-[#5B21B6]"
+                      : "border-[#B7E6DD] bg-[#EAF8F4] text-[#1A7A3C]",
+                  )}>
+                    {tag}
+                    {tag !== "Premier" && <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="border-t border-black/[0.06] px-5 py-4 text-sm text-[#7A7A7A]">No profile data available.</div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function DockedConversationPanel({
   isOpen,
   conversation,
@@ -1351,6 +1440,7 @@ function DockedConversationPanel({
   onSelectChannel,
   onOpenDeskPanel,
   onOpenCall,
+  onOpenChannel,
   onOpenCustomerInfo,
   onConversationStatusChange,
   overviewIsOpen,
@@ -1371,6 +1461,7 @@ function DockedConversationPanel({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
   overviewIsOpen: boolean;
@@ -1385,6 +1476,7 @@ function DockedConversationPanel({
   const contentInitializedRef = useRef(false);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
+  const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const shouldStackHeaderActions = false;
 
   useEffect(() => {
@@ -1466,10 +1558,7 @@ function DockedConversationPanel({
                   <GripHorizontal className="h-4 w-4" />
                 </button>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-                  </div>
-                  <ConversationHeaderSubhead conversation={conversation} activeChannel={activeChannel} />
+                  <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
                 </div>
               </div>
               <div
@@ -1478,28 +1567,32 @@ function DockedConversationPanel({
                   shouldStackHeaderActions ? "pl-7" : "shrink-0",
                 )}
               >
-                <ConversationOverviewButton
-                  conversation={conversation}
-                  isOpen={overviewIsOpen}
-                  onOpenChange={onOverviewOpenChange}
+                <CustomerContactDropdown
+                  onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
+                  onOpenChannel={onOpenChannel}
+                  isCallDisabled={isCallDisabled}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(event) => {
-                    event.stopPropagation();
-                    onOpenCustomerInfo(event);
-                  }}
-                  onClick={(event) => {
-                    if (event.detail === 0) {
-                      onOpenCustomerInfo();
-                    }
-                  }}
-                  className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
-                >
-                  Customer Information
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onClick={() => setIsAiPanelVisible((v) => !v)}
+                        aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                        className={cn(
+                          "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                          isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                        )}
+                      >
+                        <PanelRight className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 
@@ -1512,6 +1605,7 @@ function DockedConversationPanel({
               onConversationChange={onConversationChange}
               onSelectChannel={onSelectChannel}
               onOpenDeskPanel={onOpenDeskPanel}
+              showAiPanel={isAiPanelVisible}
             />
           </>
         )}
@@ -1873,17 +1967,6 @@ function DockedCustomerInfoPanel({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
-                  disabled={isCallDisabled}
-                  className="h-8 rounded-full border-black/10 px-3"
-                >
-                  <Phone className="mr-2 h-4 w-4" /> Call
-                </Button>
                 <button
                   type="button"
                   onMouseDown={(event) => event.stopPropagation()}
@@ -2041,17 +2124,6 @@ function CustomerInfoPopunder({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={(event) => onOpenCall(event.currentTarget.getBoundingClientRect())}
-            disabled={isCallDisabled}
-            className="h-8 rounded-full border-black/10 px-3"
-          >
-            <Phone className="mr-2 h-4 w-4" /> Call
-          </Button>
           {onDock ? (
             <Button
               type="button"
@@ -2415,6 +2487,7 @@ function ConversationPopunder({
   onSelectChannel,
   onOpenDeskPanel,
   onOpenCall,
+  onOpenChannel,
   onOpenCustomerInfo,
   onConversationStatusChange,
   overviewIsOpen,
@@ -2437,6 +2510,7 @@ function ConversationPopunder({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
   overviewIsOpen: boolean;
@@ -2450,6 +2524,7 @@ function ConversationPopunder({
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const shouldStackHeaderActions = size.width < 800;
 
   useEffect(() => {
@@ -2544,10 +2619,7 @@ function ConversationPopunder({
           <div className="flex items-center gap-3">
             <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Conversation</h3>
-              </div>
-              <ConversationHeaderSubhead conversation={conversation} activeChannel={activeChannel} />
+              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
             </div>
           </div>
           {shouldStackHeaderActions && onDock ? (
@@ -2569,28 +2641,32 @@ function ConversationPopunder({
             shouldStackHeaderActions ? "pl-7" : "",
           )}
         >
-          <ConversationOverviewButton
-            conversation={conversation}
-            isOpen={overviewIsOpen}
-            onOpenChange={onOverviewOpenChange}
+          <CustomerContactDropdown
+            onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
+            onOpenChannel={onOpenChannel}
+            isCallDisabled={isCallDisabled}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onMouseDown={(event) => {
-              event.stopPropagation();
-              onOpenCustomerInfo(event);
-            }}
-            onClick={(event) => {
-              if (event.detail === 0) {
-                onOpenCustomerInfo();
-              }
-            }}
-            className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
-          >
-            Customer Information
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={() => setIsAiPanelVisible((v) => !v)}
+                  aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                  className={cn(
+                    "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                    isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                  )}
+                >
+                  <PanelRight className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {!shouldStackHeaderActions && onDock ? (
             <Button
               type="button"
@@ -2615,6 +2691,7 @@ function ConversationPopunder({
         onConversationChange={onConversationChange}
         onSelectChannel={onSelectChannel}
         onOpenDeskPanel={onOpenDeskPanel}
+        showAiPanel={isAiPanelVisible}
       />
 
       <button
@@ -3160,11 +3237,6 @@ function LeftQueueRail({
                     <button
                       type="button"
                       onClick={() => {
-                        if (isAppSpacePanelInDragMode) {
-                          closeFloatingAppSpacePanel();
-                          return;
-                        }
-
                         toggleLeftRailOpen();
                       }}
                       aria-label="Collapse assignments rail"
@@ -3351,6 +3423,7 @@ export default function Layout({ children }: LayoutProps) {
   const [deskCanvasDragActivation, setDeskCanvasDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
   const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>(() => (
@@ -3978,6 +4051,17 @@ export default function Layout({ children }: LayoutProps) {
   }, [activeRightPanel, dockedConversationWidth, isConversationPanelOpen]);
 
   useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+    return () => {
+      document.documentElement.classList.remove("dark");
+    };
+  }, [isDarkMode]);
+
+  useEffect(() => {
     const syncDockedCustomerInfoWidth = () => {
       setDockedCustomerInfoWidth((current) => Math.min(current, customerInfoPanelMaxWidth));
     };
@@ -4517,6 +4601,13 @@ export default function Layout({ children }: LayoutProps) {
 
   const openDeskPanel = (selection?: Exclude<DeskPanelSelection, null>) => {
     setDeskPanelSelection(selection ?? null);
+
+    // If the customer info panel is already open as a docked panel, just update
+    // the selection — NotesPanel's useEffect will open the ticket tab reactively.
+    if (isDeskCustomerInfoVisible) {
+      return;
+    }
+
     setActiveRightPanel(null);
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
@@ -4536,30 +4627,55 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
 
+    if (view === "customer") {
+      setDeskPanelSelection({ initialTab: "Overview" });
+    } else {
+      setDeskPanelSelection(null);
+    }
+
+    // If the panel is already docked, update the route to switch content but keep it docked
+    if (isDeskRoute) {
+      const nextRoute = view === "copilot"
+        ? "/desk?view=copilot"
+        : view === "notes"
+          ? "/desk?view=notes"
+          : view === "add"
+            ? "/desk?view=add"
+            : view === "customer"
+              ? "/desk?view=customer"
+              : view === "notifications"
+                ? "/desk?view=notifications"
+                : "/desk";
+      navigate(nextRoute);
+      return;
+    }
+
+    // If a popunder is already visible just switch view
     if (deskCanvasPopunderView !== null) {
       bringFloatingPanelToFront("deskCanvas");
       setDeskCanvasPopunderView(view);
-
-      if (view === "customer") {
-        setDeskPanelSelection({ initialTab: "Overview" });
-        return;
-      }
-
-      setDeskPanelSelection(null);
       return;
     }
 
+    // Open a fresh popunder anchored to the top-right
+    const defaultWidth = 360;
+    const defaultHeight = typeof window !== "undefined"
+      ? Math.min(
+          Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
+          window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2,
+        )
+      : 720;
+    const width = typeof window !== "undefined"
+      ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+      : defaultWidth;
+    const position = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+
+    bringFloatingPanelToFront("deskCanvas");
+    setDeskCanvasPopunderView(view);
+    setDeskCanvasPopunderSize({ width, height: defaultHeight });
+    setDeskCanvasPopunderPosition(position);
     setDeskCanvasDragActivation(null);
-    setDeskCanvasPopunderView(null);
-
-    if (view === "customer") {
-      setDeskPanelSelection({ initialTab: "Overview" });
-      navigate("/desk?view=customer");
-      return;
-    }
-
-    setDeskPanelSelection(null);
-    navigate(view === "desk" ? "/desk" : `/desk?view=${view}`);
+    navigate("/activity", { state: { hideMainCanvasPanel: true } });
   };
 
   const layoutContextValue = useMemo(
@@ -4786,15 +4902,21 @@ export default function Layout({ children }: LayoutProps) {
                 })}
               </div>
               <DropdownMenuSeparator className="my-2 bg-black/10" />
-              <DropdownMenuItem
-                onClick={handleCreateWorkspace}
-                className="rounded-xl px-3 py-3 text-sm font-semibold text-[#006DAD] focus:bg-[#E6F3FA]"
-              >
-                <div className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span>Create new workspace</span>
+              <div className="flex items-center justify-between rounded-xl px-3 py-3">
+                <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
+                  {isDarkMode ? <Moon className="h-4 w-4 text-[#006DAD]" /> : <Sun className="h-4 w-4 text-[#006DAD]" />}
+                  <span>Dark Mode</span>
                 </div>
-              </DropdownMenuItem>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isDarkMode}
+                  onClick={(e) => { e.preventDefault(); setIsDarkMode((v) => !v); }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isDarkMode ? "bg-[#006DAD]" : "bg-[#D1D5DB]"}`}
+                >
+                  <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${isDarkMode ? "translate-x-4" : "translate-x-0"}`} />
+                </button>
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -5007,6 +5129,7 @@ export default function Layout({ children }: LayoutProps) {
                 onSelectChannel={setActiveConversationChannel}
                 onOpenDeskPanel={openDeskPanel}
                 onOpenCall={layoutContextValue.toggleCallPopunder}
+                onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
                 onOpenCustomerInfo={openCustomerInfoPopunder}
                 onConversationStatusChange={handleConversationStatusChange}
                 overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -5029,11 +5152,12 @@ export default function Layout({ children }: LayoutProps) {
                     ?? event.currentTarget.parentElement?.getBoundingClientRect();
                   if (!bounds) return;
 
+                  const undockWidth = 750;
                   const margin = CONVERSATION_POPOUNDER_MARGIN;
                   const nextPosition = {
                     x: Math.min(
                       Math.max(margin, bounds.left),
-                      window.innerWidth - conversationPopunderSize.width - margin,
+                      window.innerWidth - undockWidth - margin,
                     ),
                     y: Math.min(
                       Math.max(margin, bounds.top),
@@ -5042,6 +5166,7 @@ export default function Layout({ children }: LayoutProps) {
                   };
 
                   bringFloatingPanelToFront("conversation");
+                  setConversationPopunderSize({ width: undockWidth, height: conversationPopunderSize.height });
                   setConversationPopunderPosition(nextPosition);
                   setIsConversationPanelOpen(false);
                   setIsConversationPopunderOpen(true);
@@ -5122,6 +5247,7 @@ export default function Layout({ children }: LayoutProps) {
               onSelectChannel={setActiveConversationChannel}
               onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
+              onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
               onOpenCustomerInfo={openCustomerInfoPopunder}
               onConversationStatusChange={handleConversationStatusChange}
               overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -5143,11 +5269,12 @@ export default function Layout({ children }: LayoutProps) {
                   ?? event.currentTarget.parentElement?.getBoundingClientRect();
                 if (!bounds) return;
 
+                const undockWidth = 750;
                 const margin = CONVERSATION_POPOUNDER_MARGIN;
                 const nextPosition = {
                   x: Math.min(
                     Math.max(margin, bounds.left),
-                    window.innerWidth - conversationPopunderSize.width - margin,
+                    window.innerWidth - undockWidth - margin,
                   ),
                   y: Math.min(
                     Math.max(margin, bounds.top),
@@ -5156,6 +5283,7 @@ export default function Layout({ children }: LayoutProps) {
                 };
 
                 bringFloatingPanelToFront("conversation");
+                setConversationPopunderSize({ width: undockWidth, height: conversationPopunderSize.height });
                 setConversationPopunderPosition(nextPosition);
                 setIsConversationPanelOpen(false);
                 setIsConversationPopunderOpen(true);
@@ -5242,6 +5370,7 @@ export default function Layout({ children }: LayoutProps) {
           onSelectChannel={setActiveConversationChannel}
           onOpenDeskPanel={openDeskPanel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
+          onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
           onOpenCustomerInfo={openCustomerInfoPopunder}
           onConversationStatusChange={handleConversationStatusChange}
           overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}

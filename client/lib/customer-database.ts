@@ -15,12 +15,24 @@ export type CustomerOverviewTimelineItem = {
 
 type SeedConversationChannel = Exclude<CustomerChannel, "voice">;
 
+export type CustomerProfile = {
+  department: string;
+  tenureYears: number;
+  totalAUM: string;
+  financialReadiness: number; // 0–100
+  financialAdvisor: string;
+  advisorTitle: string;
+  tags: string[];
+};
+
 export type CustomerSeedRecord = {
   id: string;
   initials: string;
   name: string;
   customerId: string;
   lastUpdated: string;
+  profile: CustomerProfile;
+  conversationTopics: string[];
   overview: {
     contactNumber: string;
     assignedAgent: string;
@@ -58,6 +70,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Alex Kowalski",
     customerId: "CST-10482",
     lastUpdated: "02/23/26 | 04:22 PM",
+    profile: {
+      department: "Business Banking",
+      tenureYears: 5,
+      totalAUM: "$1,240,800.00",
+      financialReadiness: 78,
+      financialAdvisor: "Jordan Doe",
+      advisorTitle: "Business Banking Advisor",
+      tags: ["Premier", "IVR Auth"],
+    },
+    conversationTopics: [
+      "Dispute a fraudulent Costco charge",
+      "Clear the billing zip mismatch flag",
+      "Retry Pro upgrade after security clearance",
+    ],
     overview: {
       contactNumber: "(415) 555-4092",
       assignedAgent: "Jordan Doe",
@@ -255,6 +281,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Sarah Miller",
     customerId: "CST-10591",
     lastUpdated: "02/24/26 | 09:18 AM",
+    profile: {
+      department: "Personal Investing",
+      tenureYears: 6,
+      totalAUM: "$892,150.00",
+      financialReadiness: 84,
+      financialAdvisor: "Priya Shah",
+      advisorTitle: "Wealth Management Advisor",
+      tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Review portfolio rebalancing options",
+      "Discuss tax-loss harvesting strategy",
+      "Schedule quarterly advisor review",
+    ],
     overview: {
       contactNumber: "(206) 555-0184",
       assignedAgent: "Priya Shah",
@@ -449,6 +489,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Emily Chen",
     customerId: "CST-10814",
     lastUpdated: "02/25/26 | 11:47 AM",
+    profile: {
+      department: "Retail Banking",
+      tenureYears: 3,
+      totalAUM: "$345,600.00",
+      financialReadiness: 71,
+      financialAdvisor: "Marcus Lee",
+      advisorTitle: "Retail Banking Advisor",
+      tags: ["IVR Auth"],
+    },
+    conversationTopics: [
+      "Resolve ATM deposit discrepancy",
+      "Request fee waiver for overdraft",
+      "Update contact information on file",
+    ],
     overview: {
       contactNumber: "(646) 555-0117",
       assignedAgent: "Marcus Lee",
@@ -643,6 +697,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "David Brown",
     customerId: "CST-10363",
     lastUpdated: "02/26/26 | 03:06 PM",
+    profile: {
+      department: "Business Banking",
+      tenureYears: 11,
+      totalAUM: "$3,187,900.00",
+      financialReadiness: 88,
+      financialAdvisor: "Alex Bogush",
+      advisorTitle: "High Net Worth Advisor",
+      tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Review commercial line of credit terms",
+      "Discuss business expansion financing",
+      "Escalate to a senior relationship manager",
+    ],
     overview: {
       contactNumber: "(312) 555-0146",
       assignedAgent: "Alex Bogush",
@@ -837,6 +905,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Priya Nair",
     customerId: "CST-11024",
     lastUpdated: "02/27/26 | 08:41 AM",
+    profile: {
+      department: "Personal Investing",
+      tenureYears: 4,
+      totalAUM: "$628,400.00",
+      financialReadiness: 91,
+      financialAdvisor: "Jordan Doe",
+      advisorTitle: "Wealth Management Advisor",
+      tags: ["Premier", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Discuss Roth IRA conversion strategy",
+      "Review beneficiary designations",
+      "Schedule annual financial plan review",
+    ],
     overview: {
       contactNumber: "(512) 555-0172",
       assignedAgent: "Jordan Doe",
@@ -1031,6 +1113,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Miguel Santos",
     customerId: "CST-11137",
     lastUpdated: "02/27/26 | 12:12 PM",
+    profile: {
+      department: "Retail Banking",
+      tenureYears: 2,
+      totalAUM: "$187,300.00",
+      financialReadiness: 63,
+      financialAdvisor: "Marcus Lee",
+      advisorTitle: "Retail Banking Advisor",
+      tags: ["IVR Auth"],
+    },
+    conversationTopics: [
+      "Dispute a fraudulent Costco charge",
+      "Escalate to a supervisor",
+      "Document the information around it",
+    ],
     overview: {
       contactNumber: "(305) 555-0143",
       assignedAgent: "Marcus Lee",
@@ -1225,6 +1321,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Olivia Reed",
     customerId: "CST-11192",
     lastUpdated: "02/27/26 | 01:26 PM",
+    profile: {
+      department: "Personal Investing",
+      tenureYears: 7,
+      totalAUM: "$1,956,700.00",
+      financialReadiness: 95,
+      financialAdvisor: "Priya Shah",
+      advisorTitle: "Wealth Management Advisor",
+      tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Review estate planning options",
+      "Transfer assets to trust account",
+      "Confirm power of attorney documentation",
+    ],
     overview: {
       contactNumber: "(617) 555-0198",
       assignedAgent: "Priya Shah",
@@ -1419,6 +1529,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Jamal Carter",
     customerId: "CST-11244",
     lastUpdated: "02/27/26 | 02:03 PM",
+    profile: {
+      department: "Business Banking",
+      tenureYears: 9,
+      totalAUM: "$2,741,500.00",
+      financialReadiness: 82,
+      financialAdvisor: "Alex Bogush",
+      advisorTitle: "High Net Worth Advisor",
+      tags: ["Premier", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Resolve wire transfer delay",
+      "Set up international payment alerts",
+      "Review business credit card limits",
+    ],
     overview: {
       contactNumber: "(404) 555-0121",
       assignedAgent: "Alex Bogush",
@@ -1613,6 +1737,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Hannah Brooks",
     customerId: "CST-11307",
     lastUpdated: "02/27/26 | 02:47 PM",
+    profile: {
+      department: "Retail Banking",
+      tenureYears: 5,
+      totalAUM: "$512,200.00",
+      financialReadiness: 76,
+      financialAdvisor: "Jordan Doe",
+      advisorTitle: "Retail Banking Advisor",
+      tags: ["IVR Auth"],
+    },
+    conversationTopics: [
+      "Dispute incorrect mortgage payment posting",
+      "Request escrow account analysis",
+      "Update insurance information on loan",
+    ],
     overview: {
       contactNumber: "(720) 555-0115",
       assignedAgent: "Jordan Doe",
@@ -1807,6 +1945,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Noah Patel",
     customerId: "CST-11368",
     lastUpdated: "02/27/26 | 04:11 PM",
+    profile: {
+      department: "Personal Investing",
+      tenureYears: 12,
+      totalAUM: "$5,830,100.00",
+      financialReadiness: 97,
+      financialAdvisor: "Marcus Lee",
+      advisorTitle: "Private Wealth Advisor",
+      tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Review private equity fund allocation",
+      "Discuss charitable giving strategy",
+      "Coordinate with tax advisor on year-end planning",
+    ],
     overview: {
       contactNumber: "(213) 555-0179",
       assignedAgent: "Marcus Lee",
@@ -2001,6 +2153,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Lauren Kim",
     customerId: "CST-11412",
     lastUpdated: "02/27/26 | 04:39 PM",
+    profile: {
+      department: "Business Banking",
+      tenureYears: 8,
+      totalAUM: "$4,504,340.00",
+      financialReadiness: 92,
+      financialAdvisor: "Priya Shah",
+      advisorTitle: "High Net Worth Advisor",
+      tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+    },
+    conversationTopics: [
+      "Review business succession planning",
+      "Set up employee benefits account",
+      "Discuss SBA loan refinancing options",
+    ],
     overview: {
       contactNumber: "(503) 555-0132",
       assignedAgent: "Priya Shah",
@@ -2195,6 +2361,20 @@ export const customerDatabase: CustomerSeedRecord[] = [
     name: "Ethan Zhang",
     customerId: "CST-11458",
     lastUpdated: "02/27/26 | 05:07 PM",
+    profile: {
+      department: "Business Banking",
+      tenureYears: 6,
+      totalAUM: "$2,098,600.00",
+      financialReadiness: 85,
+      financialAdvisor: "Alex Bogush",
+      advisorTitle: "High Net Worth Advisor",
+      tags: ["Premier", "IVR Auth"],
+    },
+    conversationTopics: [
+      "Review commercial real estate loan status",
+      "Discuss interest rate lock options",
+      "Escalate underwriting timeline concern",
+    ],
     overview: {
       contactNumber: "(646) 555-0163",
       assignedAgent: "Alex Bogush",

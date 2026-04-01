@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Paperclip, Plus, Send, SlidersHorizontal, Sparkles, Ticket, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Paperclip, Pin, Plus, Send, SlidersHorizontal, Ticket, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ interface ConversationPanelProps {
   onConversationChange?: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel?: (selection?: { initialTab?: string; ticketId?: string }) => void;
+  showAiPanel?: boolean;
 }
 
 const conversationFooterMenuItems = [
@@ -324,6 +325,43 @@ function getRemainingSupportNeed(issueSummary: string | null, latestCustomerMess
   return "Respond directly to the customer's latest reply and turn it into one specific next action they can take now.";
 }
 
+function getDetectedIntent(messages: SharedConversationData["messages"]): string {
+  const text = messages
+    .filter((m) => m.role === "customer")
+    .map((m) => m.content.toLowerCase())
+    .join(" ");
+
+  if (text.match(/\b(subscription|plan|upgrade|downgrade|tier)\b/) && text.match(/\b(payment|billing|charge|fail|decline)\b/)) {
+    return "Subscription Upgrade / Payment Failure";
+  }
+  if (text.match(/\b(cancel|cancellation|unsubscribe)\b/)) {
+    return "Cancellation Request";
+  }
+  if (text.match(/\b(subscription|plan|upgrade|downgrade|tier)\b/)) {
+    return "Subscription Upgrade / Change";
+  }
+  if (text.match(/\b(payment|billing|charge|invoice|refund|overpaid|overcharg)\b/)) {
+    return "Billing / Payment Issue";
+  }
+  if (text.match(/\b(delivery|shipping|package|parcel|reroute|transit|exception)\b/)) {
+    return "Delivery / Shipping Issue";
+  }
+  if (text.match(/\b(broken|error|bug|crash|not work|issue|problem|fail)\b/)) {
+    return "Technical Issue";
+  }
+  return "General Inquiry";
+}
+
+function getChurnRisk(messages: SharedConversationData["messages"]): { label: string; level: "low" | "medium" | "high" } {
+  const hasFrustration = messages.some((m) => m.sentiment === "frustrated");
+  const text = messages.map((m) => m.content.toLowerCase()).join(" ");
+  const highRiskWords = /\b(cancel|leave|competitor|refund|lawsuit|terrible|unacceptable|never again)\b/;
+
+  if (hasFrustration && highRiskWords.test(text)) return { label: "High", level: "high" };
+  if (hasFrustration) return { label: "Medium", level: "medium" };
+  return { label: "Low", level: "low" };
+}
+
 function getConversationOverview(conversation: SharedConversationData) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
@@ -341,11 +379,18 @@ function getConversationOverview(conversation: SharedConversationData) {
     : "The previous agent or AI has not yet documented a meaningful action that would unblock the issue.";
   const remainingNeed = getRemainingSupportNeed(issueSummary, latestCustomerMessage);
 
+  const detectedIntent = getDetectedIntent(conversation.messages);
+  const churnRisk = getChurnRisk(conversation.messages);
+  const sentiment = latestCustomerMessage?.sentiment ?? null;
+
   return {
     assignmentReason,
     customerIssue,
     priorHelp,
     remainingNeed,
+    detectedIntent,
+    churnRisk,
+    sentiment,
   };
 }
 
@@ -619,12 +664,19 @@ export default function ConversationPanel({
   onConversationChange,
   onSelectChannel,
   onOpenDeskPanel,
+  showAiPanel = true,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const narrowOverlayRef = useRef<HTMLDivElement>(null);
+  const [isNarrowPanel, setIsNarrowPanel] = useState(false);
+  const [footerHeight, setFooterHeight] = useState(0);
+  const [isSummaryPinned, setIsSummaryPinned] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
@@ -637,8 +689,7 @@ export default function ConversationPanel({
   const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
-  const [expandedSuggestionTicket, setExpandedSuggestionTicket] = useState<CustomerTicket | null>(null);
-  const [isExpandedSuggestionTicketOpen, setIsExpandedSuggestionTicketOpen] = useState(false);
+  const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
   const latestMessageIsCustomer = latestMessage?.role === "customer";
@@ -692,6 +743,31 @@ export default function ConversationPanel({
   useEffect(() => {
     setDraft(conversation.draft);
   }, [conversation.draft, draftKey]);
+
+  // Track panel width to switch AI panel between inline and overlay mode.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? container.offsetWidth;
+      setIsNarrowPanel(width < 640);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Track footer height so the overlay stops exactly where the footer begins.
+  useEffect(() => {
+    const footer = footerRef.current;
+    if (!footer) return;
+    const observer = new ResizeObserver(() => {
+      setFooterHeight(footer.offsetHeight);
+    });
+    observer.observe(footer);
+    setFooterHeight(footer.offsetHeight);
+    return () => observer.disconnect();
+  }, []);
+
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -821,8 +897,7 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
-    setExpandedSuggestionTicket(null);
-    setIsExpandedSuggestionTicketOpen(false);
+    setOpenedTicketId(null);
   }, [latestCustomerMessage?.id, draftKey]);
 
   useEffect(() => {
@@ -883,15 +958,9 @@ export default function ConversationPanel({
   };
 
   const handleOpenSuggestionAction = (action: SuggestionAction) => {
-    if (action.ticket) {
-      const isSameTicket = expandedSuggestionTicket?.id === action.ticket.id;
-      setExpandedSuggestionTicket(action.ticket);
-      setIsExpandedSuggestionTicketOpen(!isSameTicket || !isExpandedSuggestionTicketOpen);
-      shouldStickToBottomRef.current = true;
-      queueScrollToBottomAfterLayout();
-      return;
+    if (action.ticketId) {
+      setOpenedTicketId(action.ticketId);
     }
-
     onOpenDeskPanel?.({ initialTab: action.initialTab, ticketId: action.ticketId });
   };
 
@@ -933,10 +1002,11 @@ export default function ConversationPanel({
   };
 
   return (
-    <div className={cn("relative flex min-h-0 flex-1 flex-col", className)}>
-      <div className="relative min-h-0 flex-1 overflow-hidden">
-        <ScrollArea ref={scrollAreaRef} className="h-full p-6">
-          <div className="mx-auto max-w-3xl space-y-6">
+    <div ref={containerRef} className={cn("relative flex min-h-0 flex-1 flex-row", className)}>
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <ScrollArea ref={scrollAreaRef} className="h-full p-6">
+            <div className="mx-auto max-w-3xl space-y-6">
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -1001,147 +1071,6 @@ export default function ConversationPanel({
                       )}
                     </div>
 
-                    {shouldShowSuggestion && latestCustomerMessage?.id === message.id && inlineSuggestion && (
-                      <div className="w-full max-w-[770px] rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                        <Accordion
-                          type="single"
-                          collapsible
-                          value={suggestionAccordionValue}
-                          onValueChange={(value) => setSuggestionAccordionValue(value)}
-                        >
-                          <AccordionItem value="ai-suggestion" className="border-b-0">
-                            <AccordionTrigger className="py-4 text-left hover:no-underline">
-                              <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
-                                <Sparkles className="h-3.5 w-3.5" />
-                                <span>AI Suggestion</span>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="pb-4">
-                              <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
-                              {suggestionActions.length > 0 ? (
-                                <div className="mt-4 flex flex-wrap items-center gap-2">
-                                  {suggestionActions.map((action) => {
-                                    const isTicketActionExpanded = action.ticket && expandedSuggestionTicket?.id === action.ticket.id && isExpandedSuggestionTicketOpen;
-
-                                    return (
-                                      <Button
-                                        key={action.id}
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className={cn(
-                                          "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
-                                          isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
-                                        )}
-                                        onClick={() => handleOpenSuggestionAction(action)}
-                                      >
-                                        {action.label}
-                                      </Button>
-                                    );
-                                  })}
-                                </div>
-                              ) : null}
-                              {expandedSuggestionTicket ? (
-                                <InlineTicketRecord
-                                  ticket={expandedSuggestionTicket}
-                                  isOpen={isExpandedSuggestionTicketOpen}
-                                  onToggle={() => setIsExpandedSuggestionTicketOpen((current) => !current)}
-                                />
-                              ) : null}
-                              {isSuggestionEditorOpen ? (
-                                <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
-                                  <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
-                                    Edit AI suggestion
-                                  </div>
-                                  <Input
-                                    value={suggestionEditPrompt}
-                                    onChange={(event) => setSuggestionEditPrompt(event.target.value)}
-                                    onKeyDown={(event) => {
-                                      if (event.key === "Enter") {
-                                        event.preventDefault();
-                                        handleApplySuggestionEdit();
-                                      }
-                                    }}
-                                    placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
-                                    className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
-                                  />
-                                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
-                                      onClick={handleApplySuggestionEdit}
-                                      disabled={suggestionEditPrompt.trim().length === 0}
-                                    >
-                                      Update suggestion
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                                      onClick={() => {
-                                        setSuggestionEditPrompt("");
-                                        setSuggestionAccordionValue("ai-suggestion");
-                                        setIsSuggestionEditorOpen(false);
-                                      }}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : null}
-                              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className={cn(
-                                      "h-9 rounded-lg px-4",
-                                      isSuggestionAdded
-                                        ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                                        : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                                    )}
-                                    onClick={handleUseSuggestion}
-                                    disabled={isSuggestionAdded}
-                                  >
-                                    {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                                    {isSuggestionAdded ? "Added" : "Use response"}
-                                  </Button>
-                                  <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>
-                                    Edit
-                                  </Button>
-                                </div>
-                                <div className="ml-auto flex items-center gap-2 self-end">
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    aria-label="Show previous AI suggestion"
-                                    className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
-                                    onClick={() => handleCycleSuggestion(-1)}
-                                    disabled={suggestionVariants.length <= 1}
-                                  >
-                                    <ChevronLeft className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="outline"
-                                    aria-label="Show next AI suggestion"
-                                    className="h-8 w-8 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
-                                    onClick={() => handleCycleSuggestion(1)}
-                                    disabled={suggestionVariants.length <= 1}
-                                  >
-                                    <ChevronRight className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      </div>
-                    )}
                   </div>
                 ))}
 
@@ -1177,7 +1106,7 @@ export default function ConversationPanel({
       </div>
 
       {!isVoiceChannel && !isEmailChannel && (
-        <div className="shrink-0 border-t border-border bg-background p-4">
+        <div ref={footerRef} className="shrink-0 border-t border-border bg-background p-4">
           <div
             className={cn(
               "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
@@ -1206,7 +1135,7 @@ export default function ConversationPanel({
                 }
               }}
               rows={1}
-              className="min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              className="!min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
             />
 
             <div className="mt-2 flex items-center justify-between gap-3">
@@ -1306,6 +1235,322 @@ export default function ConversationPanel({
           </div>
         </div>
       )}
+      </div>
+
+      {/* Narrow mode: absolute overlay inside the panel, above conversation, below footer */}
+      {isNarrowPanel && showAiPanel && (
+        <>
+          <div
+            ref={narrowOverlayRef}
+            className="absolute right-0 top-0 z-50 w-[23rem] flex flex-col overflow-hidden rounded-l-2xl border-l border-t border-b border-border bg-background shadow-xl"
+            style={{ bottom: footerHeight }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Pinned summary — sticky above scroll area */}
+            {isSummaryPinned && (
+              <div className="shrink-0 border-b border-black/[0.06] p-3 pb-2">
+                <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+                  <Accordion type="single" collapsible defaultValue="summary">
+                    <AccordionItem value="summary" className="border-b-0">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex flex-1 items-center justify-between mr-2">
+                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
+                          <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(false); }} className="rounded p-0.5 text-[#006DAD] transition-colors hover:text-[#0A5E92]"><Pin className="h-3.5 w-3.5 fill-current" /></button>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="px-3 pb-3 space-y-2">
+                          <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                            <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
+                            <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
+                          </div>
+                          <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                            <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
+                            <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              </div>
+            )}
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {/* Summary accordion (unpinned) */}
+            {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+              <Accordion type="single" collapsible defaultValue="summary">
+                <AccordionItem value="summary" className="border-b-0">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex flex-1 items-center justify-between mr-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
+                      <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(true); }} className="rounded p-0.5 text-[#AAAAAA] transition-colors hover:text-[#006DAD]"><Pin className="h-3.5 w-3.5" /></button>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="px-3 pb-3 space-y-2">
+                      <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                        <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
+                        <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
+                      </div>
+                      <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                        <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
+                        <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>}
+            {shouldShowSuggestion && inlineSuggestion && (
+              <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
+                  <AccordionItem value="ai-suggestion" className="border-b-0">
+                    <AccordionTrigger className="py-4 text-left hover:no-underline">
+                      <div className="flex flex-1 items-center justify-between mr-2">
+                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
+                          <span>Suggested Response</span>
+                        </div>
+                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(-1)} disabled={suggestionVariants.length <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                          <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(1)} disabled={suggestionVariants.length <= 1}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
+                      {suggestionActions.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                          {suggestionActions.map((action) => {
+                            const isTicketActionExpanded = action.ticketId != null && openedTicketId === action.ticketId;
+                            return (
+                              <Button
+                                key={action.id}
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className={cn(
+                                  "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
+                                  isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
+                                )}
+                                onClick={() => handleOpenSuggestionAction(action)}
+                              >
+                                {action.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className={cn(
+                            "h-9 rounded-lg px-4",
+                            isSuggestionAdded
+                              ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                              : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                          )}
+                          onClick={handleUseSuggestion}
+                          disabled={isSuggestionAdded}
+                        >
+                          {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                          {isSuggestionAdded ? "Added" : "Use response"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>Edit</Button>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            )}
+            </div>{/* end flex-1 scroll area */}
+          </div>
+        </>
+      )}
+
+      {/* Wide inline mode */}
+      <div className={cn(
+        "h-full shrink-0 overflow-hidden border-l border-border transition-all duration-300 ease-in-out",
+        !isNarrowPanel && showAiPanel ? "w-[23rem] opacity-100" : "w-0 opacity-0 border-l-0",
+      )}><div className="h-full w-[23rem] flex flex-col overflow-hidden">
+          {/* Pinned summary — sticky above scroll area */}
+          {isSummaryPinned && (
+            <div className="shrink-0 border-b border-black/[0.06] p-3 pb-2">
+              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+                <Accordion type="single" collapsible defaultValue="summary">
+                  <AccordionItem value="summary" className="border-b-0">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex flex-1 items-center justify-between mr-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
+                        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(false); }} className="rounded p-0.5 text-[#006DAD] transition-colors hover:text-[#0A5E92]"><Pin className="h-3.5 w-3.5 fill-current" /></button>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="px-3 pb-3 space-y-2">
+                        <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                          <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
+                          <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
+                        </div>
+                        <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                          <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
+                          <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            </div>
+          )}
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          {/* Summary accordion (unpinned) */}
+          {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+            <Accordion type="single" collapsible defaultValue="summary">
+              <AccordionItem value="summary" className="border-b-0">
+                <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                  <div className="flex flex-1 items-center justify-between mr-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
+                    <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(true); }} className="rounded p-0.5 text-[#AAAAAA] transition-colors hover:text-[#006DAD]"><Pin className="h-3.5 w-3.5" /></button>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="px-3 pb-3 space-y-2">
+                    <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                      <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
+                      <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
+                    </div>
+                    <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
+                      <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
+                      <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>}
+          {shouldShowSuggestion && inlineSuggestion && (
+            <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              <Accordion
+                type="single"
+                collapsible
+                value={suggestionAccordionValue}
+                onValueChange={(value) => setSuggestionAccordionValue(value)}
+              >
+                <AccordionItem value="ai-suggestion" className="border-b-0">
+                  <AccordionTrigger className="py-4 text-left hover:no-underline">
+                    <div className="flex flex-1 items-center justify-between mr-2">
+                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
+                        <span>Suggested Response</span>
+                      </div>
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button type="button" size="icon" variant="outline" aria-label="Show previous AI suggestion" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(-1)} disabled={suggestionVariants.length <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                        <Button type="button" size="icon" variant="outline" aria-label="Show next AI suggestion" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(1)} disabled={suggestionVariants.length <= 1}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
+                    {suggestionActions.length > 0 ? (
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        {suggestionActions.map((action) => {
+                          const isTicketActionExpanded = action.ticketId != null && openedTicketId === action.ticketId;
+                          return (
+                            <Button
+                              key={action.id}
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className={cn(
+                                "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
+                                isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
+                              )}
+                              onClick={() => handleOpenSuggestionAction(action)}
+                            >
+                              {action.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                    {isSuggestionEditorOpen ? (
+                      <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
+                          Edit AI suggestion
+                        </div>
+                        <Input
+                          value={suggestionEditPrompt}
+                          onChange={(event) => setSuggestionEditPrompt(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              handleApplySuggestionEdit();
+                            }
+                          }}
+                          placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
+                          className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
+                        />
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
+                            onClick={handleApplySuggestionEdit}
+                            disabled={suggestionEditPrompt.trim().length === 0}
+                          >
+                            Update suggestion
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
+                            onClick={() => {
+                              setSuggestionEditPrompt("");
+                              setSuggestionAccordionValue("ai-suggestion");
+                              setIsSuggestionEditorOpen(false);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        className={cn(
+                          "h-9 rounded-lg px-4",
+                          isSuggestionAdded
+                            ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                            : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                        )}
+                        onClick={handleUseSuggestion}
+                        disabled={isSuggestionAdded}
+                      >
+                        {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                        {isSuggestionAdded ? "Added" : "Use response"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]"
+                        onClick={handleOpenSuggestionEditor}
+                      >
+                        Edit
+                      </Button>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          )}
+        </div>{/* end flex-1 scroll area */}
+        </div>{/* end flex-col wrapper */}
+      </div>{/* end outer panel wrapper */}
     </div>
   );
 }
