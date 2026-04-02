@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Paperclip, Pin, Plus, Send, SlidersHorizontal, Ticket, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, NotebookPen, Paperclip, Pause, Pin, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ export type ConversationMessage = {
   time: string;
   channel?: CustomerChannel;
   sentiment?: "frustrated";
+  isInternal?: boolean;
 };
 
 export type ConversationStatus = "open" | "closed" | "pending";
@@ -90,6 +91,93 @@ type SuggestionAction = {
   ticketId?: string;
   ticket?: CustomerTicket;
 };
+
+type AgentTask = {
+  id: string;
+  label: string;
+};
+
+const TASK_COMPLETION_NOTES: Record<string, string> = {
+  "create-ticket": "ADP ticket created",
+  "update-salesforce": "Salesforce record updated",
+  "send-coupon": "Discount coupon email sent",
+  "escalate": "Escalated to supervisor",
+  "callback": "Callback scheduled",
+};
+
+const TASK_COMPLETION_REPLIES: Record<string, string> = {
+  "create-ticket": "I've created a support ticket for you and it's been assigned to our queue. Is there anything else I can help you with in the meantime?",
+  "update-salesforce": "I've updated your account record on our end. Is there anything else I can help you with?",
+  "send-coupon": "I've sent a discount coupon to your email address on file. Is there anything else I can do for you?",
+  "escalate": "I've escalated this to a supervisor who will be with you shortly. Is there anything else you need while you wait?",
+  "callback": "I've scheduled a callback for you. You'll receive a confirmation shortly. Is there anything else I can help you with?",
+};
+
+const TASK_ACTION_TITLES: Record<string, string> = {
+  "create-ticket": "Creating ADP Ticket...",
+  "update-salesforce": "Creating Salesforce Record...",
+  "send-coupon": "Sending Discount Coupon...",
+  "escalate": "Escalating to Supervisor...",
+  "callback": "Scheduling Callback...",
+};
+
+const TASK_STEPS: Record<string, string[]> = {
+  "create-ticket": [
+    "Searching for customer ID",
+    "Pulling conversation history",
+    "Creating ADP ticket record",
+    "Assigning to support queue",
+  ],
+  "update-salesforce": [
+    "Searching for customer ID",
+    "Processing updating payment amount",
+    "Emailing confirmation to customer",
+  ],
+  "send-coupon": [
+    "Looking up customer email",
+    "Generating discount code",
+    "Sending coupon email to customer",
+  ],
+  "escalate": [
+    "Finding available supervisor",
+    "Transferring conversation notes",
+    "Notifying supervisor",
+  ],
+  "callback": [
+    "Checking agent availability",
+    "Creating callback appointment",
+    "Sending confirmation to customer",
+  ],
+};
+
+function getSuggestedAgentTasks(conversation: SharedConversationData, latestCustomerMessage: ConversationMessage | null): AgentTask[] {
+  if (!latestCustomerMessage) return [];
+
+  const allContent = conversation.messages.map((m) => m.content).join(" ").toLowerCase();
+  const tasks: AgentTask[] = [];
+
+  if (["ticket", "case", "error", "retry", "blocked", "declined", "failed", "issue", "problem"].some((k) => allContent.includes(k))) {
+    tasks.push({ id: "create-ticket", label: "Create ADP Ticket" });
+  }
+
+  if (["account", "billing", "payment", "record", "status", "profile", "update", "crm", "salesforce"].some((k) => allContent.includes(k))) {
+    tasks.push({ id: "update-salesforce", label: "Update Salesforce Record" });
+  }
+
+  if (["discount", "coupon", "compensation", "charged twice", "double charge", "trouble", "frustrated", "inconvenience", "sorry", "billing"].some((k) => allContent.includes(k))) {
+    tasks.push({ id: "send-coupon", label: "Send an email with a discount coupon" });
+  }
+
+  if (["supervisor", "escalate", "manager", "speak to someone", "call me"].some((k) => allContent.includes(k))) {
+    tasks.push({ id: "escalate", label: "Escalate to supervisor" });
+  }
+
+  if (["callback", "call back", "schedule", "appointment", "call me"].some((k) => allContent.includes(k))) {
+    tasks.push({ id: "callback", label: "Schedule a callback" });
+  }
+
+  return tasks;
+}
 
 function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
   return variants[((refreshKey % variants.length) + variants.length) % variants.length];
@@ -674,6 +762,8 @@ export default function ConversationPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const narrowOverlayRef = useRef<HTMLDivElement>(null);
+  const narrowAiScrollRef = useRef<HTMLDivElement>(null);
+  const wideAiScrollRef = useRef<HTMLDivElement>(null);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [footerHeight, setFooterHeight] = useState(0);
   const [isSummaryPinned, setIsSummaryPinned] = useState(false);
@@ -690,9 +780,27 @@ export default function ConversationPanel({
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
+  const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
+  const [revealedTaskIds, setRevealedTaskIds] = useState<Set<string>>(new Set());
+  const [checkedTaskIds, setCheckedTaskIds] = useState<Set<string>>(new Set());
+  const [taskProgress, setTaskProgress] = useState<Record<string, { stepIndex: number; paused: boolean }>>({});
+  const [hoveredProgressStep, setHoveredProgressStep] = useState<string | null>(null);
+  const [postActionSuggestion, setPostActionSuggestion] = useState<string | null>(null);
+  const [postActionAnimKey, setPostActionAnimKey] = useState(0);
+  const [aiNewCount, setAiNewCount] = useState(0);
+  const isAiScrolledToBottomRef = useRef(true);
+  const prevAiSuggestionRef = useRef<string | null>(null);
+  const prevRevealedCountRef = useRef(0);
+  const taskRevealTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const conversationRef = useRef(conversation);
+  conversationRef.current = conversation;
+  const notedTaskIdsRef = useRef<Set<string>>(new Set());
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
-  const latestMessageIsCustomer = latestMessage?.role === "customer";
+  // Internal notes are agent-side records, not real conversation turns — ignore them
+  // when deciding whether the latest turn was from the customer.
+  const latestNonInternalMessage = [...conversation.messages].reverse().find((m) => !m.isInternal) ?? null;
+  const latestMessageIsCustomer = latestNonInternalMessage?.role === "customer";
   const suggestionVariants = latestCustomerMessage
     ? getInlineSuggestionVariants(conversation, latestCustomerMessage)
     : [];
@@ -702,9 +810,9 @@ export default function ConversationPanel({
   const inlineSuggestion = editedInlineSuggestion ?? generatedInlineSuggestion;
   const conversationOverview = getConversationOverview(conversation);
   const shouldShowSuggestion =
-    latestMessageIsCustomer &&
+    (latestMessageIsCustomer || !!postActionSuggestion) &&
     latestCustomerMessage !== null &&
-    inlineSuggestion !== null &&
+    (inlineSuggestion !== null || !!postActionSuggestion) &&
     !conversation.isCustomerTyping;
   const suggestionActions = useMemo(() => {
     if (!inlineSuggestion || !latestCustomerMessage || !customerId) {
@@ -780,6 +888,187 @@ export default function ConversationPanel({
     textarea.style.height = "0px";
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
+
+  // Reset agent tasks whenever the conversation changes (new customer/channel).
+  useEffect(() => {
+    setAgentTasks([]);
+    setRevealedTaskIds(new Set());
+    setCheckedTaskIds(new Set());
+    taskRevealTimersRef.current.forEach(clearTimeout);
+    taskRevealTimersRef.current = [];
+  }, [conversation.label, draftKey]);
+
+  // Generate and stagger-reveal suggested agent tasks when a new customer message arrives.
+  useEffect(() => {
+    if (!latestCustomerMessage) return;
+
+    const freshTasks = getSuggestedAgentTasks(conversation, latestCustomerMessage);
+    if (freshTasks.length === 0) return;
+
+    setAgentTasks((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const newTasks = freshTasks.filter((t) => !existingIds.has(t.id));
+      if (newTasks.length === 0) return prev;
+
+      // Stagger-reveal each new task with a 180ms delay between them.
+      taskRevealTimersRef.current.forEach(clearTimeout);
+      taskRevealTimersRef.current = [];
+      newTasks.forEach((task, i) => {
+        const timer = setTimeout(() => {
+          setRevealedTaskIds((ids) => new Set([...ids, task.id]));
+        }, 400 + i * 180);
+        taskRevealTimersRef.current.push(timer);
+      });
+
+      return [...prev, ...newTasks];
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestCustomerMessage?.id]);
+
+  // Advance in-progress task steps one at a time (1.8s per step) unless paused.
+  // stepIndex === steps.length means all steps completed (one past the last).
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    Object.entries(taskProgress).forEach(([taskId, progress]) => {
+      if (progress.paused) return;
+      const steps = TASK_STEPS[taskId] ?? [];
+      if (progress.stepIndex >= steps.length) return; // all done
+      const timer = setTimeout(() => {
+        setTaskProgress((prev) => {
+          const current = prev[taskId];
+          if (!current || current.paused || current.stepIndex !== progress.stepIndex) return prev;
+          return { ...prev, [taskId]: { ...current, stepIndex: current.stepIndex + 1 } };
+        });
+      }, 1800);
+      timers.push(timer);
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [taskProgress]);
+
+  // When all steps finish, add an internal note to the conversation timeline,
+  // then remove the completed task from the AI list after a brief pause.
+  useEffect(() => {
+    Object.entries(taskProgress).forEach(([taskId, progress]) => {
+      const steps = TASK_STEPS[taskId] ?? [];
+      const isAllDone = progress.stepIndex >= steps.length;
+      if (!isAllDone || notedTaskIdsRef.current.has(taskId)) return;
+      notedTaskIdsRef.current.add(taskId);
+      const noteLabel = TASK_COMPLETION_NOTES[taskId];
+      if (!noteLabel || !onConversationChange) return;
+      const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      const conv = conversationRef.current;
+      onConversationChange({
+        ...conv,
+        messages: [
+          ...conv.messages,
+          {
+            id: Date.now(),
+            role: "agent",
+            content: `${noteLabel} — ${dateStr}`,
+            time: formatConversationTimestamp(new Date()),
+            isInternal: true,
+          },
+        ],
+      });
+      // Update the Suggested Response to reflect the completed action.
+      const completionReply = TASK_COMPLETION_REPLIES[taskId];
+      if (completionReply) setPostActionSuggestion(completionReply);
+      // Remove the completed task from the AI list after a short delay so the
+      // agent briefly sees the completed state before it disappears.
+      setTimeout(() => {
+        setAgentTasks((prev) => prev.filter((t) => t.id !== taskId));
+        setCheckedTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+        setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+        setTaskProgress((prev) => { const { [taskId]: _, ...rest } = prev; return rest; });
+      }, 1200);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskProgress]);
+
+  const handleToggleTaskCheck = (taskId: string) => {
+    setCheckedTaskIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+        setTaskProgress((p) => { const { [taskId]: _, ...rest } = p; return rest; });
+      } else {
+        next.add(taskId);
+        setTaskProgress((p) => ({ ...p, [taskId]: { stepIndex: 0, paused: false } }));
+        // Always scroll to bottom when checking a task — the card is expanding and the
+        // agent needs to see the in-progress steps that are about to appear below it.
+        requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+      }
+      return next;
+    });
+  };
+
+  const toggleTaskPause = (taskId: string) => {
+    setTaskProgress((prev) => {
+      const current = prev[taskId];
+      if (!current) return prev;
+      return { ...prev, [taskId]: { ...current, paused: !current.paused } };
+    });
+  };
+
+  // When a step advances inside an expanded task card, scroll to bottom if the agent
+  // is already there so they continue to see the latest step without interrupting scrolling.
+  useEffect(() => {
+    if (!isAiScrolledToBottomRef.current) return;
+    const id = requestAnimationFrame(scrollAiPanelsToBottom);
+    return () => cancelAnimationFrame(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskProgress]);
+
+  const scrollAiPanelsToBottom = () => {
+    [narrowAiScrollRef.current, wideAiScrollRef.current].forEach((el) => {
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+    isAiScrolledToBottomRef.current = true;
+    setAiNewCount(0);
+  };
+
+  const handleAiScroll = (el: HTMLDivElement) => {
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
+    isAiScrolledToBottomRef.current = atBottom;
+    if (atBottom) setAiNewCount(0);
+  };
+
+  const handleAiChipClick = () => {
+    requestAnimationFrame(scrollAiPanelsToBottom);
+  };
+
+  // On mount: scroll AI panels to bottom after the DOM has painted.
+  useEffect(() => {
+    const id = requestAnimationFrame(scrollAiPanelsToBottom);
+    return () => cancelAnimationFrame(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // When genuinely new content arrives, auto-scroll if already at bottom,
+  // or increment the chip counter if the agent has scrolled up.
+  useEffect(() => {
+    const newSuggestion = inlineSuggestion?.suggestedReply ?? null;
+    const newRevealedCount = revealedTaskIds.size;
+
+    const hasNewContent =
+      newSuggestion !== prevAiSuggestionRef.current ||
+      newRevealedCount > prevRevealedCountRef.current;
+
+    prevAiSuggestionRef.current = newSuggestion;
+    prevRevealedCountRef.current = newRevealedCount;
+
+    if (!hasNewContent) return;
+
+    const id = requestAnimationFrame(() => {
+      if (isAiScrolledToBottomRef.current) {
+        scrollAiPanelsToBottom();
+      } else {
+        setAiNewCount((c) => c + 1);
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineSuggestion?.suggestedReply, revealedTaskIds.size]);
 
   const getScrollViewport = () => {
     if (scrollViewportRef.current) return scrollViewportRef.current;
@@ -901,6 +1190,7 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
+    setPostActionSuggestion(null);
     setOpenedTicketId(null);
   }, [latestCustomerMessage?.id, draftKey]);
 
@@ -923,14 +1213,24 @@ export default function ConversationPanel({
     }
   }, [draft]);
 
-  const handleUseSuggestion = () => {
-    if (!inlineSuggestion || isSuggestionAdded) return;
+  const activeSuggestedReply = postActionSuggestion ?? inlineSuggestion?.suggestedReply ?? "";
 
-    setDraft(inlineSuggestion.suggestedReply);
+  // When a post-action suggestion is set, open the accordion and trigger the entrance animation.
+  useEffect(() => {
+    if (!postActionSuggestion) return;
+    setSuggestionAccordionValue("ai-suggestion");
+    setPostActionAnimKey((k) => k + 1);
+    setIsSuggestionAdded(false);
+  }, [postActionSuggestion]);
+
+  const handleUseSuggestion = () => {
+    if (!activeSuggestedReply || isSuggestionAdded) return;
+
+    setDraft(activeSuggestedReply);
     setIsSuggestionAdded(true);
     onConversationChange?.({
       ...conversation,
-      draft: inlineSuggestion.suggestedReply,
+      draft: activeSuggestedReply,
     });
     textareaRef.current?.focus({ preventScroll: true });
   };
@@ -1043,38 +1343,53 @@ export default function ConversationPanel({
               <>
                 {conversation.messages.map((message) => (
                   <div key={message.id} className="space-y-3">
-                    <div
-                      className={cn(
-                        "flex max-w-[85%] flex-col",
-                        message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
-                      )}
-                    >
-                      <div className="mb-1 flex items-center gap-2 px-1 text-xs text-[#475467]">
-                        <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
-                        <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                        <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
+                    {message.isInternal ? (
+                      /* Internal note — not visible to the customer */
+                      <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] px-3.5 py-2.5">
+                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E4E7EC]">
+                          <NotebookPen className="h-2.5 w-2.5 text-[#667085]" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Internal Note</span>
+                            <span className="text-[10px] text-[#98A2B3]">{formatConversationMessageTimestamp(message.time)}</span>
+                          </div>
+                          <p className="text-[13px] leading-5 text-[#344054]">{message.content}</p>
+                        </div>
                       </div>
+                    ) : (
                       <div
                         className={cn(
-                          "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                          message.role === "agent"
-                            ? "rounded-br-sm bg-primary text-primary-foreground"
-                            : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                          "flex max-w-[85%] flex-col",
+                          message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
                         )}
                       >
-                        {message.content}
-                      </div>
-                      <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-[#98A2B3]">
-                        <span>{formatConversationMessageTimestamp(message.time)}</span>
-                      </div>
-                      {message.sentiment === "frustrated" && (
-                        <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          Frustrated sentiment detected
+                        <div className="mb-1 flex items-center gap-2 px-1 text-xs text-[#475467]">
+                          <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
+                          <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
+                          <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
                         </div>
-                      )}
-                    </div>
-
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                            message.role === "agent"
+                              ? "rounded-br-sm bg-primary text-primary-foreground"
+                              : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                          )}
+                        >
+                          {message.content}
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-[#98A2B3]">
+                          <span>{formatConversationMessageTimestamp(message.time)}</span>
+                        </div>
+                        {message.sentiment === "frustrated" && (
+                          <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Frustrated sentiment detected
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
 
@@ -1280,7 +1595,8 @@ export default function ConversationPanel({
               </div>
             )}
             {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="relative flex-1 min-h-0">
+            <div ref={narrowAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
             {/* Summary accordion (unpinned) */}
             {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
               <Accordion type="single" collapsible defaultValue="summary">
@@ -1306,7 +1622,7 @@ export default function ConversationPanel({
                 </AccordionItem>
               </Accordion>
             </div>}
-            {shouldShowSuggestion && inlineSuggestion && (
+            {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
               <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
                   <AccordionItem value="ai-suggestion" className="border-b-0">
@@ -1322,7 +1638,7 @@ export default function ConversationPanel({
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="pb-4">
-                      <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
+                      <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
                       {suggestionActions.length > 0 && (
                         <div className="mt-4 flex flex-wrap items-center gap-2">
                           {suggestionActions.map((action) => {
@@ -1368,7 +1684,141 @@ export default function ConversationPanel({
                 </Accordion>
               </div>
             )}
-            </div>{/* end flex-1 scroll area */}
+
+            {/* Suggested Actions */}
+            {agentTasks.length > 0 && (
+              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F4F6FA]">
+                <div className="px-4 pt-3 pb-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+                </div>
+                <div className="px-3 pb-3 pt-1 space-y-1.5">
+                  {agentTasks.map((task) => {
+                    const progress = taskProgress[task.id];
+                    const isChecked = checkedTaskIds.has(task.id);
+                    const steps = TASK_STEPS[task.id] ?? [];
+                    return (
+                      <div
+                        key={task.id}
+                        className={cn(
+                          "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-all duration-300 ease-out",
+                          revealedTaskIds.has(task.id)
+                            ? "opacity-100 translate-y-0"
+                            : "opacity-0 translate-y-2 pointer-events-none",
+                        )}
+                      >
+                        {/* Task row */}
+                        <div className="flex items-center gap-3 px-3 py-2.5">
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={() => handleToggleTaskCheck(task.id)}
+                            className={cn(
+                              "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                              isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                            )}
+                          >
+                            {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                          </button>
+                          <span className={cn(
+                            "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                            isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
+                          )}>
+                            {task.label}
+                          </span>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={() => {
+                              setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
+                              setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
+                              setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
+                            }}
+                            className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        {/* In-progress steps — shown when checked */}
+                        {isChecked && progress && (
+                          <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
+                              {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
+                            </p>
+                            <div className="space-y-2.5">
+                              {steps.map((step, stepIdx) => {
+                                const isStepCompleted = stepIdx < progress.stepIndex;
+                                const isStepInProgress = stepIdx === progress.stepIndex;
+                                const isPaused = progress.paused && isStepInProgress;
+                                const hoverKey = `${task.id}-${stepIdx}`;
+                                const isHovered = hoveredProgressStep === hoverKey;
+                                return (
+                                  <div
+                                    key={stepIdx}
+                                    className="flex items-center gap-2.5"
+                                    onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
+                                    onMouseLeave={() => setHoveredProgressStep(null)}
+                                  >
+                                    {/* Step indicator */}
+                                    <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                      {isStepCompleted ? (
+                                        <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                          <Check className="h-3.5 w-3.5 text-white" />
+                                        </div>
+                                      ) : isStepInProgress ? (
+                                        (isHovered || isPaused) ? (
+                                          <button
+                                            type="button"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            onClick={() => toggleTaskPause(task.id)}
+                                            className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
+                                          >
+                                            {isPaused
+                                              ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
+                                              : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
+                                          </button>
+                                        ) : (
+                                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                        )
+                                      ) : (
+                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                      )}
+                                    </div>
+                                    <span className={cn(
+                                      "text-[13px] leading-5",
+                                      isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
+                                    )}>
+                                      {step}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            </div>{/* end overflow-y-auto */}
+            {/* New content chip */}
+            {aiNewCount > 0 && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-3">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={handleAiChipClick}
+                  className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg hover:bg-[#1F2937] transition-colors"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#0B9A8A]" />
+                  {aiNewCount} new message{aiNewCount !== 1 ? "s" : ""}
+                </button>
+              </div>
+            )}
+            </div>{/* end relative wrapper */}
           </div>
         </>
       )}
@@ -1408,7 +1858,8 @@ export default function ConversationPanel({
             </div>
           )}
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="relative flex-1 min-h-0">
+          <div ref={wideAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
           {/* Summary accordion (unpinned) */}
           {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
             <Accordion type="single" collapsible defaultValue="summary">
@@ -1434,7 +1885,7 @@ export default function ConversationPanel({
               </AccordionItem>
             </Accordion>
           </div>}
-          {shouldShowSuggestion && inlineSuggestion && (
+          {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
             <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <Accordion
                 type="single"
@@ -1455,7 +1906,7 @@ export default function ConversationPanel({
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-4">
-                    <p className="text-sm leading-6 text-[#25403B]">{inlineSuggestion.suggestedReply}</p>
+                    <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
                     {suggestionActions.length > 0 ? (
                       <div className="mt-4 flex flex-wrap items-center gap-2">
                         {suggestionActions.map((action) => {
@@ -1552,7 +2003,136 @@ export default function ConversationPanel({
               </Accordion>
             </div>
           )}
-        </div>{/* end flex-1 scroll area */}
+
+          {/* Suggested Actions — wide panel */}
+          {agentTasks.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F4F6FA]">
+              <div className="px-4 pt-3 pb-1">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+              </div>
+              <div className="px-3 pb-3 pt-1 space-y-1.5">
+                {agentTasks.map((task) => {
+                  const progress = taskProgress[task.id];
+                  const isChecked = checkedTaskIds.has(task.id);
+                  const steps = TASK_STEPS[task.id] ?? [];
+                  return (
+                    <div
+                      key={task.id}
+                      className={cn(
+                        "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-all duration-300 ease-out",
+                        revealedTaskIds.has(task.id)
+                          ? "opacity-100 translate-y-0"
+                          : "opacity-0 translate-y-2 pointer-events-none",
+                      )}
+                    >
+                      {/* Task row */}
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTaskCheck(task.id)}
+                          className={cn(
+                            "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                            isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                          )}
+                        >
+                          {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                          isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
+                        )}>
+                          {task.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
+                            setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
+                            setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
+                          }}
+                          className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+
+                      {/* In-progress steps — shown when checked */}
+                      {isChecked && progress && (
+                        <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                          <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
+                            {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
+                          </p>
+                          <div className="space-y-2.5">
+                            {steps.map((step, stepIdx) => {
+                              const isStepCompleted = stepIdx < progress.stepIndex;
+                              const isStepInProgress = stepIdx === progress.stepIndex;
+                              const isPaused = progress.paused && isStepInProgress;
+                              const hoverKey = `wide-${task.id}-${stepIdx}`;
+                              const isHovered = hoveredProgressStep === hoverKey;
+                              return (
+                                <div
+                                  key={stepIdx}
+                                  className="flex items-center gap-2.5"
+                                  onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
+                                  onMouseLeave={() => setHoveredProgressStep(null)}
+                                >
+                                  <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                    {isStepCompleted ? (
+                                      <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                        <Check className="h-3.5 w-3.5 text-white" />
+                                      </div>
+                                    ) : isStepInProgress ? (
+                                      (isHovered || isPaused) ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleTaskPause(task.id)}
+                                          className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
+                                        >
+                                          {isPaused
+                                            ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
+                                            : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
+                                        </button>
+                                      ) : (
+                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                      )
+                                    ) : (
+                                      <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                    )}
+                                  </div>
+                                  <span className={cn(
+                                    "text-[13px] leading-5",
+                                    isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
+                                  )}>
+                                    {step}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+        </div>{/* end overflow-y-auto */}
+          {/* New content chip */}
+          {aiNewCount > 0 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-3">
+              <button
+                type="button"
+                onClick={handleAiChipClick}
+                className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg hover:bg-[#1F2937] transition-colors"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-[#0B9A8A]" />
+                1 new message
+              </button>
+            </div>
+          )}
+          </div>{/* end relative wrapper */}
         </div>{/* end flex-col wrapper */}
       </div>{/* end outer panel wrapper */}
     </div>

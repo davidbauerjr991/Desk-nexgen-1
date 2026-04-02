@@ -3904,6 +3904,7 @@ export default function Layout({ children }: LayoutProps) {
     const latestMessage = nextConversation.messages[nextConversation.messages.length - 1];
     const shouldScheduleCustomerReply =
       latestMessage?.role === "agent"
+      && !latestMessage.isInternal
       && (
         currentConversationState.messages.length !== nextConversation.messages.length
         || currentLatestMessage?.id !== latestMessage.id
