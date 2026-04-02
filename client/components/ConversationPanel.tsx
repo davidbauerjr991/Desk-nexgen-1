@@ -757,16 +757,20 @@ export default function ConversationPanel({
   }, []);
 
   // Track footer height so the overlay stops exactly where the footer begins.
+  // Re-run when activeChannel changes so we pick up the footer if it wasn't rendered initially.
   useEffect(() => {
     const footer = footerRef.current;
-    if (!footer) return;
+    if (!footer) {
+      setFooterHeight(0);
+      return;
+    }
     const observer = new ResizeObserver(() => {
       setFooterHeight(footer.offsetHeight);
     });
     observer.observe(footer);
     setFooterHeight(footer.offsetHeight);
     return () => observer.disconnect();
-  }, []);
+  }, [activeChannel]);
 
 
   useEffect(() => {
@@ -1242,8 +1246,8 @@ export default function ConversationPanel({
         <>
           <div
             ref={narrowOverlayRef}
-            className="absolute right-0 top-0 z-50 w-[23rem] flex flex-col overflow-hidden rounded-l-2xl border-l border-t border-b border-border bg-background shadow-xl"
-            style={{ bottom: footerHeight }}
+            className="absolute right-0 top-0 z-50 w-[23rem] flex flex-col overflow-hidden rounded-l-2xl border-l border-t border-border bg-background shadow-xl"
+            style={{ bottom: footerHeight > 0 ? footerHeight + 1 : 0 }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Pinned summary — sticky above scroll area */}

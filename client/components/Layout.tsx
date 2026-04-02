@@ -216,6 +216,18 @@ type QueuePreviewItem = {
   updatedAt: string;
 };
 
+type GroupedQueueItem = {
+  customerRecordId: string;
+  name: string;
+  initials: string;
+  channels: QueuePreviewItem[]; // sorted: selected/most-recent first
+  lastActiveChannel: QueuePreviewItem;
+  isAnyActive: boolean;
+  priority: string;
+  priorityClassName: string;
+  badgeColor: string;
+};
+
 const queueIconMap: Record<CustomerQueueIcon, typeof Phone> = {
   phone: Phone,
   clipboardList: ClipboardList,
@@ -403,6 +415,51 @@ const priorityIconClassNameMap: Record<string, string> = {
   medium: "text-[#006DAD]",
   low: "text-[#369D3F]",
 };
+
+function groupQueueItems(items: QueuePreviewItem[], selectedAssignmentId: string): GroupedQueueItem[] {
+  const orderMap = new Map<string, number>();
+  const groupMap = new Map<string, QueuePreviewItem[]>();
+
+  for (const item of items) {
+    if (!groupMap.has(item.customerRecordId)) {
+      orderMap.set(item.customerRecordId, orderMap.size);
+      groupMap.set(item.customerRecordId, []);
+    }
+    groupMap.get(item.customerRecordId)!.push(item);
+  }
+
+  return [...orderMap.entries()]
+    .sort(([, a], [, b]) => a - b)
+    .map(([customerRecordId]) => {
+      const channels = groupMap.get(customerRecordId)!;
+      // Stable order: first opened at top, subsequent channels below (by createdAt asc)
+      const sortedChannels = [...channels].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+      const isAnyActive = channels.some((c) => c.id === selectedAssignmentId || c.isActive);
+      // Last active channel for the collapsed icon: selected one first, then most recently updated
+      const lastActiveChannel =
+        sortedChannels.find((c) => c.id === selectedAssignmentId) ??
+        [...channels].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
+      const highestPriority = [...channels].sort(
+        (a, b) =>
+          (priorityRankMap[a.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER) -
+          (priorityRankMap[b.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER),
+      )[0];
+
+      return {
+        customerRecordId,
+        name: channels[0].name,
+        initials: channels[0].initials,
+        channels: sortedChannels,
+        lastActiveChannel,
+        isAnyActive,
+        priority: highestPriority.priority,
+        priorityClassName: highestPriority.priorityClassName,
+        badgeColor: highestPriority.badgeColor,
+      };
+    });
+}
 
 type CallPopunderPosition = {
   x: number;
@@ -2526,6 +2583,7 @@ function ConversationPopunder({
   const isResizingRef = useRef(false);
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const shouldStackHeaderActions = size.width < 800;
+  const isVeryNarrow = size.width < 640;
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -2623,16 +2681,41 @@ function ConversationPopunder({
             </div>
           </div>
           {shouldStackHeaderActions && onDock ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock Panel
-            </Button>
+            <div className="flex items-center gap-1.5">
+              {isVeryNarrow && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onClick={() => setIsAiPanelVisible((v) => !v)}
+                        aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                        className={cn(
+                          "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                          isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                        )}
+                      >
+                        <PanelRight className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onMouseDown={(event) => event.stopPropagation()}
+                onClick={onDock}
+                className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+              >
+                Dock Panel
+              </Button>
+            </div>
           ) : null}
         </div>
         <div
@@ -2646,27 +2729,29 @@ function ConversationPopunder({
             onOpenChannel={onOpenChannel}
             isCallDisabled={isCallDisabled}
           />
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={() => setIsAiPanelVisible((v) => !v)}
-                  aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
-                  className={cn(
-                    "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                    isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                  )}
-                >
-                  <PanelRight className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {!isVeryNarrow && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={() => setIsAiPanelVisible((v) => !v)}
+                    aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                    className={cn(
+                      "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                      isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                    )}
+                  >
+                    <PanelRight className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           {!shouldStackHeaderActions && onDock ? (
             <Button
               type="button"
@@ -2972,7 +3057,7 @@ function QueueAssignmentCard({
   const canRemove = status !== "open";
   const channelLabel = conversationChannelOptions.find((option) => option.channel === item.channel)?.label ?? item.channel;
   const { activeCallAssignmentId, isAgentInCall, openCallDisposition } = useLayoutContext();
-  const showActiveVoiceControls = item.isActive && isAgentInCall && item.id === activeCallAssignmentId;
+  const showActiveVoiceControls = isAgentInCall && item.id === activeCallAssignmentId;
 
   return (
     <div
@@ -3048,15 +3133,134 @@ function QueueAssignmentCard({
   );
 }
 
+function GroupedQueueCard({
+  group,
+  queueStatuses,
+  onStatusChange,
+  onRemove,
+  onSelectAssignment,
+  className,
+  style,
+}: {
+  group: GroupedQueueItem;
+  queueStatuses: Record<string, QueueAssignmentStatus>;
+  onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
+  onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
+  onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const { isAgentInCall, openCallDisposition, activeCallAssignmentId } = useLayoutContext();
+
+  return (
+    <div
+      className={cn(
+        "group relative w-full overflow-hidden rounded-[8px] border border-black/[0.06] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+        group.isAnyActive
+          ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
+          : "hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
+        className,
+      )}
+      style={style}
+    >
+      {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px] bg-[#006DAD]" />}
+
+      {/* Customer name header */}
+      <div className="px-4 pb-1 pt-3">
+        <span className="text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
+      </div>
+
+      {/* Channel rows */}
+      {group.channels.map((item, index) => {
+        const ItemIcon = item.icon;
+        const channelLabel =
+          conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
+        const status = queueStatuses[item.id] ?? "open";
+        const canRemove = status !== "open";
+        const isChannelActive = item.isActive;
+        const showActiveVoiceControls =
+          isAgentInCall && item.id === activeCallAssignmentId;
+
+        return (
+          <div key={item.id}>
+            {index > 0 && <div className="mx-4 border-t border-black/[0.06]" />}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectAssignment(item.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectAssignment(item.id);
+                }
+              }}
+              className={cn(
+                "flex w-full cursor-pointer flex-col gap-1.5 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
+                isChannelActive ? "bg-[#EEF6FC]" : "hover:bg-[#F8F8F9]",
+              )}
+            >
+              {/* Top row: channel badge + timestamp + status + remove */}
+              <div className="flex items-center gap-2">
+                {/* Channel badge */}
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5B5B5B]">
+                  <ItemIcon className="h-3 w-3 text-[#369D3F]" />
+                  {channelLabel}
+                </span>
+
+                {/* Timestamp */}
+                <span className="flex items-center gap-1 text-[11px] text-[#6B6B6B]">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  {item.time}
+                </span>
+
+                {/* Status + remove — pushed to the right */}
+                <div
+                  className="ml-auto flex shrink-0 items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  <ConversationStatusDropdown
+                    status={status}
+                    onStatusChange={(s) => onStatusChange(item.id, s)}
+                  />
+                  {canRemove ? (
+                    <button
+                      type="button"
+                      aria-label={`Remove ${channelLabel} for ${group.name}`}
+                      onClick={() => onRemove(item.id)}
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Bottom row: preview stretches full width */}
+              <div className="line-clamp-2 text-[12px] leading-[1.4] text-[#5B5B5B]">
+                {item.preview}
+              </div>
+              {showActiveVoiceControls ? (
+                <ActiveVoiceAssignmentControls onOpenDisposition={openCallDisposition} />
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function QueueOverlayList({
-  items,
+  groups,
   queueStatuses,
   onStatusChange,
   onRemove,
   isOpen,
   onSelectAssignment,
 }: {
-  items: QueuePreviewItem[];
+  groups: GroupedQueueItem[];
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -3065,13 +3269,13 @@ function QueueOverlayList({
 }) {
   return (
     <div className="space-y-3 bg-transparent p-3">
-      {items.map((item, index) => (
-        <QueueAssignmentCard
-          key={item.id}
-          item={item}
-          status={queueStatuses[item.id] ?? "open"}
-          onStatusChange={(status) => onStatusChange(item.id, status)}
-          onRemove={() => onRemove(item.id)}
+      {groups.map((group, index) => (
+        <GroupedQueueCard
+          key={group.customerRecordId}
+          group={group}
+          queueStatuses={queueStatuses}
+          onStatusChange={onStatusChange}
+          onRemove={onRemove}
           onSelectAssignment={onSelectAssignment}
           className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
           style={{ transitionDelay: `${index * 35}ms` }}
@@ -3099,6 +3303,8 @@ function LeftQueueRail({
     isAppSpacePanelInDragMode,
     selectedAssignment,
     selectAssignment,
+    isAgentInCall,
+    activeCallAssignmentId,
   } = useLayoutContext();
 
   const visibleQueuePreviewItems = useMemo(() => {
@@ -3117,6 +3323,12 @@ function LeftQueueRail({
         (priorityRankMap[right.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER),
     );
   }, [isPriorityAssistEnabled, selectedAssignment.id, visibleAssignments]);
+
+  // Group flat items by customer so multi-channel customers share one card
+  const groupedQueueItems = useMemo(
+    () => groupQueueItems(visibleQueuePreviewItems, selectedAssignment.id),
+    [visibleQueuePreviewItems, selectedAssignment.id],
+  );
 
   const toggleLeftRailOpen = () => {
     setIsOpen((current) => !current);
@@ -3161,38 +3373,56 @@ function LeftQueueRail({
               aria-hidden={isOpen}
             >
               <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
-                {visibleQueuePreviewItems.map((item) => {
-                  const ItemIcon = item.icon;
-                  const priorityKey = item.priority.toLowerCase();
+                {groupedQueueItems.map((group) => {
+                  // Collapsed rail shows one icon per customer using the last active channel
+                  const lastChannel = group.lastActiveChannel;
+                  const ItemIcon = lastChannel.icon;
+                  const priorityKey = group.priority.toLowerCase();
                   const priorityDotClassName = priorityDotClassNameMap[priorityKey] ?? "bg-[#98A2B3]";
                   const priorityIconClassName = priorityIconClassNameMap[priorityKey] ?? "text-[#98A2B3]";
+                  // Show channel count badge when multiple channels are open
+                  const multiChannel = group.channels.length > 1;
+                  // Keep card pinned open if this group has an active call so controls are always reachable
+                  const hasActiveCall =
+                    isAgentInCall &&
+                    group.channels.some((c) => c.id === activeCallAssignmentId);
 
                   return (
-                    <HoverCard key={item.id} openDelay={120} closeDelay={80}>
+                    <HoverCard
+                      key={group.customerRecordId}
+                      openDelay={120}
+                      closeDelay={80}
+                      open={hasActiveCall ? true : undefined}
+                    >
                       <HoverCardTrigger asChild>
                         <button
                           type="button"
                           className={cn(
                             "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
-                            item.isActive
+                            group.isAnyActive
                               ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
                               : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
                           )}
-                          aria-label={`${item.name} queue item`}
-                          onClick={() => selectAssignment(item.id)}
+                          aria-label={`${group.name} queue item`}
+                          onClick={() => selectAssignment(lastChannel.id)}
                         >
                           <span
                             aria-hidden="true"
                             className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
                           />
+                          {multiChannel && (
+                            <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#006DAD] text-[8px] font-bold text-white">
+                              {group.channels.length}
+                            </span>
+                          )}
                           <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
                           <span
                             className={cn(
                               "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
-                              item.isActive ? "text-[#006DAD]" : "text-[#667085]",
+                              group.isAnyActive ? "text-[#006DAD]" : "text-[#667085]",
                             )}
                           >
-                            {item.time}
+                            {lastChannel.time}
                           </span>
                         </button>
                       </HoverCardTrigger>
@@ -3202,11 +3432,11 @@ function LeftQueueRail({
                         sideOffset={14}
                         className="w-[295px] border-none bg-transparent p-0 shadow-none"
                       >
-                        <QueueAssignmentCard
-                          item={item}
-                          status={queueStatuses[item.id] ?? "open"}
-                          onStatusChange={(status) => onStatusChange(item.id, status)}
-                          onRemove={() => handleRemoveQueueItem(item.id)}
+                        <GroupedQueueCard
+                          group={group}
+                          queueStatuses={queueStatuses}
+                          onStatusChange={onStatusChange}
+                          onRemove={handleRemoveQueueItem}
                           onSelectAssignment={selectAssignment}
                         />
                       </HoverCardContent>
@@ -3267,7 +3497,7 @@ function LeftQueueRail({
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <QueueOverlayList
-                  items={visibleQueuePreviewItems}
+                  groups={groupedQueueItems}
                   queueStatuses={queueStatuses}
                   onStatusChange={onStatusChange}
                   onRemove={handleRemoveQueueItem}
@@ -4134,12 +4364,8 @@ export default function Layout({ children }: LayoutProps) {
     isExpandedCanvasRoute,
   ]);
 
-  useEffect(() => {
-    if (!isDeskRoute) return;
-
-    setDeskCanvasDragActivation(null);
-    setDeskCanvasPopunderView(null);
-  }, [isDeskRoute]);
+  // Desk canvas popunder is intentionally NOT auto-cleared when navigating to the desk route.
+  // Panels stay floating until the agent explicitly clicks "Dock panel".
 
   useEffect(() => {
     if (!isCanvasMergedIntoCombinedPanel) {
@@ -4222,6 +4448,12 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    // Panel is already floating — preserve its drag state, just surface it
+    if (isConversationPopunderOpen) {
+      bringFloatingPanelToFront("conversation");
+      return;
+    }
+
     const { conversationWidth, customerInfoWidth } = getBalancedDockedPanelWidths({
       hasDesktopRightPanel: activeRightPanel !== null,
       reserveMainWorkspace: isMainCanvasVisible,
@@ -4242,6 +4474,19 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openCustomerConversation = (customerRecordId: string, channel: AssignmentChannel) => {
+    // SMS is a single thread per customer — if one is already open, switch to it instead of opening a new one
+    if (channel === "sms") {
+      const existingSms = visibleAssignmentIds
+        .map((id) => assignmentItemsById[id])
+        .find((item) => item?.customerRecordId === customerRecordId && item?.channel === "sms");
+
+      if (existingSms) {
+        setSelectedAssignmentId(existingSms.id);
+        openConversationPanel();
+        return existingSms;
+      }
+    }
+
     const nextAssignment = createLaunchedAssignment(customerRecordId, channel);
 
     setDeskPanelSelection(null);
@@ -4403,8 +4648,16 @@ export default function Layout({ children }: LayoutProps) {
     if (isDeskRoute && isCombinedInteractionPanelCanvasEnabled) {
       setCombinedInteractionPanelTab("customerInfo");
       setIsCustomerInfoPanelOpen(true);
-      setIsCustomerInfoPopunderOpen(false);
-      setCustomerInfoDragActivation(null);
+      if (!isCustomerInfoPopunderOpen) {
+        setIsCustomerInfoPopunderOpen(false);
+        setCustomerInfoDragActivation(null);
+      }
+      return;
+    }
+
+    // Panel is already floating — preserve its drag state, just surface it
+    if (isCustomerInfoPopunderOpen) {
+      bringFloatingPanelToFront("customerInfo");
       return;
     }
 
@@ -4609,9 +4862,11 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     setActiveRightPanel(null);
-    setIsCustomerInfoPanelOpen(false);
-    setIsCustomerInfoPopunderOpen(false);
-    setCustomerInfoDragActivation(null);
+    // Only close customerInfo if it isn't already floating
+    if (!isCustomerInfoPopunderOpen) {
+      setIsCustomerInfoPanelOpen(false);
+      setCustomerInfoDragActivation(null);
+    }
 
     navigate("/desk?view=customer");
   };
@@ -4620,12 +4875,14 @@ export default function Layout({ children }: LayoutProps) {
     setActiveRightPanel(null);
     setIsNotesPopoverOpen(false);
     setIsAddNewPopoverOpen(false);
-    setConversationDragActivation(null);
-    setIsConversationPanelOpen(true);
-    setIsConversationPopunderOpen(false);
-    setIsCustomerInfoPanelOpen(false);
-    setIsCustomerInfoPopunderOpen(false);
-    setCustomerInfoDragActivation(null);
+    // Only open conversation panel in docked mode if it isn't already floating
+    if (!isConversationPopunderOpen) {
+      setIsConversationPanelOpen(true);
+    }
+    // Only reset customer info if it isn't already floating
+    if (!isCustomerInfoPopunderOpen) {
+      setIsCustomerInfoPanelOpen(false);
+    }
 
     if (view === "customer") {
       setDeskPanelSelection({ initialTab: "Overview" });
