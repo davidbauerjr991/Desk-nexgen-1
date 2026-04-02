@@ -267,18 +267,6 @@ export default function CopilotPopunder({
         </div>
 
         <div className="flex items-center gap-2">
-          {onDock ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock panel
-            </Button>
-          ) : null}
           <button
             type="button"
             onMouseDown={(event) => event.stopPropagation()}

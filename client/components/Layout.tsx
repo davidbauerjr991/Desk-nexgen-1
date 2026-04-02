@@ -18,6 +18,7 @@ import {
   Mic,
   Monitor,
   Moon,
+  PanelLeft,
   PanelRight,
   Pause,
   User,
@@ -287,7 +288,12 @@ const visibleAssignmentNames = new Set([
 
 const initialVisibleAssignments = queuePreviewItems.filter((item) => visibleAssignmentNames.has(item.name));
 const initialVisibleAssignmentIds = initialVisibleAssignments.map((item) => item.id);
-const initialSelectedAssignment = initialVisibleAssignments[0] ?? queuePreviewItemsByCustomerRecordId[defaultCustomerId] ?? queuePreviewItems[0];
+// Default to Noah Patel (or the first visible assignment if not found)
+const initialSelectedAssignment =
+  initialVisibleAssignments.find((item) => item.name === "Noah Patel") ??
+  initialVisibleAssignments[0] ??
+  queuePreviewItemsByCustomerRecordId[defaultCustomerId] ??
+  queuePreviewItems[0];
 const initialSelectedAssignmentId = initialSelectedAssignment.id;
 const defaultConversationState: SharedConversationData = createConversationState(
   initialSelectedAssignment.customerRecordId,
@@ -1403,87 +1409,27 @@ function AddNewPopoverContent({
   );
 }
 
-function CustomerProfilePopover({ customerRecordId, customerName }: { customerRecordId: string; customerName: string }) {
-  const customer = getCustomerRecord(customerRecordId);
-  const profile = customer?.profile;
-
+function CustomerProfilePopover({
+  customerName,
+  onOpenCustomerInfo,
+}: {
+  customerRecordId: string;
+  customerName: string;
+  onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+}) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center gap-1 rounded-md text-sm font-semibold tracking-tight text-[#333333] hover:text-[#111827] focus-visible:outline-none"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          {customerName}
-          <ChevronDown className="h-3.5 w-3.5 text-[#7A7A7A]" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="start"
-        sideOffset={8}
-        className="w-[360px] rounded-2xl border border-black/10 bg-white p-0 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+    <div className="flex items-center gap-1.5">
+      <span className="text-sm font-semibold tracking-tight text-[#333333]">{customerName}</span>
+      <button
+        type="button"
+        aria-label="Open customer information"
         onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onOpenCustomerInfo(e); }}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
       >
-        {profile ? (
-          <div className="overflow-hidden rounded-2xl">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EBF4FA] text-[#006DAD]">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[#111827] leading-tight">{customerName}</p>
-                  <p className="text-xs text-[#7A7A7A] leading-tight mt-0.5">{profile.department} · {profile.tenureYears} yrs tenure</p>
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#7A7A7A]">Total AUM</p>
-                <p className="text-sm font-bold text-[#111827] mt-0.5">{profile.totalAUM}</p>
-              </div>
-            </div>
-            {/* Financial details */}
-            <div className="border-t border-black/[0.06] px-4 py-3 space-y-2.5">
-              <div>
-                <p className="text-xs text-[#7A7A7A]">Financial Readiness</p>
-                <p className="mt-0.5 text-base font-bold text-[#1A7A3C] leading-none">{profile.financialReadiness} <span className="text-xs font-medium text-[#7A7A7A]">/ 100</span></p>
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
-                  <div className="h-full rounded-full bg-[#1A7A3C]" style={{ width: `${profile.financialReadiness}%` }} />
-                </div>
-              </div>
-              <div className="flex items-start justify-between gap-2">
-                <p className="text-xs text-[#7A7A7A] shrink-0">Financial Advisor</p>
-                <div className="text-right">
-                  <p className="text-xs font-semibold text-[#111827]">{profile.financialAdvisor}</p>
-                  <p className="text-[11px] text-[#7A7A7A]">{profile.advisorTitle}</p>
-                </div>
-              </div>
-            </div>
-            {/* Tags */}
-            {profile.tags.length > 0 && (
-              <div className="border-t border-black/[0.06] px-4 py-3 flex flex-wrap gap-1.5">
-                {profile.tags.map((tag) => (
-                  <span key={tag} className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                    tag === "Premier"
-                      ? "border-[#C9B8FF] bg-[#F5F0FF] text-[#5B21B6]"
-                      : "border-[#B7E6DD] bg-[#EAF8F4] text-[#1A7A3C]",
-                  )}>
-                    {tag}
-                    {tag !== "Premier" && <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="border-t border-black/[0.06] px-5 py-4 text-sm text-[#7A7A7A]">No profile data available.</div>
-        )}
-      </PopoverContent>
-    </Popover>
+        <User className="h-3.5 w-3.5 stroke-[1.8]" />
+      </button>
+    </div>
   );
 }
 
@@ -1531,10 +1477,23 @@ function DockedConversationPanel({
   equalSplitWidth?: number;
 }) {
   const contentInitializedRef = useRef(false);
+  const panelContainerRef = useRef<HTMLDivElement>(null);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
+  const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const shouldStackHeaderActions = false;
+
+  useEffect(() => {
+    const el = panelContainerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? el.offsetWidth;
+      setIsNarrowPanel(width < 640);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!contentInitializedRef.current) {
@@ -1578,6 +1537,7 @@ function DockedConversationPanel({
 
   return (
     <div
+      ref={panelContainerRef}
       aria-hidden={!isOpen}
       className={cn(
         "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-500 ease-out min-[800px]:block",
@@ -1592,7 +1552,8 @@ function DockedConversationPanel({
     >
       <div
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-500 ease-out will-change-[opacity,transform]",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-500 ease-out",
+          "will-change-[opacity,transform]",
           isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
         )}
       >
@@ -1615,7 +1576,7 @@ function DockedConversationPanel({
                   <GripHorizontal className="h-4 w-4" />
                 </button>
                 <div className="min-w-0">
-                  <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
+                  <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
                 </div>
               </div>
               <div
@@ -1629,27 +1590,29 @@ function DockedConversationPanel({
                   onOpenChannel={onOpenChannel}
                   isCallDisabled={isCallDisabled}
                 />
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={() => setIsAiPanelVisible((v) => !v)}
-                        aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
-                        className={cn(
-                          "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                          isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                        )}
-                      >
-                        <PanelRight className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {!isNarrowPanel && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onClick={() => setIsAiPanelVisible((v) => !v)}
+                          aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
+                          className={cn(
+                            "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                            isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                          )}
+                        >
+                          <PanelRight className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">Toggle conversation</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             </div>
 
@@ -2181,18 +2144,6 @@ function CustomerInfoPopunder({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {onDock ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock Panel
-            </Button>
-          ) : null}
           <button
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
@@ -2471,18 +2422,6 @@ function DeskCanvasPopunder({
         </div>
 
         <div className="flex items-center gap-2">
-          {onDock ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock panel
-            </Button>
-          ) : null}
           <button
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
@@ -2677,10 +2616,10 @@ function ConversationPopunder({
           <div className="flex items-center gap-3">
             <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div>
-              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
+              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
             </div>
           </div>
-          {shouldStackHeaderActions && onDock ? (
+          {shouldStackHeaderActions ? (
             <div className="flex items-center gap-1.5">
               {isVeryNarrow && (
                 <TooltipProvider>
@@ -2692,7 +2631,7 @@ function ConversationPopunder({
                         size="icon"
                         onMouseDown={(event) => event.stopPropagation()}
                         onClick={() => setIsAiPanelVisible((v) => !v)}
-                        aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                        aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
                         className={cn(
                           "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
                           isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
@@ -2701,20 +2640,22 @@ function ConversationPopunder({
                         <PanelRight className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+                    <TooltipContent side="bottom">Toggle conversation</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={onDock}
-                className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-              >
-                Dock Panel
-              </Button>
+              {onDock && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={onDock}
+                  className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
+                >
+                  Dock panel
+                </Button>
+              )}
             </div>
           ) : null}
         </div>
@@ -2739,7 +2680,7 @@ function ConversationPopunder({
                     size="icon"
                     onMouseDown={(event) => event.stopPropagation()}
                     onClick={() => setIsAiPanelVisible((v) => !v)}
-                    aria-label={isAiPanelVisible ? "Hide AI panel" : "Show AI panel"}
+                    aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
                     className={cn(
                       "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
                       isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
@@ -2748,11 +2689,11 @@ function ConversationPopunder({
                     <PanelRight className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom">Toggle AI tips</TooltipContent>
+                <TooltipContent side="bottom">Toggle conversation</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           )}
-          {!shouldStackHeaderActions && onDock ? (
+          {!shouldStackHeaderActions && onDock && (
             <Button
               type="button"
               variant="outline"
@@ -2761,9 +2702,9 @@ function ConversationPopunder({
               onClick={onDock}
               className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
             >
-              Dock Panel
+              Dock panel
             </Button>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -3290,13 +3231,17 @@ function LeftQueueRail({
   queueStatuses,
   onStatusChange,
   onRemoveAssignment,
+  isOpen,
+  onToggle,
 }: {
   visibleAssignments: QueuePreviewItem[];
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemoveAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const toggleLeftRailOpen = onToggle;
   const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const {
     closeFloatingAppSpacePanel,
@@ -3330,9 +3275,6 @@ function LeftQueueRail({
     [visibleQueuePreviewItems, selectedAssignment.id],
   );
 
-  const toggleLeftRailOpen = () => {
-    setIsOpen((current) => !current);
-  };
 
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
     onRemoveAssignment(assignmentId);
@@ -3354,17 +3296,6 @@ function LeftQueueRail({
           aria-hidden={isOpen}
         >
           <div className="flex h-full w-full flex-col items-center gap-2.5 px-1 pt-0">
-            {!isOpen && (
-              <button
-                type="button"
-                onClick={toggleLeftRailOpen}
-                aria-label="Expand assignments rail"
-                aria-pressed={false}
-                className="flex h-12 w-[52px] items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
             <div
               className={cn(
                 "min-h-0 w-full flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
@@ -3464,17 +3395,6 @@ function LeftQueueRail({
               <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
                 <div>
                   <div className="mb-3 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleLeftRailOpen();
-                      }}
-                      aria-label="Collapse assignments rail"
-                      aria-pressed={true}
-                      className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-[#333333] shadow-[0_1px_2px_rgba(16,24,40,0.06)] transition-colors hover:border-[#006DAD]/30 hover:text-[#006DAD]"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </button>
                     <div className="min-w-0">
                       <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
                     </div>
@@ -3610,6 +3530,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [status, setStatus] = useState<AgentStatus>("Available");
+  const [isLeftRailOpen, setIsLeftRailOpen] = useState(true);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
@@ -3685,6 +3606,7 @@ export default function Layout({ children }: LayoutProps) {
     }).customerInfoWidth,
   );
   const [isCustomerInfoPopunderOpen, setIsCustomerInfoPopunderOpen] = useState(false);
+  const [isCustomerInfoIconPopoverOpen, setIsCustomerInfoIconPopoverOpen] = useState(false);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
@@ -3803,7 +3725,8 @@ export default function Layout({ children }: LayoutProps) {
   const isCombinedInteractionPanel = isCustomerInfoCanvasVisible && isCombinedInteractionPanelEnabled;
   const isAppSpaceSplitLayout = !isCombinedInteractionPanel && isCustomerInfoCanvasVisible;
   const isInlineConversationSplitPanelVisible = isAppSpaceSplitLayout && !isConversationPopunderOpen;
-  const isInlineAppSpacePanelVisible = isAppSpaceSplitLayout && !deskCanvasPopunderView && !isCustomerInfoPopunderOpen;
+  // Only one panel can be docked at a time: desk canvas is inline only when conversation is NOT docked inline
+  const isInlineAppSpacePanelVisible = isAppSpaceSplitLayout && !deskCanvasPopunderView && !isCustomerInfoPopunderOpen && !isInlineConversationSplitPanelVisible;
   const shouldCombineDockedCustomerAndDeskPanels =
     isDeskRoute &&
     !isCombinedInteractionPanel &&
@@ -3820,9 +3743,9 @@ export default function Layout({ children }: LayoutProps) {
   const isDockedConversationVisible = !isCombinedInteractionPanel && isConversationPanelOpen;
   const isMainCanvasVisible = !isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel;
   const isDeskCustomerInfoPopunderVisible =
-    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
+    isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
   const shouldPreserveFloatingCustomerInfoPanel =
-    isCustomerInfoCanvasVisible && isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+    isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
     customerInfoPanelWidth: isDeskCustomerInfoVisible ? dockedCustomerInfoWidth : 0,
@@ -4390,6 +4313,31 @@ export default function Layout({ children }: LayoutProps) {
     }
   }, [isAppSpaceSplitLayout, isCanvasMergedIntoCombinedPanel, isCombinedInteractionPanel, location.pathname, location.search]);
 
+  // One-panel-docked rule: if we land on the desk route with conversation already docked
+  // inline, the desk canvas must open as a popunder (not inline alongside the conversation).
+  useEffect(() => {
+    if (!isAppSpaceSplitLayout || deskCanvasPopunderView || !activeDeskRouteView) return;
+    // Conversation is docked inline → canvas would be invisible (step 1 fix).
+    // Open canvas as a popunder and leave the desk route so conversation stays full-width.
+    if (!isConversationPanelOpen || isConversationPopunderOpen) return;
+
+    const view = activeDeskRouteView;
+    const defaultWidth = getDeskCanvasPopunderDefaultWidth(view);
+    const defaultHeight = typeof window !== "undefined"
+      ? Math.min(Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80), window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+      : 720;
+    const width = typeof window !== "undefined"
+      ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+      : defaultWidth;
+    const anchoredPosition = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+    setDeskCanvasPopunderView(view);
+    setDeskCanvasPopunderSize({ width, height: defaultHeight });
+    setDeskCanvasPopunderPosition(anchoredPosition);
+    setDeskCanvasDragActivation(null);
+    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAppSpaceSplitLayout, deskCanvasPopunderView, activeDeskRouteView, isConversationPanelOpen, isConversationPopunderOpen]);
+
   const bringFloatingPanelToFront = (panelId: FloatingPanelId) => {
     setFloatingPanelOrder((current) => [...current.filter((id) => id !== panelId), panelId]);
   };
@@ -4599,11 +4547,38 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    // Only one panel can be docked at a time — float/close all other docked panels.
+    if (isDeskCustomerInfoVisible) {
+      setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+      setIsCustomerInfoPopunderOpen(true);
+    }
+    setActiveRightPanel(null);
+
+    // On the desk route the canvas panel is displayed inline. Docking the conversation
+    // panel means the canvas must become a floating popunder (one-panel-docked rule).
+    if (isDeskRoute && !deskCanvasPopunderView) {
+      const view = activeDeskRouteView ?? "desk";
+      const defaultWidth = getDeskCanvasPopunderDefaultWidth(view);
+      const defaultHeight = typeof window !== "undefined"
+        ? Math.min(Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80), window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : 720;
+      const width = typeof window !== "undefined"
+        ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : defaultWidth;
+      const position = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+      bringFloatingPanelToFront("deskCanvas");
+      setDeskCanvasPopunderView(view);
+      setDeskCanvasPopunderSize({ width, height: defaultHeight });
+      setDeskCanvasPopunderPosition(position);
+      setDeskCanvasDragActivation(null);
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
+
     const { conversationWidth } = getBalancedDockedPanelWidths({
       hasDesktopRightPanel: activeRightPanel !== null,
       reserveMainWorkspace: isMainCanvasVisible,
       showConversation: true,
-      showCustomerInfo: isDeskCustomerInfoVisible,
+      showCustomerInfo: false,
       hasMainCanvas: isMainCanvasVisible,
       currentConversationWidth: dockedConversationWidth,
       currentCustomerInfoWidth: dockedCustomerInfoWidth,
@@ -4662,10 +4637,18 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
-    const { conversationWidth, customerInfoWidth } = getBalancedDockedPanelWidths({
-      hasDesktopRightPanel: activeRightPanel !== null,
+    // Only one panel can be docked at a time — float/close all other docked panels.
+    if (isDockedConversationVisible) {
+      setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+      setIsConversationPanelOpen(false);
+      setIsConversationPopunderOpen(true);
+    }
+    setActiveRightPanel(null);
+
+    const { customerInfoWidth } = getBalancedDockedPanelWidths({
+      hasDesktopRightPanel: false,
       reserveMainWorkspace: isMainCanvasVisible,
-      showConversation: isConversationPanelOpen,
+      showConversation: false,
       showCustomerInfo: true,
       hasMainCanvas: isMainCanvasVisible,
       currentConversationWidth: dockedConversationWidth,
@@ -4675,7 +4658,6 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(true);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    setDockedConversationWidth(conversationWidth);
     setDockedCustomerInfoWidth(customerInfoWidth);
   };
 
@@ -4719,6 +4701,50 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/desk?view=customer");
   };
 
+  // Always opens as a floating/drag panel — used by the inline customer icon button.
+  const openCustomerInfoAsFloat = (event?: React.MouseEvent<HTMLElement>) => {
+    const anchorRect = event?.currentTarget.getBoundingClientRect();
+    const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
+
+    bringFloatingPanelToFront("customerInfo");
+    setCustomerInfoPopunderPosition(nextPosition);
+    setIsCustomerInfoPanelOpen(true);
+    setIsCustomerInfoPopunderOpen(true);
+    setCustomerInfoDragActivation(
+      event
+        ? {
+            id: Date.now(),
+            offset: {
+              x: event.clientX - nextPosition.x,
+              y: event.clientY - nextPosition.y,
+            },
+          }
+        : null,
+    );
+  };
+
+  // Opens the Customer Info panel as an independent floating popover from the
+  // inline icon button — bypasses all desk-route / canvas gating logic.
+  const openCustomerInfoIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
+    const anchorRect = event?.currentTarget.getBoundingClientRect();
+    const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
+
+    bringFloatingPanelToFront("customerInfo");
+    setCustomerInfoPopunderPosition(nextPosition);
+    setCustomerInfoDragActivation(
+      event
+        ? {
+            id: Date.now(),
+            offset: {
+              x: event.clientX - nextPosition.x,
+              y: event.clientY - nextPosition.y,
+            },
+          }
+        : null,
+    );
+    setIsCustomerInfoIconPopoverOpen(true);
+  };
+
   const dockCustomerInfoPanel = () => {
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("customerInfo");
@@ -4733,10 +4759,18 @@ export default function Layout({ children }: LayoutProps) {
       return;
     }
 
+    // Only one panel can be docked at a time — float/close all other docked panels.
+    if (isDockedConversationVisible) {
+      setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+      setIsConversationPanelOpen(false);
+      setIsConversationPopunderOpen(true);
+    }
+    setActiveRightPanel(null);
+
     const { customerInfoWidth } = getBalancedDockedPanelWidths({
-      hasDesktopRightPanel: activeRightPanel !== null,
+      hasDesktopRightPanel: false,
       reserveMainWorkspace: isMainCanvasVisible,
-      showConversation: isConversationPanelOpen,
+      showConversation: false,
       showCustomerInfo: true,
       hasMainCanvas: isMainCanvasVisible,
       currentConversationWidth: dockedConversationWidth,
@@ -4790,6 +4824,13 @@ export default function Layout({ children }: LayoutProps) {
             : deskCanvasPopunderView === "notifications"
               ? "/desk?view=notifications"
               : "/desk";
+
+    // One-panel-docked rule: docking the canvas means the conversation panel must float
+    if (isDockedConversationVisible) {
+      setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+      setIsConversationPanelOpen(false);
+      setIsConversationPopunderOpen(true);
+    }
 
     clearDeskCanvasPopunderState();
     navigate(nextRoute);
@@ -4891,8 +4932,34 @@ export default function Layout({ children }: LayoutProps) {
       setDeskPanelSelection(null);
     }
 
-    // If the panel is already docked, update the route to switch content but keep it docked
+    // If the panel is already docked, update the route to switch content but keep it docked.
+    // Exception: if conversation is currently docked inline (one-panel-docked rule), open as
+    // a popunder instead so that the conversation stays docked.
     if (isDeskRoute) {
+      const conversationIsDocked = isConversationPanelOpen && !isConversationPopunderOpen;
+      if (conversationIsDocked) {
+        // Canvas must float — open/update popunder without navigating to desk route
+        if (deskCanvasPopunderView !== null) {
+          bringFloatingPanelToFront("deskCanvas");
+          setDeskCanvasPopunderView(view);
+          return;
+        }
+        const defaultWidth = getDeskCanvasPopunderDefaultWidth(view);
+        const defaultHeight = typeof window !== "undefined"
+          ? Math.min(Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80), window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+          : 720;
+        const width = typeof window !== "undefined"
+          ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+          : defaultWidth;
+        const position = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+        bringFloatingPanelToFront("deskCanvas");
+        setDeskCanvasPopunderView(view);
+        setDeskCanvasPopunderSize({ width, height: defaultHeight });
+        setDeskCanvasPopunderPosition(position);
+        setDeskCanvasDragActivation(null);
+        navigate("/activity", { state: { hideMainCanvasPanel: true } });
+        return;
+      }
       const nextRoute = view === "copilot"
         ? "/desk?view=copilot"
         : view === "notes"
@@ -4957,24 +5024,55 @@ export default function Layout({ children }: LayoutProps) {
       activeCallAssignmentId,
       toggleInfo: () => {
         setDeskPanelSelection(null);
-        setActiveRightPanel((current) =>
-          current === "info" ? null : "info",
-        );
+        const opening = activeRightPanel !== "info";
+        if (opening) {
+          // Only one panel docked at a time — float conversation/customer info if docked.
+          if (isDockedConversationVisible) {
+            setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+            setIsConversationPanelOpen(false);
+            setIsConversationPopunderOpen(true);
+          }
+          if (isDeskCustomerInfoVisible) {
+            setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+            setIsCustomerInfoPopunderOpen(true);
+          }
+        }
+        setActiveRightPanel(opening ? "info" : null);
       },
       toggleDesk: () => {
         setDeskPanelSelection(null);
-        setActiveRightPanel((current) =>
-          current === "desk" ? null : "desk",
-        );
+        const opening = activeRightPanel !== "desk";
+        if (opening) {
+          if (isDockedConversationVisible) {
+            setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+            setIsConversationPanelOpen(false);
+            setIsConversationPopunderOpen(true);
+          }
+          if (isDeskCustomerInfoVisible) {
+            setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+            setIsCustomerInfoPopunderOpen(true);
+          }
+        }
+        setActiveRightPanel(opening ? "desk" : null);
       },
       openDeskPanel,
       closeAppSpacePanel,
       closeFloatingAppSpacePanel,
       isAppSpacePanelInDragMode: deskCanvasPopunderView !== null,
       toggleInteractions: () => {
-        setActiveRightPanel((current) =>
-          current === "interactions" ? null : "interactions",
-        );
+        const opening = activeRightPanel !== "interactions";
+        if (opening) {
+          if (isDockedConversationVisible) {
+            setConversationPopunderPosition(getAnchoredConversationPopunderPosition());
+            setIsConversationPanelOpen(false);
+            setIsConversationPopunderOpen(true);
+          }
+          if (isDeskCustomerInfoVisible) {
+            setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+            setIsCustomerInfoPopunderOpen(true);
+          }
+        }
+        setActiveRightPanel(opening ? "interactions" : null);
       },
       toggleConversationPanel,
       openConversationPanel,
@@ -5071,6 +5169,7 @@ export default function Layout({ children }: LayoutProps) {
       isConversationPopunderOpen,
       isDeskCustomerInfoPopunderVisible,
       isDeskCustomerInfoVisible,
+      isDockedConversationVisible,
       isExpandedCanvasRoute,
       navigate,
       handleConversationStateChange,
@@ -5098,7 +5197,15 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
       <header className="flex min-h-[60px] shrink-0 items-center gap-2 px-4 py-2 lg:gap-4">
         <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-3">
-          <NiceLogoIcon />
+          <button
+            type="button"
+            onClick={() => setIsLeftRailOpen((v) => !v)}
+            aria-label={isLeftRailOpen ? "Collapse assignments rail" : "Expand assignments rail"}
+            aria-pressed={isLeftRailOpen}
+            className="flex h-10 w-[30px] flex-shrink-0 items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#006DAD]"
+          >
+            <PanelLeft className="h-4 w-4" />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -5175,6 +5282,47 @@ export default function Layout({ children }: LayoutProps) {
                   <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${isDarkMode ? "translate-x-4" : "translate-x-0"}`} />
                 </button>
               </div>
+              <DropdownMenuSeparator className="my-2 bg-black/10" />
+              <div className="flex items-center justify-start px-3 py-2">
+                {isDarkMode ? (
+                  /* White single-colour logo for dark mode */
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1953 277.14" className="h-5 w-auto" aria-label="CXone">
+                    <path fill="#fff" d="M1122.16,178.19h-53.36c-1.44,0-2.7,1.02-2.96,2.44-2.47,13.59-7.12,24.42-13.94,32.51-7.69,9.1-18.56,13.65-32.63,13.65-10.83,0-20.13-3.31-27.92-9.93-7.79-6.62-13.8-15.96-18.02-28.01-4.22-12.06-6.33-26.36-6.33-42.9,0-16.07,2-30.26,6.01-42.55,4-12.29,9.95-21.86,17.86-28.72,7.9-6.85,17.48-10.28,28.74-10.28,12.77,0,23.16,4.26,31.17,12.76,7.01,7.46,11.87,17.46,14.57,29.99.3,1.38,1.53,2.35,2.94,2.35h53.16c1.89,0,3.3-1.72,2.96-3.58-5.29-28.91-16.13-51.27-32.55-67.06-17.21-16.54-41.29-24.82-72.24-24.82-22.52,0-42.1,5.44-58.77,16.31-16.67,10.88-29.5,26.18-38.48,45.92-8.98,19.74-13.47,42.97-13.47,69.68s4.71,51.24,14.12,70.74c9.42,19.5,22.4,34.46,38.96,44.86,16.56,10.4,35.44,15.6,56.66,15.6,20.56,0,38.2-3.9,52.92-11.7,14.72-7.8,26.62-19.09,35.72-33.86,8.52-13.85,14.48-30.46,17.86-49.83.32-1.85-1.08-3.56-2.96-3.56Z"/>
+                    <path fill="#fff" d="M1324.25,19.71h-53.45c-1.07,0-2.06.57-2.6,1.5l-41.34,71c-.39.67-1.35.67-1.74,0l-41.34-71c-.54-.93-1.53-1.5-2.6-1.5h-53.45c-2.32,0-3.77,2.52-2.6,4.53l70.36,120.84c.18.31.18.7,0,1.01l-70.36,120.84c-1.17,2.01.28,4.53,2.6,4.53h53.45c1.07,0,2.06-.57,2.6-1.5l41.34-71c.39-.67,1.35-.67,1.74,0l41.34,71c.54.93,1.53,1.5,2.6,1.5h53.45c2.32,0,3.77-2.52,2.6-4.53l-70.36-120.84c-.18-.31-.18-.7,0-1.01l70.36-120.84c1.17-2.01-.28-4.53-2.6-4.53Z"/>
+                    <path fill="#fff" d="M1481.32,109.26c-5.5-4.29-12.94-6.44-22.32-6.44s-16.28,2.15-21.87,6.44c-5.59,4.3-9.64,9.74-12.13,16.33-2.5,6.59-3.75,13.48-3.75,20.67s1.25,14.28,3.75,20.67c2.5,6.4,6.54,11.59,12.13,15.58,5.59,4,12.88,5.99,21.87,5.99s16.58-1.99,22.17-5.99c5.59-3.99,9.63-9.24,12.13-15.73,2.5-6.49,3.75-13.33,3.75-20.52s-1.25-14.08-3.75-20.67c-2.5-6.59-6.49-12.03-11.99-16.33Z"/>
+                    <path fill="#fff" d="M1843.55,102.82c-4.9-2.89-11.14-4.34-18.73-4.34s-13.93,1.5-19.03,4.49c-5.09,3-8.89,6.84-11.39,11.54-2.5,4.7-3.95,9.64-4.34,14.83h68.61c-.2-5.39-1.55-10.44-4.04-15.13-2.5-4.69-6.19-8.49-11.09-11.39Z"/>
+                    <path fill="#fff" d="M1808.57,21.08h-336.41c-102.44,0-144.43,36.51-144.43,125.59s41.99,125.6,144.43,125.6h336.41c102.44,0,144.44-36.51,144.44-125.6s-41.99-125.59-144.44-125.59ZM1528.67,189.56c-6.49,12.09-15.58,21.32-27.27,27.72-11.69,6.4-25.62,9.59-41.8,9.59s-29.96-3.24-41.95-9.74c-11.98-6.49-21.27-15.78-27.86-27.86-6.59-12.08-9.89-26.41-9.89-43s3.34-31.61,10.04-43.9c6.69-12.29,16.03-21.72,28.02-28.32,11.99-6.59,25.77-9.89,41.35-9.89s29.86,3.4,41.65,10.19c11.78,6.79,20.97,16.28,27.57,28.46,6.59,12.19,9.89,26.77,9.89,43.75s-3.25,30.91-9.74,43ZM1717.57,224.76h-41.95v-81.8c0-4.79-.4-9.59-1.2-14.38-.8-4.79-2.25-9.19-4.34-13.18-2.1-3.99-5.05-7.19-8.84-9.59-3.8-2.4-8.79-3.6-14.98-3.6-7.99,0-14.68,2-20.07,5.99-5.39,4-9.39,9.39-11.99,16.18-2.6,6.79-3.9,14.28-3.9,22.47v77.9h-41.95V66.86h39.25l2.1,18.28c4.39-5.39,9.44-9.63,15.13-12.73,5.69-3.09,11.48-5.24,17.38-6.44,5.89-1.2,11.24-1.8,16.03-1.8,15.18,0,27.01,3.3,35.51,9.89,8.49,6.59,14.58,15.43,18.28,26.52,3.69,11.09,5.54,23.42,5.54,37v87.19ZM1898.54,150.91c-.2,2.6-.6,5.2-1.2,7.79h-108.16c.6,5.99,2.29,11.49,5.09,16.48,2.79,5,6.74,8.94,11.83,11.83,5.09,2.9,11.43,4.35,19.03,4.35,4.99,0,9.59-.55,13.78-1.65,4.19-1.09,7.79-2.85,10.79-5.24,3-2.4,5.09-5.19,6.29-8.39h41.35c-2.6,11.79-7.44,21.47-14.53,29.06-7.09,7.59-15.63,13.14-25.62,16.63-9.99,3.49-20.48,5.24-31.46,5.24-16.58,0-30.67-3.3-42.25-9.89-11.59-6.59-20.48-15.93-26.67-28.01-6.19-12.08-9.29-26.22-9.29-42.4s3.19-30.71,9.59-43c6.39-12.28,15.43-21.92,27.12-28.91,11.69-6.99,25.51-10.49,41.5-10.49,11.98,0,22.52,2,31.61,5.99,9.09,4,16.78,9.59,23.07,16.78,6.29,7.19,10.98,15.53,14.08,25.02,3.09,9.49,4.54,19.73,4.35,30.71,0,2.8-.1,5.5-.3,8.09Z"/>
+                    <path fill="#fff" d="M272.23.06c-18.93-1.2-34.54,14.41-33.34,33.34.99,15.61,13.66,28.28,29.27,29.27,18.93,1.19,34.54-14.41,33.34-33.34-.99-15.61-13.66-28.28-29.27-29.27"/>
+                    <path fill="#fff" d="M203.67,19.71h-50.47c-1.67,0-3.01,1.35-3.01,3.01v148.01c0,1.03-1.36,1.39-1.87.5L60.96,21.21c-.54-.93-1.53-1.49-2.6-1.49H3.01c-1.66,0-3.01,1.35-3.01,3.01v245.73c0,1.66,1.35,3.01,3.01,3.01h50.47c1.66,0,3.01-1.35,3.01-3.01V121.04c0-1.02,1.35-1.39,1.87-.5l87.35,149.44c.54.93,1.53,1.49,2.6,1.49h55.36c1.67,0,3.01-1.35,3.01-3.01V22.72c0-1.67-1.35-3.01-3.01-3.01"/>
+                    <path fill="#fff" d="M292.55,79.21c-7.05,1.52-14.56,2.34-22.36,2.34s-15.3-.82-22.36-2.34c-1.87-.4-3.64,1.02-3.64,2.94v186.31c0,1.66,1.35,3.01,3.01,3.01h45.97c1.66,0,3.01-1.35,3.01-3.01V82.15c0-1.92-1.77-3.34-3.64-2.94"/>
+                    <path fill="#fff" d="M739.33,225.37h-105.08c-.55,0-1-.45-1-1v-54.72c0-.55.45-1,1-1h85.76c1.66,0,3.01-1.35,3.01-3.01v-40.07c0-1.66-1.35-3.01-3.01-3.01h-85.76c-.55,0-1-.45-1-1v-54.72c0-.55.45-1,1-1h105.08c1.66,0,3.01-1.35,3.01-3.01V22.72c0-1.67-1.35-3.01-3.01-3.01h-159.57c-1.67,0-3.01,1.35-3.01,3.01v245.73c0,1.66,1.35,3.01,3.01,3.01h159.57c1.66,0,3.01-1.35,3.01-3.01v-40.07c0-1.66-1.35-3.01-3.01-3.01"/>
+                    <path fill="#fff" d="M541.63,178.19h-53.36c-1.44,0-2.7,1.02-2.96,2.44-2.47,13.59-7.12,24.42-13.94,32.5-7.69,9.1-18.56,13.65-32.63,13.65-10.83,0-20.13-3.31-27.92-9.93-7.79-6.61-13.8-15.96-18.02-28.01-4.22-12.06-6.33-26.36-6.33-42.91s2-30.25,6.01-42.55c4-12.29,9.95-21.86,17.86-28.72,7.9-6.86,17.48-10.28,28.74-10.28,12.77,0,23.16,4.26,31.17,12.77,7.01,7.46,11.87,17.46,14.57,29.99.3,1.37,1.53,2.35,2.94,2.35h53.16c1.89,0,3.3-1.72,2.96-3.58-5.29-28.91-16.13-51.27-32.55-67.06-17.21-16.54-41.29-24.82-72.24-24.82-22.52,0-42.11,5.44-58.77,16.31-16.67,10.87-29.5,26.18-38.48,45.92-8.98,19.74-13.47,42.97-13.47,69.67s4.71,51.24,14.12,70.74c9.42,19.5,22.4,34.46,38.96,44.85,16.56,10.4,35.44,15.6,56.66,15.6s38.2-3.9,52.93-11.7c14.72-7.8,26.62-19.09,35.72-33.87,8.52-13.85,14.48-30.46,17.86-49.83.33-1.85-1.08-3.56-2.96-3.56"/>
+                  </svg>
+                ) : (
+                  /* Full-colour logo for light mode */
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1953 277.14" className="h-5 w-auto" aria-label="CXone">
+                    <defs>
+                      <linearGradient id="cxone-gradient" x1="1327.72" y1="146.68" x2="1953" y2="146.68" gradientUnits="userSpaceOnUse">
+                        <stop offset=".45" stopColor="#3694fc"/>
+                        <stop offset=".55" stopColor="#2d8afb"/>
+                        <stop offset=".73" stopColor="#1771fb"/>
+                        <stop offset=".86" stopColor="#025afb"/>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#cxone-gradient)" d="M1953,146.68c0,89.08-41.99,125.6-144.43,125.6h-336.41c-102.44,0-144.43-36.51-144.43-125.6s41.99-125.6,144.43-125.6h336.41c102.44,0,144.43,36.51,144.43,125.6Z"/>
+                    <path d="M1122.16,178.19h-53.36c-1.44,0-2.7,1.02-2.96,2.44-2.47,13.59-7.12,24.42-13.94,32.51-7.69,9.1-18.56,13.65-32.63,13.65-10.83,0-20.13-3.31-27.92-9.93-7.79-6.62-13.8-15.96-18.02-28.01-4.22-12.06-6.33-26.36-6.33-42.9,0-16.07,2-30.26,6.01-42.55,4-12.29,9.95-21.86,17.86-28.72,7.9-6.85,17.48-10.28,28.74-10.28,12.77,0,23.16,4.26,31.17,12.76,7.01,7.46,11.87,17.46,14.57,29.99.3,1.38,1.53,2.35,2.94,2.35h53.16c1.89,0,3.3-1.72,2.96-3.58-5.29-28.91-16.13-51.27-32.55-67.06-17.21-16.54-41.29-24.82-72.24-24.82-22.52,0-42.1,5.44-58.77,16.31-16.67,10.88-29.5,26.18-38.48,45.92-8.98,19.74-13.47,42.97-13.47,69.68s4.71,51.24,14.12,70.74c9.42,19.5,22.4,34.46,38.96,44.86,16.56,10.4,35.44,15.6,56.66,15.6,20.56,0,38.2-3.9,52.92-11.7,14.72-7.8,26.62-19.09,35.72-33.86,8.52-13.85,14.48-30.46,17.86-49.83.32-1.85-1.08-3.56-2.96-3.56Z"/>
+                    <path d="M1324.25,19.71h-53.45c-1.07,0-2.06.57-2.6,1.5l-41.34,71c-.39.67-1.35.67-1.74,0l-41.34-71c-.54-.93-1.53-1.5-2.6-1.5h-53.45c-2.32,0-3.77,2.52-2.6,4.53l70.36,120.84c.18.31.18.7,0,1.01l-70.36,120.84c-1.17,2.01.28,4.53,2.6,4.53h53.45c1.07,0,2.06-.57,2.6-1.5l41.34-71c.39-.67,1.35-.67,1.74,0l41.34,71c.54.93,1.53,1.5,2.6,1.5h53.45c2.32,0,3.77-2.52,2.6-4.53l-70.36-120.84c-.18-.31-.18-.7,0-1.01l70.36-120.84c1.17-2.01-.28-4.53-2.6-4.53Z"/>
+                    <path fill="#fff" d="M1459.6,226.86c-15.98,0-29.96-3.24-41.95-9.74-11.98-6.49-21.27-15.78-27.86-27.87-6.59-12.08-9.89-26.41-9.89-43s3.34-31.61,10.04-43.9c6.69-12.29,16.03-21.72,28.01-28.32,11.99-6.59,25.77-9.89,41.35-9.89s29.86,3.4,41.65,10.19c11.78,6.79,20.97,16.28,27.57,28.46,6.59,12.19,9.89,26.77,9.89,43.74s-3.25,30.91-9.74,43c-6.49,12.09-15.58,21.32-27.27,27.72-11.69,6.4-25.62,9.59-41.8,9.59ZM1459,188.51c9.19,0,16.58-1.99,22.17-5.99,5.59-3.99,9.63-9.24,12.13-15.73,2.49-6.49,3.75-13.33,3.75-20.52s-1.25-14.08-3.75-20.67c-2.5-6.59-6.49-12.03-11.99-16.33-5.5-4.29-12.94-6.44-22.32-6.44s-16.28,2.15-21.87,6.44c-5.59,4.3-9.64,9.74-12.13,16.33-2.5,6.59-3.75,13.48-3.75,20.67s1.25,14.28,3.75,20.67c2.5,6.4,6.54,11.59,12.13,15.58,5.59,4,12.88,5.99,21.87,5.99Z"/>
+                    <path fill="#fff" d="M1568.36,224.76V66.86h39.25l2.1,18.28c4.39-5.39,9.44-9.63,15.13-12.73,5.69-3.09,11.48-5.24,17.38-6.44,5.89-1.2,11.24-1.8,16.03-1.8,15.18,0,27.01,3.3,35.51,9.89,8.49,6.59,14.58,15.43,18.28,26.52,3.69,11.09,5.54,23.42,5.54,37v87.19h-41.95v-81.8c0-4.79-.4-9.59-1.2-14.38-.8-4.79-2.25-9.19-4.35-13.18-2.1-3.99-5.05-7.19-8.84-9.59-3.8-2.4-8.79-3.6-14.98-3.6-7.99,0-14.68,2-20.07,5.99-5.39,4-9.39,9.39-11.99,16.18-2.6,6.79-3.9,14.28-3.9,22.47v77.9h-41.95Z"/>
+                    <path fill="#fff" d="M1825.73,227.01c-16.58,0-30.67-3.3-42.25-9.89-11.59-6.59-20.48-15.93-26.67-28.01-6.19-12.08-9.29-26.22-9.29-42.4s3.19-30.71,9.59-43c6.39-12.28,15.43-21.92,27.12-28.91,11.69-6.99,25.51-10.49,41.5-10.49,11.99,0,22.52,2,31.61,5.99,9.09,4,16.78,9.59,23.07,16.78,6.29,7.19,10.98,15.53,14.08,25.02,3.09,9.49,4.54,19.73,4.35,30.71,0,2.8-.1,5.5-.3,8.09-.2,2.6-.6,5.2-1.2,7.79h-108.16c.6,5.99,2.29,11.49,5.09,16.48,2.79,5,6.74,8.94,11.83,11.83,5.09,2.9,11.43,4.35,19.03,4.35,4.99,0,9.59-.55,13.78-1.65,4.19-1.1,7.79-2.85,10.79-5.24,3-2.4,5.09-5.19,6.29-8.39h41.35c-2.6,11.79-7.44,21.47-14.53,29.06-7.09,7.59-15.63,13.14-25.62,16.63-9.99,3.49-20.48,5.24-31.46,5.24ZM1790.07,129.33h68.61c-.2-5.39-1.55-10.44-4.05-15.13-2.5-4.69-6.19-8.49-11.09-11.39-4.9-2.89-11.14-4.34-18.73-4.34s-13.93,1.5-19.03,4.49c-5.09,3-8.89,6.84-11.39,11.54-2.5,4.7-3.95,9.64-4.34,14.83Z"/>
+                    <path fill="#3694fd" d="M272.23.06c-18.93-1.2-34.54,14.41-33.34,33.34.99,15.61,13.66,28.28,29.27,29.27,18.93,1.19,34.54-14.41,33.34-33.34-.99-15.61-13.66-28.28-29.27-29.27"/>
+                    <path d="M203.67,19.71h-50.47c-1.67,0-3.01,1.35-3.01,3.01v148.01c0,1.03-1.36,1.39-1.87.5L60.96,21.21c-.54-.93-1.53-1.49-2.6-1.49H3.01c-1.66,0-3.01,1.35-3.01,3.01v245.73c0,1.66,1.35,3.01,3.01,3.01h50.47c1.66,0,3.01-1.35,3.01-3.01V121.04c0-1.02,1.35-1.39,1.87-.5l87.35,149.44c.54.93,1.53,1.49,2.6,1.49h55.36c1.67,0,3.01-1.35,3.01-3.01V22.72c0-1.67-1.35-3.01-3.01-3.01"/>
+                    <path d="M292.55,79.21c-7.05,1.52-14.56,2.34-22.36,2.34s-15.3-.82-22.36-2.34c-1.87-.4-3.64,1.02-3.64,2.94v186.31c0,1.66,1.35,3.01,3.01,3.01h45.97c1.66,0,3.01-1.35,3.01-3.01V82.15c0-1.92-1.77-3.34-3.64-2.94"/>
+                    <path d="M739.33,225.37h-105.08c-.55,0-1-.45-1-1v-54.72c0-.55.45-1,1-1h85.76c1.66,0,3.01-1.35,3.01-3.01v-40.07c0-1.66-1.35-3.01-3.01-3.01h-85.76c-.55,0-1-.45-1-1v-54.72c0-.55.45-1,1-1h105.08c1.66,0,3.01-1.35,3.01-3.01V22.72c0-1.67-1.35-3.01-3.01-3.01h-159.57c-1.67,0-3.01,1.35-3.01,3.01v245.73c0,1.66,1.35,3.01,3.01,3.01h159.57c1.66,0,3.01-1.35,3.01-3.01v-40.07c0-1.66-1.35-3.01-3.01-3.01"/>
+                    <path d="M541.63,178.19h-53.36c-1.44,0-2.7,1.02-2.96,2.44-2.47,13.59-7.12,24.42-13.94,32.5-7.69,9.1-18.56,13.65-32.63,13.65-10.83,0-20.13-3.31-27.92-9.93-7.79-6.61-13.8-15.96-18.02-28.01-4.22-12.06-6.33-26.36-6.33-42.91s2-30.25,6.01-42.55c4-12.29,9.95-21.86,17.86-28.72,7.9-6.86,17.48-10.28,28.74-10.28,12.77,0,23.16,4.26,31.17,12.77,7.01,7.46,11.87,17.46,14.57,29.99.3,1.37,1.53,2.35,2.94,2.35h53.16c1.89,0,3.3-1.72,2.96-3.58-5.29-28.91-16.13-51.27-32.55-67.06-17.21-16.54-41.29-24.82-72.24-24.82-22.52,0-42.11,5.44-58.77,16.31-16.67,10.87-29.5,26.18-38.48,45.92-8.98,19.74-13.47,42.97-13.47,69.67s4.71,51.24,14.12,70.74c9.42,19.5,22.4,34.46,38.96,44.85,16.56,10.4,35.44,15.6,56.66,15.6s38.2-3.9,52.93-11.7c14.72-7.8,26.62-19.09,35.72-33.87,8.52-13.85,14.48-30.46,17.86-49.83.33-1.85-1.08-3.56-2.96-3.56"/>
+                  </svg>
+                )}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -5208,17 +5356,6 @@ export default function Layout({ children }: LayoutProps) {
 
           {!isHeaderSearchOpen && (
             <>
-              <HeaderIconButton
-                ariaLabel="Open customer information"
-                onClick={() => openHeaderAppPanel("customer")}
-                isActive={
-                  deskCanvasPopunderView === "customer"
-                  || activeDeskRouteView === "customer"
-                }
-              >
-                <User className="h-4 w-4 stroke-[1.8]" />
-              </HeaderIconButton>
-
               <HeaderIconButton
                 ariaLabel="Open Desk"
                 onClick={() => openHeaderAppPanel("desk")}
@@ -5343,6 +5480,8 @@ export default function Layout({ children }: LayoutProps) {
           queueStatuses={assignmentStatusesById}
           onStatusChange={handleAssignmentStatusChange}
           onRemoveAssignment={handleRemoveVisibleAssignment}
+          isOpen={isLeftRailOpen}
+          onToggle={() => setIsLeftRailOpen((v) => !v)}
         />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
@@ -5388,7 +5527,7 @@ export default function Layout({ children }: LayoutProps) {
                 onOpenDeskPanel={openDeskPanel}
                 onOpenCall={layoutContextValue.toggleCallPopunder}
                 onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
-                onOpenCustomerInfo={openCustomerInfoPopunder}
+                onOpenCustomerInfo={openCustomerInfoIconPopover}
                 onConversationStatusChange={handleConversationStatusChange}
                 overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
                 onOverviewOpenChange={(open) => {
@@ -5506,7 +5645,7 @@ export default function Layout({ children }: LayoutProps) {
               onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
-              onOpenCustomerInfo={openCustomerInfoPopunder}
+              onOpenCustomerInfo={openCustomerInfoIconPopover}
               onConversationStatusChange={handleConversationStatusChange}
               overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
               onOverviewOpenChange={(open) => {
@@ -5629,7 +5768,7 @@ export default function Layout({ children }: LayoutProps) {
           onOpenDeskPanel={openDeskPanel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
           onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
-          onOpenCustomerInfo={openCustomerInfoPopunder}
+          onOpenCustomerInfo={openCustomerInfoIconPopover}
           onConversationStatusChange={handleConversationStatusChange}
           overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
           onOverviewOpenChange={(open) => {
@@ -5645,7 +5784,7 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {isDeskCustomerInfoPopunderVisible && (
+      {(isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen) && (
         <CustomerInfoPopunder
           position={customerInfoPopunderPosition}
           size={customerInfoPopunderSize}
@@ -5658,8 +5797,8 @@ export default function Layout({ children }: LayoutProps) {
           onSizeChange={setCustomerInfoPopunderSize}
           onOpenCall={layoutContextValue.toggleCallPopunder}
           isCallDisabled={status === "In a Call" || status !== "Available"}
-          onClose={closeCustomerInfoPanel}
-          onDock={isCustomerInfoPanelAllowed ? dockCustomerInfoPanel : undefined}
+          onClose={() => { setIsCustomerInfoIconPopoverOpen(false); closeCustomerInfoPanel(); }}
+          onDock={isCustomerInfoPanelAllowed ? () => { setIsCustomerInfoIconPopoverOpen(false); dockCustomerInfoPanel(); } : undefined}
           dragActivation={customerInfoDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("customerInfo")}
         />

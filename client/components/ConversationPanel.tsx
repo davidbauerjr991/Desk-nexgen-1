@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Check, ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, NotebookPen, Paperclip, Pause, Pin, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, NotebookPen, Paperclip, Pause, Pin, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ export type ConversationMessage = {
   channel?: CustomerChannel;
   sentiment?: "frustrated";
   isInternal?: boolean;
+  ticket?: CustomerTicket;
 };
 
 export type ConversationStatus = "open" | "closed" | "pending";
@@ -149,6 +150,23 @@ const TASK_STEPS: Record<string, string[]> = {
     "Sending confirmation to customer",
   ],
 };
+
+// Maps natural-language copilot requests to known task IDs.
+const COPILOT_TASK_MATCHERS: Array<{ keywords: string[]; task: AgentTask }> = [
+  { keywords: ["ticket", "case", "adp", "support ticket", "create ticket", "open ticket"], task: { id: "create-ticket", label: "Create ADP Ticket" } },
+  { keywords: ["salesforce", "crm", "record", "account", "update salesforce"], task: { id: "update-salesforce", label: "Update Salesforce Record" } },
+  { keywords: ["coupon", "discount", "voucher", "promo", "send coupon"], task: { id: "send-coupon", label: "Send Discount Coupon" } },
+  { keywords: ["escalat", "supervisor", "manager", "escalate"], task: { id: "escalate", label: "Escalate to Supervisor" } },
+  { keywords: ["callback", "call back", "schedule call", "schedule callback"], task: { id: "callback", label: "Schedule Callback" } },
+];
+
+function matchCopilotInput(input: string): AgentTask | null {
+  const lower = input.toLowerCase();
+  for (const { keywords, task } of COPILOT_TASK_MATCHERS) {
+    if (keywords.some((k) => lower.includes(k))) return task;
+  }
+  return null;
+}
 
 function getSuggestedAgentTasks(conversation: SharedConversationData, latestCustomerMessage: ConversationMessage | null): AgentTask[] {
   if (!latestCustomerMessage) return [];
@@ -550,69 +568,70 @@ function InlineTicketRecord({
   onToggle: () => void;
 }) {
   return (
-    <div className="mt-4 overflow-hidden rounded-[20px] border border-black/10 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
+    <div className="mt-4 overflow-hidden rounded-[8px] border border-black/10 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 border-b border-black/10 px-5 py-4 text-left"
+        className="flex w-full flex-col gap-2 border-b border-black/10 px-4 py-3 text-left"
       >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">
-              <Ticket className="h-3.5 w-3.5" />
+        <div className="flex w-full items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">
+              <Ticket className="h-3 w-3" />
               {ticket.id}
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-1 text-[11px] font-medium text-[#475467]">
-              <span className={cn("h-2.5 w-2.5 rounded-full", getTicketPriorityDotClassName(ticket.priority))} />
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 bg-white px-2.5 py-0.5 text-[11px] font-medium text-[#475467]">
+              <span className={cn("h-2 w-2 shrink-0 rounded-full", getTicketPriorityDotClassName(ticket.priority))} />
               {ticket.priority} Priority
             </span>
           </div>
-          <h3 className="mt-3 text-[16px] font-semibold text-[#111827]">{ticket.subject}</h3>
-          <p className="mt-1 text-sm text-[#667085]">
+          <div className="flex shrink-0 items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium shadow-sm",
+                getTicketStatusBadgeClasses(ticket.status),
+              )}
+            >
+              {ticket.status}
+            </span>
+            <ChevronDown className={cn("h-4 w-4 shrink-0 text-[#667085] transition-transform", !isOpen && "-rotate-90")} />
+          </div>
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-[14px] font-semibold leading-snug text-[#111827]">{ticket.subject}</h3>
+          <p className="mt-0.5 text-xs text-[#667085]">
             {ticket.type} case owned by {ticket.agent} in {ticket.agentTeam}.
           </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3">
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium shadow-sm",
-              getTicketStatusBadgeClasses(ticket.status),
-            )}
-          >
-            <span>{ticket.status}</span>
-          </span>
-          <ChevronDown className={cn("h-4 w-4 text-[#667085] transition-transform", !isOpen && "-rotate-90")} />
         </div>
       </button>
 
       {isOpen ? (
-        <div className="grid gap-4 bg-[#FCFCFD] p-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Details</div>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 bg-[#FCFCFD] p-3">
+          <div className="rounded-xl border border-black/10 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Ticket Details</div>
+            <dl className="mt-3 space-y-2 text-xs">
+              <div className="flex items-start justify-between gap-2">
                 <dt className="text-[#667085]">Ticket Number</dt>
                 <dd className="font-medium text-[#111827]">{ticket.id}</dd>
               </div>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2">
                 <dt className="text-[#667085]">Type</dt>
                 <dd className="font-medium text-[#111827]">{ticket.type}</dd>
               </div>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2">
                 <dt className="text-[#667085]">Modified By</dt>
                 <dd className="font-medium text-[#111827]">{ticket.modifiedBy}</dd>
               </div>
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2">
                 <dt className="text-[#667085]">Assigned Team</dt>
                 <dd className="font-medium text-[#111827]">{ticket.agentTeam}</dd>
               </div>
             </dl>
           </div>
 
-          <div className="rounded-2xl border border-black/10 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Summary</div>
-            <p className="mt-4 text-sm leading-6 text-[#475467]">
+          <div className="rounded-xl border border-black/10 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Summary</div>
+            <p className="mt-2 text-xs leading-5 text-[#475467]">
               This ticket record was opened directly from the AI suggestion so agents can review the case without leaving the active conversation. Collapse this section any time to return to the message thread.
             </p>
           </div>
@@ -777,9 +796,12 @@ export default function ConversationPanel({
   const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
   const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
+  const [aiPanelWidth, setAiPanelWidth] = useState(368); // 23rem default
+  const aiPanelDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set());
   const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
   const [revealedTaskIds, setRevealedTaskIds] = useState<Set<string>>(new Set());
   const [checkedTaskIds, setCheckedTaskIds] = useState<Set<string>>(new Set());
@@ -788,10 +810,13 @@ export default function ConversationPanel({
   const [postActionSuggestion, setPostActionSuggestion] = useState<string | null>(null);
   const [postActionAnimKey, setPostActionAnimKey] = useState(0);
   const [aiNewCount, setAiNewCount] = useState(0);
+  const [copilotInput, setCopilotInput] = useState("");
+  const [copilotThinking, setCopilotThinking] = useState(false);
   const isAiScrolledToBottomRef = useRef(true);
   const prevAiSuggestionRef = useRef<string | null>(null);
   const prevRevealedCountRef = useRef(0);
   const taskRevealTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const copilotThinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conversationRef = useRef(conversation);
   conversationRef.current = conversation;
   const notedTaskIdsRef = useRef<Set<string>>(new Set());
@@ -889,13 +914,23 @@ export default function ConversationPanel({
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
 
-  // Reset agent tasks whenever the conversation changes (new customer/channel).
+  // Reset agent tasks and all related state whenever the conversation changes (new customer/channel).
   useEffect(() => {
     setAgentTasks([]);
     setRevealedTaskIds(new Set());
     setCheckedTaskIds(new Set());
+    setTaskProgress({});
+    setExpandedNoteIds(new Set());
     taskRevealTimersRef.current.forEach(clearTimeout);
     taskRevealTimersRef.current = [];
+    notedTaskIdsRef.current = new Set();
+    // Cancel any pending copilot thinking animation so it doesn't fire on the new assignment.
+    if (copilotThinkingTimerRef.current !== null) {
+      clearTimeout(copilotThinkingTimerRef.current);
+      copilotThinkingTimerRef.current = null;
+    }
+    setCopilotInput("");
+    setCopilotThinking(false);
   }, [conversation.label, draftKey]);
 
   // Generate and stagger-reveal suggested agent tasks when a new customer message arrives.
@@ -957,6 +992,10 @@ export default function ConversationPanel({
       if (!noteLabel || !onConversationChange) return;
       const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
       const conv = conversationRef.current;
+      // Attach a ticket record to ticket-creation notes so the note can be expanded
+      const noteTicket = taskId === "create-ticket"
+        ? getRelevantCustomerTicket(customerId, "ticket issue error")
+        : undefined;
       onConversationChange({
         ...conv,
         messages: [
@@ -967,6 +1006,7 @@ export default function ConversationPanel({
             content: `${noteLabel} — ${dateStr}`,
             time: formatConversationTimestamp(new Date()),
             isInternal: true,
+            ticket: noteTicket ?? undefined,
           },
         ],
       });
@@ -1035,6 +1075,25 @@ export default function ConversationPanel({
 
   const handleAiChipClick = () => {
     requestAnimationFrame(scrollAiPanelsToBottom);
+  };
+
+  const handleCopilotSubmit = () => {
+    const trimmed = copilotInput.trim();
+    if (!trimmed || copilotThinking) return;
+    const matched = matchCopilotInput(trimmed);
+    setCopilotInput("");
+    setCopilotThinking(true);
+    copilotThinkingTimerRef.current = setTimeout(() => {
+      copilotThinkingTimerRef.current = null;
+      setCopilotThinking(false);
+      if (matched) {
+        // Add the task if not already present
+        setAgentTasks((prev) =>
+          prev.some((t) => t.id === matched.id) ? prev : [...prev, matched],
+        );
+        requestAnimationFrame(scrollAiPanelsToBottom);
+      }
+    }, 900);
   };
 
   // On mount: scroll AI panels to bottom after the DOM has painted.
@@ -1345,17 +1404,54 @@ export default function ConversationPanel({
                   <div key={message.id} className="space-y-3">
                     {message.isInternal ? (
                       /* Internal note — not visible to the customer */
-                      <div className="flex items-start gap-2.5 rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] px-3.5 py-2.5">
-                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E4E7EC]">
-                          <NotebookPen className="h-2.5 w-2.5 text-[#667085]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Internal Note</span>
-                            <span className="text-[10px] text-[#98A2B3]">{formatConversationMessageTimestamp(message.time)}</span>
+                      <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] overflow-hidden">
+                        <button
+                          type="button"
+                          className={cn(
+                            "flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left",
+                            message.ticket ? "cursor-pointer hover:bg-[#F3F4F6] transition-colors" : "cursor-default",
+                          )}
+                          onClick={() => {
+                            if (!message.ticket) return;
+                            setExpandedNoteIds((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(message.id)) { next.delete(message.id); } else { next.add(message.id); }
+                              return next;
+                            });
+                          }}
+                        >
+                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E4E7EC]">
+                            <NotebookPen className="h-2.5 w-2.5 text-[#667085]" />
                           </div>
-                          <p className="text-[13px] leading-5 text-[#344054]">{message.content}</p>
-                        </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Internal Note</span>
+                              <span className="text-[10px] text-[#98A2B3]">{formatConversationMessageTimestamp(message.time)}</span>
+                            </div>
+                            <p className="text-[13px] leading-5 text-[#344054]">{message.content}</p>
+                          </div>
+                          {message.ticket && (
+                            <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-[#98A2B3] transition-transform", expandedNoteIds.has(message.id) && "rotate-180")} />
+                          )}
+                        </button>
+                        {message.ticket && (
+                          <div
+                            className={cn(
+                              "grid transition-all duration-200 ease-out",
+                              expandedNoteIds.has(message.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                            )}
+                          >
+                            <div className="overflow-hidden">
+                              <div className="border-t border-dashed border-[#D0D5DD] p-2">
+                                <InlineTicketRecord
+                                  ticket={message.ticket}
+                                  isOpen
+                                  onToggle={() => {}}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div
@@ -1583,10 +1679,6 @@ export default function ConversationPanel({
                             <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
                             <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
                           </div>
-                          <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                            <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
-                            <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
-                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -1613,10 +1705,6 @@ export default function ConversationPanel({
                         <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
                         <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
                       </div>
-                      <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                        <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
-                        <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
-                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
@@ -1639,28 +1727,6 @@ export default function ConversationPanel({
                     </AccordionTrigger>
                     <AccordionContent className="pb-4">
                       <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
-                      {suggestionActions.length > 0 && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2">
-                          {suggestionActions.map((action) => {
-                            const isTicketActionExpanded = action.ticketId != null && openedTicketId === action.ticketId;
-                            return (
-                              <Button
-                                key={action.id}
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className={cn(
-                                  "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
-                                  isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
-                                )}
-                                onClick={() => handleOpenSuggestionAction(action)}
-                              >
-                                {action.label}
-                              </Button>
-                            );
-                          })}
-                        </div>
-                      )}
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Button
                           type="button"
@@ -1687,7 +1753,7 @@ export default function ConversationPanel({
 
             {/* Suggested Actions */}
             {agentTasks.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F4F6FA]">
+              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                 <div className="px-4 pt-3 pb-1">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
                 </div>
@@ -1820,14 +1886,70 @@ export default function ConversationPanel({
             )}
             </div>{/* end relative wrapper */}
           </div>
+          {/* Copilot input footer */}
+          <div className="shrink-0 border-t border-black/[0.06] p-3">
+            <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              {copilotThinking ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
+              ) : (
+                <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
+              )}
+              <input
+                type="text"
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCopilotSubmit(); } }}
+                placeholder={copilotThinking ? "Thinking…" : "Ask Copilot anything..."}
+                disabled={copilotThinking}
+                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleCopilotSubmit}
+                disabled={!copilotInput.trim() || copilotThinking}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </>
       )}
 
-      {/* Wide inline mode */}
-      <div className={cn(
-        "h-full shrink-0 overflow-hidden border-l border-border transition-all duration-300 ease-in-out",
-        !isNarrowPanel && showAiPanel ? "w-[23rem] opacity-100" : "w-0 opacity-0 border-l-0",
-      )}><div className="h-full w-[23rem] flex flex-col overflow-hidden">
+      {/* Wide inline mode — resize handle + panel */}
+      {!isNarrowPanel && showAiPanel && (
+        <div
+          className="relative h-full w-1 shrink-0 cursor-col-resize group z-10"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            aiPanelDragRef.current = { startX: e.clientX, startWidth: aiPanelWidth };
+            const onMove = (ev: MouseEvent) => {
+              if (!aiPanelDragRef.current) return;
+              const delta = aiPanelDragRef.current.startX - ev.clientX;
+              const next = Math.min(640, Math.max(368, aiPanelDragRef.current.startWidth + delta));
+              setAiPanelWidth(next);
+            };
+            const onUp = () => {
+              aiPanelDragRef.current = null;
+              window.removeEventListener("mousemove", onMove);
+              window.removeEventListener("mouseup", onUp);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+          }}
+        >
+          <div className="absolute inset-y-0 left-0 w-px bg-border" />
+          <div className="absolute inset-y-0 left-[-1px] w-[5px] bg-transparent group-hover:bg-primary/20 transition-colors" />
+        </div>
+      )}
+      <div
+        className={cn(
+          "h-full shrink-0 overflow-hidden transition-[opacity] duration-300 ease-in-out",
+          !isNarrowPanel && showAiPanel ? "opacity-100" : "w-0 opacity-0 pointer-events-none",
+        )}
+        style={!isNarrowPanel && showAiPanel ? { width: aiPanelWidth } : undefined}
+      >
+        <div className="h-full flex flex-col overflow-hidden" style={{ width: aiPanelWidth }}>
           {/* Pinned summary — sticky above scroll area */}
           {isSummaryPinned && (
             <div className="shrink-0 border-b border-black/[0.06] p-3 pb-2">
@@ -1845,10 +1967,6 @@ export default function ConversationPanel({
                         <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
                           <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
                           <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                        </div>
-                        <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                          <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
-                          <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
                         </div>
                       </div>
                     </AccordionContent>
@@ -1875,10 +1993,6 @@ export default function ConversationPanel({
                     <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
                       <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
                       <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                    </div>
-                    <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                      <p className="text-xs font-semibold text-[#111827]">Customer Objectives</p>
-                      <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.remainingNeed}</p>
                     </div>
                   </div>
                 </AccordionContent>
@@ -1907,28 +2021,6 @@ export default function ConversationPanel({
                   </AccordionTrigger>
                   <AccordionContent className="pb-4">
                     <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
-                    {suggestionActions.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        {suggestionActions.map((action) => {
-                          const isTicketActionExpanded = action.ticketId != null && openedTicketId === action.ticketId;
-                          return (
-                            <Button
-                              key={action.id}
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className={cn(
-                                "h-8 rounded-full border-[#B7E6DD] bg-white/80 px-3 text-[#369D3F] hover:bg-white",
-                                isTicketActionExpanded && "border-[#369D3F] bg-white text-[#1E6F2E]",
-                              )}
-                              onClick={() => handleOpenSuggestionAction(action)}
-                            >
-                              {action.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
                     {isSuggestionEditorOpen ? (
                       <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
@@ -2006,7 +2098,7 @@ export default function ConversationPanel({
 
           {/* Suggested Actions — wide panel */}
           {agentTasks.length > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F4F6FA]">
+            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
               <div className="px-4 pt-3 pb-1">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
               </div>
@@ -2133,6 +2225,33 @@ export default function ConversationPanel({
             </div>
           )}
           </div>{/* end relative wrapper */}
+          {/* Copilot input footer */}
+          <div className="shrink-0 border-t border-black/[0.06] p-3">
+            <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+              {copilotThinking ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
+              ) : (
+                <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
+              )}
+              <input
+                type="text"
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCopilotSubmit(); } }}
+                placeholder={copilotThinking ? "Thinking…" : "Ask Copilot anything..."}
+                disabled={copilotThinking}
+                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleCopilotSubmit}
+                disabled={!copilotInput.trim() || copilotThinking}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </div>{/* end flex-col wrapper */}
       </div>{/* end outer panel wrapper */}
     </div>
