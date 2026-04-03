@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   CheckCircle,
@@ -9,7 +10,7 @@ import {
   Phone,
   X,
 } from "lucide-react";
-import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData } from "@/components/Layout";
+import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -465,15 +466,17 @@ function getLiveAiOverview(customerRecordId: string, name: string, preview: stri
   };
 }
 
-type StatusFilter = "all" | "open" | "pending" | "resolved" | "escalated";
+type PriorityFilter = "all" | "Critical" | "High" | "Medium" | "Low";
 
-const statusFilterOptions: { value: StatusFilter; label: string }[] = [
-  { value: "all",       label: "All Statuses" },
-  { value: "open",      label: "Open" },
-  { value: "pending",   label: "Pending" },
-  { value: "resolved",  label: "Resolved" },
-  { value: "escalated", label: "Escalated" },
+const priorityFilterOptions: { value: PriorityFilter; label: string }[] = [
+  { value: "all",      label: "All Priorities" },
+  { value: "Critical", label: "Critical" },
+  { value: "High",     label: "High" },
+  { value: "Medium",   label: "Medium" },
+  { value: "Low",      label: "Low" },
 ];
+
+type IssueTab = "open" | "pending" | "resolved" | "escalated";
 
 // ─── Connected applications (static) ─────────────────────────────────────────
 
@@ -607,11 +610,13 @@ function scoreAgent(agent: Agent, priority: Priority, preview: string): number {
 function RejectPopover({
   priority,
   preview,
+  triggerRect,
   onClose,
   onAssign,
 }: {
   priority: Priority;
   preview: string;
+  triggerRect: DOMRect;
   onClose: () => void;
   onAssign: (agent: Agent) => void;
 }) {
@@ -638,10 +643,16 @@ function RejectPopover({
     setTimeout(() => { onAssign(agent); onClose(); }, 800);
   };
 
-  return (
+  const POPOVER_WIDTH = 288; // w-72
+  const GAP = 8;
+  const left = Math.max(8, Math.min(triggerRect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
+  const top = triggerRect.top - GAP;
+
+  return createPortal(
     <div
       ref={ref}
-      className="absolute bottom-full right-0 mb-2 z-50 w-72 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+      className="fixed z-[9999] w-72 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+      style={{ left, top, transform: "translateY(-100%)" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -699,7 +710,8 @@ function RejectPopover({
       <div className="px-4 py-2.5 border-t border-border bg-[#F9FAFB]">
         <p className="text-[10px] text-[#98A2B3]">Sorted by availability and skill match</p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -736,6 +748,8 @@ function IssueRow({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showReject, setShowReject] = useState(false);
+  const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
+  const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const ChannelIcon = channelIconMap[channel];
 
   return (
@@ -810,18 +824,24 @@ function IssueRow({
                   Why You're Needed
                 </p>
                 <p className="flex-1 text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
-                <div className="relative mt-3 flex items-center justify-end gap-2">
-                  {showReject && (
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  {showReject && rejectTriggerRect && (
                     <RejectPopover
                       priority={priority}
                       preview={preview}
+                      triggerRect={rejectTriggerRect}
                       onClose={() => setShowReject(false)}
                       onAssign={() => { setShowReject(false); onReject(); }}
                     />
                   )}
                   <button
+                    ref={rejectButtonRef}
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); setShowReject((v) => !v); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
+                      setShowReject((v) => !v);
+                    }}
                     className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
                   >
                     Reject
@@ -843,12 +863,50 @@ function IssueRow({
   );
 }
 
+// ─── Resolved Row component ───────────────────────────────────────────────────
+
+function formatResolvedTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function ResolvedIssueRow({ item }: { item: ResolvedAssignment }) {
+  const ChannelIcon = channelIconMap[item.channel as Channel] ?? MessageCircle;
+  const priorityKey = item.priority as Priority;
+  return (
+    <div className="border-b border-border last:border-b-0 flex items-start gap-3 px-5 py-4">
+      <div className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-[#F0FAF0] text-[#1E7B1E]">
+        <CheckCircle className="h-3.5 w-3.5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-semibold text-[#1D2939]">{item.name}</span>
+          <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priorityKey] ?? priorityStyles.Medium)}>
+            {item.priority}
+          </span>
+          <span className="rounded border border-[#B9E0B4] bg-[#F0FAF0] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#1E7B1E]">
+            resolved
+          </span>
+        </div>
+        <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{item.preview}</p>
+        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
+          <ChannelIcon className="h-3 w-3" />
+          <span className="capitalize">{item.channel}</span>
+          <span>•</span>
+          <span>Resolved at {formatResolvedTime(item.resolvedAt)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { visibleAssignments, assignmentStatusesById, selectAssignment, acceptIssue } = useLayoutContext();
+  const { visibleAssignments, resolvedAssignments, assignmentStatusesById, selectAssignment, acceptIssue } = useLayoutContext();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [issueTab, setIssueTab] = useState<IssueTab>("open");
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
 
@@ -901,68 +959,115 @@ export default function ControlCenterPage() {
 
   const allRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
-    .filter((a) => statusFilter === "all" || a.status === statusFilter)
+    .filter((a) => a.status === issueTab)
+    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter)
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
-  const totalCount = visibleAssignments.length + staticAssignments.length;
+  const filteredResolvedAssignments = resolvedAssignments.filter(
+    (r) => priorityFilter === "all" || r.priority === priorityFilter,
+  );
+
+  const resolvedTabCount = allRows.length + (issueTab === "resolved" ? filteredResolvedAssignments.length : 0);
+  const tabCount = issueTab === "resolved" ? resolvedTabCount : allRows.length;
 
   return (
     <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <div className="flex gap-5 h-full">
 
-          {/* Customer Issues card */}
+          {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-            <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <h2 className="text-[14px] font-semibold text-[#333333]">Customer Issues</h2>
-                <p className="text-xs text-[#7A7A7A] mt-0.5">
-                  {totalCount} total issue{totalCount !== 1 ? "s" : ""}
-                </p>
+            {/* Header: title + tabs */}
+            <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-[14px] font-semibold text-[#333333]">Tasks</h2>
+                  <p className="text-xs text-[#7A7A7A] mt-0.5">
+                    {tabCount} task{tabCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                {/* Priority filter */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterOpen((v) => !v)}
+                    className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-[#333333] hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    {priorityFilterOptions.find((o) => o.value === priorityFilter)?.label ?? "All Priorities"}
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-[#7A7A7A] transition-transform duration-150", isFilterOpen && "rotate-180")} />
+                  </button>
+                  {isFilterOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-border bg-white shadow-lg py-1">
+                      {priorityFilterOptions.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => { setPriorityFilter(option.value); setIsFilterOpen(false); }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
+                            priorityFilter === option.value ? "font-semibold text-[#006DAD]" : "text-[#333333]",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setIsFilterOpen((v) => !v)}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-[#333333] hover:bg-[#F9FAFB] transition-colors"
-                >
-                  {statusFilterOptions.find((o) => o.value === statusFilter)?.label ?? "All Statuses"}
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#7A7A7A] transition-transform duration-150", isFilterOpen && "rotate-180")} />
-                </button>
-                {isFilterOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-border bg-white shadow-lg py-1">
-                    {statusFilterOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => { setStatusFilter(option.value); setIsFilterOpen(false); }}
-                        className={cn(
-                          "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
-                          statusFilter === option.value ? "font-semibold text-[#006DAD]" : "text-[#333333]",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              {/* Status tabs */}
+              <div className="flex gap-0">
+                {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => setIssueTab(tab)}
+                    className={cn(
+                      "relative px-4 py-2 text-[13px] font-medium capitalize transition-colors",
+                      issueTab === tab
+                        ? "text-[#006DAD]"
+                        : "text-[#7A7A7A] hover:text-[#333333]",
+                    )}
+                  >
+                    {tab}
+                    {issueTab === tab && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {allRows.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-                  <p className="text-sm font-medium text-[#7A7A7A]">No issues</p>
-                  <p className="text-xs text-[#B0B7C3] mt-1">No issues match the selected filter.</p>
-                </div>
+              {issueTab === "resolved" ? (
+                allRows.length === 0 && filteredResolvedAssignments.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+                    <p className="text-sm font-medium text-[#7A7A7A]">No resolved tasks</p>
+                    <p className="text-xs text-[#B0B7C3] mt-1">Assignments you resolve today will appear here.</p>
+                  </div>
+                ) : (
+                  <>
+                    {filteredResolvedAssignments.map((item) => (
+                      <ResolvedIssueRow key={item.id} item={item} />
+                    ))}
+                    {allRows.map((a) => (
+                      <IssueRow key={a.id} {...a} />
+                    ))}
+                  </>
+                )
               ) : (
-                allRows.map((a) => (
-                  <IssueRow
-                    key={a.id}
-                    {...a}
-                  />
-                ))
+                allRows.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+                    <p className="text-sm font-medium text-[#7A7A7A] capitalize">No {issueTab} tasks</p>
+                    <p className="text-xs text-[#B0B7C3] mt-1">No tasks match the selected filter.</p>
+                  </div>
+                ) : (
+                  allRows.map((a) => (
+                    <IssueRow key={a.id} {...a} />
+                  ))
+                )
               )}
             </div>
           </div>

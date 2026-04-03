@@ -20,6 +20,7 @@ import {
   Moon,
   PanelLeft,
   PanelRight,
+  Pin,
   Pause,
   TriangleAlert,
   User,
@@ -52,6 +53,7 @@ import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/c
 import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
 import AddPanelContent from "@/components/AddPanelContent";
+import ChatPopoverContent from "@/components/ChatPopover";
 import NotesPanel from "@/components/NotesPanel";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
@@ -72,7 +74,7 @@ interface LayoutProps {
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer" | "notifications";
-type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew";
+type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew" | "chat";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 type DeskPanelSelection = {
   initialTab?: string;
@@ -115,6 +117,7 @@ interface LayoutContextValue {
   openRecentInteractionAssignment: (interaction: RecentInteractionItem) => void;
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
+  resolvedAssignments: ResolvedAssignment[];
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   acceptIssue: (data: AcceptIssueData) => void;
   undockDeskPanel: (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => void;
@@ -125,6 +128,15 @@ interface LayoutContextValue {
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
+
+export type ResolvedAssignment = {
+  id: string;
+  name: string;
+  preview: string;
+  priority: string;
+  channel: AssignmentChannel;
+  resolvedAt: number; // Date.now() timestamp
+};
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
@@ -160,7 +172,7 @@ const statusOptions: Array<{
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
   { id: "control-panel", name: "Control Center", description: "", routePath: "/control-panel" },
-  { id: "review", name: "Review", description: "", routePath: "/activity" },
+  { id: "review", name: "Activity", description: "", routePath: "/activity" },
   { id: "wem", name: "WEM", description: "", routePath: "/wem" },
   { id: "schedule", name: "Schedule", description: "", routePath: "/schedule" },
   { id: "settings", name: "Settings", description: "", routePath: "/settings" },
@@ -172,7 +184,6 @@ const conversationStatusOptions: Array<{ value: QueueAssignmentStatus; label: st
   { value: "pending", label: "Pending" },
   { value: "resolved", label: "Resolved" },
   { value: "escalated", label: "Escalated" },
-  { value: "closed", label: "Closed" },
 ];
 
 function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
@@ -410,10 +421,6 @@ function getRecentInteractionAssignmentStatus(status: string): QueueAssignmentSt
 
   if (normalizedStatus === "escalated") {
     return "escalated";
-  }
-
-  if (normalizedStatus === "closed") {
-    return "closed";
   }
 
   return "open";
@@ -1520,10 +1527,12 @@ function AddNewPopoverContent({
 function CustomerProfilePopover({
   customerName,
   onOpenCustomerInfo,
+  onOpenNotes,
 }: {
   customerRecordId: string;
   customerName: string;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
 }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -1536,6 +1545,15 @@ function CustomerProfilePopover({
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
       >
         <User className="h-3.5 w-3.5 stroke-[1.8]" />
+      </button>
+      <button
+        type="button"
+        aria-label="Open notes"
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => { e.stopPropagation(); onOpenNotes(e); }}
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+      >
+        <FileText className="h-3.5 w-3.5 stroke-[1.8]" />
       </button>
     </div>
   );
@@ -1553,6 +1571,7 @@ function DockedConversationPanel({
   onOpenCall,
   onOpenChannel,
   onOpenCustomerInfo,
+  onOpenNotes,
   onConversationStatusChange,
   onResolveAssignment,
   overviewIsOpen,
@@ -1575,6 +1594,7 @@ function DockedConversationPanel({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
   onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
@@ -1689,7 +1709,7 @@ function DockedConversationPanel({
                     <GripHorizontal className="h-4 w-4" />
                   </button>
                   <div className="min-w-0">
-                    <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
+                    <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
                   </div>
                 </div>
                 <div
@@ -2487,11 +2507,19 @@ function DeskCanvasPopunder({
   dragActivation?: CopilotDragActivation | null;
   onInteractStart?: () => void;
 }) {
+  const [inlineCustomerId, setInlineCustomerId] = useState<string | null>(null);
+  const [inlineAddOpen, setInlineAddOpen] = useState(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
   const minWidth = getDeskCanvasPopunderMinWidth(view);
+
+  // Derived: are we showing an inline overlay within the desk view?
+  const isDeskView = view !== "copilot" && view !== "notes" && view !== "add" && view !== "customer" && view !== "notifications";
+  const showingInlineAdd = isDeskView && inlineAddOpen && !inlineCustomerId;
+  const showingInlineCustomer = isDeskView && !!inlineCustomerId && !inlineAddOpen;
+
   const panelLabel = view === "copilot"
     ? "Copilot"
     : view === "notes"
@@ -2500,7 +2528,11 @@ function DeskCanvasPopunder({
         ? "Add"
         : view === "customer"
           ? "Customer Information"
-          : "Desk";
+          : showingInlineAdd
+            ? "Add"
+            : showingInlineCustomer
+              ? "Customer Information"
+              : "Desk";
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -2592,12 +2624,36 @@ function DeskCanvasPopunder({
       >
         <div className="flex items-start gap-3">
           <GripHorizontal className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <div>
-            <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{panelLabel}</h3>
-          </div>
+          {(showingInlineCustomer || showingInlineAdd) ? (
+            <button
+              type="button"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={() => { setInlineCustomerId(null); setInlineAddOpen(false); }}
+              className="flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[#006DAD] transition-colors hover:text-[#0A5E92]"
+              aria-label="Back to desk"
+            >
+              <ChevronLeft className="h-4 w-4 shrink-0" />
+              {panelLabel}
+            </button>
+          ) : (
+            <div>
+              <h3 className="text-sm font-semibold tracking-tight text-[#333333]">{panelLabel}</h3>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {isDeskView && !showingInlineCustomer && !showingInlineAdd && (
+            <button
+              type="button"
+              onMouseDown={(event) => event.stopPropagation()}
+              onClick={() => setInlineAddOpen(true)}
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+              aria-label="Add new"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
@@ -2619,7 +2675,11 @@ function DeskCanvasPopunder({
               ? <AddPanelContent />
               : view === "customer"
                 ? <NotesPanel key={customerId} customerId={customerId} />
-                : <DeskDataTable />}
+                : showingInlineAdd
+                  ? <AddPanelContent />
+                  : showingInlineCustomer
+                    ? <NotesPanel key={inlineCustomerId!} customerId={inlineCustomerId!} />
+                    : <DeskDataTable onSelectCustomer={(id) => { setInlineCustomerId(id); setInlineAddOpen(false); }} />}
       </div>
 
       <button
@@ -2661,6 +2721,7 @@ function ConversationPopunder({
   onOpenCall,
   onOpenChannel,
   onOpenCustomerInfo,
+  onOpenNotes,
   onConversationStatusChange,
   onResolveAssignment,
   overviewIsOpen,
@@ -2685,6 +2746,7 @@ function ConversationPopunder({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
+  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
   onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
@@ -2794,7 +2856,7 @@ function ConversationPopunder({
           <div className="flex items-center gap-3">
             <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
             <div>
-              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
+              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
             </div>
           </div>
           {shouldStackHeaderActions ? (
@@ -2823,16 +2885,24 @@ function ConversationPopunder({
                 </TooltipProvider>
               )}
               {onDock && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={onDock}
-                  className="h-7 shrink-0 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-                >
-                  Dock panel
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onMouseDown={(event) => event.stopPropagation()}
+                        onClick={onDock}
+                        className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                        aria-label="Dock panel"
+                      >
+                        <Pin className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Dock panel</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
           ) : null}
@@ -2872,16 +2942,24 @@ function ConversationPopunder({
             </TooltipProvider>
           )}
           {!shouldStackHeaderActions && onDock && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={onDock}
-              className="h-7 rounded-lg border-black/10 px-2.5 text-[11px] text-[#333333] hover:bg-white"
-            >
-              Dock panel
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={onDock}
+                    className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    aria-label="Dock panel"
+                  >
+                    <Pin className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Dock panel</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
@@ -2926,6 +3004,7 @@ function NotesPopoverContent({
   position,
   size,
   zIndex,
+  customerId,
   onPositionChange,
   onSizeChange,
   onClose,
@@ -2940,6 +3019,7 @@ function NotesPopoverContent({
     height: number;
   };
   zIndex: number;
+  customerId?: string;
   onPositionChange: (position: { x: number; y: number }) => void;
   onSizeChange: (size: { width: number; height: number }) => void;
   onClose: () => void;
@@ -3050,7 +3130,7 @@ function NotesPopoverContent({
         </div>
       </div>
 
-      <NotesPanel notesOnly addNoteTrigger={addNoteTrigger} />
+      <NotesPanel notesOnly customerId={customerId} addNoteTrigger={addNoteTrigger} />
 
       <button
         type="button"
@@ -3179,6 +3259,15 @@ function QueueAssignmentCard({
   const { activeCallAssignmentId, isAgentInCall, openCallDisposition } = useLayoutContext();
   const showActiveVoiceControls = isAgentInCall && item.id === activeCallAssignmentId;
 
+  const priorityKey = (item.priority ?? "medium").toLowerCase();
+  const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
+    critical: { idle: "#FECACA", active: "#F04438", stripe: "#F04438", shadow: "rgba(240,68,56,0.14)" },
+    high:     { idle: "#FECDA7", active: "#F79009", stripe: "#F79009", shadow: "rgba(247,144,9,0.14)" },
+    medium:   { idle: "#B8D7F0", active: "#006DAD", stripe: "#006DAD", shadow: "rgba(0,109,173,0.14)" },
+    low:      { idle: "#B7E6DD", active: "#369D3F", stripe: "#369D3F", shadow: "rgba(54,157,63,0.14)" },
+  };
+  const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
+
   return (
     <div
       role="button"
@@ -3191,15 +3280,17 @@ function QueueAssignmentCard({
         }
       }}
       className={cn(
-        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border border-black/[0.06] bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
-        item.isActive
-          ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
-          : "hover:-translate-y-0.5 hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
+        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
+        !item.isActive && "hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
         className,
       )}
-      style={style}
+      style={{
+        ...style,
+        borderColor: item.isActive ? pc.active : pc.idle,
+        boxShadow: item.isActive ? `0 8px 22px ${pc.shadow}` : undefined,
+      }}
     >
-      {item.isActive ? <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px] bg-[#006DAD]" /> : null}
+      {item.isActive ? <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px]" style={{ backgroundColor: pc.stripe }} /> : null}
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
@@ -3272,18 +3363,29 @@ function GroupedQueueCard({
 }) {
   const { isAgentInCall, openCallDisposition, activeCallAssignmentId } = useLayoutContext();
 
+  const priorityKey = (group.priority ?? "medium").toLowerCase();
+  const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
+    critical: { idle: "#FECACA", active: "#F04438", stripe: "#F04438", shadow: "rgba(240,68,56,0.14)" },
+    high:     { idle: "#FECDA7", active: "#F79009", stripe: "#F79009", shadow: "rgba(247,144,9,0.14)" },
+    medium:   { idle: "#B8D7F0", active: "#006DAD", stripe: "#006DAD", shadow: "rgba(0,109,173,0.14)" },
+    low:      { idle: "#B7E6DD", active: "#369D3F", stripe: "#369D3F", shadow: "rgba(54,157,63,0.14)" },
+  };
+  const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
+
   return (
     <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-[8px] border border-black/[0.06] bg-white shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
-        group.isAnyActive
-          ? "border-[#006DAD] shadow-[0_8px_22px_rgba(0,109,173,0.14)]"
-          : "hover:border-black/10 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
+        "group relative w-full overflow-hidden rounded-[8px] border bg-white shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300",
+        !group.isAnyActive && "hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
         className,
       )}
-      style={style}
+      style={{
+        ...style,
+        borderColor: group.isAnyActive ? pc.active : pc.idle,
+        boxShadow: group.isAnyActive ? `0 8px 22px ${pc.shadow}` : undefined,
+      }}
     >
-      {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px] bg-[#006DAD]" />}
+      {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px]" style={{ backgroundColor: pc.stripe }} />}
 
       {/* Customer name header */}
       <div className="px-4 pb-1 pt-3">
@@ -3494,6 +3596,13 @@ function LeftQueueRail({
                     isAgentInCall &&
                     group.channels.some((c) => c.id === activeCallAssignmentId);
 
+                  const pcCollapsed = ({
+                    critical: { border: "rgba(240,68,56,0.15)", shadow: "rgba(240,68,56,0.12)", accent: "#F04438" },
+                    high:     { border: "rgba(247,144,9,0.15)",  shadow: "rgba(247,144,9,0.12)",  accent: "#F79009" },
+                    medium:   { border: "rgba(0,109,173,0.15)",  shadow: "rgba(0,109,173,0.12)",  accent: "#006DAD" },
+                    low:      { border: "rgba(54,157,63,0.15)",  shadow: "rgba(54,157,63,0.12)",  accent: "#369D3F" },
+                  } as Record<string, { border: string; shadow: string; accent: string }>)[priorityKey] ?? { border: "rgba(0,109,173,0.15)", shadow: "rgba(0,109,173,0.12)", accent: "#006DAD" };
+
                   return (
                     <HoverCard
                       key={group.customerRecordId}
@@ -3507,9 +3616,13 @@ function LeftQueueRail({
                           className={cn(
                             "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
                             group.isAnyActive
-                              ? "border border-[#006DAD]/15 bg-white shadow-[0_6px_18px_rgba(0,109,173,0.12)]"
+                              ? "border bg-white"
                               : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
                           )}
+                          style={group.isAnyActive ? {
+                            borderColor: pcCollapsed.border,
+                            boxShadow: `0 6px 18px ${pcCollapsed.shadow}`,
+                          } : undefined}
                           aria-label={`${group.name} queue item`}
                           onClick={() => selectAssignment(lastChannel.id)}
                         >
@@ -3518,16 +3631,17 @@ function LeftQueueRail({
                             className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
                           />
                           {multiChannel && (
-                            <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#006DAD] text-[8px] font-bold text-white">
+                            <span
+                              className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                              style={{ backgroundColor: pcCollapsed.accent }}
+                            >
                               {group.channels.length}
                             </span>
                           )}
                           <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
                           <span
-                            className={cn(
-                              "text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]",
-                              group.isAnyActive ? "text-[#006DAD]" : "text-[#667085]",
-                            )}
+                            className="text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]"
+                            style={{ color: group.isAnyActive ? pcCollapsed.accent : "#667085" }}
                           >
                             {lastChannel.time}
                           </span>
@@ -3709,13 +3823,19 @@ export default function Layout({ children }: LayoutProps) {
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
+  const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false);
+  const [chatPopunderPosition, setChatPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
+  const [chatPopunderSize, setChatPopunderSize] = useState(() => ({
+    width: 360,
+    height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
+  }));
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
   const [deskCanvasPopunderView, setDeskCanvasPopunderView] = useState<DeskCanvasView | null>(null);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
-    width: 420,
+    width: 380,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
   const [addNewPopunderPosition, setAddNewPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
@@ -3775,6 +3895,7 @@ export default function Layout({ children }: LayoutProps) {
   ));
   const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>(() => initialVisibleAssignmentIds);
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
+  const [resolvedAssignments, setResolvedAssignments] = useState<ResolvedAssignment[]>([]);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [conversationStatesByKey, setConversationStatesByKey] = useState<Record<string, SharedConversationData>>(() => ({
     [getConversationStateKey(initialSelectedAssignmentId)]: defaultConversationState,
@@ -3814,6 +3935,7 @@ export default function Layout({ children }: LayoutProps) {
     "call",
     "notes",
     "addNew",
+    "chat",
     "conversation",
     "customerInfo",
     "deskCanvas",
@@ -3857,6 +3979,7 @@ export default function Layout({ children }: LayoutProps) {
   const customerReplyTimeoutsRef = useRef<Record<string, number>>({});
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
+  const chatButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
 
@@ -3881,6 +4004,60 @@ export default function Layout({ children }: LayoutProps) {
       });
     };
   }, []);
+
+  // Auto-assign: while Available with fewer than 3 assignments, drip in one assignment at a
+  // time on a randomised delay (8–28 s, never more than 30 s). Re-arms itself after each
+  // addition until the queue reaches 3 or the agent leaves Available.
+  const autoAssignTimerRef = useRef<number | null>(null);
+  const visibleAssignmentIdsRef = useRef(visibleAssignmentIds);
+  visibleAssignmentIdsRef.current = visibleAssignmentIds;
+
+  useEffect(() => {
+    if (autoAssignTimerRef.current !== null) {
+      window.clearTimeout(autoAssignTimerRef.current);
+      autoAssignTimerRef.current = null;
+    }
+
+    if (status !== "Available") return;
+    if (visibleAssignmentIds.length >= 3) return;
+
+    // Random delay: 8–28 seconds (well within the 30-second max)
+    const delay = Math.floor(Math.random() * 20_000) + 8_000;
+
+    autoAssignTimerRef.current = window.setTimeout(() => {
+      autoAssignTimerRef.current = null;
+
+      setVisibleAssignmentIds((currentIds) => {
+        if (currentIds.length >= 3) return currentIds;
+
+        const nextItem = queuePreviewItems.find((item) => !currentIds.includes(item.id));
+        if (!nextItem) return currentIds;
+
+        const conversationStateKey = getConversationStateKey(nextItem.id);
+        const conversationState = createConversationState(nextItem.customerRecordId, nextItem.channel);
+
+        setAssignmentItemsById((current) => ({ ...current, [nextItem.id]: nextItem }));
+        setAssignmentStatusesById((current) => ({ ...current, [nextItem.id]: "open" }));
+        setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
+
+        toast(`New assignment — ${nextItem.name}`, {
+          description: nextItem.preview,
+          position: "bottom-right",
+          duration: 5000,
+        });
+
+        return [...currentIds, nextItem.id];
+      });
+    }, delay);
+
+    return () => {
+      if (autoAssignTimerRef.current !== null) {
+        window.clearTimeout(autoAssignTimerRef.current);
+        autoAssignTimerRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, visibleAssignmentIds.length]);
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -3937,7 +4114,7 @@ export default function Layout({ children }: LayoutProps) {
     !isCanvasMergedIntoCombinedPanel &&
     isCustomerInfoPanelAllowed &&
     !isCustomerInfoPopunderOpen;
-  const isDockedConversationVisible = isActivityRoute && !isCombinedInteractionPanel && isConversationPanelOpen;
+  const isDockedConversationVisible = isActivityRoute && !isCombinedInteractionPanel && isConversationPanelOpen && visibleAssignments.length > 0;
   const isMainCanvasVisible = !isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel;
   const isDeskCustomerInfoPopunderVisible =
     isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
@@ -4709,6 +4886,20 @@ export default function Layout({ children }: LayoutProps) {
     const conversationStateKey = getConversationStateKey(assignmentId);
     setCompletedTodayCount((n) => n + 1);
 
+    if (removedAssignment) {
+      setResolvedAssignments((prev) => [
+        {
+          id: removedAssignment.id,
+          name: removedAssignment.name,
+          preview: removedAssignment.preview,
+          priority: removedAssignment.priority,
+          channel: removedAssignment.channel,
+          resolvedAt: Date.now(),
+        },
+        ...prev,
+      ]);
+    }
+
     if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
       window.clearTimeout(customerReplyTimeoutsRef.current[conversationStateKey]);
       delete customerReplyTimeoutsRef.current[conversationStateKey];
@@ -4983,6 +5174,42 @@ export default function Layout({ children }: LayoutProps) {
 
   // Opens the Customer Info panel as an independent floating popover from the
   // inline icon button — bypasses all desk-route / canvas gating logic.
+  const openNotesIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
+    const margin = 16;
+    const gap = 10;
+    const anchorRect = event?.currentTarget.getBoundingClientRect();
+    const popunderWidth = Math.min(notesPopunderSize.width, window.innerWidth - margin * 2);
+    const x = anchorRect
+      ? Math.min(Math.max(margin, anchorRect.left), window.innerWidth - popunderWidth - margin)
+      : Math.max(window.innerWidth - popunderWidth - margin, margin);
+    const y = anchorRect
+      ? Math.max(margin, anchorRect.bottom + gap)
+      : Math.max(margin, (notesButtonRef.current?.getBoundingClientRect().bottom ?? 48) + gap);
+    const maxHeight = window.innerHeight - y - margin;
+    setNotesPopunderSize((prev) => ({ ...prev, height: Math.max(200, maxHeight) }));
+    bringFloatingPanelToFront("notes");
+    setNotesPopunderPosition({ x, y });
+    setIsNotesPopoverOpen(true);
+  };
+
+  const openChatPopover = () => {
+    const margin = 16;
+    const gap = 10;
+    const buttonBounds = chatButtonRef.current?.getBoundingClientRect();
+    const popunderWidth = Math.min(chatPopunderSize.width, window.innerWidth - margin * 2);
+    const x = buttonBounds
+      ? Math.min(Math.max(margin, buttonBounds.right - popunderWidth), window.innerWidth - popunderWidth - margin)
+      : Math.max(window.innerWidth - popunderWidth - margin, margin);
+    const y = buttonBounds
+      ? Math.max(margin, buttonBounds.bottom + gap)
+      : margin + 60;
+    const maxHeight = window.innerHeight - y - margin;
+    setChatPopunderSize((prev) => ({ ...prev, height: Math.max(420, maxHeight) }));
+    bringFloatingPanelToFront("chat");
+    setChatPopunderPosition({ x, y });
+    setIsChatPopoverOpen(true);
+  };
+
   const openCustomerInfoIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
     const anchorRect = event?.currentTarget.getBoundingClientRect();
     const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
@@ -5287,6 +5514,7 @@ export default function Layout({ children }: LayoutProps) {
       activeConversationTabs,
       selectedAssignment,
       visibleAssignments,
+      resolvedAssignments,
       assignmentStatusesById,
       deskPanelSelection,
       recentInteractions,
@@ -5456,6 +5684,7 @@ export default function Layout({ children }: LayoutProps) {
       deskCanvasPopunderView,
       selectedAssignment,
       visibleAssignments,
+      resolvedAssignments,
       assignmentStatusesById,
       acceptIssue,
       status,
@@ -5633,31 +5862,25 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </HeaderIconButton>
 
-          <div ref={notesButtonRef}>
+          <div ref={notesButtonRef} className="hidden" aria-hidden="true" />
+
+          <div ref={chatButtonRef}>
             <HeaderIconButton
-              ariaLabel="Open notes in desk panel"
+              ariaLabel="Open messages"
               onClick={() => {
-                setIsNotesPopoverOpen(false);
-                openHeaderAppPanel("notes");
+                if (isChatPopoverOpen) {
+                  setIsChatPopoverOpen(false);
+                } else {
+                  openChatPopover();
+                }
               }}
-              isActive={deskCanvasPopunderView === "notes" || activeDeskRouteView === "notes"}
+              isActive={isChatPopoverOpen}
             >
-              <FileText className="h-4 w-4 stroke-[1.8]" />
+              <MessageCircle className="h-4 w-4 stroke-[1.8]" />
             </HeaderIconButton>
           </div>
 
-          <div ref={addNewButtonRef}>
-            <HeaderIconButton
-              ariaLabel="Open add in desk panel"
-              onClick={() => {
-                setIsAddNewPopoverOpen(false);
-                openHeaderAppPanel("add");
-              }}
-              isActive={deskCanvasPopunderView === "add" || activeDeskRouteView === "add"}
-            >
-              <Plus className="h-4 w-4 stroke-[1.8]" />
-            </HeaderIconButton>
-          </div>
+          <div ref={addNewButtonRef} className="hidden" aria-hidden="true" />
 
           <div ref={copilotButtonRef}>
             <HeaderIconButton
@@ -5730,6 +5953,33 @@ export default function Layout({ children }: LayoutProps) {
           onToggle={() => setIsLeftRailOpen((v) => !v)}
           completedTodayCount={completedTodayCount}
         />
+        {isActivityRoute && visibleAssignments.length === 0 && (
+          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-lg border border-black/[0.10] bg-white">
+            <div className="flex flex-col items-center gap-4 text-center px-8 max-w-sm">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2F4F7]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" className="h-9 w-9">
+                  <rect x="6" y="10" width="36" height="30" rx="4" fill="#E4E7EC" stroke="#D0D5DD" strokeWidth="1.5"/>
+                  <rect x="10" y="6" width="28" height="30" rx="4" fill="#F9FAFB" stroke="#D0D5DD" strokeWidth="1.5"/>
+                  <rect x="15" y="13" width="18" height="2.5" rx="1.25" fill="#D0D5DD"/>
+                  <rect x="15" y="19" width="13" height="2" rx="1" fill="#E4E7EC"/>
+                  <rect x="15" y="24" width="16" height="2" rx="1" fill="#E4E7EC"/>
+                  <circle cx="35" cy="34" r="8" fill="#EEF6FC" stroke="#B8D7F0" strokeWidth="1.5"/>
+                  <path d="M32 34l2 2 4-4" stroke="#006DAD" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[15px] font-semibold text-[#1D2939]">No active assignments</p>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[#667085]">
+                  You're all caught up. New assignments will appear here automatically when they become available.
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-3.5 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#369D3F] animate-pulse" />
+                <span className="text-[12px] font-medium text-[#006DAD]">Listening for new assignments</span>
+              </div>
+            </div>
+          </div>
+        )}
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
             isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
@@ -5776,6 +6026,7 @@ export default function Layout({ children }: LayoutProps) {
                 onOpenCall={layoutContextValue.toggleCallPopunder}
                 onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
                 onOpenCustomerInfo={openCustomerInfoIconPopover}
+                onOpenNotes={openNotesIconPopover}
                 onConversationStatusChange={handleConversationStatusChange}
                 onResolveAssignment={handleResolveAssignment}
                 overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -5895,6 +6146,7 @@ export default function Layout({ children }: LayoutProps) {
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
               onOpenCustomerInfo={openCustomerInfoIconPopover}
+              onOpenNotes={openNotesIconPopover}
               onConversationStatusChange={handleConversationStatusChange}
               onResolveAssignment={handleResolveAssignment}
               overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -6019,6 +6271,7 @@ export default function Layout({ children }: LayoutProps) {
           onOpenCall={layoutContextValue.toggleCallPopunder}
           onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
           onOpenCustomerInfo={openCustomerInfoIconPopover}
+          onOpenNotes={openNotesIconPopover}
           onConversationStatusChange={handleConversationStatusChange}
           onResolveAssignment={handleResolveAssignment}
           overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -6175,11 +6428,25 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      {isChatPopoverOpen && (
+        <ChatPopoverContent
+          position={chatPopunderPosition}
+          size={chatPopunderSize}
+          zIndex={getFloatingPanelZIndex("chat")}
+          onPositionChange={setChatPopunderPosition}
+          onSizeChange={setChatPopunderSize}
+          onClose={() => setIsChatPopoverOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("chat")}
+        />
+      )}
+
       {isNotesPopoverOpen && (
         <NotesPopoverContent
+          key={selectedAssignment.customerRecordId}
           position={notesPopunderPosition}
           size={notesPopunderSize}
           zIndex={getFloatingPanelZIndex("notes")}
+          customerId={selectedAssignment.customerRecordId}
           onPositionChange={setNotesPopunderPosition}
           onSizeChange={setNotesPopunderSize}
           onClose={() => setIsNotesPopoverOpen(false)}

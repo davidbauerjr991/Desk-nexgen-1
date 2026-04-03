@@ -9,6 +9,7 @@ import CustomerInfoPanel, { CustomerOverviewCard } from "@/components/CustomerIn
 import OverviewDashboard from "@/components/OverviewDashboard";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { cn } from "@/lib/utils";
+import { addNoteForCustomer, getNotesForCustomer, type CustomerNote } from "@/lib/notes-database";
 
 const PRIMARY_TABS = ["Overview", "Details"] as const;
 const SWITCHABLE_TABS = ["Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History"] as const;
@@ -22,43 +23,6 @@ const DEFAULT_NOTE_AGENT = {
   id: "AGT-10984",
 };
 
-const initialNotes = [
-  {
-    id: 1,
-    agentName: "John Smith",
-    agentId: "AGT-10482",
-    createdAt: "03/22/2024 02:12:11 PM",
-    body: "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
-  },
-  {
-    id: 2,
-    agentName: "Patrick Johnson",
-    agentId: "AGT-11247",
-    createdAt: "03/22/2024 02:12:11 PM",
-    body: "Customer is requesting a mortgage but having issues with the online portal. Transferred to the mortgage team.",
-  },
-  {
-    id: 3,
-    agentName: "Alex Bogush",
-    agentId: "AGT-11803",
-    createdAt: "03/22/2024 02:12:11 PM",
-    body: "I have to say this customer is really angry - I think we should escalate this case immediately.",
-  },
-  {
-    id: 4,
-    agentName: "Alex Bogush",
-    agentId: "AGT-11803",
-    createdAt: "03/22/2024 02:12:11 PM",
-    body: "Talked to them again and I think we are good-to-go. Setting up a follow-up call for next week.",
-  },
-  {
-    id: 5,
-    agentName: "Patrick Johnson",
-    agentId: "AGT-11247",
-    createdAt: "03/22/2024 02:12:11 PM",
-    body: "Set up a payment plan, the customer is happy and will not churn. Case resolved.",
-  },
-];
 
 export type CustomerTicket = {
   customerId?: string;
@@ -416,7 +380,7 @@ const INITIAL_TICKET_COLUMN_WIDTHS = Object.fromEntries(
   TICKET_COLUMNS.map((column) => [column.key, column.defaultWidth]),
 ) as Record<TicketColumnKey, number>;
 
-function NoteItem({ note }: { note: (typeof initialNotes)[0] }) {
+function NoteItem({ note }: { note: CustomerNote }) {
   const initials = note.agentName
     .split(" ")
     .map((part) => part[0])
@@ -794,7 +758,9 @@ export default function NotesPanel({
         : DEFAULT_SWITCHABLE_TAB,
   );
   const [showMoreTabs, setShowMoreTabs] = useState(false);
-  const [notesData, setNotesData] = useState(initialNotes);
+  const [notesData, setNotesData] = useState<CustomerNote[]>(() =>
+    customerId ? getNotesForCustomer(customerId) : [],
+  );
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [openTickets, setOpenTickets] = useState<CustomerTicket[]>([]);
@@ -827,6 +793,11 @@ export default function NotesPanel({
     setIsComposerOpen(true);
   }, [addNoteTrigger]);
 
+  // Reload notes from the store whenever the selected customer changes.
+  useEffect(() => {
+    setNotesData(customerId ? getNotesForCustomer(customerId) : []);
+  }, [customerId]);
+
   useEffect(() => {
     if (!showMoreTabs) return;
 
@@ -853,18 +824,16 @@ export default function NotesPanel({
 
   const handleSaveNote = () => {
     const nextBody = noteDraft.trim();
-    if (!nextBody) return;
+    if (!nextBody || !customerId) return;
 
-    setNotesData((current) => [
-      {
-        id: Date.now(),
-        agentName: DEFAULT_NOTE_AGENT.name,
-        agentId: DEFAULT_NOTE_AGENT.id,
-        createdAt: formatNoteTimestamp(new Date()),
-        body: nextBody,
-      },
-      ...current,
-    ]);
+    addNoteForCustomer(customerId, {
+      agentName: DEFAULT_NOTE_AGENT.name,
+      agentId: DEFAULT_NOTE_AGENT.id,
+      createdAt: formatNoteTimestamp(new Date()),
+      body: nextBody,
+    });
+    // Refresh from the store so the new note appears at the top.
+    setNotesData(getNotesForCustomer(customerId));
     setNoteDraft("");
     setIsComposerOpen(false);
   };
@@ -1050,7 +1019,7 @@ export default function NotesPanel({
                     </Button>
                     <Button
                       type="button"
-                      className="h-8 rounded-lg bg-[#006DAD] px-3 hover:bg-[#5B00D1] disabled:bg-[#B8D7F0]"
+                      className="h-8 rounded-lg bg-[#006DAD] px-3 hover:bg-[#0A5E92] disabled:bg-[#B8D7F0]"
                       onClick={handleSaveNote}
                       disabled={!noteDraft.trim()}
                     >

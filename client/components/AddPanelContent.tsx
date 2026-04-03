@@ -224,7 +224,7 @@ export default function AddPanelContent() {
             </Button>
             <Button
               type="button"
-              className="rounded-xl bg-[#006DAD] hover:bg-[#5B00D1]"
+              className="rounded-xl bg-[#006DAD] hover:bg-[#0A5E92]"
               onClick={() => {
                 setSelectedType(savedRecord?.type ?? "customer");
                 clearForm();
@@ -240,7 +240,7 @@ export default function AddPanelContent() {
             </Button>
             <Button
               type="button"
-              className="rounded-xl bg-[#006DAD] hover:bg-[#5B00D1] disabled:bg-[#B8D7F0] disabled:text-white"
+              className="rounded-xl bg-[#006DAD] hover:bg-[#0A5E92] disabled:bg-[#B8D7F0] disabled:text-white"
               onClick={handleSave}
               disabled={isSaveDisabled}
             >

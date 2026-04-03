@@ -24,7 +24,7 @@ export type ConversationMessage = {
   ticket?: CustomerTicket;
 };
 
-export type ConversationStatus = "open" | "closed" | "pending";
+export type ConversationStatus = "open" | "pending";
 
 export type SharedConversationData = {
   customerName: string;
@@ -816,6 +816,7 @@ export default function ConversationPanel({
   const narrowAiScrollRef = useRef<HTMLDivElement>(null);
   const wideAiScrollRef = useRef<HTMLDivElement>(null);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
+  const [narrowTab, setNarrowTab] = useState<"conversation" | "copilot">("conversation");
   const [footerHeight, setFooterHeight] = useState(0);
 
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -919,7 +920,9 @@ export default function ConversationPanel({
     if (!container) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? container.offsetWidth;
-      setIsNarrowPanel(width < 640);
+      const nextNarrow = width < 640;
+      setIsNarrowPanel(nextNarrow);
+      if (!nextNarrow) setNarrowTab("conversation");
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -1457,6 +1460,39 @@ export default function ConversationPanel({
   return (
     <div ref={containerRef} className={cn("relative flex min-h-0 flex-1 flex-row", className)}>
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+
+        {/* Narrow-mode tabs — shown below the header when width < 640 and AI panel is active */}
+        {isNarrowPanel && showAiPanel && (
+          <div className="shrink-0 flex border-b border-border bg-background">
+            {(["conversation", "copilot"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setNarrowTab(tab)}
+                className={cn(
+                  "relative flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-medium capitalize transition-colors",
+                  narrowTab === tab ? "text-[#006DAD]" : "text-[#7A7A7A] hover:text-[#333333]",
+                )}
+              >
+                {tab}
+                {tab === "copilot" && aiNewCount > 0 && (
+                  <span className={cn(
+                    "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold",
+                    narrowTab === "copilot" ? "bg-[#EEF6FC] text-[#006DAD]" : "bg-[#F2F4F7] text-[#667085]",
+                  )}>
+                    {aiNewCount}
+                  </span>
+                )}
+                {narrowTab === tab && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Conversation view — hidden on copilot tab when narrow */}
+        {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <ScrollArea ref={scrollAreaRef} className="h-full p-6">
             <div className="mx-auto max-w-3xl space-y-6">
@@ -1659,8 +1695,213 @@ export default function ConversationPanel({
           </div>
         )}
       </div>
+        )} {/* end conversation view conditional */}
 
-      {!isVoiceChannel && !isEmailChannel && (
+        {/* Copilot tab content — inline when narrow and copilot tab is active */}
+        {isNarrowPanel && showAiPanel && narrowTab === "copilot" && (
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="relative flex-1 min-h-0">
+              <div ref={narrowAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
+                {isVoiceChannel && <VoiceAIGuidanceCard />}
+                {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
+                  <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                    <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
+                      <AccordionItem value="ai-suggestion" className="border-b-0">
+                        <AccordionTrigger className="py-4 text-left hover:no-underline">
+                          <div className="flex flex-1 items-center justify-between mr-2">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
+                              <span>Suggested Response</span>
+                            </div>
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(-1)} disabled={suggestionVariants.length <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
+                              <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(1)} disabled={suggestionVariants.length <= 1}><ChevronRight className="h-3.5 w-3.5" /></Button>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
+                          {!isVoiceChannel && (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                className={cn(
+                                  "h-9 rounded-lg px-4",
+                                  isSuggestionAdded
+                                    ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                                    : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                                )}
+                                onClick={handleUseSuggestion}
+                                disabled={isSuggestionAdded}
+                              >
+                                {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                                {isSuggestionAdded ? "Added" : "Use response"}
+                              </Button>
+                              <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>Edit</Button>
+                            </div>
+                          )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
+                {agentTasks.length > 0 && (
+                  <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+                    <div className="px-4 pt-3 pb-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+                    </div>
+                    <div className="px-3 pb-3 pt-1 space-y-1.5">
+                      {agentTasks.map((task) => {
+                        const progress = taskProgress[task.id];
+                        const isChecked = checkedTaskIds.has(task.id);
+                        const steps = TASK_STEPS[task.id] ?? [];
+                        return (
+                          <div
+                            key={task.id}
+                            className={cn(
+                              "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-[opacity,transform] duration-300 ease-out",
+                              revealedTaskIds.has(task.id)
+                                ? "opacity-100 translate-y-0"
+                                : "opacity-0 translate-y-2 pointer-events-none",
+                            )}
+                          >
+                            <div className="flex items-center gap-3 px-3 py-2.5">
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={() => handleToggleTaskCheck(task.id)}
+                                className={cn(
+                                  "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                                  isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                                )}
+                              >
+                                {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                              </button>
+                              <span className={cn(
+                                "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                                isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
+                              )}>
+                                {task.label}
+                              </span>
+                              <button
+                                type="button"
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onClick={() => {
+                                  setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
+                                  setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
+                                  setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
+                                }}
+                                className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {isChecked && progress && (
+                              <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                                <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
+                                  {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
+                                </p>
+                                <div className="space-y-2.5">
+                                  {steps.map((step, stepIdx) => {
+                                    const isStepCompleted = stepIdx < progress.stepIndex;
+                                    const isStepInProgress = stepIdx === progress.stepIndex;
+                                    const isPaused = progress.paused && isStepInProgress;
+                                    const hoverKey = `${task.id}-${stepIdx}`;
+                                    const isHovered = hoveredProgressStep === hoverKey;
+                                    return (
+                                      <div
+                                        key={stepIdx}
+                                        className="flex items-center gap-2.5"
+                                        onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
+                                        onMouseLeave={() => setHoveredProgressStep(null)}
+                                      >
+                                        <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                          {isStepCompleted ? (
+                                            <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                              <Check className="h-3.5 w-3.5 text-white" />
+                                            </div>
+                                          ) : isStepInProgress ? (
+                                            (isHovered || isPaused) ? (
+                                              <button
+                                                type="button"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={() => toggleTaskPause(task.id)}
+                                                className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
+                                              >
+                                                {isPaused
+                                                  ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
+                                                  : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
+                                              </button>
+                                            ) : (
+                                              <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                            )
+                                          ) : (
+                                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                          )}
+                                        </div>
+                                        <span className={cn(
+                                          "text-[13px] leading-5",
+                                          isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
+                                        )}>
+                                          {step}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {aiNewCount > 0 && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-3">
+                  <button
+                    type="button"
+                    onClick={handleAiChipClick}
+                    className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg hover:bg-[#1F2937] transition-colors"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#0B9A8A]" />
+                    {aiNewCount} new message{aiNewCount !== 1 ? "s" : ""}
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* Copilot input */}
+            <div className="shrink-0 border-t border-black/[0.06] p-3">
+              <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                {copilotThinking ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
+                ) : (
+                  <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
+                )}
+                <input
+                  type="text"
+                  value={copilotInput}
+                  onChange={(e) => setCopilotInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCopilotSubmit(); } }}
+                  placeholder={copilotThinking ? "Thinking…" : "Ask Copilot anything..."}
+                  disabled={copilotThinking}
+                  className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={handleCopilotSubmit}
+                  disabled={!copilotInput.trim() || copilotThinking}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      {!isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div ref={footerRef} className="shrink-0 border-t border-border bg-background p-4">
           <div
             className={cn(
@@ -1791,227 +2032,6 @@ export default function ConversationPanel({
         </div>
       )}
       </div>
-
-      {/* Narrow mode: absolute overlay inside the panel, above conversation, below footer */}
-      {isNarrowPanel && showAiPanel && (
-        <>
-          <div
-            ref={narrowOverlayRef}
-            className="absolute right-0 top-0 z-50 w-[23rem] flex flex-col overflow-hidden rounded-l-2xl border-l border-t border-border bg-background shadow-xl"
-            style={{ bottom: footerHeight > 0 ? footerHeight + 1 : 0 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Scrollable content */}
-            <div className="relative flex-1 min-h-0">
-            <div ref={narrowAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
-            {isVoiceChannel && <VoiceAIGuidanceCard />}
-            {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
-              <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
-                  <AccordionItem value="ai-suggestion" className="border-b-0">
-                    <AccordionTrigger className="py-4 text-left hover:no-underline">
-                      <div className="flex flex-1 items-center justify-between mr-2">
-                        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
-                          <span>Suggested Response</span>
-                        </div>
-                        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(-1)} disabled={suggestionVariants.length <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-                          <Button type="button" size="icon" variant="outline" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(1)} disabled={suggestionVariants.length <= 1}><ChevronRight className="h-3.5 w-3.5" /></Button>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4">
-                      <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
-                      {!isVoiceChannel && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            className={cn(
-                              "h-9 rounded-lg px-4",
-                              isSuggestionAdded
-                                ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                                : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                            )}
-                            onClick={handleUseSuggestion}
-                            disabled={isSuggestionAdded}
-                          >
-                            {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                            {isSuggestionAdded ? "Added" : "Use response"}
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>Edit</Button>
-                        </div>
-                      )}
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            )}
-
-            {/* Suggested Actions */}
-            {agentTasks.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-                <div className="px-4 pt-3 pb-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
-                </div>
-                <div className="px-3 pb-3 pt-1 space-y-1.5">
-                  {agentTasks.map((task) => {
-                    const progress = taskProgress[task.id];
-                    const isChecked = checkedTaskIds.has(task.id);
-                    const steps = TASK_STEPS[task.id] ?? [];
-                    return (
-                      <div
-                        key={task.id}
-                        className={cn(
-                          "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-all duration-300 ease-out",
-                          revealedTaskIds.has(task.id)
-                            ? "opacity-100 translate-y-0"
-                            : "opacity-0 translate-y-2 pointer-events-none",
-                        )}
-                      >
-                        {/* Task row */}
-                        <div className="flex items-center gap-3 px-3 py-2.5">
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={() => handleToggleTaskCheck(task.id)}
-                            className={cn(
-                              "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                              isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
-                            )}
-                          >
-                            {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
-                          </button>
-                          <span className={cn(
-                            "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
-                            isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
-                          )}>
-                            {task.label}
-                          </span>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.stopPropagation()}
-                            onClick={() => {
-                              setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
-                              setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
-                              setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
-                            }}
-                            className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-
-                        {/* In-progress steps — shown when checked */}
-                        {isChecked && progress && (
-                          <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
-                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
-                              {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
-                            </p>
-                            <div className="space-y-2.5">
-                              {steps.map((step, stepIdx) => {
-                                const isStepCompleted = stepIdx < progress.stepIndex;
-                                const isStepInProgress = stepIdx === progress.stepIndex;
-                                const isPaused = progress.paused && isStepInProgress;
-                                const hoverKey = `${task.id}-${stepIdx}`;
-                                const isHovered = hoveredProgressStep === hoverKey;
-                                return (
-                                  <div
-                                    key={stepIdx}
-                                    className="flex items-center gap-2.5"
-                                    onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
-                                    onMouseLeave={() => setHoveredProgressStep(null)}
-                                  >
-                                    {/* Step indicator */}
-                                    <div className="shrink-0 h-6 w-6 flex items-center justify-center">
-                                      {isStepCompleted ? (
-                                        <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
-                                          <Check className="h-3.5 w-3.5 text-white" />
-                                        </div>
-                                      ) : isStepInProgress ? (
-                                        (isHovered || isPaused) ? (
-                                          <button
-                                            type="button"
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            onClick={() => toggleTaskPause(task.id)}
-                                            className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
-                                          >
-                                            {isPaused
-                                              ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
-                                              : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
-                                          </button>
-                                        ) : (
-                                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
-                                        )
-                                      ) : (
-                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
-                                      )}
-                                    </div>
-                                    <span className={cn(
-                                      "text-[13px] leading-5",
-                                      isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
-                                    )}>
-                                      {step}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            </div>{/* end overflow-y-auto */}
-            {/* New content chip */}
-            {aiNewCount > 0 && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-3">
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={handleAiChipClick}
-                  className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg hover:bg-[#1F2937] transition-colors"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#0B9A8A]" />
-                  {aiNewCount} new message{aiNewCount !== 1 ? "s" : ""}
-                </button>
-              </div>
-            )}
-            </div>{/* end relative wrapper */}
-          </div>
-          {/* Copilot input footer */}
-          <div className="shrink-0 border-t border-black/[0.06] p-3">
-            <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              {copilotThinking ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
-              ) : (
-                <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
-              )}
-              <input
-                type="text"
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCopilotSubmit(); } }}
-                placeholder={copilotThinking ? "Thinking…" : "Ask Copilot anything..."}
-                disabled={copilotThinking}
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={handleCopilotSubmit}
-                disabled={!copilotInput.trim() || copilotThinking}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
-              >
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Wide inline mode — resize handle + panel */}
       {/* Drag resize handle — present during open/close transitions */}
@@ -2173,7 +2193,7 @@ export default function ConversationPanel({
                     <div
                       key={task.id}
                       className={cn(
-                        "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-all duration-300 ease-out",
+                        "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-[opacity,transform] duration-300 ease-out",
                         revealedTaskIds.has(task.id)
                           ? "opacity-100 translate-y-0"
                           : "opacity-0 translate-y-2 pointer-events-none",
