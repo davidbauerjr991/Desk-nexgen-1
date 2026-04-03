@@ -9,6 +9,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { PhoneCall, Users, BookOpen, MessageSquare } from "lucide-react";
 
 import Activity from "./pages/Activity";
+import ControlPanelPage from "./pages/ControlPanelPage";
 import Desk from "./pages/Desk";
 import NotFound from "./pages/NotFound";
 import Placeholder from "./pages/Placeholder";
@@ -30,8 +31,9 @@ const App = () => (
       <BrowserRouter>
         <Layout>
           <Routes>
-            <Route path="/" element={<Navigate to="/activity" replace state={{ hideMainCanvasPanel: true }} />} />
+            <Route path="/" element={<Navigate to="/control-panel" replace />} />
             <Route path="/activity" element={<Activity />} />
+            <Route path="/control-panel" element={<ControlPanelPage />} />
             <Route path="/desk" element={<Desk />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/settings" element={<SettingsPage />} />

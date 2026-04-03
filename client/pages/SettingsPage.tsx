@@ -1,12 +1,5 @@
-import { Settings } from "lucide-react";
-import Placeholder from "./Placeholder";
+import WorkspaceCanvas from "./WorkspaceCanvas";
 
 export default function SettingsPage() {
-  return (
-    <Placeholder
-      title="Settings"
-      description="Configure your workspace, notification preferences, and integrations in one place."
-      icon={Settings}
-    />
-  );
+  return <WorkspaceCanvas title="Settings" />;
 }

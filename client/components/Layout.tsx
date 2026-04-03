@@ -21,6 +21,7 @@ import {
   PanelLeft,
   PanelRight,
   Pause,
+  TriangleAlert,
   User,
   Phone,
   PhoneOff,
@@ -92,6 +93,8 @@ interface LayoutContextValue {
   activeConversationChannel: CustomerChannel;
   activeConversationTabs: CustomerChannel[];
   selectedAssignment: QueuePreviewItem;
+  visibleAssignments: QueuePreviewItem[];
+  assignmentStatusesById: Record<string, QueueAssignmentStatus>;
   deskPanelSelection: DeskPanelSelection;
   recentInteractions: RecentInteractionItem[];
   conversationState: SharedConversationData;
@@ -113,6 +116,7 @@ interface LayoutContextValue {
   setConversationState: (conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  acceptIssue: (data: AcceptIssueData) => void;
   undockDeskPanel: (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => void;
   toggleCallPopunder: (anchorRect?: DOMRect | null, customerRecordId?: string) => void;
   openCallDisposition: (anchorRect?: DOMRect | null) => void;
@@ -120,7 +124,7 @@ interface LayoutContextValue {
   endCallStatus: () => void;
 }
 
-type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
+export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
 
@@ -155,7 +159,8 @@ const statusOptions: Array<{
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
-  { id: "desktop", name: "Desktop", description: "", routePath: "/activity" },
+  { id: "control-panel", name: "Control Center", description: "", routePath: "/control-panel" },
+  { id: "review", name: "Review", description: "", routePath: "/activity" },
   { id: "wem", name: "WEM", description: "", routePath: "/wem" },
   { id: "schedule", name: "Schedule", description: "", routePath: "/schedule" },
   { id: "settings", name: "Settings", description: "", routePath: "/settings" },
@@ -198,7 +203,7 @@ function getConversationStateKey(assignmentId: string) {
 
 type QueueSortOption = "created-desc" | "created-asc" | "updated-desc" | "updated-asc";
 
-type QueuePreviewItem = {
+export type QueuePreviewItem = {
   id: string;
   customerRecordId: string;
   channel: AssignmentChannel;
@@ -280,6 +285,31 @@ const priorityRankMap: Record<string, number> = {
   low: 3,
 };
 
+const priorityClassNameMap: Record<string, string> = {
+  critical: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
+  high:     "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
+  medium:   "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
+  low:      "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
+};
+
+const priorityBadgeColorMap: Record<string, string> = {
+  critical: "bg-[#F04438]",
+  high:     "bg-[#F79009]",
+  medium:   "bg-[#006DAD]",
+  low:      "bg-[#369D3F]",
+};
+
+export type AcceptIssueData = {
+  id: string;
+  name: string;
+  customerId: string;
+  channel: AssignmentChannel;
+  priority: string;
+  preview: string;
+  status: QueueAssignmentStatus;
+  waitTime: string;
+};
+
 const visibleAssignmentNames = new Set([
   "Noah Patel",
   "Olivia Reed",
@@ -307,6 +337,32 @@ function createFreshConversationState(customerId: string, channel: CustomerChann
     ...conversation,
     timelineLabel: `${conversation.label} · New conversation`,
     messages: [],
+    draft: "",
+    status: "open",
+    isCustomerTyping: false,
+  };
+}
+
+function createCustomConversationState(
+  name: string,
+  channel: AssignmentChannel,
+  preview: string,
+): SharedConversationData {
+  const base = createConversationState(initialSelectedAssignment.customerRecordId, channel);
+  const timestamp = new Date();
+  return {
+    ...base,
+    customerName: name,
+    timelineLabel: `${base.label} · Accepted from queue`,
+    messages: [
+      {
+        id: 1,
+        role: "customer" as const,
+        content: preview,
+        time: timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        isInternal: false,
+      },
+    ],
     draft: "",
     status: "open",
     isCustomerTyping: false,
@@ -798,6 +854,16 @@ function ConversationStatusDropdown({
   );
 }
 
+function getCustomerIssueSummary(conversation: SharedConversationData) {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
+  const content = latestCustomerMessage?.content?.replace(/\s+/g, " ").trim() ?? "";
+  const snippet = content.length > 170 ? `${content.slice(0, 167)}...` : content;
+  return snippet
+    ? `${customerFirstName} is dealing with this issue: ${snippet}`
+    : `${customerFirstName}'s current issue has not been fully captured in the thread yet.`;
+}
+
 function getConversationOverviewSummary(conversation: SharedConversationData) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer");
@@ -805,6 +871,34 @@ function getConversationOverviewSummary(conversation: SharedConversationData) {
   return latestCustomerMessage?.sentiment === "frustrated"
     ? `${customerFirstName} was routed to this agent because the issue is still unresolved and the customer is showing frustration in the current ${conversation.label.toLowerCase()} thread.`
     : `${customerFirstName} was routed to this agent because the current ${conversation.label.toLowerCase()} thread still needs active ownership to move the issue forward.`;
+}
+
+function getAiActionsTaken(conversation: SharedConversationData) {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const channel = conversation.label.toLowerCase();
+  const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
+  const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
+
+  const actions = [
+    `Reviewed the full ${channel} thread and extracted the core issue from ${customerFirstName}'s messages.`,
+    `Checked account history and cross-referenced any recent interactions flagged on the account.`,
+    isFrustrated
+      ? `Detected elevated frustration signals and applied de-escalation routing criteria.`
+      : `Assessed conversation tone and confirmed standard escalation path was appropriate.`,
+    `Prepared a suggested response draft and identified relevant knowledge base articles.`,
+  ];
+  return actions;
+}
+
+function getWhyAgentIsNeeded(conversation: SharedConversationData) {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
+  const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
+
+  if (isFrustrated) {
+    return `${customerFirstName} is showing clear signs of frustration after prior interactions left the issue unresolved. Automated responses have reached their limit — a human agent is needed to rebuild trust, acknowledge the experience empathetically, and drive a concrete resolution in this session.`;
+  }
+  return `The issue ${customerFirstName} raised requires judgment and account-level context that the AI cannot act on autonomously. A human agent is needed to review the details, confirm the right course of action, and deliver a personalised resolution that closes the loop.`;
 }
 
 function ConversationHeaderSubhead({
@@ -943,6 +1037,8 @@ function CallControlsPopunder({
   onEndCall,
   onSelectDisposition,
   onInteractStart,
+  isJoiningCall = false,
+  joiningCallCustomerName = "",
 }: {
   position: CallPopunderPosition;
   size: CallPopunderSize;
@@ -955,6 +1051,8 @@ function CallControlsPopunder({
   onEndCall: () => void;
   onSelectDisposition: (disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) => void;
   onInteractStart?: () => void;
+  isJoiningCall?: boolean;
+  joiningCallCustomerName?: string;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
@@ -1090,7 +1188,7 @@ function CallControlsPopunder({
         <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
           <GripHorizontal className="h-4 w-4 text-[#7A7A7A]" />
           {mode === "setup"
-            ? "Start Call"
+            ? (isJoiningCall ? "Join Call" : "Start Call")
             : mode === "connecting"
               ? "Connecting Call"
               : mode === "controls"
@@ -1112,18 +1210,28 @@ function CallControlsPopunder({
       <div className={cn("space-y-2 p-3", mode === "controls" && "flex min-h-0 flex-1 flex-col")}>
         {mode === "setup" ? (
           <>
-            <div className="space-y-1">
-              <label htmlFor="call-account-number" className="text-xs font-medium text-[#333333]">
-                Account Number
-              </label>
-              <Input
-                id="call-account-number"
-                value={accountNumber}
-                onChange={(event) => setAccountNumber(event.target.value)}
-                placeholder="Enter account number"
-                className="h-9 border-black/10 text-sm"
-              />
-            </div>
+            {isJoiningCall ? (
+              <div className="rounded-xl border border-[#B8D7F0] bg-[#EEF6FC] px-4 py-3.5">
+                <p className="text-[13px] leading-relaxed text-[#1D2939]">
+                  You are about to join a call on hold with{" "}
+                  <span className="font-semibold">{joiningCallCustomerName}</span>.
+                  Please click <span className="font-semibold">"Launch Call"</span> when ready.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label htmlFor="call-account-number" className="text-xs font-medium text-[#333333]">
+                  Account Number
+                </label>
+                <Input
+                  id="call-account-number"
+                  value={accountNumber}
+                  onChange={(event) => setAccountNumber(event.target.value)}
+                  placeholder="Enter account number"
+                  className="h-9 border-black/10 text-sm"
+                />
+              </div>
+            )}
 
             <div className="space-y-2 rounded-xl border border-black/10 bg-[#F8F8F9] p-3">
               <div className="flex items-center justify-between gap-3 text-sm text-[#333333]">
@@ -1161,7 +1269,7 @@ function CallControlsPopunder({
             <Button
               type="button"
               onClick={onLaunchCall}
-              disabled={!accountNumber.trim()}
+              disabled={!isJoiningCall && !accountNumber.trim()}
               className="w-full bg-[#369D3F] text-white hover:bg-[#2E8A36]"
             >
               Launch Call
@@ -1446,6 +1554,7 @@ function DockedConversationPanel({
   onOpenChannel,
   onOpenCustomerInfo,
   onConversationStatusChange,
+  onResolveAssignment,
   overviewIsOpen,
   onOverviewOpenChange,
   isCallDisabled,
@@ -1467,6 +1576,7 @@ function DockedConversationPanel({
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
+  onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
   onOverviewOpenChange: (open: boolean) => void;
   isCallDisabled: boolean;
@@ -1482,6 +1592,7 @@ function DockedConversationPanel({
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
+  const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(false);
   const shouldStackHeaderActions = false;
 
   useEffect(() => {
@@ -1561,58 +1672,119 @@ function DockedConversationPanel({
           <>
             <div
               data-conversation-panel-header
-              className={cn(
-                "flex min-h-[68px] border-b border-border bg-background/50 px-5 py-4",
-                shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-center justify-between gap-3",
-              )}
+              className="relative flex flex-col border-b border-border bg-background/50 px-5 py-4 gap-0"
             >
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  aria-label="Undock conversation panel"
-                  onMouseDown={onUndockStart}
-                  className="flex h-6 w-6 flex-shrink-0 cursor-grab items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333] active:cursor-grabbing"
+              {/* Top row: drag handle · name · actions */}
+              <div className={cn(
+                "flex",
+                shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-center justify-between gap-3",
+              )}>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    aria-label="Undock conversation panel"
+                    onMouseDown={onUndockStart}
+                    className="flex h-6 w-6 flex-shrink-0 cursor-grab items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333] active:cursor-grabbing"
+                  >
+                    <GripHorizontal className="h-4 w-4" />
+                  </button>
+                  <div className="min-w-0">
+                    <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
+                  </div>
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center gap-2",
+                    shouldStackHeaderActions ? "pl-9" : "shrink-0",
+                  )}
                 >
-                  <GripHorizontal className="h-4 w-4" />
-                </button>
-                <div className="min-w-0">
-                  <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} />
+                  <CustomerContactDropdown
+                    onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
+                    onOpenChannel={onOpenChannel}
+                    isCallDisabled={isCallDisabled}
+                  />
+                  {!isNarrowPanel && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => setIsAiPanelVisible((v) => !v)}
+                            aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
+                            className={cn(
+                              "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
+                              isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
+                            )}
+                          >
+                            <PanelRight className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Toggle conversation</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
               </div>
+              {/* AI Handoff Summary — trigger stays in normal flow, content overlays below */}
+              <button
+                type="button"
+                onClick={() => setIsHandoffSummaryOpen((v) => !v)}
+                className="flex items-center gap-1.5 pl-9 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD] hover:opacity-75 transition-opacity"
+              >
+                AI Handoff Summary
+                <ChevronDown
+                  className={cn(
+                    "h-3 w-3 text-[#006DAD] transition-transform duration-200",
+                    isHandoffSummaryOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {/* Always-visible quick summary */}
+              <p className="pl-9 text-xs leading-5 text-[#475467]">
+                {getCustomerIssueSummary(conversation)}
+              </p>
+
+              {/* Absolutely positioned expanded content — overlays the panel content below */}
               <div
                 className={cn(
-                  "flex items-center gap-2",
-                  shouldStackHeaderActions ? "pl-7" : "shrink-0",
+                  "absolute left-0 right-0 top-full z-50 grid border-b border-border bg-card shadow-[0_8px_16px_rgba(16,24,40,0.10)] transition-[grid-template-rows,opacity] duration-300 ease-out",
+                  isHandoffSummaryOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
                 )}
               >
-                <CustomerContactDropdown
-                  onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
-                  onOpenChannel={onOpenChannel}
-                  isCallDisabled={isCallDisabled}
-                />
-                {!isNarrowPanel && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onMouseDown={(event) => event.stopPropagation()}
-                          onClick={() => setIsAiPanelVisible((v) => !v)}
-                          aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
-                          className={cn(
-                            "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                            isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                          )}
-                        >
-                          <PanelRight className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">Toggle conversation</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
+              <div className="overflow-hidden">
+                <div className="px-5 pb-4 pt-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* AI Actions Taken */}
+                    <div className="rounded-lg border border-[#D0E8FA] bg-[#F0F8FF] p-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD]">
+                        AI Actions Taken
+                      </p>
+                      <ul className="space-y-1.5">
+                        {getAiActionsTaken(conversation).map((action, i) => (
+                          <li key={i} className="flex items-start gap-1.5">
+                            <span className="mt-[3px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3694fd]" />
+                            <span className="text-xs leading-5 text-[#344054]">{action}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    {/* Why You're Needed */}
+                    <div className="rounded-lg border border-[#FDDCAB] bg-[#FFFBF5] p-3">
+                      <p className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#B54708]">
+                        <TriangleAlert className="h-3 w-3 flex-shrink-0" />
+                        Why You're Needed
+                      </p>
+                      <p className="text-xs leading-5 text-[#344054]">
+                        {getWhyAgentIsNeeded(conversation)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
             </div>
 
@@ -1625,6 +1797,7 @@ function DockedConversationPanel({
               onConversationChange={onConversationChange}
               onSelectChannel={onSelectChannel}
               onOpenDeskPanel={onOpenDeskPanel}
+              onResolveAssignment={onResolveAssignment}
               showAiPanel={isAiPanelVisible}
             />
           </>
@@ -1658,6 +1831,7 @@ function CombinedInteractionPanel({
   onConversationChange,
   onSelectChannel,
   onOpenDeskPanel,
+  onResolveAssignment,
   onTabChange,
   onClose,
 }: {
@@ -1683,6 +1857,7 @@ function CombinedInteractionPanel({
   onConversationChange: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
+  onResolveAssignment?: () => void;
   onTabChange: (tab: CombinedInteractionPanelTab) => void;
   onClose: () => void;
 }) {
@@ -1763,6 +1938,7 @@ function CombinedInteractionPanel({
                 onConversationChange={onConversationChange}
                 onSelectChannel={onSelectChannel}
                 onOpenDeskPanel={onOpenDeskPanel}
+                onResolveAssignment={onResolveAssignment}
               />
             </TabsContent>
           )}
@@ -2486,6 +2662,7 @@ function ConversationPopunder({
   onOpenChannel,
   onOpenCustomerInfo,
   onConversationStatusChange,
+  onResolveAssignment,
   overviewIsOpen,
   onOverviewOpenChange,
   isCallDisabled,
@@ -2509,6 +2686,7 @@ function ConversationPopunder({
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
+  onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
   onOverviewOpenChange: (open: boolean) => void;
   isCallDisabled: boolean;
@@ -2717,6 +2895,7 @@ function ConversationPopunder({
         onConversationChange={onConversationChange}
         onSelectChannel={onSelectChannel}
         onOpenDeskPanel={onOpenDeskPanel}
+        onResolveAssignment={onResolveAssignment}
         showAiPanel={isAiPanelVisible}
       />
 
@@ -3233,6 +3412,7 @@ function LeftQueueRail({
   onRemoveAssignment,
   isOpen,
   onToggle,
+  completedTodayCount,
 }: {
   visibleAssignments: QueuePreviewItem[];
   queueStatuses: Record<string, QueueAssignmentStatus>;
@@ -3240,9 +3420,9 @@ function LeftQueueRail({
   onRemoveAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   isOpen: boolean;
   onToggle: () => void;
+  completedTodayCount: number;
 }) {
   const toggleLeftRailOpen = onToggle;
-  const [isPriorityAssistEnabled, setIsPriorityAssistEnabled] = useState(true);
   const {
     closeFloatingAppSpacePanel,
     isAppSpacePanelInDragMode,
@@ -3258,16 +3438,12 @@ function LeftQueueRail({
       isActive: item.id === selectedAssignment.id,
     }));
 
-    if (!isPriorityAssistEnabled) {
-      return nextItems;
-    }
-
     return [...nextItems].sort(
       (left, right) =>
         (priorityRankMap[left.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER) -
         (priorityRankMap[right.priority.toLowerCase()] ?? Number.MAX_SAFE_INTEGER),
     );
-  }, [isPriorityAssistEnabled, selectedAssignment.id, visibleAssignments]);
+  }, [selectedAssignment.id, visibleAssignments]);
 
   // Group flat items by customer so multi-channel customers share one card
   const groupedQueueItems = useMemo(
@@ -3393,37 +3569,36 @@ function LeftQueueRail({
           >
             <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-black/[0.16] bg-white">
               <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
-                <div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                    </div>
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <label htmlFor="ai-priority-assist" className="text-sm font-medium text-[#333333]">
-                        AI Priority Assist
-                      </label>
-                    </div>
-                    <Switch
-                      id="ai-priority-assist"
-                      checked={isPriorityAssistEnabled}
-                      onCheckedChange={setIsPriorityAssistEnabled}
-                      aria-label="Toggle AI Priority Assist"
-                      className="mt-0.5 data-[state=checked]:bg-[#006DAD] data-[state=unchecked]:bg-[#D0D5DD]"
-                    />
-                  </div>
-                </div>
+                <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
+                <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <QueueOverlayList
-                  groups={groupedQueueItems}
-                  queueStatuses={queueStatuses}
-                  onStatusChange={onStatusChange}
-                  onRemove={handleRemoveQueueItem}
-                  isOpen={isOpen}
-                  onSelectAssignment={selectAssignment}
-                />
+                {groupedQueueItems.length === 0 ? (
+                  <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" className="mb-4 h-16 w-16 shrink-0">
+                      <rect x="10" y="18" width="60" height="48" rx="6" fill="#F2F4F7" stroke="#D0D5DD" strokeWidth="1.5"/>
+                      <rect x="18" y="10" width="44" height="48" rx="6" fill="#F9FAFB" stroke="#D0D5DD" strokeWidth="1.5"/>
+                      <rect x="26" y="22" width="28" height="3.5" rx="1.75" fill="#D0D5DD"/>
+                      <rect x="26" y="30" width="20" height="3" rx="1.5" fill="#E4E7EC"/>
+                      <rect x="26" y="37" width="24" height="3" rx="1.5" fill="#E4E7EC"/>
+                      <circle cx="58" cy="56" r="12" fill="#EEF6FC" stroke="#B8D7F0" strokeWidth="1.5"/>
+                      <path d="M54 56l3 3 5-5" stroke="#006DAD" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <p className="text-[12px] font-semibold text-[#344054] leading-snug">No Active Assignments</p>
+                    <p className="mt-1.5 text-[11px] text-[#667085] leading-relaxed">
+                      Please select from the Customer Issue list or wait and the next available will be assigned to you.
+                    </p>
+                  </div>
+                ) : (
+                  <QueueOverlayList
+                    groups={groupedQueueItems}
+                    queueStatuses={queueStatuses}
+                    onStatusChange={onStatusChange}
+                    onRemove={handleRemoveQueueItem}
+                    isOpen={isOpen}
+                    onSelectAssignment={selectAssignment}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -3576,11 +3751,30 @@ export default function Layout({ children }: LayoutProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>(initialWorkspaceOptions[0].id);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>("control-panel");
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const workspaceMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openWorkspaceMenu = () => {
+    if (workspaceMenuTimeout.current) clearTimeout(workspaceMenuTimeout.current);
+    setWorkspaceMenuOpen(true);
+  };
+  const closeWorkspaceMenu = () => {
+    workspaceMenuTimeout.current = setTimeout(() => setWorkspaceMenuOpen(false), 120);
+  };
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const statusMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openStatusMenu = () => {
+    if (statusMenuTimeout.current) clearTimeout(statusMenuTimeout.current);
+    setStatusMenuOpen(true);
+  };
+  const closeStatusMenu = () => {
+    statusMenuTimeout.current = setTimeout(() => setStatusMenuOpen(false), 120);
+  };
   const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>(() => (
     Object.fromEntries(initialVisibleAssignments.map((item) => [item.id, item])) as Record<string, QueuePreviewItem>
   ));
   const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>(() => initialVisibleAssignmentIds);
+  const [completedTodayCount, setCompletedTodayCount] = useState(0);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   const [conversationStatesByKey, setConversationStatesByKey] = useState<Record<string, SharedConversationData>>(() => ({
     [getConversationStateKey(initialSelectedAssignmentId)]: defaultConversationState,
@@ -3644,6 +3838,9 @@ export default function Layout({ children }: LayoutProps) {
   const [pendingCallCustomerRecordId, setPendingCallCustomerRecordId] = useState(initialSelectedAssignment.customerRecordId);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
+  const [isJoiningCallPopunder, setIsJoiningCallPopunder] = useState(false);
+  const [joiningCallCustomerName, setJoiningCallCustomerName] = useState("");
+  const [joiningCallAssignmentId, setJoiningCallAssignmentId] = useState<string | null>(null);
   const [callPopunderSize, setCallPopunderSize] = useState<CallPopunderSize>({ width: 360, height: 520 });
   const [callPopunderPosition, setCallPopunderPosition] = useState<CallPopunderPosition>(() => {
     if (typeof window === "undefined") {
@@ -3740,7 +3937,7 @@ export default function Layout({ children }: LayoutProps) {
     !isCanvasMergedIntoCombinedPanel &&
     isCustomerInfoPanelAllowed &&
     !isCustomerInfoPopunderOpen;
-  const isDockedConversationVisible = !isCombinedInteractionPanel && isConversationPanelOpen;
+  const isDockedConversationVisible = isActivityRoute && !isCombinedInteractionPanel && isConversationPanelOpen;
   const isMainCanvasVisible = !isExpandedCanvasRoute && !isCanvasMergedIntoCombinedPanel;
   const isDeskCustomerInfoPopunderVisible =
     isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
@@ -3771,7 +3968,7 @@ export default function Layout({ children }: LayoutProps) {
         return false;
       }
 
-      if (workspace.id === "desktop") {
+      if (workspace.id === "review") {
         return location.pathname === "/activity" || location.pathname === "/desk";
       }
 
@@ -3886,6 +4083,16 @@ export default function Layout({ children }: LayoutProps) {
     handleConversationStateChange({
       ...conversationState,
       status: nextStatus,
+    });
+  };
+
+  const handleResolveAssignment = () => {
+    const assignmentName = selectedAssignment.name;
+    handleRemoveVisibleAssignment(selectedAssignmentId);
+    toast(`Assignment resolved — ${assignmentName}`, {
+      description: "The assignment has been marked as resolved and removed from the queue.",
+      position: "bottom-right",
+      duration: 4000,
     });
   };
 
@@ -4500,6 +4707,7 @@ export default function Layout({ children }: LayoutProps) {
   const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"]) => {
     const removedAssignment = assignmentItemsById[assignmentId];
     const conversationStateKey = getConversationStateKey(assignmentId);
+    setCompletedTodayCount((n) => n + 1);
 
     if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
       window.clearTimeout(customerReplyTimeoutsRef.current[conversationStateKey]);
@@ -4511,6 +4719,10 @@ export default function Layout({ children }: LayoutProps) {
 
       if (selectedAssignmentId === assignmentId) {
         setSelectedAssignmentId(nextIds[0] ?? removedAssignment?.customerRecordId ?? initialSelectedAssignmentId);
+      }
+
+      if (nextIds.length === 0) {
+        navigate("/control-panel");
       }
 
       return nextIds;
@@ -4539,6 +4751,52 @@ export default function Layout({ children }: LayoutProps) {
     if (activeCallAssignmentId === assignmentId) {
       setActiveCallAssignmentId(null);
     }
+  };
+
+  const acceptIssue = (data: AcceptIssueData) => {
+    const timestamp = new Date();
+    const isoTimestamp = timestamp.toISOString();
+    const initials = data.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    const priorityKey = data.priority.toLowerCase();
+
+    const newItem: QueuePreviewItem = {
+      id: `issue-${data.id}-${timestamp.getTime()}`,
+      customerRecordId: `issue-${data.id}`,
+      channel: data.channel,
+      initials,
+      name: data.name,
+      customerId: data.customerId,
+      lastUpdated: formatRecentInteractionTimestamp(timestamp),
+      time: data.waitTime,
+      preview: data.preview,
+      priority: data.priority,
+      priorityClassName: priorityClassNameMap[priorityKey] ?? priorityClassNameMap.medium,
+      badgeColor: priorityBadgeColorMap[priorityKey] ?? priorityBadgeColorMap.medium,
+      icon: launchedAssignmentIconMap[data.channel],
+      isActive: false,
+      createdAt: isoTimestamp,
+      updatedAt: isoTimestamp,
+    };
+
+    const conversationStateKey = getConversationStateKey(newItem.id);
+    const conversationState = createCustomConversationState(data.name, data.channel, data.preview);
+
+    setAssignmentItemsById((current) => ({ ...current, [newItem.id]: newItem }));
+    setVisibleAssignmentIds((current) => [newItem.id, ...current]);
+    setAssignmentStatusesById((current) => ({ ...current, [newItem.id]: data.status }));
+    setSelectedAssignmentId(newItem.id);
+    setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
+
+    if (data.channel === "voice") {
+      setIsJoiningCallPopunder(true);
+      setJoiningCallCustomerName(data.name);
+      setJoiningCallAssignmentId(newItem.id);
+      setCallPopunderMode("setup");
+      setCallPopunderPosition(getAnchoredCallPopunderPosition());
+      setIsCallPopunderOpen(true);
+    }
+
+    navigate("/activity");
   };
 
   const dockConversationPanel = () => {
@@ -4807,7 +5065,9 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    if (isActivityRoute || isDeskRoute) {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
   };
 
   const dockDeskCanvasPopunder = () => {
@@ -4878,7 +5138,9 @@ export default function Layout({ children }: LayoutProps) {
         y: event.clientY - nextPosition.y,
       },
     });
-    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    if (isActivityRoute || isDeskRoute) {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
   };
 
   const closeFloatingAppSpacePanel = () => {
@@ -4887,7 +5149,9 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPanelOpen(false);
     setIsCustomerInfoPopunderOpen(false);
     setCustomerInfoDragActivation(null);
-    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    if (isActivityRoute || isDeskRoute) {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
   };
 
   const closeAppSpacePanel = () => {
@@ -4957,7 +5221,9 @@ export default function Layout({ children }: LayoutProps) {
         setDeskCanvasPopunderSize({ width, height: defaultHeight });
         setDeskCanvasPopunderPosition(position);
         setDeskCanvasDragActivation(null);
-        navigate("/activity", { state: { hideMainCanvasPanel: true } });
+        if (isActivityRoute) {
+          navigate("/activity", { state: { hideMainCanvasPanel: true } });
+        }
         return;
       }
       const nextRoute = view === "copilot"
@@ -5000,7 +5266,9 @@ export default function Layout({ children }: LayoutProps) {
     setDeskCanvasPopunderSize({ width, height: defaultHeight });
     setDeskCanvasPopunderPosition(position);
     setDeskCanvasDragActivation(null);
-    navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    if (isActivityRoute) {
+      navigate("/activity", { state: { hideMainCanvasPanel: true } });
+    }
   };
 
   const layoutContextValue = useMemo(
@@ -5018,6 +5286,8 @@ export default function Layout({ children }: LayoutProps) {
       activeConversationChannel,
       activeConversationTabs,
       selectedAssignment,
+      visibleAssignments,
+      assignmentStatusesById,
       deskPanelSelection,
       recentInteractions,
       conversationState,
@@ -5087,6 +5357,7 @@ export default function Layout({ children }: LayoutProps) {
         setActiveRightPanel(null);
       },
       undockDeskPanel,
+      acceptIssue,
       selectAssignment: (assignmentId) => {
         setDeskPanelSelection(null);
         setSelectedAssignmentId(assignmentId);
@@ -5184,6 +5455,9 @@ export default function Layout({ children }: LayoutProps) {
       shouldPreserveFloatingCustomerInfoPanel,
       deskCanvasPopunderView,
       selectedAssignment,
+      visibleAssignments,
+      assignmentStatusesById,
+      acceptIssue,
       status,
       toggleConversationPanel,
       undockDeskPanel,
@@ -5195,8 +5469,8 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
-      <header className="flex min-h-[60px] shrink-0 items-center gap-2 px-4 py-2 lg:gap-4">
-        <div className="flex flex-none items-center lg:min-w-0 lg:flex-1 lg:gap-3">
+      <header className="grid min-h-[60px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2">
+        <div className="flex flex-none items-center lg:min-w-0 lg:gap-3">
           <button
             type="button"
             onClick={() => setIsLeftRailOpen((v) => !v)}
@@ -5206,67 +5480,62 @@ export default function Layout({ children }: LayoutProps) {
           >
             <PanelLeft className="h-4 w-4" />
           </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Select workspace"
-                className="hidden min-w-0 items-start gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none lg:flex"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
-                    Agent Workspace
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-[#7A7A7A]">
-                    {activeWorkspace.name}
-                  </span>
-                </span>
-                <ChevronDown className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#666666]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              sideOffset={10}
-              className="w-[300px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+          <div
+            className="relative hidden lg:block"
+            onMouseEnter={openWorkspaceMenu}
+            onMouseLeave={closeWorkspaceMenu}
+          >
+            {/* Trigger */}
+            <button
+              type="button"
+              aria-label="Select workspace"
+              className="flex min-w-0 items-start gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none"
             >
-              <DropdownMenuLabel className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A7A7A]">
-                Workspaces
-              </DropdownMenuLabel>
-              <div className="space-y-1">
-                {workspaceOptions.map((workspace) => {
-                  const isActiveWorkspace = workspace.id === activeWorkspace.id;
+              <span className="min-w-0">
+                <span className="block truncate text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
+                  Agent Workspace
+                </span>
+                <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-[#7A7A7A]">
+                  {activeWorkspace.name}
+                </span>
+              </span>
+              <ChevronDown className={cn("mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#666666] transition-transform duration-150", workspaceMenuOpen && "rotate-180")} />
+            </button>
 
-                  return (
-                    <DropdownMenuItem
-                      key={workspace.id}
-                      onClick={() => {
-                        setActiveWorkspaceId(workspace.id);
-
-                        if (workspace.routePath && location.pathname !== workspace.routePath) {
-                          navigate(workspace.routePath);
-                        }
-                      }}
-                      className="rounded-xl px-3 py-3 focus:bg-[#F8F8F9]"
-                    >
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span
-                          className={cn(
-                            "mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full",
-                            isActiveWorkspace ? "bg-[#006DAD]" : "bg-black/10",
-                          )}
-                        />
+            {/* Hover panel — same DOM subtree, no portal */}
+            {workspaceMenuOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2.5 w-[300px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
+                <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A7A7A]">
+                  Workspaces
+                </p>
+                <div className="space-y-1">
+                  {workspaceOptions.map((workspace) => {
+                    const isActiveWorkspace = workspace.id === activeWorkspace.id;
+                    return (
+                      <button
+                        key={workspace.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveWorkspaceId(workspace.id);
+                          setWorkspaceMenuOpen(false);
+                          if (workspace.routePath && location.pathname !== workspace.routePath) {
+                            navigate(workspace.routePath);
+                          }
+                        }}
+                        className="flex w-full min-w-0 items-start gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#F8F8F9] transition-colors"
+                      >
+                        <span className={cn("mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full", isActiveWorkspace ? "bg-[#006DAD]" : "bg-black/10")} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-semibold text-[#333333]">{workspace.name}</div>
                           {workspace.description ? (
                             <div className="mt-0.5 text-xs leading-5 text-[#6B7280]">{workspace.description}</div>
                           ) : null}
                         </div>
-                      </div>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </div>
-              <DropdownMenuSeparator className="my-2 bg-black/10" />
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="my-2 h-px bg-black/10" />
               <div className="flex items-center justify-between rounded-xl px-3 py-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
                   {isDarkMode ? <Moon className="h-4 w-4 text-[#006DAD]" /> : <Sun className="h-4 w-4 text-[#006DAD]" />}
@@ -5323,153 +5592,130 @@ export default function Layout({ children }: LayoutProps) {
                   </svg>
                 )}
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          )}
+          </div>
         </div>
 
-        <div className="relative flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-1.5">
-          <div
-            className={cn(
-              "flex items-center gap-1.5",
-              isHeaderSearchOpen && "mx-auto min-w-0 flex-1 justify-center",
-            )}
-          >
-            <div
+        {/* Center: Search */}
+        <div className="flex items-center justify-center">
+          <div className="relative w-full min-w-[450px]">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#98A2B3]" />
+            <Input
+              ref={headerSearchInputRef}
               id="header-search-input"
-              className={cn(
-                "overflow-hidden transition-all duration-200 ease-out",
-                isHeaderSearchOpen
-                  ? "w-full max-w-[640px] opacity-100"
-                  : "pointer-events-none w-0 opacity-0",
-              )}
-            >
-              <Input
-                ref={headerSearchInputRef}
-                type="search"
-                placeholder="Search workspace"
-                aria-label="Search workspace"
-                tabIndex={isHeaderSearchOpen ? 0 : -1}
-                className="h-9 w-full rounded-full border-black/10 bg-white px-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#B8D7F0]"
-              />
-            </div>
+              type="search"
+              placeholder="Search workspace"
+              aria-label="Search workspace"
+              className="h-9 w-full rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#B8D7F0] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#B8D7F0]"
+            />
           </div>
+        </div>
 
-          {!isHeaderSearchOpen && (
-            <>
-              <HeaderIconButton
-                ariaLabel="Open Desk"
-                onClick={() => openHeaderAppPanel("desk")}
-                isActive={deskCanvasPopunderView === "desk" || isDeskView}
-              >
-                <Monitor className="h-4 w-4 stroke-[1.8]" />
-              </HeaderIconButton>
-
-              <HeaderIconButton
-                ariaLabel="Open notifications"
-                onClick={() => openHeaderAppPanel("notifications")}
-                isActive={deskCanvasPopunderView === "notifications" || activeDeskRouteView === "notifications"}
-              >
-                <div className="relative">
-                  <Bell className="h-4 w-4 stroke-[1.8]" />
-                  <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />
-                </div>
-              </HeaderIconButton>
-
-              <div ref={notesButtonRef}>
-                <HeaderIconButton
-                  ariaLabel="Open notes in desk panel"
-                  onClick={() => {
-                    setIsNotesPopoverOpen(false);
-                    openHeaderAppPanel("notes");
-                  }}
-                  isActive={deskCanvasPopunderView === "notes" || activeDeskRouteView === "notes"}
-                >
-                  <FileText className="h-4 w-4 stroke-[1.8]" />
-                </HeaderIconButton>
-              </div>
-
-              <div ref={addNewButtonRef}>
-                <HeaderIconButton
-                  ariaLabel="Open add in desk panel"
-                  onClick={() => {
-                    setIsAddNewPopoverOpen(false);
-                    openHeaderAppPanel("add");
-                  }}
-                  isActive={deskCanvasPopunderView === "add" || activeDeskRouteView === "add"}
-                >
-                  <Plus className="h-4 w-4 stroke-[1.8]" />
-                </HeaderIconButton>
-              </div>
-            </>
-          )}
-
-          {!isHeaderSearchOpen && (
-            <div ref={copilotButtonRef}>
-              <HeaderIconButton
-                ariaLabel="Open Copilot"
-                onClick={() => openHeaderAppPanel("copilot")}
-                isActive={deskCanvasPopunderView === "copilot" || isCopilotDeskView}
-              >
-                <Bot className="h-4 w-4 stroke-[1.8]" />
-              </HeaderIconButton>
-            </div>
-          )}
-
+        {/* Right: Icon buttons + status */}
+        <div className="flex items-center justify-end gap-1 sm:gap-1.5">
           <HeaderIconButton
-            ariaLabel={isHeaderSearchOpen ? "Collapse header search" : "Expand header search"}
-            ariaExpanded={isHeaderSearchOpen}
-            ariaControls="header-search-input"
-            onClick={() => setIsHeaderSearchOpen((current) => !current)}
-            isActive={isHeaderSearchOpen}
+            ariaLabel="Open Desk"
+            onClick={() => openHeaderAppPanel("desk")}
+            isActive={deskCanvasPopunderView === "desk" || isDeskView}
           >
-            <Search className="h-4 w-4 stroke-[1.8]" />
+            <Monitor className="h-4 w-4 stroke-[1.8]" />
           </HeaderIconButton>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E6F3FA] focus:outline-none"
-              >
-                <span
-                  aria-hidden="true"
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
-                >
-                  JD
-                </span>
-                <span className="hidden min-w-0 flex-col items-start sm:flex">
-                  <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
-                    {activeStatus.label}
-                  </span>
-                  <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
-                    {formatStatusDuration(elapsedSeconds)}
-                  </span>
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-[#666666]" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              sideOffset={8}
-              className="w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]"
+          <HeaderIconButton
+            ariaLabel="Open notifications"
+            onClick={() => openHeaderAppPanel("notifications")}
+            isActive={deskCanvasPopunderView === "notifications" || activeDeskRouteView === "notifications"}
+          >
+            <div className="relative">
+              <Bell className="h-4 w-4 stroke-[1.8]" />
+              <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />
+            </div>
+          </HeaderIconButton>
+
+          <div ref={notesButtonRef}>
+            <HeaderIconButton
+              ariaLabel="Open notes in desk panel"
+              onClick={() => {
+                setIsNotesPopoverOpen(false);
+                openHeaderAppPanel("notes");
+              }}
+              isActive={deskCanvasPopunderView === "notes" || activeDeskRouteView === "notes"}
             >
-              <div className="space-y-1">
-                {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
-                  <DropdownMenuItem
-                    key={option.label}
-                    onClick={() => {
-                      setStatus(option.label);
-                      setStatusStartedAt(Date.now());
-                    }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] focus:bg-[#F8F8F9]"
-                  >
-                    <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
-                    <span>{option.label}</span>
-                  </DropdownMenuItem>
-                ))}
+              <FileText className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
+
+          <div ref={addNewButtonRef}>
+            <HeaderIconButton
+              ariaLabel="Open add in desk panel"
+              onClick={() => {
+                setIsAddNewPopoverOpen(false);
+                openHeaderAppPanel("add");
+              }}
+              isActive={deskCanvasPopunderView === "add" || activeDeskRouteView === "add"}
+            >
+              <Plus className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
+
+          <div ref={copilotButtonRef}>
+            <HeaderIconButton
+              ariaLabel="Open Copilot"
+              onClick={() => openHeaderAppPanel("copilot")}
+              isActive={deskCanvasPopunderView === "copilot" || isCopilotDeskView}
+            >
+              <Bot className="h-4 w-4 stroke-[1.8]" />
+            </HeaderIconButton>
+          </div>
+
+          <div
+            className="relative"
+            onMouseEnter={openStatusMenu}
+            onMouseLeave={closeStatusMenu}
+          >
+            <button
+              type="button"
+              className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E6F3FA] focus:outline-none"
+            >
+              <span
+                aria-hidden="true"
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
+              >
+                JD
+              </span>
+              <span className="hidden min-w-0 flex-col items-start sm:flex">
+                <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
+                  {activeStatus.label}
+                </span>
+                <span className={`mt-1 text-[11px] font-medium leading-none ${activeStatus.textClassName}`}>
+                  {formatStatusDuration(elapsedSeconds)}
+                </span>
+              </span>
+              <ChevronDown className={cn("h-3.5 w-3.5 text-[#666666] transition-transform duration-150", statusMenuOpen && "rotate-180")} />
+            </button>
+            {statusMenuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-[180px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
+                <div className="space-y-1">
+                  {statusOptions.filter((option) => option.label !== "In a Call").map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => {
+                        setStatus(option.label);
+                        setStatusStartedAt(Date.now());
+                        setStatusMenuOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] hover:bg-[#F8F8F9] transition-colors"
+                    >
+                      <span className={`h-3 w-3 rounded-full ${option.dotClassName}`} />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+          </div>
 
         </div>
       </header>
@@ -5482,6 +5728,7 @@ export default function Layout({ children }: LayoutProps) {
           onRemoveAssignment={handleRemoveVisibleAssignment}
           isOpen={isLeftRailOpen}
           onToggle={() => setIsLeftRailOpen((v) => !v)}
+          completedTodayCount={completedTodayCount}
         />
         {isCombinedInteractionPanel ? (
           <CombinedInteractionPanel
@@ -5504,6 +5751,7 @@ export default function Layout({ children }: LayoutProps) {
             onConversationChange={handleConversationStateChange}
             onSelectChannel={setActiveConversationChannel}
             onOpenDeskPanel={openDeskPanel}
+            onResolveAssignment={handleResolveAssignment}
             onTabChange={(tab) => {
               setCombinedInteractionPanelTab(tab);
               setIsConversationPanelOpen(true);
@@ -5529,6 +5777,7 @@ export default function Layout({ children }: LayoutProps) {
                 onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
                 onOpenCustomerInfo={openCustomerInfoIconPopover}
                 onConversationStatusChange={handleConversationStatusChange}
+                onResolveAssignment={handleResolveAssignment}
                 overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
                 onOverviewOpenChange={(open) => {
                   setOverviewOpenByAssignmentId((currentState) => ({
@@ -5635,7 +5884,7 @@ export default function Layout({ children }: LayoutProps) {
         ) : (
           <>
             <DockedConversationPanel
-              isOpen={isConversationPanelOpen}
+              isOpen={isDockedConversationVisible}
               conversation={conversationState}
               openChannels={activeConversationTabs}
               activeChannel={activeConversationChannel}
@@ -5647,6 +5896,7 @@ export default function Layout({ children }: LayoutProps) {
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
               onOpenCustomerInfo={openCustomerInfoIconPopover}
               onConversationStatusChange={handleConversationStatusChange}
+              onResolveAssignment={handleResolveAssignment}
               overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
               onOverviewOpenChange={(open) => {
                 setOverviewOpenByAssignmentId((currentState) => ({
@@ -5770,6 +6020,7 @@ export default function Layout({ children }: LayoutProps) {
           onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
           onOpenCustomerInfo={openCustomerInfoIconPopover}
           onConversationStatusChange={handleConversationStatusChange}
+          onResolveAssignment={handleResolveAssignment}
           overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
           onOverviewOpenChange={(open) => {
             setOverviewOpenByAssignmentId((currentState) => ({
@@ -5828,6 +6079,8 @@ export default function Layout({ children }: LayoutProps) {
           zIndex={getFloatingPanelZIndex("call")}
           onPositionChange={setCallPopunderPosition}
           onSizeChange={setCallPopunderSize}
+          isJoiningCall={isJoiningCallPopunder}
+          joiningCallCustomerName={joiningCallCustomerName}
           onClose={() => {
             if (callConnectTimeoutRef.current !== null) {
               window.clearTimeout(callConnectTimeoutRef.current);
@@ -5835,17 +6088,32 @@ export default function Layout({ children }: LayoutProps) {
             }
             setIsCallPopunderOpen(false);
             setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
+            setIsJoiningCallPopunder(false);
+            setJoiningCallCustomerName("");
+            setJoiningCallAssignmentId(null);
           }}
           onLaunchCall={() => {
             if (callConnectTimeoutRef.current !== null) {
               window.clearTimeout(callConnectTimeoutRef.current);
             }
 
+            const capturedJoiningAssignmentId = joiningCallAssignmentId;
+            setIsJoiningCallPopunder(false);
+            setJoiningCallCustomerName("");
+            setJoiningCallAssignmentId(null);
             setCallPopunderMode("connecting");
             callConnectTimeoutRef.current = window.setTimeout(() => {
               layoutContextValue.startCallStatus();
-              const nextVoiceAssignment = openCustomerConversation(pendingCallCustomerRecordId, "voice");
-              setActiveCallAssignmentId(nextVoiceAssignment.id);
+              let resolvedAssignmentId: string;
+              if (capturedJoiningAssignmentId) {
+                // Re-use the card already created by acceptIssue — don't open a duplicate
+                setSelectedAssignmentId(capturedJoiningAssignmentId);
+                resolvedAssignmentId = capturedJoiningAssignmentId;
+              } else {
+                const nextVoiceAssignment = openCustomerConversation(pendingCallCustomerRecordId, "voice");
+                resolvedAssignmentId = nextVoiceAssignment.id;
+              }
+              setActiveCallAssignmentId(resolvedAssignmentId);
               setIsCallPopunderOpen(false);
               setCallPopunderMode("controls");
               setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());

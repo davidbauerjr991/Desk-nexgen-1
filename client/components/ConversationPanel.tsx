@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, AudioLines, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, NotebookPen, Paperclip, Pause, Pin, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
+import { AlertTriangle, AudioLines, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, NotebookPen, Paperclip, Pause, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { getRelevantCustomerTicket, type CustomerTicket } from "@/components/NotesPanel";
-import { VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
+import { VoiceAIGuidanceCard, VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
 import { getCustomerRecord, type CustomerChannel } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +46,7 @@ interface ConversationPanelProps {
   onConversationChange?: (conversation: SharedConversationData, channel?: CustomerChannel) => void;
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel?: (selection?: { initialTab?: string; ticketId?: string }) => void;
+  onResolveAssignment?: () => void;
   showAiPanel?: boolean;
 }
 
@@ -104,6 +105,9 @@ const TASK_COMPLETION_NOTES: Record<string, string> = {
   "send-coupon": "Discount coupon email sent",
   "escalate": "Escalated to supervisor",
   "callback": "Callback scheduled",
+  "upgrade-beverage-package": "Beverage package upgraded",
+  "confirm-credit-line": "Credit line confirmed",
+  "set-resolved": "Assignment resolved",
 };
 
 const TASK_COMPLETION_REPLIES: Record<string, string> = {
@@ -112,6 +116,9 @@ const TASK_COMPLETION_REPLIES: Record<string, string> = {
   "send-coupon": "I've sent a discount coupon to your email address on file. Is there anything else I can do for you?",
   "escalate": "I've escalated this to a supervisor who will be with you shortly. Is there anything else you need while you wait?",
   "callback": "I've scheduled a callback for you. You'll receive a confirmation shortly. Is there anything else I can help you with?",
+  "upgrade-beverage-package": "I've processed the upgrade to your beverage package. You should receive a confirmation email shortly.",
+  "confirm-credit-line": "I've confirmed your credit line details. Everything looks good on our end.",
+  "set-resolved": "Thank you so much for reaching out! I'm glad we could help. Have a great day!",
 };
 
 const TASK_ACTION_TITLES: Record<string, string> = {
@@ -120,6 +127,9 @@ const TASK_ACTION_TITLES: Record<string, string> = {
   "send-coupon": "Sending Discount Coupon...",
   "escalate": "Escalating to Supervisor...",
   "callback": "Scheduling Callback...",
+  "upgrade-beverage-package": "Upgrading Beverage Package...",
+  "confirm-credit-line": "Confirming Credit Line...",
+  "set-resolved": "Resolving Assignment...",
 };
 
 const TASK_STEPS: Record<string, string[]> = {
@@ -148,6 +158,22 @@ const TASK_STEPS: Record<string, string[]> = {
     "Checking agent availability",
     "Creating callback appointment",
     "Sending confirmation to customer",
+  ],
+  "upgrade-beverage-package": [
+    "Checking current package tier",
+    "Verifying upgrade eligibility",
+    "Processing package change",
+    "Sending confirmation to customer",
+  ],
+  "confirm-credit-line": [
+    "Pulling account credit details",
+    "Verifying authorisation status",
+    "Confirming credit line terms",
+  ],
+  "set-resolved": [
+    "Closing conversation thread",
+    "Updating assignment status",
+    "Removing from queue",
   ],
 };
 
@@ -192,6 +218,11 @@ function getSuggestedAgentTasks(conversation: SharedConversationData, latestCust
 
   if (["callback", "call back", "schedule", "appointment", "call me"].some((k) => allContent.includes(k))) {
     tasks.push({ id: "callback", label: "Schedule a callback" });
+  }
+
+  const latestContent = latestCustomerMessage.content.toLowerCase();
+  if (["thank you", "thanks", "that's great", "that was helpful", "resolved", "satisfied", "happy", "all set", "appreciate", "perfect", "wonderful", "great help", "problem solved", "sorted"].some((k) => latestContent.includes(k))) {
+    tasks.push({ id: "set-resolved", label: "Set assignment to resolved" });
   }
 
   return tasks;
@@ -771,6 +802,7 @@ export default function ConversationPanel({
   onConversationChange,
   onSelectChannel,
   onOpenDeskPanel,
+  onResolveAssignment,
   showAiPanel = true,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
@@ -785,7 +817,7 @@ export default function ConversationPanel({
   const wideAiScrollRef = useRef<HTMLDivElement>(null);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [footerHeight, setFooterHeight] = useState(0);
-  const [isSummaryPinned, setIsSummaryPinned] = useState(false);
+
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
@@ -798,6 +830,10 @@ export default function ConversationPanel({
   const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
   const [aiPanelWidth, setAiPanelWidth] = useState(368); // 23rem default
   const aiPanelDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  // Wide AI panel animation states — content hides before width collapses so nothing looks squished
+  const [isAiContentVisible, setIsAiContentVisible] = useState(showAiPanel);
+  const [isAiContentEntered, setIsAiContentEntered] = useState(showAiPanel);
+  const [aiDisplayWidth, setAiDisplayWidth] = useState(showAiPanel ? 368 : 0);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
@@ -914,6 +950,32 @@ export default function ConversationPanel({
     textarea.style.height = `${textarea.scrollHeight}px`;
   }, [draft]);
 
+  // Sequence the wide AI panel open/close animation:
+  // Closing — fade content out first, then collapse width so nothing gets squished.
+  // Opening — expand width first, then fade content in once the panel is visible.
+  useEffect(() => {
+    if (isNarrowPanel) return;
+    if (showAiPanel) {
+      setAiDisplayWidth(aiPanelWidth);
+      setIsAiContentVisible(true);
+      const t = window.setTimeout(() => setIsAiContentEntered(true), 260);
+      return () => window.clearTimeout(t);
+    } else {
+      setIsAiContentEntered(false);
+      const t = window.setTimeout(() => {
+        setAiDisplayWidth(0);
+        setIsAiContentVisible(false);
+      }, 210);
+      return () => window.clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAiPanel, isNarrowPanel]);
+
+  // Keep display width in sync when the agent drags the resize handle.
+  useEffect(() => {
+    if (showAiPanel && !isNarrowPanel) setAiDisplayWidth(aiPanelWidth);
+  }, [aiPanelWidth, showAiPanel, isNarrowPanel]);
+
   // Reset agent tasks and all related state whenever the conversation changes (new customer/channel).
   useEffect(() => {
     setAgentTasks([]);
@@ -959,6 +1021,31 @@ export default function ConversationPanel({
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestCustomerMessage?.id]);
+
+  // Animate in voice-specific suggested tasks when the call is connected.
+  useEffect(() => {
+    if (!isVoiceChannel) return;
+
+    const voiceTasks: AgentTask[] = [
+      { id: "upgrade-beverage-package", label: "Upgrade beverage package" },
+      { id: "confirm-credit-line", label: "Confirm credit line" },
+    ];
+
+    setAgentTasks((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const newTasks = voiceTasks.filter((t) => !existingIds.has(t.id));
+      if (newTasks.length === 0) return prev;
+
+      newTasks.forEach((task, i) => {
+        const timer = setTimeout(() => {
+          setRevealedTaskIds((ids) => new Set([...ids, task.id]));
+        }, 500 + i * 220);
+        taskRevealTimersRef.current.push(timer);
+      });
+
+      return [...prev, ...newTasks];
+    });
+  }, [isVoiceChannel]);
 
   // Advance in-progress task steps one at a time (1.8s per step) unless paused.
   // stepIndex === steps.length means all steps completed (one past the last).
@@ -1020,6 +1107,9 @@ export default function ConversationPanel({
         setCheckedTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
         setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
         setTaskProgress((prev) => { const { [taskId]: _, ...rest } = prev; return rest; });
+        if (taskId === "set-resolved") {
+          onResolveAssignment?.();
+        }
       }, 1200);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1377,7 +1467,57 @@ export default function ConversationPanel({
             </div>
 
             {isVoiceChannel ? (
-              <VoiceGuidancePanel />
+              <>
+                {/* Internal notes generated by completed voice actions — shown above the transcript */}
+                {conversation.messages.filter((m) => m.isInternal).map((message) => (
+                  <div key={message.id} className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] overflow-hidden">
+                    <button
+                      type="button"
+                      className={cn(
+                        "flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left",
+                        message.ticket ? "cursor-pointer hover:bg-[#F3F4F6] transition-colors" : "cursor-default",
+                      )}
+                      onClick={() => {
+                        if (!message.ticket) return;
+                        setExpandedNoteIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(message.id)) { next.delete(message.id); } else { next.add(message.id); }
+                          return next;
+                        });
+                      }}
+                    >
+                      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E4E7EC]">
+                        <NotebookPen className="h-2.5 w-2.5 text-[#667085]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Internal Note</span>
+                          <span className="text-[10px] text-[#98A2B3]">{formatConversationMessageTimestamp(message.time)}</span>
+                        </div>
+                        <p className="text-[13px] leading-5 text-[#344054]">{message.content}</p>
+                      </div>
+                      {message.ticket && (
+                        <ChevronDown className={cn("mt-0.5 h-4 w-4 shrink-0 text-[#98A2B3] transition-transform", expandedNoteIds.has(message.id) && "rotate-180")} />
+                      )}
+                    </button>
+                    {message.ticket && (
+                      <div
+                        className={cn(
+                          "grid transition-all duration-200 ease-out",
+                          expandedNoteIds.has(message.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+                        )}
+                      >
+                        <div className="overflow-hidden">
+                          <div className="border-t border-dashed border-[#D0D5DD] p-2">
+                            <InlineTicketRecord ticket={message.ticket} isOpen onToggle={() => {}} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <VoiceGuidancePanel />
+              </>
             ) : isEmailChannel ? (
               <EmailConversationView
                 conversation={conversation}
@@ -1661,55 +1801,10 @@ export default function ConversationPanel({
             style={{ bottom: footerHeight > 0 ? footerHeight + 1 : 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Pinned summary — sticky above scroll area */}
-            {isSummaryPinned && (
-              <div className="shrink-0 border-b border-black/[0.06] p-3 pb-2">
-                <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-                  <Accordion type="single" collapsible defaultValue="summary">
-                    <AccordionItem value="summary" className="border-b-0">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                        <div className="flex flex-1 items-center justify-between mr-2">
-                          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
-                          <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(false); }} className="rounded p-0.5 text-[#006DAD] transition-colors hover:text-[#0A5E92]"><Pin className="h-3.5 w-3.5 fill-current" /></button>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="px-3 pb-3 space-y-2">
-                          <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                            <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
-                            <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </div>
-              </div>
-            )}
             {/* Scrollable content */}
             <div className="relative flex-1 min-h-0">
             <div ref={narrowAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
-            {/* Summary accordion (unpinned) */}
-            {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-              <Accordion type="single" collapsible defaultValue="summary">
-                <AccordionItem value="summary" className="border-b-0">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex flex-1 items-center justify-between mr-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
-                      <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(true); }} className="rounded p-0.5 text-[#AAAAAA] transition-colors hover:text-[#006DAD]"><Pin className="h-3.5 w-3.5" /></button>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="px-3 pb-3 space-y-2">
-                      <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                        <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
-                        <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>}
+            {isVoiceChannel && <VoiceAIGuidanceCard />}
             {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
               <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
@@ -1727,24 +1822,26 @@ export default function ConversationPanel({
                     </AccordionTrigger>
                     <AccordionContent className="pb-4">
                       <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          className={cn(
-                            "h-9 rounded-lg px-4",
-                            isSuggestionAdded
-                              ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                              : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                          )}
-                          onClick={handleUseSuggestion}
-                          disabled={isSuggestionAdded}
-                        >
-                          {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                          {isSuggestionAdded ? "Added" : "Use response"}
-                        </Button>
-                        <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>Edit</Button>
-                      </div>
+                      {!isVoiceChannel && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className={cn(
+                              "h-9 rounded-lg px-4",
+                              isSuggestionAdded
+                                ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                                : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                            )}
+                            onClick={handleUseSuggestion}
+                            disabled={isSuggestionAdded}
+                          >
+                            {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                            {isSuggestionAdded ? "Added" : "Use response"}
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]" onClick={handleOpenSuggestionEditor}>Edit</Button>
+                        </div>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
@@ -1917,7 +2014,8 @@ export default function ConversationPanel({
       )}
 
       {/* Wide inline mode — resize handle + panel */}
-      {!isNarrowPanel && showAiPanel && (
+      {/* Drag resize handle — present during open/close transitions */}
+      {!isNarrowPanel && isAiContentVisible && (
         <div
           className="relative h-full w-1 shrink-0 cursor-col-resize group z-10"
           onMouseDown={(e) => {
@@ -1942,63 +2040,25 @@ export default function ConversationPanel({
           <div className="absolute inset-y-0 left-[-1px] w-[5px] bg-transparent group-hover:bg-primary/20 transition-colors" />
         </div>
       )}
+      {/* Wide AI panel — width animates open/closed, content fades separately */}
       <div
         className={cn(
-          "h-full shrink-0 overflow-hidden transition-[opacity] duration-300 ease-in-out",
-          !isNarrowPanel && showAiPanel ? "opacity-100" : "w-0 opacity-0 pointer-events-none",
+          "h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
+          isNarrowPanel && "pointer-events-none",
         )}
-        style={!isNarrowPanel && showAiPanel ? { width: aiPanelWidth } : undefined}
+        style={{ width: isNarrowPanel ? 0 : aiDisplayWidth }}
       >
-        <div className="h-full flex flex-col overflow-hidden" style={{ width: aiPanelWidth }}>
-          {/* Pinned summary — sticky above scroll area */}
-          {isSummaryPinned && (
-            <div className="shrink-0 border-b border-black/[0.06] p-3 pb-2">
-              <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-                <Accordion type="single" collapsible defaultValue="summary">
-                  <AccordionItem value="summary" className="border-b-0">
-                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                      <div className="flex flex-1 items-center justify-between mr-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
-                        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(false); }} className="rounded p-0.5 text-[#006DAD] transition-colors hover:text-[#0A5E92]"><Pin className="h-3.5 w-3.5 fill-current" /></button>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="px-3 pb-3 space-y-2">
-                        <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                          <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
-                          <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
-            </div>
+        <div
+          className={cn(
+            "h-full flex flex-col overflow-hidden transition-[opacity] duration-[220ms] ease-in-out",
+            isAiContentEntered ? "opacity-100" : "opacity-0",
           )}
+          style={{ width: aiPanelWidth }}
+        >
           {/* Scrollable content */}
           <div className="relative flex-1 min-h-0">
           <div ref={wideAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
-          {/* Summary accordion (unpinned) */}
-          {!isSummaryPinned && <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-            <Accordion type="single" collapsible defaultValue="summary">
-              <AccordionItem value="summary" className="border-b-0">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                  <div className="flex flex-1 items-center justify-between mr-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Summary</span>
-                    <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); setIsSummaryPinned(true); }} className="rounded p-0.5 text-[#AAAAAA] transition-colors hover:text-[#006DAD]"><Pin className="h-3.5 w-3.5" /></button>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="px-3 pb-3 space-y-2">
-                    <div className="rounded-xl bg-white border border-black/[0.06] px-3 py-2.5">
-                      <p className="text-xs font-semibold text-[#111827]">Real Time Summary</p>
-                      <p className="mt-1 text-xs leading-5 text-[#475467]">{conversationOverview.customerIssue}</p>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>}
+          {isVoiceChannel && <VoiceAIGuidanceCard />}
           {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
             <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
               <Accordion
@@ -2064,32 +2124,34 @@ export default function ConversationPanel({
                         </div>
                       </div>
                     ) : null}
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        className={cn(
-                          "h-9 rounded-lg px-4",
-                          isSuggestionAdded
-                            ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                            : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                        )}
-                        onClick={handleUseSuggestion}
-                        disabled={isSuggestionAdded}
-                      >
-                        {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                        {isSuggestionAdded ? "Added" : "Use response"}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]"
-                        onClick={handleOpenSuggestionEditor}
-                      >
-                        Edit
-                      </Button>
-                    </div>
+                    {!isVoiceChannel && (
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          className={cn(
+                            "h-9 rounded-lg px-4",
+                            isSuggestionAdded
+                              ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
+                              : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                          )}
+                          onClick={handleUseSuggestion}
+                          disabled={isSuggestionAdded}
+                        >
+                          {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
+                          {isSuggestionAdded ? "Added" : "Use response"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]"
+                          onClick={handleOpenSuggestionEditor}
+                        >
+                          Edit
+                        </Button>
+                      </div>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -2252,8 +2314,8 @@ export default function ConversationPanel({
               </button>
             </div>
           </div>
-        </div>{/* end flex-col wrapper */}
-      </div>{/* end outer panel wrapper */}
+        </div>{/* end flex-col / opacity wrapper */}
+      </div>{/* end width-animating outer panel */}
     </div>
   );
 }

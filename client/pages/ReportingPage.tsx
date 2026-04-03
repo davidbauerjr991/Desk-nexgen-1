@@ -1,13 +1,5 @@
-import { ChartSpline } from "lucide-react";
-
-import Placeholder from "./Placeholder";
+import WorkspaceCanvas from "./WorkspaceCanvas";
 
 export default function ReportingPage() {
-  return (
-    <Placeholder
-      title="Reporting"
-      description="Review team performance, channel trends, and operational metrics in a dedicated reporting workspace."
-      icon={ChartSpline}
-    />
-  );
+  return <WorkspaceCanvas title="Reporting" />;
 }
