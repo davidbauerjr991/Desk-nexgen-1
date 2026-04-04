@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
@@ -13,6 +14,7 @@ import {
   FileText,
   GripHorizontal,
   Mail,
+  Trash2,
   MessageCircle,
   MessageSquare,
   Mic,
@@ -125,6 +127,10 @@ interface LayoutContextValue {
   openCallDisposition: (anchorRect?: DOMRect | null) => void;
   startCallStatus: () => void;
   endCallStatus: () => void;
+  pendingAcceptanceIds: Set<string>;
+  acceptPendingAssignment: (assignmentId: string) => void;
+  rejectPendingAssignment: (assignmentId: string) => void;
+  reviewPendingAssignment: (assignmentId: string) => void;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
@@ -136,6 +142,7 @@ export type ResolvedAssignment = {
   priority: string;
   channel: AssignmentChannel;
   resolvedAt: number; // Date.now() timestamp
+  customerRecordId: string;
 };
 
 const LayoutContext = createContext<LayoutContextValue | null>(null);
@@ -319,6 +326,10 @@ export type AcceptIssueData = {
   preview: string;
   status: QueueAssignmentStatus;
   waitTime: string;
+  /** When true, voice tasks open the outbound dial setup (enter account number) instead of the inbound join-call screen */
+  isOutbound?: boolean;
+  /** Called with the newly-created assignment id after the item is added to the queue */
+  onCreated?: (assignmentId: string) => void;
 };
 
 const visibleAssignmentNames = new Set([
@@ -388,15 +399,19 @@ function getLaunchedAssignmentPreview(channel: AssignmentChannel) {
   return `New ${channel.toUpperCase()} conversation started.`;
 }
 
-function createLaunchedAssignment(customerRecordId: string, channel: AssignmentChannel): QueuePreviewItem {
-  const baseAssignment = queuePreviewItemsByCustomerRecordId[customerRecordId] ?? queuePreviewItems[0];
+function createLaunchedAssignment(customerRecordId: string, channel: AssignmentChannel, existingAssignment?: QueuePreviewItem): QueuePreviewItem {
+  // Prefer static lookup, then any existing assignment for this customer, then the first
+  // static item as a last-resort shape fallback (display data only — id/customerRecordId are always overridden below).
+  const baseAssignment = queuePreviewItemsByCustomerRecordId[customerRecordId] ?? existingAssignment ?? queuePreviewItems[0];
   const timestamp = new Date();
   const isoTimestamp = timestamp.toISOString();
 
   return {
     ...baseAssignment,
     id: `${customerRecordId}-${channel}-${timestamp.getTime()}`,
-    customerRecordId: baseAssignment.customerRecordId,
+    // Always use the requested customerRecordId — the fallback baseAssignment is only
+    // used for display fields (name, initials, etc.), never for the identity key.
+    customerRecordId: customerRecordId,
     channel,
     icon: launchedAssignmentIconMap[channel],
     isActive: false,
@@ -1754,7 +1769,7 @@ function DockedConversationPanel({
                 onClick={() => setIsHandoffSummaryOpen((v) => !v)}
                 className="flex items-center gap-1.5 pl-9 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD] hover:opacity-75 transition-opacity"
               >
-                AI Handoff Summary
+                Task Summary
                 <ChevronDown
                   className={cn(
                     "h-3 w-3 text-[#006DAD] transition-transform duration-200",
@@ -3344,6 +3359,105 @@ function QueueAssignmentCard({
   );
 }
 
+// ─── Inline agent roster (for the Reject → Assign popover) ───────────────────
+
+const inlineAgents = [
+  { id: "a1", name: "Jordan Doe",     initials: "JD", availability: "Available" as const, active: 2 },
+  { id: "a2", name: "Priya Mehra",    initials: "PM", availability: "Available" as const, active: 1 },
+  { id: "a3", name: "Sam Torres",     initials: "ST", availability: "Available" as const, active: 3 },
+  { id: "a4", name: "Kenji Watanabe", initials: "KW", availability: "In a Call" as const, active: 4 },
+  { id: "a5", name: "Amara Osei",     initials: "AO", availability: "Available" as const, active: 2 },
+  { id: "a6", name: "Lena Fischer",   initials: "LF", availability: "Away"      as const, active: 1 },
+];
+
+const agentDot: Record<string, string> = {
+  Available:  "bg-[#12B76A]",
+  "In a Call": "bg-[#F79009]",
+  Away:       "bg-[#D0D5DD]",
+};
+
+function AgentSelectPopover({
+  triggerRect,
+  onClose,
+  onAssign,
+}: {
+  triggerRect: DOMRect;
+  onClose: () => void;
+  onAssign: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [assigned, setAssigned] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const POPOVER_WIDTH = 272;
+  const GAP = 8;
+  const left = Math.max(8, Math.min(triggerRect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
+  const top = triggerRect.top - GAP;
+
+  const handleAssign = (agentId: string) => {
+    setAssigned(agentId);
+    setTimeout(() => { onAssign(); onClose(); }, 700);
+  };
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[9999] w-68 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={{ left, top, transform: "translateY(-100%)", width: POPOVER_WIDTH }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <p className="text-[12px] font-semibold text-[#333333]">Assign to Agent</p>
+        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="max-h-56 overflow-y-auto divide-y divide-border">
+        {inlineAgents.map((agent) => {
+          const isAssigned = assigned === agent.id;
+          const isDisabled = agent.availability !== "Available" || (assigned !== null && !isAssigned);
+          return (
+            <button
+              key={agent.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => handleAssign(agent.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                isAssigned ? "bg-[#EEF6FC]" : "hover:bg-[#F9FAFB]",
+                isDisabled && "opacity-40 cursor-not-allowed",
+              )}
+            >
+              <div className="relative shrink-0">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">
+                  {agent.initials}
+                </div>
+                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", agentDot[agent.availability])} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
+                <p className="text-[10px] text-[#98A2B3]">{agent.active} active</p>
+              </div>
+              {isAssigned && <span className="text-[10px] font-semibold text-[#006DAD]">Assigned</span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="px-4 py-2 border-t border-border bg-[#F9FAFB]">
+        <p className="text-[10px] text-[#98A2B3]">Sorted by availability</p>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function GroupedQueueCard({
   group,
   queueStatuses,
@@ -3361,7 +3475,24 @@ function GroupedQueueCard({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const { isAgentInCall, openCallDisposition, activeCallAssignmentId } = useLayoutContext();
+  const {
+    isAgentInCall,
+    openCallDisposition,
+    activeCallAssignmentId,
+    pendingAcceptanceIds,
+    acceptPendingAssignment,
+    rejectPendingAssignment,
+    reviewPendingAssignment,
+  } = useLayoutContext();
+
+  // Task-level status — driven by the last-active (primary) channel.
+  // Changing it syncs ALL channels so the task always has one status.
+  const primaryChannelId = group.lastActiveChannel.id;
+  const primaryStatus = queueStatuses[primaryChannelId] ?? "open";
+  const canRemoveTask = primaryStatus !== "open";
+  const handleGroupStatusChange = (newStatus: QueueAssignmentStatus) => {
+    group.channels.forEach((ch) => onStatusChange(ch.id, newStatus));
+  };
 
   const priorityKey = (group.priority ?? "medium").toLowerCase();
   const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
@@ -3371,6 +3502,14 @@ function GroupedQueueCard({
     low:      { idle: "#B7E6DD", active: "#369D3F", stripe: "#369D3F", shadow: "rgba(54,157,63,0.14)" },
   };
   const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
+
+  // Which channel (if any) is awaiting the agent's action
+  const pendingChannelId = group.channels.find((ch) => pendingAcceptanceIds.has(ch.id))?.id ?? null;
+
+  // Reject popover state (per-card)
+  const [showAgentPopover, setShowAgentPopover] = useState(false);
+  const [agentPopoverRect, setAgentPopoverRect] = useState<DOMRect | null>(null);
+  const rejectBtnRef = useRef<HTMLButtonElement>(null);
 
   return (
     <div
@@ -3387,9 +3526,30 @@ function GroupedQueueCard({
     >
       {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px]" style={{ backgroundColor: pc.stripe }} />}
 
-      {/* Customer name header */}
-      <div className="px-4 pb-1 pt-3">
-        <span className="text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
+      {/* Customer name header — task-level status + close on the right */}
+      <div className="flex items-center gap-2 px-4 pb-1 pt-3">
+        <span className="flex-1 text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
+        <div
+          className="flex shrink-0 items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <ConversationStatusDropdown
+            status={primaryStatus}
+            onStatusChange={handleGroupStatusChange}
+          />
+          {canRemoveTask && (
+            <button
+              type="button"
+              aria-label={`Close task for ${group.name}`}
+              onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Channel rows */}
@@ -3397,8 +3557,6 @@ function GroupedQueueCard({
         const ItemIcon = item.icon;
         const channelLabel =
           conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
-        const status = queueStatuses[item.id] ?? "open";
-        const canRemove = status !== "open";
         const isChannelActive = item.isActive;
         const showActiveVoiceControls =
           isAgentInCall && item.id === activeCallAssignmentId;
@@ -3421,7 +3579,7 @@ function GroupedQueueCard({
                 isChannelActive ? "bg-[#EEF6FC]" : "hover:bg-[#F8F8F9]",
               )}
             >
-              {/* Top row: channel badge + timestamp + status + remove */}
+              {/* Top row: channel badge + timestamp + trash */}
               <div className="flex items-center gap-2">
                 {/* Channel badge */}
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5B5B5B]">
@@ -3435,28 +3593,16 @@ function GroupedQueueCard({
                   {item.time}
                 </span>
 
-                {/* Status + remove — pushed to the right */}
-                <div
-                  className="ml-auto flex shrink-0 items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
+                {/* Trash — remove this channel from the task */}
+                <button
+                  type="button"
+                  aria-label={`Remove ${channelLabel} channel`}
+                  onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
                   onMouseDown={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
+                  className="ml-auto flex h-5 w-5 items-center justify-center rounded text-[#C0C5CE] transition-colors hover:bg-[#FEF2F2] hover:text-[#B42318]"
                 >
-                  <ConversationStatusDropdown
-                    status={status}
-                    onStatusChange={(s) => onStatusChange(item.id, s)}
-                  />
-                  {canRemove ? (
-                    <button
-                      type="button"
-                      aria-label={`Remove ${channelLabel} for ${group.name}`}
-                      onClick={() => onRemove(item.id)}
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  ) : null}
-                </div>
+                  <Trash2 className="h-3 w-3" />
+                </button>
               </div>
 
               {/* Bottom row: preview stretches full width */}
@@ -3466,6 +3612,49 @@ function GroupedQueueCard({
               {showActiveVoiceControls ? (
                 <ActiveVoiceAssignmentControls onOpenDisposition={openCallDisposition} />
               ) : null}
+
+              {/* Pending action buttons — Reject / Accept / Review */}
+              {item.id === pendingChannelId && (
+                <div
+                  className="mt-1 flex items-center gap-1.5"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {showAgentPopover && agentPopoverRect && (
+                    <AgentSelectPopover
+                      triggerRect={agentPopoverRect}
+                      onClose={() => setShowAgentPopover(false)}
+                      onAssign={() => rejectPendingAssignment(item.id)}
+                    />
+                  )}
+                  <button
+                    ref={rejectBtnRef}
+                    type="button"
+                    onClick={() => {
+                      setAgentPopoverRect(rejectBtnRef.current?.getBoundingClientRect() ?? null);
+                      setShowAgentPopover((v) => !v);
+                    }}
+                    className="flex-1 rounded-md border border-border bg-white py-1.5 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => acceptPendingAssignment(item.id)}
+                    className="flex-1 rounded-md bg-[#006DAD] py-1.5 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => reviewPendingAssignment(item.id)}
+                    className="flex-1 rounded-md border border-[#006DAD] py-1.5 text-[11px] font-semibold text-[#006DAD] hover:bg-[#006DAD]/10 transition-colors"
+                  >
+                    Review
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -3524,6 +3713,9 @@ function LeftQueueRail({
   onToggle: () => void;
   completedTodayCount: number;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isOnControlCenter = location.pathname === "/control-panel";
   const toggleLeftRailOpen = onToggle;
   const {
     closeFloatingAppSpacePanel,
@@ -3685,6 +3877,20 @@ function LeftQueueRail({
               <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
                 <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
                 <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
+                <button
+                  type="button"
+                  disabled={isOnControlCenter}
+                  onClick={() => navigate("/control-panel")}
+                  className={cn(
+                    "mt-2.5 flex w-full items-center rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors",
+                    isOnControlCenter
+                      ? "cursor-default border-[#006DAD]/30 text-[#006DAD]/40"
+                      : "border-[#006DAD] text-[#006DAD] hover:bg-[#006DAD]/10",
+                  )}
+                >
+                  <span className="flex-1 text-center">Control Center</span>
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                </button>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {groupedQueueItems.length === 0 ? (
@@ -3833,6 +4039,7 @@ export default function Layout({ children }: LayoutProps) {
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
   const [deskCanvasPopunderView, setDeskCanvasPopunderView] = useState<DeskCanvasView | null>(null);
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
+  const [isPageEntered, setIsPageEntered] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
     width: 380,
@@ -3890,10 +4097,9 @@ export default function Layout({ children }: LayoutProps) {
   const closeStatusMenu = () => {
     statusMenuTimeout.current = setTimeout(() => setStatusMenuOpen(false), 120);
   };
-  const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>(() => (
-    Object.fromEntries(initialVisibleAssignments.map((item) => [item.id, item])) as Record<string, QueuePreviewItem>
-  ));
-  const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>(() => initialVisibleAssignmentIds);
+  const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>({});
+  const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>([]);
+  const [pendingAcceptanceIds, setPendingAcceptanceIds] = useState<Set<string>>(new Set());
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
   const [resolvedAssignments, setResolvedAssignments] = useState<ResolvedAssignment[]>([]);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
@@ -3977,6 +4183,9 @@ export default function Layout({ children }: LayoutProps) {
   const previousAgentStatusRef = useRef<Exclude<AgentStatus, "In a Call">>("Available");
   const callConnectTimeoutRef = useRef<number | null>(null);
   const customerReplyTimeoutsRef = useRef<Record<string, number>>({});
+  // Persists conversation state when a channel is trashed so it can be restored on reopen.
+  // Key: `${customerRecordId}::${channel}`
+  const channelStateArchiveRef = useRef<Map<string, SharedConversationData>>(new Map());
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const chatButtonRef = useRef<HTMLDivElement | null>(null);
@@ -3992,6 +4201,21 @@ export default function Layout({ children }: LayoutProps) {
 
     return () => window.clearInterval(interval);
   }, [statusStartedAt]);
+
+  useEffect(() => {
+    setIsPageEntered(false);
+    // Double rAF ensures the `false` state actually paints before transitioning in
+    let inner: number;
+    const outer = window.requestAnimationFrame(() => {
+      inner = window.requestAnimationFrame(() => {
+        setIsPageEntered(true);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(outer);
+      window.cancelAnimationFrame(inner);
+    };
+  }, [location.pathname]);
 
   useEffect(() => {
     return () => {
@@ -4021,8 +4245,9 @@ export default function Layout({ children }: LayoutProps) {
     if (status !== "Available") return;
     if (visibleAssignmentIds.length >= 3) return;
 
-    // Random delay: 8–28 seconds (well within the 30-second max)
-    const delay = Math.floor(Math.random() * 20_000) + 8_000;
+    // Minimum 15 seconds of availability before pushing an assignment;
+    // add up to 10 s of jitter so back-to-back assignments feel natural.
+    const delay = Math.floor(Math.random() * 10_000) + 15_000;
 
     autoAssignTimerRef.current = window.setTimeout(() => {
       autoAssignTimerRef.current = null;
@@ -4039,6 +4264,9 @@ export default function Layout({ children }: LayoutProps) {
         setAssignmentItemsById((current) => ({ ...current, [nextItem.id]: nextItem }));
         setAssignmentStatusesById((current) => ({ ...current, [nextItem.id]: "open" }));
         setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
+
+        // Mark as pending so the card shows Reject / Accept / Review buttons.
+        setPendingAcceptanceIds((prev) => new Set([...prev, nextItem.id]));
 
         toast(`New assignment — ${nextItem.name}`, {
           description: nextItem.preview,
@@ -4820,7 +5048,13 @@ export default function Layout({ children }: LayoutProps) {
       }
     }
 
-    const nextAssignment = createLaunchedAssignment(customerRecordId, channel);
+    // Find any existing assignment for this customer so display data (name, initials, etc.)
+    // is taken from their real card rather than falling back to the first static item.
+    const existingAssignment = visibleAssignmentIds
+      .map((id) => assignmentItemsById[id])
+      .find((item) => item?.customerRecordId === customerRecordId);
+
+    const nextAssignment = createLaunchedAssignment(customerRecordId, channel, existingAssignment);
 
     setDeskPanelSelection(null);
     setAssignmentItemsById((currentItems) => ({
@@ -4833,10 +5067,18 @@ export default function Layout({ children }: LayoutProps) {
       [nextAssignment.id]: "open",
     }));
     setSelectedAssignmentId(nextAssignment.id);
-    setConversationStatesByKey((currentStates) => ({
-      ...currentStates,
-      [getConversationStateKey(nextAssignment.id)]: createFreshConversationState(customerRecordId, channel),
-    }));
+    setConversationStatesByKey((currentStates) => {
+      // Restore archived state if the agent previously removed this channel.
+      const archiveKey = `${customerRecordId}::${channel}`;
+      const archived = channelStateArchiveRef.current.get(archiveKey);
+      if (archived) {
+        channelStateArchiveRef.current.delete(archiveKey);
+      }
+      return {
+        ...currentStates,
+        [getConversationStateKey(nextAssignment.id)]: archived ?? createFreshConversationState(customerRecordId, channel),
+      };
+    });
     openConversationPanel();
 
     return nextAssignment;
@@ -4895,6 +5137,7 @@ export default function Layout({ children }: LayoutProps) {
           priority: removedAssignment.priority,
           channel: removedAssignment.channel,
           resolvedAt: Date.now(),
+          customerRecordId: removedAssignment.customerRecordId,
         },
         ...prev,
       ]);
@@ -4924,6 +5167,11 @@ export default function Layout({ children }: LayoutProps) {
       return nextItems;
     });
     setConversationStatesByKey((currentStates) => {
+      // Archive the conversation state so it can be restored if the agent reopens this channel.
+      if (removedAssignment && currentStates[conversationStateKey]) {
+        const archiveKey = `${removedAssignment.customerRecordId}::${removedAssignment.channel}`;
+        channelStateArchiveRef.current.set(archiveKey, currentStates[conversationStateKey]);
+      }
       const nextStates = { ...currentStates };
       delete nextStates[conversationStateKey];
       return nextStates;
@@ -4933,15 +5181,42 @@ export default function Layout({ children }: LayoutProps) {
       delete nextOverviewState[assignmentId];
       return nextOverviewState;
     });
-    setAssignmentStatusesById((currentStatuses) => {
-      const nextStatuses = { ...currentStatuses };
-      delete nextStatuses[assignmentId];
-      return nextStatuses;
-    });
+    // Note: assignmentStatusesById intentionally NOT cleared here.
+    // The last-known status is preserved so the Control Center can keep
+    // closed tasks in their final tab (pending / escalated / etc.) and
+    // show Transfer / Open buttons instead of "In Progress".
 
     if (activeCallAssignmentId === assignmentId) {
       setActiveCallAssignmentId(null);
     }
+  };
+
+  const removePending = (assignmentId: string) =>
+    setPendingAcceptanceIds((prev) => { const n = new Set(prev); n.delete(assignmentId); return n; });
+
+  const acceptPendingAssignment = (assignmentId: string) => {
+    removePending(assignmentId);
+    setSelectedAssignmentId(assignmentId);
+    const assignment = assignmentItemsById[assignmentId];
+    if (assignment?.channel === "voice") {
+      setJoiningCallAssignmentId(assignmentId);
+      setCallPopunderMode("setup");
+      setCallPopunderPosition(getAnchoredCallPopunderPosition());
+      setIsCallPopunderOpen(true);
+    }
+    navigate("/activity");
+  };
+
+  const rejectPendingAssignment = (assignmentId: string) => {
+    removePending(assignmentId);
+    handleRemoveVisibleAssignment(assignmentId);
+  };
+
+  const reviewPendingAssignment = (assignmentId: string) => {
+    // Do NOT remove from pending — buttons stay until the agent accepts.
+    // Just select the assignment and navigate so the agent can read the conversation.
+    setSelectedAssignmentId(assignmentId);
+    navigate("/activity");
   };
 
   const acceptIssue = (data: AcceptIssueData) => {
@@ -4977,15 +5252,7 @@ export default function Layout({ children }: LayoutProps) {
     setAssignmentStatusesById((current) => ({ ...current, [newItem.id]: data.status }));
     setSelectedAssignmentId(newItem.id);
     setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
-
-    if (data.channel === "voice") {
-      setIsJoiningCallPopunder(true);
-      setJoiningCallCustomerName(data.name);
-      setJoiningCallAssignmentId(newItem.id);
-      setCallPopunderMode("setup");
-      setCallPopunderPosition(getAnchoredCallPopunderPosition());
-      setIsCallPopunderOpen(true);
-    }
+    data.onCreated?.(newItem.id);
 
     navigate("/activity");
   };
@@ -5650,6 +5917,10 @@ export default function Layout({ children }: LayoutProps) {
         setStatus(previousAgentStatusRef.current);
         setStatusStartedAt(Date.now());
       },
+      pendingAcceptanceIds,
+      acceptPendingAssignment,
+      rejectPendingAssignment,
+      reviewPendingAssignment,
     }),
     [
       activeRightPanel,
@@ -5692,6 +5963,10 @@ export default function Layout({ children }: LayoutProps) {
       undockDeskPanel,
       setActiveConversationChannel,
       isCombinedInteractionPanel,
+      pendingAcceptanceIds,
+      acceptPendingAssignment,
+      rejectPendingAssignment,
+      reviewPendingAssignment,
     ],
   );
 
@@ -5954,7 +6229,11 @@ export default function Layout({ children }: LayoutProps) {
           completedTodayCount={completedTodayCount}
         />
         {isActivityRoute && visibleAssignments.length === 0 && (
-          <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-lg border border-black/[0.10] bg-white">
+          <div className={cn(
+            "flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-lg border border-black/[0.10] bg-white",
+            "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
+            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+          )}>
             <div className="flex flex-col items-center gap-4 text-center px-8 max-w-sm">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2F4F7]">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" className="h-9 w-9">
@@ -5981,38 +6260,48 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         )}
         {isCombinedInteractionPanel ? (
-          <CombinedInteractionPanel
-            isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
-            width={dockedConversationWidth}
-            maxWidth={conversationPanelMaxWidth}
-            activeTab={combinedInteractionPanelTab}
-            conversation={conversationState}
-            openChannels={activeConversationTabs}
-            activeChannel={activeConversationChannel}
-            customerRecordId={selectedAssignment.customerRecordId}
-            customerName={selectedAssignment.name}
-            customerId={selectedAssignment.customerId}
-            panelSelection={deskPanelSelection}
-            showConversationTab
-            showCanvasTab={isCanvasMergedIntoCombinedPanel}
-            canvasTabLabel={deskCanvasTabLabel}
-            canvasContent={children}
-            isFullWidth={isCanvasMergedIntoCombinedPanel}
-            onConversationChange={handleConversationStateChange}
-            onSelectChannel={setActiveConversationChannel}
-            onOpenDeskPanel={openDeskPanel}
-            onResolveAssignment={handleResolveAssignment}
-            onTabChange={(tab) => {
-              setCombinedInteractionPanelTab(tab);
-              setIsConversationPanelOpen(true);
-              setIsCustomerInfoPanelOpen(true);
-              setIsConversationPopunderOpen(false);
-              setIsCustomerInfoPopunderOpen(false);
-            }}
-            onClose={closeCombinedInteractionPanel}
-          />
+          <div className={cn(
+            "flex min-w-0 flex-1",
+            "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
+            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+          )}>
+            <CombinedInteractionPanel
+              isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
+              width={dockedConversationWidth}
+              maxWidth={conversationPanelMaxWidth}
+              activeTab={combinedInteractionPanelTab}
+              conversation={conversationState}
+              openChannels={activeConversationTabs}
+              activeChannel={activeConversationChannel}
+              customerRecordId={selectedAssignment.customerRecordId}
+              customerName={selectedAssignment.name}
+              customerId={selectedAssignment.customerId}
+              panelSelection={deskPanelSelection}
+              showConversationTab
+              showCanvasTab={isCanvasMergedIntoCombinedPanel}
+              canvasTabLabel={deskCanvasTabLabel}
+              canvasContent={children}
+              isFullWidth={isCanvasMergedIntoCombinedPanel}
+              onConversationChange={handleConversationStateChange}
+              onSelectChannel={setActiveConversationChannel}
+              onOpenDeskPanel={openDeskPanel}
+              onResolveAssignment={handleResolveAssignment}
+              onTabChange={(tab) => {
+                setCombinedInteractionPanelTab(tab);
+                setIsConversationPanelOpen(true);
+                setIsCustomerInfoPanelOpen(true);
+                setIsConversationPopunderOpen(false);
+                setIsCustomerInfoPopunderOpen(false);
+              }}
+              onClose={closeCombinedInteractionPanel}
+            />
+          </div>
         ) : isAppSpaceSplitLayout ? (
-          <div className="flex min-w-0 flex-1 items-stretch gap-4">
+          <div className={cn(
+            "flex min-w-0 flex-1 items-stretch gap-4",
+            "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
+            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+          )}>
             {isInlineConversationSplitPanelVisible ? (
               <DockedConversationPanel
                 isOpen
@@ -6246,6 +6535,8 @@ export default function Layout({ children }: LayoutProps) {
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[360px]",
+              "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
+              isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
               isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
             )}
           >

@@ -478,6 +478,10 @@ const priorityFilterOptions: { value: PriorityFilter; label: string }[] = [
 
 type IssueTab = "open" | "pending" | "resolved" | "escalated";
 
+// Module-level store so the accepted-task map survives component remounts
+// (ControlCenterPage unmounts on every navigate("/activity") call).
+const acceptedStaticsStore = new Map<string, string>(); // staticId → assignmentId
+
 // ─── Connected applications (static) ─────────────────────────────────────────
 
 const connectedApps = [
@@ -729,8 +733,11 @@ function IssueRow({
   waitTime,
   aiOverview,
   isLive,
+  isAccepted,
+  isClosed,
   onAccept,
   onReject,
+  onReopen,
 }: {
   id: string;
   name: string;
@@ -743,14 +750,16 @@ function IssueRow({
   waitTime: string;
   aiOverview: AiOverview;
   isLive: boolean;
+  isAccepted: boolean;
+  isClosed: boolean;
   onAccept: () => void;
   onReject: () => void;
+  onReopen: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
-  const ChannelIcon = channelIconMap[channel];
 
   return (
     <div className="border-b border-border last:border-b-0">
@@ -760,9 +769,12 @@ function IssueRow({
         onClick={() => setIsOpen((v) => !v)}
         className="w-full text-left flex items-start gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors"
       >
-        <div className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[#475467]">
-          <ChannelIcon className="h-3.5 w-3.5" />
-        </div>
+        {(isLive || (isAccepted && !isClosed)) && (
+          <div className="mt-1.5 shrink-0 relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#12B76A] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#12B76A]" />
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold text-[#1D2939]">{name}</span>
@@ -802,10 +814,10 @@ function IssueRow({
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
-              {/* AI Actions Taken */}
+              {/* Overview */}
               <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-3.5">
                 <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">
-                  AI Actions Taken
+                  Overview
                 </p>
                 <ul className="space-y-1.5">
                   {aiOverview.actions.map((action, i) => (
@@ -817,11 +829,11 @@ function IssueRow({
                 </ul>
               </div>
 
-              {/* Why You're Needed */}
+              {/* Next Steps / Outcome */}
               <div className="flex flex-col rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
                 <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
                   <AlertTriangle className="h-3 w-3" />
-                  Why You're Needed
+                  {status === "resolved" ? "Outcome" : "Next Steps"}
                 </p>
                 <p className="flex-1 text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
                 <div className="mt-3 flex items-center justify-end gap-2">
@@ -834,25 +846,59 @@ function IssueRow({
                       onAssign={() => { setShowReject(false); onReject(); }}
                     />
                   )}
-                  <button
-                    ref={rejectButtonRef}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
-                      setShowReject((v) => !v);
-                    }}
-                    className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onAccept(); }}
-                    className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
-                  >
-                    Accept
-                  </button>
+                  {isAccepted && !isClosed ? (
+                    // Task is actively in progress in the left rail
+                    <span className="rounded-md border border-[#B8D7F0] bg-[#EEF6FC] px-3.5 py-1.5 text-[12px] font-semibold text-[#006DAD]">
+                      In Progress
+                    </span>
+                  ) : !isAccepted && status === "open" ? (
+                    // Unclaimed open task — agent can reject or accept
+                    <>
+                      <button
+                        ref={rejectButtonRef}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
+                          setShowReject((v) => !v);
+                        }}
+                        className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onAccept(); }}
+                        className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                      >
+                        Accept
+                      </button>
+                    </>
+                  ) : (
+                    // Pending / escalated / resolved task, or accepted-then-closed —
+                    // agent can transfer to another agent or open it in the left rail
+                    <>
+                      <button
+                        ref={rejectButtonRef}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
+                          setShowReject((v) => !v);
+                        }}
+                        className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                      >
+                        Transfer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onReopen(); }}
+                        className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                      >
+                        Open
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -870,30 +916,110 @@ function formatResolvedTime(timestamp: number): string {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function ResolvedIssueRow({ item }: { item: ResolvedAssignment }) {
-  const ChannelIcon = channelIconMap[item.channel as Channel] ?? MessageCircle;
+function ResolvedIssueRow({ item, onTransfer, onOpen }: {
+  item: ResolvedAssignment;
+  onTransfer: (rect: DOMRect) => void;
+  onOpen: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showReject, setShowReject] = useState(false);
+  const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
+  const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const priorityKey = item.priority as Priority;
+  const aiOverview = getLiveAiOverview(item.customerRecordId, item.name, item.preview, item.channel);
+
   return (
-    <div className="border-b border-border last:border-b-0 flex items-start gap-3 px-5 py-4">
-      <div className="mt-0.5 shrink-0 flex h-7 w-7 items-center justify-center rounded-full bg-[#F0FAF0] text-[#1E7B1E]">
-        <CheckCircle className="h-3.5 w-3.5" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[13px] font-semibold text-[#1D2939]">{item.name}</span>
-          <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priorityKey] ?? priorityStyles.Medium)}>
-            {item.priority}
-          </span>
-          <span className="rounded border border-[#B9E0B4] bg-[#F0FAF0] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#1E7B1E]">
-            resolved
-          </span>
+    <div className="border-b border-border last:border-b-0">
+      {/* Header row */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="w-full text-left flex items-start gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors"
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-[#1D2939]">{item.name}</span>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priorityKey] ?? priorityStyles.Medium)}>
+              {item.priority}
+            </span>
+            <span className="rounded border border-[#B9E0B4] bg-[#F0FAF0] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#1E7B1E]">
+              resolved
+            </span>
+          </div>
+          <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{item.preview}</p>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
+            <span className="capitalize">{item.channel}</span>
+            <span>•</span>
+            <span>Resolved at {formatResolvedTime(item.resolvedAt)}</span>
+          </div>
         </div>
-        <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{item.preview}</p>
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
-          <ChannelIcon className="h-3 w-3" />
-          <span className="capitalize">{item.channel}</span>
-          <span>•</span>
-          <span>Resolved at {formatResolvedTime(item.resolvedAt)}</span>
+        <ChevronDown className={cn(
+          "mt-1 h-4 w-4 shrink-0 text-[#98A2B3] transition-transform duration-200",
+          isOpen && "rotate-180",
+        )} />
+      </button>
+
+      {/* Accordion body */}
+      <div className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
+      )}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-4 pt-1">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Overview */}
+              <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-3.5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">Overview</p>
+                <ul className="space-y-1.5">
+                  {aiOverview.actions.map((action, i) => (
+                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+                      {action}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Outcome */}
+              <div className="flex flex-col rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
+                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
+                  <AlertTriangle className="h-3 w-3" />
+                  Outcome
+                </p>
+                <p className="flex-1 text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
+                <div className="mt-3 flex items-center justify-end gap-2">
+                  {showReject && rejectTriggerRect && (
+                    <RejectPopover
+                      priority={priorityKey}
+                      preview={item.preview}
+                      triggerRect={rejectTriggerRect}
+                      onClose={() => setShowReject(false)}
+                      onAssign={() => { setShowReject(false); }}
+                    />
+                  )}
+                  <button
+                    ref={rejectButtonRef}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = rejectButtonRef.current?.getBoundingClientRect();
+                      if (rect) { setRejectTriggerRect(rect); setShowReject((v) => !v); }
+                    }}
+                    className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    Transfer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onOpen(); }}
+                    className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                  >
+                    Open
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -903,21 +1029,19 @@ function ResolvedIssueRow({ item }: { item: ResolvedAssignment }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { visibleAssignments, resolvedAssignments, assignmentStatusesById, selectAssignment, acceptIssue } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments } = useLayoutContext();
   const navigate = useNavigate();
   const [issueTab, setIssueTab] = useState<IssueTab>("open");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
+  // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
+  // so it survives remounts when the agent navigates away and back).
+  const [, forceUpdate] = useState(0);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
-  const handleAcceptLive = (assignmentId: string) => {
-    selectAssignment(assignmentId);
-    navigate("/activity");
-  };
-
-  const handleAcceptStatic = (a: StaticAssignment) => {
+  const handleAcceptStatic = (a: StaticAssignment, statusOverride?: QueueAssignmentStatus) => {
     const data: AcceptIssueData = {
       id: a.id,
       name: a.name,
@@ -925,37 +1049,74 @@ export default function ControlCenterPage() {
       channel: a.channel,
       priority: a.priority,
       preview: a.preview,
-      status: a.status,
+      status: statusOverride ?? a.status,
       waitTime: a.waitTime,
+      isOutbound: true,
+      onCreated: (assignmentId) => {
+        acceptedStaticsStore.set(a.id, assignmentId);
+        forceUpdate((v) => v + 1);
+      },
     };
     acceptIssue(data);
   };
 
-  // Normalise live assignments
-  type RowData = StaticAssignment & { isLive: boolean; onAccept: () => void; onReject: () => void };
+  type RowData = StaticAssignment & {
+    isLive: boolean;
+    isAccepted: boolean;
+    isClosed: boolean;
+    onAccept: () => void;
+    onReject: () => void;
+    onReopen: () => void;
+  };
 
-  const liveNormalised: RowData[] = visibleAssignments.map((item) => ({
-    id: item.id,
-    name: item.name,
-    customerId: item.customerId,
-    company: companyByCustomerId[item.customerRecordId] ?? item.name,
-    channel: item.channel as Channel,
-    priority: ((item.priority as Priority) in priorityStyles ? item.priority : "Medium") as Priority,
-    status: (assignmentStatusesById[item.id] ?? "open") as QueueAssignmentStatus,
-    preview: item.preview,
-    waitTime: item.time,
-    aiOverview: getLiveAiOverview(item.customerRecordId, item.name, item.preview, item.channel),
-    isLive: true,
-    onAccept: () => handleAcceptLive(item.id),
-    onReject: () => rejectIssue(item.id),
-  }));
+  // Static tasks — status syncs with the live assignment when accepted.
+  // isClosed = the task was accepted but the assignment has since been removed from the left rail.
+  const staticNormalised: RowData[] = staticAssignments.map((a) => {
+    const assignmentId = acceptedStaticsStore.get(a.id);
+    const liveStatus = assignmentId ? (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) : undefined;
+    const isAccepted = acceptedStaticsStore.has(a.id);
+    const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
+    return {
+      ...a,
+      status: liveStatus ?? a.status,
+      isLive: false,
+      isAccepted,
+      isClosed,
+      onAccept: () => handleAcceptStatic(a),
+      onReject: () => rejectIssue(a.id),
+      onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
+    };
+  });
 
-  const staticNormalised: RowData[] = staticAssignments.map((a) => ({
-    ...a,
-    isLive: false,
-    onAccept: () => handleAcceptStatic(a),
-    onReject: () => rejectIssue(a.id),
-  }));
+  // Live assignments currently open in the left rail. Exclude dynamically-created
+  // assignments (from acceptIssue → "issue-" prefix, or openCustomerConversation →
+  // contains a millisecond timestamp) to avoid duplicating static-task entries.
+  const acceptedAssignmentIds = new Set(acceptedStaticsStore.values());
+  const validPriorities = new Set<string>(["Critical", "High", "Medium", "Low"]);
+  const liveNormalised: RowData[] = visibleAssignments
+    .filter((a) => !acceptedAssignmentIds.has(a.id) && !/\d{10,}/.test(a.id))
+    .map((a) => {
+      const liveStatus = (assignmentStatusesById[a.id] as QueueAssignmentStatus | undefined) ?? "open";
+      const priority = (validPriorities.has(a.priority) ? a.priority : "Medium") as Priority;
+      return {
+        id: a.id,
+        name: a.name,
+        customerId: a.customerId,
+        company: companyByCustomerId[a.customerRecordId] ?? a.name,
+        channel: a.channel as Channel,
+        priority,
+        status: liveStatus,
+        preview: a.preview,
+        waitTime: a.time,
+        aiOverview: getLiveAiOverview(a.customerRecordId, a.name, a.preview, a.channel),
+        isLive: true,
+        isAccepted: true,
+        isClosed: false,
+        onAccept: () => {},
+        onReject: () => {},
+        onReopen: () => {},
+      };
+    });
 
   const allRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
@@ -1049,7 +1210,22 @@ export default function ControlCenterPage() {
                 ) : (
                   <>
                     {filteredResolvedAssignments.map((item) => (
-                      <ResolvedIssueRow key={item.id} item={item} />
+                      <ResolvedIssueRow
+                        key={item.id}
+                        item={item}
+                        onTransfer={() => {}}
+                        onOpen={() => acceptIssue({
+                          id: item.id,
+                          name: item.name,
+                          customerId: item.customerRecordId,
+                          channel: item.channel,
+                          priority: item.priority,
+                          preview: item.preview,
+                          status: "open",
+                          waitTime: "",
+                          isOutbound: true,
+                        })}
+                      />
                     ))}
                     {allRows.map((a) => (
                       <IssueRow key={a.id} {...a} />
