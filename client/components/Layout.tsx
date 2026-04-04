@@ -131,6 +131,10 @@ interface LayoutContextValue {
   acceptPendingAssignment: (assignmentId: string) => void;
   rejectPendingAssignment: (assignmentId: string) => void;
   reviewPendingAssignment: (assignmentId: string) => void;
+  taskSummaryIds: Set<string>;
+  closeChannelKeepTask: (assignmentId: string) => void;
+  activatedChannelIds: Set<string>;
+  liveLastCustomerCommentByAssignmentId: Record<string, string>;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
@@ -391,6 +395,65 @@ function createCustomConversationState(
   };
 }
 
+// ─── Task AI Overview ─────────────────────────────────────────────────────────
+
+const taskAiOverviewByCustomerId: Record<string, { actions: string[]; whyNeeded: string }> = {
+  noah: {
+    actions: [
+      "Reviewed the full SMS thread and extracted the core data-export failure from Noah's messages.",
+      "Cross-referenced Noah's account permissions and recent failed export job logs.",
+      "Confirmed the issue is tied to a quarterly report generation timeout — not a permissions error.",
+      "Prepared a step-by-step remediation draft and flagged the relevant knowledge base article.",
+    ],
+    whyNeeded: "The export failure requires a manual queue reset that the AI cannot trigger autonomously. A human agent is needed to confirm the correct reporting period, initiate the fix, and validate the output before sending it to Noah.",
+  },
+  olivia: {
+    actions: [
+      "Reviewed the full chat thread and identified a billing discrepancy tied to a mid-cycle plan upgrade.",
+      "Checked Olivia's subscription history and confirmed the pro-rated charge was applied incorrectly.",
+      "Assessed tone — Olivia is frustrated after two prior contacts on the same issue.",
+      "Drafted an apology response and prepared a credit memo for agent review.",
+    ],
+    whyNeeded: "Olivia has contacted support twice for the same billing issue without resolution. She is showing clear frustration signals. A human agent is needed to acknowledge the repeated failure, issue the correct credit, and personally confirm the account is now accurate.",
+  },
+  ethan: {
+    actions: [
+      "Reviewed the SMS thread and identified a wire transfer flagged incorrectly by the fraud filter.",
+      "Cross-referenced Ethan's transaction history and confirmed the transfer destination is a known payee.",
+      "Checked compliance flags and found no active holds — the block appears to be a false positive.",
+      "Prepared a suggested resolution path and escalation note for the payments team.",
+    ],
+    whyNeeded: "Releasing a flagged wire transfer requires agent-level authorisation that cannot be granted autonomously. A human agent must verify Ethan's identity, confirm the payee details, and manually clear the hold in the payments system.",
+  },
+};
+
+function getTaskAiOverview(customerRecordId: string, name: string, channel: string) {
+  if (taskAiOverviewByCustomerId[customerRecordId]) return taskAiOverviewByCustomerId[customerRecordId];
+  const firstName = name.split(" ")[0] ?? name;
+  return {
+    actions: [
+      `Reviewed the full ${channel} thread and extracted the core issue from ${firstName}'s messages.`,
+      "Checked account history and cross-referenced any recent interactions flagged on the account.",
+      "Assessed conversation tone and confirmed standard escalation path was appropriate.",
+      "Prepared a suggested response draft and identified relevant knowledge base articles.",
+    ],
+    whyNeeded: `The issue ${firstName} raised requires judgment and account-level context that the AI cannot act on autonomously. A human agent is needed to review the details, confirm the right course of action, and deliver a personalised resolution that closes the loop.`,
+  };
+}
+
+// Lookup: last customer message per customerRecordId::channel
+const lastCustomerMessageByKey: Record<string, string> = (() => {
+  const map: Record<string, string> = {};
+  for (const customer of customerDatabase) {
+    for (const [channel, convo] of Object.entries(customer.conversations)) {
+      const messages = (convo as { messages: Array<{ role: string; content: string }> }).messages;
+      const last = [...messages].reverse().find((m) => m.role === "customer");
+      if (last) map[`${customer.id}::${channel}`] = last.content;
+    }
+  }
+  return map;
+})();
+
 function getLaunchedAssignmentPreview(channel: AssignmentChannel) {
   if (channel === "voice") {
     return "Live call in progress.";
@@ -593,7 +656,7 @@ const CALL_POPUNDER_GAP = 12;
 const CONVERSATION_POPOUNDER_MARGIN = 16;
 const CONVERSATION_POPOUNDER_GAP = 12;
 const DOCKED_CONVERSATION_MIN_WIDTH = 360;
-const DOCKED_CONVERSATION_DEFAULT_WIDTH = 425;
+const DOCKED_CONVERSATION_DEFAULT_WIDTH = 450;
 const DOCKED_CONVERSATION_MAX_WIDTH = 560;
 const DOCKED_CONVERSATION_GAP = 16;
 const DOCKED_CONVERSATION_CONTENT_ENTER_DELAY_MS = 0;
@@ -1574,6 +1637,42 @@ function CustomerProfilePopover({
   );
 }
 
+function TaskSummaryView({
+  assignment,
+}: {
+  assignment: QueuePreviewItem;
+}) {
+  const overview = getTaskAiOverview(assignment.customerRecordId, assignment.name, assignment.channel);
+  return (
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
+      <div className="grid grid-cols-2 gap-4">
+        {/* AI Actions Taken */}
+        <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-4">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">
+            AI Actions Taken
+          </p>
+          <ul className="space-y-2">
+            {overview.actions.map((action, i) => (
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+                {action}
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Why You're Needed */}
+        <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-4">
+          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
+            <TriangleAlert className="h-3 w-3" />
+            Why You're Needed
+          </p>
+          <p className="text-[12px] text-[#344054] leading-relaxed">{overview.whyNeeded}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DockedConversationPanel({
   isOpen,
   conversation,
@@ -1597,6 +1696,8 @@ function DockedConversationPanel({
   showTrailingGap,
   isEqualSplit = false,
   equalSplitWidth,
+  hideTranscript = false,
+  showTaskSummary = false,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -1618,6 +1719,8 @@ function DockedConversationPanel({
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
   showTrailingGap: boolean;
+  hideTranscript?: boolean;
+  showTaskSummary?: boolean;
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
 }) {
@@ -1823,18 +1926,29 @@ function DockedConversationPanel({
               </div>
             </div>
 
-            <ConversationPanel
-              conversation={conversation}
-              openChannels={openChannels}
-              activeChannel={activeChannel}
-              customerId={customerRecordId}
-              draftKey={`docked-${conversation.label}-${conversation.customerName}`}
-              onConversationChange={onConversationChange}
-              onSelectChannel={onSelectChannel}
-              onOpenDeskPanel={onOpenDeskPanel}
-              onResolveAssignment={onResolveAssignment}
-              showAiPanel={isAiPanelVisible}
-            />
+            {showTaskSummary ? (
+              <TaskSummaryView
+                assignment={{
+                  customerRecordId,
+                  name: conversation.customerName,
+                  channel: activeChannel,
+                } as QueuePreviewItem}
+              />
+            ) : (
+              <ConversationPanel
+                conversation={conversation}
+                openChannels={openChannels}
+                activeChannel={activeChannel}
+                customerId={customerRecordId}
+                draftKey={`docked-${conversation.label}-${conversation.customerName}`}
+                onConversationChange={onConversationChange}
+                onSelectChannel={onSelectChannel}
+                onOpenDeskPanel={onOpenDeskPanel}
+                onResolveAssignment={onResolveAssignment}
+                showAiPanel={isAiPanelVisible}
+                hideTranscript={hideTranscript}
+              />
+            )}
           </>
         )}
       </div>
@@ -3463,6 +3577,8 @@ function GroupedQueueCard({
   queueStatuses,
   onStatusChange,
   onRemove,
+  onCloseChannelKeepTask,
+  taskSummaryIds,
   onSelectAssignment,
   className,
   style,
@@ -3471,6 +3587,8 @@ function GroupedQueueCard({
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
+  onCloseChannelKeepTask?: (assignmentId: string) => void;
+  taskSummaryIds?: Set<string>;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
   className?: string;
   style?: React.CSSProperties;
@@ -3483,6 +3601,8 @@ function GroupedQueueCard({
     acceptPendingAssignment,
     rejectPendingAssignment,
     reviewPendingAssignment,
+    activatedChannelIds,
+    liveLastCustomerCommentByAssignmentId,
   } = useLayoutContext();
 
   // Task-level status — driven by the last-active (primary) channel.
@@ -3526,34 +3646,51 @@ function GroupedQueueCard({
     >
       {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px]" style={{ backgroundColor: pc.stripe }} />}
 
-      {/* Customer name header — task-level status + close on the right */}
-      <div className="flex items-center gap-2 px-4 pb-1 pt-3">
-        <span className="flex-1 text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
-        <div
-          className="flex shrink-0 items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          <ConversationStatusDropdown
-            status={primaryStatus}
-            onStatusChange={handleGroupStatusChange}
-          />
-          {canRemoveTask && (
-            <button
-              type="button"
-              aria-label={`Close task for ${group.name}`}
-              onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+      {/* Card header — name + task-level status + close */}
+      <div className="px-4 pb-2 pt-3">
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
+          <div
+            className="flex shrink-0 items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <ConversationStatusDropdown
+              status={primaryStatus}
+              onStatusChange={handleGroupStatusChange}
+            />
+            {canRemoveTask && (
+              <button
+                type="button"
+                aria-label={`Close task for ${group.name}`}
+                onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
         </div>
+        {/* Task description — task-level, shown once in the header.
+            Use the first channel whose preview is a real task description (not a
+            "New X…" / "Live call…" placeholder) so the description stays visible
+            even when the agent switches to a freshly-launched channel. */}
+        {(() => {
+          const isPlaceholder = (p: string) =>
+            p.startsWith("New ") || p === "Live call in progress.";
+          const taskPreview =
+            group.channels.find((ch) => !isPlaceholder(ch.preview))?.preview ?? null;
+          return taskPreview ? (
+            <p className="mt-1 line-clamp-2 text-[12px] leading-[1.45] text-[#444444] font-medium">
+              {taskPreview}
+            </p>
+          ) : null;
+        })()}
       </div>
 
-      {/* Channel rows */}
-      {group.channels.map((item, index) => {
+      {/* Channel rows — omit rows that have been moved to task summary view */}
+      {group.channels.filter((item) => !(taskSummaryIds?.has(item.id))).map((item, index) => {
         const ItemIcon = item.icon;
         const channelLabel =
           conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
@@ -3561,13 +3698,28 @@ function GroupedQueueCard({
         const showActiveVoiceControls =
           isAgentInCall && item.id === activeCallAssignmentId;
 
+        // Detect whether this is a freshly-launched channel (no prior messages)
+        const isNewChannel =
+          item.preview.startsWith("New ") || item.preview === "Live call in progress.";
+
+        // Last customer comment: prefer the live conversation state (updated in real-time
+        // as messages arrive), fall back to the static database snapshot, or null for voice
+        // and channels with no history (omits the row entirely).
+        const lastCustomerComment: string | null = isNewChannel
+          ? item.preview
+          : (liveLastCustomerCommentByAssignmentId[item.id]
+              ?? lastCustomerMessageByKey[`${item.customerRecordId}::${item.channel}`]
+              ?? null);
+
         return (
           <div key={item.id}>
             {index > 0 && <div className="mx-4 border-t border-black/[0.06]" />}
             <div
               role="button"
               tabIndex={0}
-              onClick={() => onSelectAssignment(item.id)}
+              onClick={() => {
+                onSelectAssignment(item.id);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -3579,7 +3731,7 @@ function GroupedQueueCard({
                 isChannelActive ? "bg-[#EEF6FC]" : "hover:bg-[#F8F8F9]",
               )}
             >
-              {/* Top row: channel badge + timestamp + trash */}
+              {/* Channel badge + timestamp + trash */}
               <div className="flex items-center gap-2">
                 {/* Channel badge */}
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5B5B5B]">
@@ -3593,22 +3745,29 @@ function GroupedQueueCard({
                   {item.time}
                 </span>
 
-                {/* Trash — remove this channel from the task */}
-                <button
-                  type="button"
-                  aria-label={`Remove ${channelLabel} channel`}
-                  onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="ml-auto flex h-5 w-5 items-center justify-center rounded text-[#C0C5CE] transition-colors hover:bg-[#FEF2F2] hover:text-[#B42318]"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                {/* Trash — only shown for new channels where the agent hasn't sent anything yet */}
+                {item.preview.startsWith("New ") && !activatedChannelIds.has(item.id) && (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${channelLabel} channel`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(item.id);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="ml-auto flex h-5 w-5 items-center justify-center rounded text-[#C0C5CE] transition-colors hover:bg-[#FEF2F2] hover:text-[#B42318]"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
               </div>
 
-              {/* Bottom row: preview stretches full width */}
-              <div className="line-clamp-2 text-[12px] leading-[1.4] text-[#5B5B5B]">
-                {item.preview}
-              </div>
+              {/* Last customer comment — omitted for voice and channels with no message history */}
+              {lastCustomerComment !== null && (
+                <div className="line-clamp-2 text-[12px] leading-[1.4] text-[#5B5B5B]">
+                  {lastCustomerComment}
+                </div>
+              )}
               {showActiveVoiceControls ? (
                 <ActiveVoiceAssignmentControls onOpenDisposition={openCallDisposition} />
               ) : null}
@@ -3668,6 +3827,8 @@ function QueueOverlayList({
   queueStatuses,
   onStatusChange,
   onRemove,
+  onCloseChannelKeepTask,
+  taskSummaryIds,
   isOpen,
   onSelectAssignment,
 }: {
@@ -3675,6 +3836,8 @@ function QueueOverlayList({
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
+  onCloseChannelKeepTask: (assignmentId: string) => void;
+  taskSummaryIds: Set<string>;
   isOpen: boolean;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
 }) {
@@ -3687,6 +3850,8 @@ function QueueOverlayList({
           queueStatuses={queueStatuses}
           onStatusChange={onStatusChange}
           onRemove={onRemove}
+          onCloseChannelKeepTask={onCloseChannelKeepTask}
+          taskSummaryIds={taskSummaryIds}
           onSelectAssignment={onSelectAssignment}
           className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
           style={{ transitionDelay: `${index * 35}ms` }}
@@ -3724,6 +3889,8 @@ function LeftQueueRail({
     selectAssignment,
     isAgentInCall,
     activeCallAssignmentId,
+    taskSummaryIds,
+    closeChannelKeepTask,
   } = useLayoutContext();
 
   const visibleQueuePreviewItems = useMemo(() => {
@@ -3915,6 +4082,8 @@ function LeftQueueRail({
                     queueStatuses={queueStatuses}
                     onStatusChange={onStatusChange}
                     onRemove={handleRemoveQueueItem}
+                    onCloseChannelKeepTask={closeChannelKeepTask}
+                    taskSummaryIds={taskSummaryIds}
                     isOpen={isOpen}
                     onSelectAssignment={selectAssignment}
                   />
@@ -4103,9 +4272,26 @@ export default function Layout({ children }: LayoutProps) {
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
   const [resolvedAssignments, setResolvedAssignments] = useState<ResolvedAssignment[]>([]);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
+  // Tracks assignments whose channel has been removed — shows task summary in the panel
+  const [taskSummaryIds, setTaskSummaryIds] = useState<Set<string>>(new Set());
+  // Tracks assignment IDs where the agent has sent at least one message on a "new" channel.
+  // Once activated the delete icon is hidden — the channel has real content and can't be discarded.
+  const [activatedChannelIds, setActivatedChannelIds] = useState<Set<string>>(new Set());
+
   const [conversationStatesByKey, setConversationStatesByKey] = useState<Record<string, SharedConversationData>>(() => ({
     [getConversationStateKey(initialSelectedAssignmentId)]: defaultConversationState,
   }));
+
+  // Derives the latest customer message per assignment from live conversation state,
+  // so assignment card rows always reflect the most recent customer comment.
+  const liveLastCustomerCommentByAssignmentId = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const [assignmentId, state] of Object.entries(conversationStatesByKey)) {
+      const last = [...state.messages].reverse().find((m) => m.role === "customer" && !m.isInternal);
+      if (last) map[assignmentId] = last.content;
+    }
+    return map;
+  }, [conversationStatesByKey]);
   const [dockedConversationWidth, setDockedConversationWidth] = useState(() =>
     getBalancedDockedPanelWidths({
       hasDesktopRightPanel: false,
@@ -4439,6 +4625,21 @@ export default function Layout({ children }: LayoutProps) {
       ...nextConversation,
       isCustomerTyping: shouldScheduleCustomerReply,
     };
+
+    // If the agent sent a message on a new (unactivated) channel, mark it as activated
+    // so the delete icon is hidden — the channel now has real content.
+    if (shouldScheduleCustomerReply && !activatedChannelIds.has(targetAssignmentId)) {
+      setActivatedChannelIds((prev) => new Set([...prev, targetAssignmentId]));
+    }
+
+    // If the agent sent a reply while reviewing a pending assignment, auto-accept it.
+    if (shouldScheduleCustomerReply && pendingAcceptanceIds.has(targetAssignmentId)) {
+      setPendingAcceptanceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(targetAssignmentId);
+        return next;
+      });
+    }
 
     setConversationStatesByKey((currentStates) => ({
       ...currentStates,
@@ -4994,6 +5195,14 @@ export default function Layout({ children }: LayoutProps) {
     setCustomerInfoDragActivation(null);
   };
 
+  // Remove a single-channel card's channel row but keep the task in the rail,
+  // switching the conversation panel to the task summary view.
+  const closeChannelKeepTask = (assignmentId: string) => {
+    setTaskSummaryIds((prev) => new Set([...prev, assignmentId]));
+    setIsConversationPanelOpen(true);
+    setSelectedAssignmentId(assignmentId);
+  };
+
   const closeConversationPanel = () => {
     if (isCombinedInteractionPanel) {
       closeCombinedInteractionPanel();
@@ -5189,6 +5398,12 @@ export default function Layout({ children }: LayoutProps) {
     if (activeCallAssignmentId === assignmentId) {
       setActiveCallAssignmentId(null);
     }
+    // Clear any task-summary state for this assignment
+    setTaskSummaryIds((prev) => {
+      const next = new Set(prev);
+      next.delete(assignmentId);
+      return next;
+    });
   };
 
   const removePending = (assignmentId: string) =>
@@ -5921,6 +6136,10 @@ export default function Layout({ children }: LayoutProps) {
       acceptPendingAssignment,
       rejectPendingAssignment,
       reviewPendingAssignment,
+      taskSummaryIds,
+      closeChannelKeepTask,
+      activatedChannelIds,
+      liveLastCustomerCommentByAssignmentId,
     }),
     [
       activeRightPanel,
@@ -5967,6 +6186,10 @@ export default function Layout({ children }: LayoutProps) {
       acceptPendingAssignment,
       rejectPendingAssignment,
       reviewPendingAssignment,
+      taskSummaryIds,
+      closeChannelKeepTask,
+      activatedChannelIds,
+      liveLastCustomerCommentByAssignmentId,
     ],
   );
 
@@ -6448,6 +6671,7 @@ export default function Layout({ children }: LayoutProps) {
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
+              showTaskSummary={taskSummaryIds.has(selectedAssignment.id)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 

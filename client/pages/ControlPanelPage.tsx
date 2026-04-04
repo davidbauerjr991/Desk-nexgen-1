@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle,
@@ -735,6 +735,7 @@ function IssueRow({
   isLive,
   isAccepted,
   isClosed,
+  liveAssignmentId,
   onAccept,
   onReject,
   onReopen,
@@ -752,25 +753,31 @@ function IssueRow({
   isLive: boolean;
   isAccepted: boolean;
   isClosed: boolean;
+  liveAssignmentId: string | null;
   onAccept: () => void;
   onReject: () => void;
   onReopen: () => void;
 }) {
+  const { selectAssignment } = useLayoutContext();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
+  const isInProgress = isAccepted && !isClosed;
 
   return (
-    <div className="border-b border-border last:border-b-0">
-      {/* Header row — always visible */}
-      <button
-        type="button"
+    <div className="group/row border-b border-border last:border-b-0">
+      {/* Header row — accordion toggle + hover-reveal action buttons */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setIsOpen((v) => !v)}
-        className="w-full text-left flex items-start gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsOpen((v) => !v); } }}
+        className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006DAD]/30"
       >
         {(isLive || (isAccepted && !isClosed)) && (
-          <div className="mt-1.5 shrink-0 relative flex h-2 w-2">
+          <div className="shrink-0 relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#12B76A] opacity-60" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[#12B76A]" />
           </div>
@@ -800,11 +807,93 @@ function IssueRow({
             <span>{customerId}</span>
           </div>
         </div>
+
+        {/* Action buttons — "In Progress" always visible; others revealed on hover or when open */}
+        <div
+          className={cn(
+            "flex shrink-0 items-center gap-1.5 transition-opacity duration-150",
+            isInProgress
+              ? "opacity-100"
+              : isOpen
+                ? "opacity-100"
+                : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
+          )}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {showReject && rejectTriggerRect && (
+            <RejectPopover
+              priority={priority}
+              preview={preview}
+              triggerRect={rejectTriggerRect}
+              onClose={() => setShowReject(false)}
+              onAssign={() => { setShowReject(false); onReject(); }}
+            />
+          )}
+          {isInProgress ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (liveAssignmentId) {
+                  selectAssignment(liveAssignmentId);
+                  navigate("/activity");
+                }
+              }}
+              className="rounded-md border border-[#B8D7F0] bg-[#EEF6FC] px-3 py-1 text-[11px] font-semibold text-[#006DAD] hover:bg-[#DAEEFA] transition-colors"
+            >
+              In Progress
+            </button>
+          ) : !isAccepted && status === "open" ? (
+            <>
+              <button
+                ref={rejectButtonRef}
+                type="button"
+                onClick={() => {
+                  setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
+                  setShowReject((v) => !v);
+                }}
+                className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => onAccept()}
+                className="rounded-md bg-[#006DAD] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+              >
+                Accept
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                ref={rejectButtonRef}
+                type="button"
+                onClick={() => {
+                  setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
+                  setShowReject((v) => !v);
+                }}
+                className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Transfer
+              </button>
+              <button
+                type="button"
+                onClick={() => onReopen()}
+                className="rounded-md bg-[#006DAD] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+              >
+                Open
+              </button>
+            </>
+          )}
+        </div>
+
         <ChevronDown className={cn(
-          "mt-1 h-4 w-4 shrink-0 text-[#98A2B3] transition-transform duration-200",
+          "h-4 w-4 shrink-0 text-[#98A2B3] transition-transform duration-200",
           isOpen && "rotate-180",
         )} />
-      </button>
+      </div>
 
       {/* Accordion body */}
       <div className={cn(
@@ -830,76 +919,12 @@ function IssueRow({
               </div>
 
               {/* Next Steps / Outcome */}
-              <div className="flex flex-col rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
+              <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
                 <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
                   <AlertTriangle className="h-3 w-3" />
                   {status === "resolved" ? "Outcome" : "Next Steps"}
                 </p>
-                <p className="flex-1 text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  {showReject && rejectTriggerRect && (
-                    <RejectPopover
-                      priority={priority}
-                      preview={preview}
-                      triggerRect={rejectTriggerRect}
-                      onClose={() => setShowReject(false)}
-                      onAssign={() => { setShowReject(false); onReject(); }}
-                    />
-                  )}
-                  {isAccepted && !isClosed ? (
-                    // Task is actively in progress in the left rail
-                    <span className="rounded-md border border-[#B8D7F0] bg-[#EEF6FC] px-3.5 py-1.5 text-[12px] font-semibold text-[#006DAD]">
-                      In Progress
-                    </span>
-                  ) : !isAccepted && status === "open" ? (
-                    // Unclaimed open task — agent can reject or accept
-                    <>
-                      <button
-                        ref={rejectButtonRef}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
-                          setShowReject((v) => !v);
-                        }}
-                        className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-                      >
-                        Reject
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onAccept(); }}
-                        className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
-                      >
-                        Accept
-                      </button>
-                    </>
-                  ) : (
-                    // Pending / escalated / resolved task, or accepted-then-closed —
-                    // agent can transfer to another agent or open it in the left rail
-                    <>
-                      <button
-                        ref={rejectButtonRef}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
-                          setShowReject((v) => !v);
-                        }}
-                        className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-                      >
-                        Transfer
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); onReopen(); }}
-                        className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
-                      >
-                        Open
-                      </button>
-                    </>
-                  )}
-                </div>
+                <p className="text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
               </div>
             </div>
           </div>
@@ -1026,6 +1051,10 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
   );
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CURRENT_AGENT_NAME = "John Doe";
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
@@ -1064,6 +1093,7 @@ export default function ControlCenterPage() {
     isLive: boolean;
     isAccepted: boolean;
     isClosed: boolean;
+    liveAssignmentId: string | null;
     onAccept: () => void;
     onReject: () => void;
     onReopen: () => void;
@@ -1071,7 +1101,9 @@ export default function ControlCenterPage() {
 
   // Static tasks — status syncs with the live assignment when accepted.
   // isClosed = the task was accepted but the assignment has since been removed from the left rail.
-  const staticNormalised: RowData[] = staticAssignments.map((a) => {
+  // Voice-channel tasks are excluded from the static list — they only appear when
+  // an agent explicitly accepts a voice transfer from the assignments panel.
+  const staticNormalised: RowData[] = staticAssignments.filter((a) => a.channel !== "voice").map((a) => {
     const assignmentId = acceptedStaticsStore.get(a.id);
     const liveStatus = assignmentId ? (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) : undefined;
     const isAccepted = acceptedStaticsStore.has(a.id);
@@ -1082,6 +1114,7 @@ export default function ControlCenterPage() {
       isLive: false,
       isAccepted,
       isClosed,
+      liveAssignmentId: assignmentId ?? null,
       onAccept: () => handleAcceptStatic(a),
       onReject: () => rejectIssue(a.id),
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
@@ -1112,6 +1145,7 @@ export default function ControlCenterPage() {
         isLive: true,
         isAccepted: true,
         isClosed: false,
+        liveAssignmentId: a.id,
         onAccept: () => {},
         onReject: () => {},
         onReopen: () => {},
@@ -1131,8 +1165,45 @@ export default function ControlCenterPage() {
   const resolvedTabCount = allRows.length + (issueTab === "resolved" ? filteredResolvedAssignments.length : 0);
   const tabCount = issueTab === "resolved" ? resolvedTabCount : allRows.length;
 
+  const agentFirstName = CURRENT_AGENT_NAME.split(" ")[0] ?? CURRENT_AGENT_NAME;
+
+  // Live clock — ticks every second
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 1_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Simulated last-login: fixed at ~8 h before the page first mounted
+  const lastLogin = useMemo(() => {
+    const d = new Date();
+    d.setHours(d.getHours() - 8, d.getMinutes() - 14, 0, 0);
+    return d;
+  }, []);
+
+  const formatDateTime = (d: Date) =>
+    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) +
+    " · " +
+    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
   return (
     <div className="flex h-full flex-col">
+      {/* Welcome header */}
+      <div className="shrink-0 border-b border-border bg-background/50 px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div>
+            <h1 className="text-sm font-semibold tracking-tight text-[#333333]">
+              Welcome back, {agentFirstName}
+            </h1>
+            <p className="mt-0.5 text-xs text-[#7A7A7A]">
+              {formatDateTime(now)}
+              <span className="mx-1.5 text-[#D0D5DD]">·</span>
+              Last login: {formatDateTime(lastLogin)}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <div className="flex gap-5 h-full">
 

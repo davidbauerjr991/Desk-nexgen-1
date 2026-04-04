@@ -48,6 +48,7 @@ interface ConversationPanelProps {
   onOpenDeskPanel?: (selection?: { initialTab?: string; ticketId?: string }) => void;
   onResolveAssignment?: () => void;
   showAiPanel?: boolean;
+  hideTranscript?: boolean;
 }
 
 const conversationFooterMenuItems = [
@@ -804,6 +805,7 @@ export default function ConversationPanel({
   onOpenDeskPanel,
   onResolveAssignment,
   showAiPanel = true,
+  hideTranscript = false,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const isVoiceChannel = activeChannel === "voice";
@@ -829,12 +831,12 @@ export default function ConversationPanel({
   const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
   const [editedInlineSuggestion, setEditedInlineSuggestion] = useState<InlineSuggestion | null>(null);
   const [suggestionAccordionValue, setSuggestionAccordionValue] = useState<string>("ai-suggestion");
-  const [aiPanelWidth, setAiPanelWidth] = useState(368); // 23rem default
+  const [aiPanelWidth, setAiPanelWidth] = useState(550); // default width
   const aiPanelDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
   // Wide AI panel animation states — content hides before width collapses so nothing looks squished
   const [isAiContentVisible, setIsAiContentVisible] = useState(showAiPanel);
   const [isAiContentEntered, setIsAiContentEntered] = useState(showAiPanel);
-  const [aiDisplayWidth, setAiDisplayWidth] = useState(showAiPanel ? 368 : 0);
+  const [aiDisplayWidth, setAiDisplayWidth] = useState(showAiPanel ? 550 : 0);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
   const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
@@ -1459,7 +1461,7 @@ export default function ConversationPanel({
 
   return (
     <div ref={containerRef} className={cn("relative flex min-h-0 flex-1 flex-row", className)}>
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className={cn("relative flex min-h-0 flex-col overflow-hidden", hideTranscript ? "w-0 pointer-events-none overflow-hidden" : "flex-1")}>
 
         {/* Narrow-mode tabs — shown below the header when width < 640 and AI panel is active */}
         {isNarrowPanel && showAiPanel && (
@@ -2035,7 +2037,7 @@ export default function ConversationPanel({
 
       {/* Wide inline mode — resize handle + panel */}
       {/* Drag resize handle — present during open/close transitions */}
-      {!isNarrowPanel && isAiContentVisible && (
+      {!isNarrowPanel && isAiContentVisible && !hideTranscript && (
         <div
           className="relative h-full w-1 shrink-0 cursor-col-resize group z-10"
           onMouseDown={(e) => {
@@ -2063,10 +2065,12 @@ export default function ConversationPanel({
       {/* Wide AI panel — width animates open/closed, content fades separately */}
       <div
         className={cn(
-          "h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
-          isNarrowPanel && "pointer-events-none",
+          "h-full overflow-hidden transition-[width] duration-300 ease-out",
+          !hideTranscript && "shrink-0",
+          hideTranscript && "flex-1",
+          isNarrowPanel && !hideTranscript && "pointer-events-none",
         )}
-        style={{ width: isNarrowPanel ? 0 : aiDisplayWidth }}
+        style={hideTranscript ? undefined : { width: isNarrowPanel ? 0 : aiDisplayWidth }}
       >
         <div
           className={cn(
