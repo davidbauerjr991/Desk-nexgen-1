@@ -11,6 +11,7 @@ import { PhoneCall, Users, BookOpen, MessageSquare } from "lucide-react";
 import Activity from "./pages/Activity";
 import ControlPanelPage from "./pages/ControlPanelPage";
 import Desk from "./pages/Desk";
+import DeskPage from "./pages/DeskPage";
 import NotFound from "./pages/NotFound";
 import Placeholder from "./pages/Placeholder";
 import Schedule from "./pages/Schedule";
@@ -34,7 +35,8 @@ const App = () => (
             <Route path="/" element={<Navigate to="/control-panel" replace />} />
             <Route path="/activity" element={<Activity />} />
             <Route path="/control-panel" element={<ControlPanelPage />} />
-            <Route path="/desk" element={<Desk />} />
+            <Route path="/desk" element={<DeskPage />} />
+            <Route path="/desk-panel" element={<Desk />} />
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/reporting" element={<ReportingPage />} />

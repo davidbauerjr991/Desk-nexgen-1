@@ -300,6 +300,42 @@ function getInlineSuggestionVariants(
         suggestedReply:
           "I can see the same error is still blocking the attempt. I’m refreshing the account state now, and I’ll let you know as soon as it’s ready for one more retry.",
       },
+      {
+        summary:
+          "Validate the customer’s frustration, confirm you are escalating the check internally, and set a short response time expectation.",
+        suggestedReply:
+          "I understand this has happened more than once and that’s frustrating. I’m escalating the check on my end now and I’ll have an update for you within just a few minutes.",
+      },
+      {
+        summary:
+          "Confirm you can see the repeated error pattern, explain you are reviewing the underlying cause, and reassure the customer you will not ask them to retry blindly.",
+        suggestedReply:
+          "I can see the repeated error pattern on the account. I’m reviewing the underlying cause now, and I won’t ask you to retry until I know exactly what needs to change.",
+      },
+      {
+        summary:
+          "Acknowledge the persistence of the issue, explain that you are clearing any cached state on the account, and ask the customer to stand by.",
+        suggestedReply:
+          "I hear you — the same issue keeps coming back. I’m clearing any cached state on the account right now. Please stand by and I’ll confirm when it’s ready for another attempt.",
+      },
+      {
+        summary:
+          "Take direct ownership, confirm the specific step where the error occurs, and commit to staying on the issue until it is resolved.",
+        suggestedReply:
+          "I’m taking direct ownership of this. I’ve identified the step where the error is occurring and I’m working on it now. I’ll stay with you until this is resolved.",
+      },
+      {
+        summary:
+          "Show empathy for the repeated attempts, confirm you are pulling the full error log, and give the customer a clear next action.",
+        suggestedReply:
+          "I appreciate your patience through multiple attempts. I’m pulling the full error log now so I can find the root cause and give you one clear next step.",
+      },
+      {
+        summary:
+          "Reassure the customer that no action is needed on their end right now, confirm you are running a backend reset, and give a short time estimate.",
+        suggestedReply:
+          "No action needed on your end right now. I’m running a backend reset on the account, and it should be ready for a clean retry within the next two to three minutes.",
+      },
     ];
   }
 
@@ -319,6 +355,36 @@ function getInlineSuggestionVariants(
         summary: "Confirm you are checking the billing history, reassure them the original attempt is being reviewed, and avoid asking them to retry too early.",
         suggestedReply:
           "I’m checking the billing history on my side first so we do not risk a duplicate charge. Once I confirm the original attempt status, I’ll tell you whether it’s safe to retry.",
+      },
+      {
+        summary: "Immediately address the duplicate charge concern, confirm you are placing a hold on further retries until billing is verified.",
+        suggestedReply:
+          "I want to address the possible duplicate charge first. I’m placing a hold on any further retries until I’ve verified both authorization records. I’ll update you here shortly.",
+      },
+      {
+        summary: "Confirm you can see both charge attempts, explain you are reviewing which one settled, and reassure the customer any duplicate will be reversed.",
+        suggestedReply:
+          "I can see both attempts on the account. I’m reviewing which one settled so we can confirm there’s no duplicate. If there is, I’ll make sure it gets reversed.",
+      },
+      {
+        summary: "Set clear expectations about the billing review process, reassure the customer no further charges will occur, and give a time estimate.",
+        suggestedReply:
+          "No further charges will occur while I review this. I’ll have a clear answer on the billing status within a few minutes and I’ll update you here.",
+      },
+      {
+        summary: "Acknowledge the customer’s concern directly, confirm the specific charge amounts you are reviewing, and explain the next step.",
+        suggestedReply:
+          "I completely understand why that’s concerning. I’m reviewing the charge amounts from both attempts now and I’ll confirm which one processed and whether anything needs to be reversed.",
+      },
+      {
+        summary: "Apologize for the confusion, confirm you are escalating to the billing team if needed, and keep the customer informed.",
+        suggestedReply:
+          "I apologize for the confusion around the charges. I’m reviewing this now and if I need to escalate to the billing team I’ll loop them in immediately and keep you updated here.",
+      },
+      {
+        summary: "Validate the concern, confirm the account is safe from further charges, and commit to a resolution within the current conversation.",
+        suggestedReply:
+          "Your account is protected from any further charges while I sort this out. I’m committed to resolving the billing question before we close this conversation.",
       },
     ];
   }
@@ -340,6 +406,36 @@ function getInlineSuggestionVariants(
         suggestedReply:
           "Before we try again, please confirm the billing zip code tied to the card. That is the field most likely causing the mismatch I’m seeing on the payment check.",
       },
+      {
+        summary: "Explain what a billing mismatch means in plain terms, then ask the customer to double-check the address on file with their bank.",
+        suggestedReply:
+          "A billing mismatch usually means the address or zip code entered doesn’t match what your bank has on file. Can you double-check the billing address registered with your card issuer?",
+      },
+      {
+        summary: "Confirm you are updating the billing details from your side where possible, and ask the customer to confirm the card’s registered details.",
+        suggestedReply:
+          "I’m reviewing what we have on file and I want to make sure the details match your card exactly. Can you confirm the billing address and zip code as your card issuer has it?",
+      },
+      {
+        summary: "Reduce friction by narrowing down whether the issue is the name, address, or zip code, and focus the customer on one field at a time.",
+        suggestedReply:
+          "Let’s narrow this down together. Can you first confirm whether the cardholder name on the card matches what you entered? That’s sometimes the source of the mismatch.",
+      },
+      {
+        summary: "Reassure the customer that billing mismatches are common and fixable, then walk them through the two most likely fields to correct.",
+        suggestedReply:
+          "Billing mismatches are common and easy to fix. The two fields that usually cause this are the billing zip code and the cardholder name — can you confirm both match your card exactly?",
+      },
+      {
+        summary: "Ask the customer to try a different card if the billing details cannot be verified, and keep the conversation moving.",
+        suggestedReply:
+          "If you’re not able to confirm the billing details on that card, it may be quicker to try a different payment method. I can stay with you through either option.",
+      },
+      {
+        summary: "Confirm you are temporarily updating the billing record to attempt a clean match, and ask the customer to stand by.",
+        suggestedReply:
+          "I’m making a note on the billing record to flag the mismatch for review. In the meantime, please double-check the zip code and try the payment again — I’ll stay here with you.",
+      },
     ];
   }
 
@@ -359,6 +455,36 @@ function getInlineSuggestionVariants(
         summary: "Recognize the deadline, confirm immediate ownership, and give the customer confidence that the next update is coming soon.",
         suggestedReply:
           "Thanks for flagging the urgency. I’m on the blocking issue now, and I’ll update you here with the next step as soon as I confirm what’s holding it up.",
+      },
+      {
+        summary: "Prioritize the time constraint, confirm you are expediting the review, and give a realistic time estimate.",
+        suggestedReply:
+          "I’m treating this as a priority given the time constraint. I’m expediting the review on my end and expect to have a resolution or a clear next step for you within the next few minutes.",
+      },
+      {
+        summary: "Acknowledge the deadline, skip unnecessary back-and-forth, and commit to the fastest possible path to resolution.",
+        suggestedReply:
+          "Given your deadline I want to skip any unnecessary steps. I’m going straight to the fastest resolution path on my end and I’ll have an update for you momentarily.",
+      },
+      {
+        summary: "Validate the urgency and confirm that you are escalating internally to meet the customer’s timeline.",
+        suggestedReply:
+          "I hear you — this needs to be done today. I’m escalating internally right now to make sure we can meet your timeline. I’ll have a direct update for you shortly.",
+      },
+      {
+        summary: "Show empathy for the deadline pressure, confirm the one step blocking resolution, and commit to completing it immediately.",
+        suggestedReply:
+          "I understand the pressure you’re under. There’s one blocking step I need to clear on my side, and I’m working on it right now. I’ll be back with you in just a moment.",
+      },
+      {
+        summary: "Confirm you are removing any queued delays on the account and give the customer a clear window to complete their task.",
+        suggestedReply:
+          "I’m removing any queued delays on the account so you have a clean window to complete this today. I’ll confirm as soon as it’s ready and walk you through the final step.",
+      },
+      {
+        summary: "Offer to stay on the conversation actively until the deadline is met, so the customer knows they have continuous support.",
+        suggestedReply:
+          "I’m going to stay active on this conversation until we get this resolved for you today. Tell me where things are right now and I’ll take it from there.",
       },
     ];
   }
@@ -380,21 +506,75 @@ function getInlineSuggestionVariants(
         suggestedReply:
           "Happy to hear that worked. Everything should move forward normally now, but I’ll remain here if you need help with the next step.",
       },
+      {
+        summary: "Confirm resolution and set expectations about what a successful completion looks like, so the customer knows what to expect.",
+        suggestedReply:
+          "That’s great news. You should see the change reflected on your account within a few minutes. Feel free to reach back out if anything looks off.",
+      },
+      {
+        summary: "Acknowledge the customer’s thanks, confirm the case is resolved, and offer a warm close.",
+        suggestedReply:
+          "You’re welcome — I’m glad we got that sorted out. Is there anything else I can help you with before I close the case?",
+      },
+      {
+        summary: "Confirm success, summarize what was done, and let the customer know how to follow up if needed.",
+        suggestedReply:
+          "Perfect. I’ve noted the resolution on your account. If the same issue comes up again or anything else needs attention, don’t hesitate to reach back out.",
+      },
+      {
+        summary: "Celebrate the success briefly, confirm there are no further actions needed on the customer’s end, and offer to close the conversation.",
+        suggestedReply:
+          "Excellent — no further action needed on your end. I’ll go ahead and mark this as resolved unless you have anything else you’d like to cover.",
+      },
+      {
+        summary: "Respond warmly to the thanks, confirm the issue is fully closed, and invite the customer to return if needed.",
+        suggestedReply:
+          "My pleasure — that’s exactly what I’m here for. The issue is fully resolved on my end. Feel free to come back anytime if you need further assistance.",
+      },
+      {
+        summary: "Confirm the fix, note any follow-up steps the customer should be aware of, and end on a positive note.",
+        suggestedReply:
+          "Glad that’s working now. Just keep an eye out for a confirmation email in the next few minutes. It was great helping you today.",
+      },
     ];
   }
 
   return [
     {
-      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s latest update and giving them one clear next step.`,
+      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}’s latest update and giving them one clear next step.`,
       suggestedReply: "Thanks for the update. I’m checking the latest attempt now and I’ll give you the next step in just a moment.",
     },
     {
-      summary: `Recommend confirming ${conversation.customerName.split(" ")[0]}'s latest update, then setting expectations for the next follow-up in this thread.`,
+      summary: `Recommend confirming ${conversation.customerName.split(" ")[0]}’s latest update, then setting expectations for the next follow-up in this thread.`,
       suggestedReply: "Thanks for the update. I’m reviewing the latest activity now, and I’ll follow up here with the clearest next step in just a moment.",
     },
     {
-      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s message and giving them one immediate action while you continue checking the issue.`,
+      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}’s message and giving them one immediate action while you continue checking the issue.`,
       suggestedReply: "I appreciate the update. I’m checking the latest attempt now and I’ll reply here with the best next step shortly.",
+    },
+    {
+      summary: `Confirm you have received ${conversation.customerName.split(" ")[0]}’s message and let them know you are actively reviewing the details before responding.`,
+      suggestedReply: "Got it, thank you. I’m reviewing the details on my end right now and I’ll come back to you with the clearest path forward shortly.",
+    },
+    {
+      summary: `Show ${conversation.customerName.split(" ")[0]} that you are actively engaged, confirm you are checking the account, and set a short response window.`,
+      suggestedReply: "I’m on it. Let me pull up the account details and I’ll have a more specific update for you in just a moment.",
+    },
+    {
+      summary: `Acknowledge ${conversation.customerName.split(" ")[0]}’s message promptly, confirm ownership of the next step, and avoid asking for information you may already have.`,
+      suggestedReply: "Thanks for letting me know. I’m checking what I need on my end and will follow up here as soon as I have something concrete for you.",
+    },
+    {
+      summary: `Keep ${conversation.customerName.split(" ")[0]} informed without over-promising, confirm you are checking the relevant details, and invite them to ask if they have other questions.`,
+      suggestedReply: "I hear you. I’m reviewing everything related to this and I’ll be back with a clear next step shortly. Let me know if there’s anything else you’d like me to look at in the meantime.",
+    },
+    {
+      summary: `Acknowledge the message, confirm you are taking the right action on the account, and reassure ${conversation.customerName.split(" ")[0]} they are in good hands.`,
+      suggestedReply: "Thanks for the message. I’m taking a look at the account right now and I’ll make sure we get this sorted out for you as quickly as possible.",
+    },
+    {
+      summary: `Use a reassuring tone, confirm you understand the situation, and let ${conversation.customerName.split(" ")[0]} know the next update is imminent.`,
+      suggestedReply: "I completely understand. I’m working through the details now and you’ll have an update from me very shortly — I want to make sure I give you the right answer.",
     },
   ];
 }
@@ -808,6 +988,8 @@ export default function ConversationPanel({
   hideTranscript = false,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const customerRecord = customerId ? getCustomerRecord(customerId) : null;
+  const agentFullName = customerRecord?.overview.assignedAgent ?? "Agent";
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -839,6 +1021,9 @@ export default function ConversationPanel({
   const [aiDisplayWidth, setAiDisplayWidth] = useState(showAiPanel ? 550 : 0);
   const [isSuggestionEditorOpen, setIsSuggestionEditorOpen] = useState(false);
   const [isSuggestionAdded, setIsSuggestionAdded] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState<number | null>(null);
+  const [suggestionPage, setSuggestionPage] = useState(0);
+  const [suggestionPageDir, setSuggestionPageDir] = useState<"next" | "prev">("next");
   const [openedTicketId, setOpenedTicketId] = useState<string | null>(null);
   const [expandedNoteIds, setExpandedNoteIds] = useState<Set<number>>(new Set());
   const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
@@ -851,6 +1036,9 @@ export default function ConversationPanel({
   const [aiNewCount, setAiNewCount] = useState(0);
   const [copilotInput, setCopilotInput] = useState("");
   const [copilotThinking, setCopilotThinking] = useState(false);
+  const [inlineActionInput, setInlineActionInput] = useState("");
+  const [inlineActionThinking, setInlineActionThinking] = useState(false);
+  const inlineActionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isAiScrolledToBottomRef = useRef(true);
   const prevAiSuggestionRef = useRef<string | null>(null);
   const prevRevealedCountRef = useRef(0);
@@ -1191,6 +1379,35 @@ export default function ConversationPanel({
     }, 900);
   };
 
+  const handleInlineActionSubmit = () => {
+    const trimmed = inlineActionInput.trim();
+    if (!trimmed || inlineActionThinking) return;
+    setInlineActionInput("");
+    setInlineActionThinking(true);
+    inlineActionTimerRef.current = setTimeout(() => {
+      inlineActionTimerRef.current = null;
+      setInlineActionThinking(false);
+      if (!onConversationChange) return;
+      const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      const conv = conversationRef.current;
+      // Capitalise the first letter of the action for the note label
+      const actionLabel = trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+      onConversationChange({
+        ...conv,
+        messages: [
+          ...conv.messages,
+          {
+            id: Date.now(),
+            role: "agent",
+            content: `Copilot: ${actionLabel} — ${dateStr}`,
+            time: formatConversationTimestamp(new Date()),
+            isInternal: true,
+          },
+        ],
+      });
+    }, 1400);
+  };
+
   // On mount: scroll AI panels to bottom after the DOM has painted.
   useEffect(() => {
     const id = requestAnimationFrame(scrollAiPanelsToBottom);
@@ -1344,6 +1561,7 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
+    setSelectedSuggestionIndex(null);
     setPostActionSuggestion(null);
     setOpenedTicketId(null);
   }, [latestCustomerMessage?.id, draftKey]);
@@ -1364,6 +1582,7 @@ export default function ConversationPanel({
   useEffect(() => {
     if (draft.trim().length === 0) {
       setIsSuggestionAdded(false);
+    setSelectedSuggestionIndex(null);
     }
   }, [draft]);
 
@@ -1375,6 +1594,7 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setPostActionAnimKey((k) => k + 1);
     setIsSuggestionAdded(false);
+    setSelectedSuggestionIndex(null);
   }, [postActionSuggestion]);
 
   const handleUseSuggestion = () => {
@@ -1398,6 +1618,7 @@ export default function ConversationPanel({
     setSuggestionAccordionValue("ai-suggestion");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
+    setSelectedSuggestionIndex(null);
   };
 
   const handleOpenSuggestionEditor = () => {
@@ -1413,6 +1634,7 @@ export default function ConversationPanel({
     setSuggestionEditPrompt("");
     setIsSuggestionEditorOpen(false);
     setIsSuggestionAdded(false);
+    setSelectedSuggestionIndex(null);
   };
 
   const handleOpenSuggestionAction = (action: SuggestionAction) => {
@@ -1578,6 +1800,19 @@ export default function ConversationPanel({
               />
             ) : (
               <>
+                {/* Conversation Started — AI handoff context */}
+                <div className="py-3">
+                  <div className="mb-0.5 flex items-baseline gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#98A2B3]">Conversation Started</span>
+                    <span className="text-[10px] text-[#98A2B3]">
+                      {conversation.messages[0] ? `Today, ${conversation.messages[0].time.replace(/\s/g, "")}` : ""} | {getConversationChannelLabel(activeChannel)}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-6 text-[#98A2B3]">
+                    {customerFirstName} was assisted by the AI attendant and requested to speak with a live agent.
+                  </p>
+                </div>
+
                 {conversation.messages.map((message) => (
                   <div key={message.id} className="space-y-3">
                     {message.isInternal ? (
@@ -1634,48 +1869,193 @@ export default function ConversationPanel({
                     ) : (
                       <div
                         className={cn(
-                          "flex max-w-[85%] flex-col",
-                          message.role === "agent" ? "ml-auto items-end" : "mr-auto items-start",
+                          "py-3",
+                          message.id === latestNonInternalMessage?.id
+                            ? "border-l-[3px] border-[#006DAD] bg-[#F4FAFF] -mx-6 px-6"
+                            : "",
                         )}
                       >
-                        <div className="mb-1 flex items-center gap-2 px-1 text-xs text-[#475467]">
-                          <span className="font-medium">{message.role === "agent" ? "You" : customerFirstName}</span>
-                          <span aria-hidden="true" className="text-[#C4C4C4]">|</span>
-                          <span className="font-medium">{getConversationChannelLabel(message.channel ?? activeChannel)}</span>
+                        <div className="mb-0.5 flex items-baseline gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
+                            {message.role === "agent"
+                              ? `Agent ${agentFullName}`
+                              : conversation.customerName.toUpperCase()}
+                          </span>
+                          <span className="text-[10px] text-[#98A2B3]">
+                            {formatConversationMessageTimestamp(message.time)} | {getConversationChannelLabel(message.channel ?? activeChannel)}
+                          </span>
                         </div>
-                        <div
+                        <p
                           className={cn(
-                            "rounded-2xl px-4 py-3 text-sm shadow-sm",
-                            message.role === "agent"
-                              ? "rounded-br-sm bg-primary text-primary-foreground"
-                              : "rounded-bl-sm border border-border/50 bg-muted text-foreground",
+                            "text-sm leading-6",
+                            message.id === latestNonInternalMessage?.id
+                              ? "font-medium text-[#111827]"
+                              : "text-[#475467]",
                           )}
                         >
                           {message.content}
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2 px-1 text-xs text-[#98A2B3]">
-                          <span>{formatConversationMessageTimestamp(message.time)}</span>
-                        </div>
+                        </p>
                         {message.sentiment === "frustrated" && (
-                          <div className="mt-1.5 flex items-center gap-1 px-1 text-xs font-medium text-[#B54708]">
+                          <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-[#B54708]">
                             <AlertTriangle className="h-3.5 w-3.5" />
                             Frustrated sentiment detected
                           </div>
                         )}
                       </div>
                     )}
+
                   </div>
                 ))}
 
-                {conversation.isCustomerTyping && (
-                  <div className="mr-auto flex max-w-[85%] flex-col items-start">
-                    <span className="mb-1 ml-1 text-xs font-medium text-muted-foreground">{customerFirstName}</span>
-                    <div className="rounded-2xl rounded-bl-sm border border-border/50 bg-muted px-4 py-3 shadow-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]"></span>
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]"></span>
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]"></span>
+                {/* Suggested Actions — rendered after all messages so completed internal notes appear above */}
+                {agentTasks.length > 0 && (
+                  <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+                    <div className="px-4 pt-3 pb-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+                    </div>
+                    <div className="px-3 pb-2 pt-1 space-y-1.5" id="inline-task-list-main">
+                      {agentTasks.map((task) => {
+                        const progress = taskProgress[task.id];
+                        const isChecked = checkedTaskIds.has(task.id);
+                        const steps = TASK_STEPS[task.id] ?? [];
+                        return (
+                          <div
+                            key={task.id}
+                            className={cn(
+                              "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-[opacity,transform] duration-300 ease-out",
+                              revealedTaskIds.has(task.id)
+                                ? "opacity-100 translate-y-0"
+                                : "opacity-0 translate-y-2 pointer-events-none",
+                            )}
+                          >
+                            <div className="flex items-center gap-3 px-3 py-2.5">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleTaskCheck(task.id)}
+                                className={cn(
+                                  "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                                  isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                                )}
+                              >
+                                {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                              </button>
+                              <span className={cn(
+                                "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                                isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
+                              )}>
+                                {task.label}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
+                                  setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
+                                  setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
+                                }}
+                                className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            {isChecked && progress && (
+                              <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                                <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
+                                  {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
+                                </p>
+                                <div className="space-y-2.5">
+                                  {steps.map((step, stepIdx) => {
+                                    const isStepCompleted = stepIdx < progress.stepIndex;
+                                    const isStepInProgress = stepIdx === progress.stepIndex;
+                                    const isPaused = progress.paused && isStepInProgress;
+                                    const hoverKey = `inline-${task.id}-${stepIdx}`;
+                                    const isHovered = hoveredProgressStep === hoverKey;
+                                    return (
+                                      <div
+                                        key={stepIdx}
+                                        className="flex items-center gap-2.5"
+                                        onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
+                                        onMouseLeave={() => setHoveredProgressStep(null)}
+                                      >
+                                        <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                          {isStepCompleted ? (
+                                            <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                              <Check className="h-3.5 w-3.5 text-white" />
+                                            </div>
+                                          ) : isStepInProgress ? (
+                                            (isHovered || isPaused) ? (
+                                              <button
+                                                type="button"
+                                                onClick={() => toggleTaskPause(task.id)}
+                                                className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
+                                              >
+                                                {isPaused
+                                                  ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
+                                                  : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
+                                              </button>
+                                            ) : (
+                                              <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                            )
+                                          ) : (
+                                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                          )}
+                                        </div>
+                                        <span className={cn(
+                                          "text-[13px] leading-5",
+                                          isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
+                                        )}>
+                                          {step}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Inline Copilot action input */}
+                    <div className="border-t border-black/[0.06] px-3 py-2.5">
+                      <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                        {inlineActionThinking ? (
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#006DAD]" />
+                        ) : (
+                          <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
+                        )}
+                        <input
+                          type="text"
+                          value={inlineActionInput}
+                          onChange={(e) => setInlineActionInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleInlineActionSubmit(); } }}
+                          placeholder={inlineActionThinking ? "Working on it…" : "Ask Copilot to perform another action"}
+                          disabled={inlineActionThinking}
+                          className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleInlineActionSubmit}
+                          disabled={!inlineActionInput.trim() || inlineActionThinking}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          <Send className="h-3 w-3" />
+                        </button>
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {conversation.isCustomerTyping && (
+                  <div className="py-3">
+                    <div className="mb-0.5 flex items-baseline gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
+                        {conversation.customerName.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 pt-1">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]" />
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]" />
                     </div>
                   </div>
                 )}
@@ -1857,6 +2237,33 @@ export default function ConversationPanel({
                         );
                       })}
                     </div>
+                    {/* Inline Copilot action input */}
+                    <div className="border-t border-black/[0.06] px-3 py-2.5">
+                      <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                        {inlineActionThinking ? (
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#006DAD]" />
+                        ) : (
+                          <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
+                        )}
+                        <input
+                          type="text"
+                          value={inlineActionInput}
+                          onChange={(e) => setInlineActionInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleInlineActionSubmit(); } }}
+                          placeholder={inlineActionThinking ? "Working on it…" : "Ask Copilot to perform another action"}
+                          disabled={inlineActionThinking}
+                          className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleInlineActionSubmit}
+                          disabled={!inlineActionInput.trim() || inlineActionThinking}
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                        >
+                          <Send className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1904,49 +2311,115 @@ export default function ConversationPanel({
         )}
 
       {!isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
-        <div ref={footerRef} className="shrink-0 border-t border-border bg-background p-4">
-          <div
-            className={cn(
-              "rounded-2xl bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[border-color,box-shadow]",
-              isDraftFocused ? "border border-transparent shadow-none" : "border border-black/10",
-            )}
-          >
-            <Textarea
-              key={draftKey}
-              ref={textareaRef}
-              placeholder="Type your live response..."
-              value={draft}
-              onChange={(event) => {
-                const nextDraft = event.target.value;
-                setDraft(nextDraft);
-                onConversationChange?.({
-                  ...conversation,
-                  draft: nextDraft,
-                }, activeChannel);
-              }}
-              onFocus={() => setIsDraftFocused(true)}
-              onBlur={() => setIsDraftFocused(false)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  handleSend();
-                }
-              }}
-              rows={1}
-              className="!min-h-0 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
-            />
+        <>
+          {/* Live response input — relative so suggestion cards can overlay above it */}
+          <div ref={footerRef} className="relative shrink-0 border-t border-border bg-background px-4 py-3">
 
-            <div className="mt-2 flex items-center justify-between gap-3">
+            {/* Suggested response cards — absolutely positioned above the input, only visible when input is focused */}
+            {shouldShowSuggestion && suggestionVariants.length > 0 && isDraftFocused && (() => {
+              const PAGE_SIZE = 3;
+              const capped = suggestionVariants.slice(0, 9);
+              const totalPages = Math.ceil(capped.length / PAGE_SIZE);
+              const safePage = Math.min(suggestionPage, totalPages - 1);
+              const pageVariants = capped.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+              return (
+                <div className="animate-suggestion-panel-enter absolute bottom-full left-0 right-0 overflow-hidden border-t border-border bg-[#FAFAFA] shadow-[0_-4px_12px_rgba(16,24,40,0.06)]">
+                  {/* Header row with prev/next controls */}
+                  <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
+                      Suggested Responses
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-[#98A2B3]">
+                        {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, capped.length)} of {capped.length}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setSuggestionPageDir("prev"); setSuggestionPage((p) => Math.max(0, p - 1)); }}
+                          disabled={safePage === 0}
+                          className="flex h-5 w-5 items-center justify-center rounded text-[#98A2B3] transition-colors hover:bg-black/[0.06] hover:text-[#475467] disabled:pointer-events-none disabled:opacity-30"
+                          aria-label="Previous suggestions"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => { setSuggestionPageDir("next"); setSuggestionPage((p) => Math.min(totalPages - 1, p + 1)); }}
+                          disabled={safePage >= totalPages - 1}
+                          className="flex h-5 w-5 items-center justify-center rounded text-[#98A2B3] transition-colors hover:bg-black/[0.06] hover:text-[#475467] disabled:pointer-events-none disabled:opacity-30"
+                          aria-label="Next suggestions"
+                        >
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {/* 3 cards for current page — key forces re-mount to retrigger animation */}
+                  <div
+                    key={safePage}
+                    className={cn(
+                      "flex gap-2.5 px-4 pb-3",
+                      suggestionPageDir === "next" ? "animate-suggestion-slide-next" : "animate-suggestion-slide-prev",
+                    )}
+                  >
+                    {pageVariants.map((variant, pageIdx) => {
+                      const i = safePage * PAGE_SIZE + pageIdx;
+                      const isSelected = selectedSuggestionIndex === i;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            const text = variant.suggestedReply;
+                            setDraft(text);
+                            setIsSuggestionAdded(true);
+                            setSelectedSuggestionIndex(i);
+                            onConversationChange?.({ ...conversation, draft: text }, activeChannel);
+                            textareaRef.current?.focus({ preventScroll: true });
+                          }}
+                          className={cn(
+                            "relative min-w-0 flex-1 rounded-xl border p-3 text-left text-[13px] leading-5 transition-colors",
+                            isSelected
+                              ? "border-[#006DAD] bg-[#EEF6FC] text-[#00457A] shadow-[inset_0_0_0_1px_#006DAD]"
+                              : "border-[#B7E6DD] bg-[#EAF8F4] text-[#25403B] hover:bg-[#D9F2EA]",
+                          )}
+                        >
+                          {isSelected && (
+                            <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#006DAD]">
+                              <Check className="h-2.5 w-2.5 text-white stroke-[2.5]" />
+                            </span>
+                          )}
+                          <span className={cn("block line-clamp-3", isSelected && "pr-5")}>{variant.suggestedReply}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+            <div
+              className={cn(
+                "flex items-center gap-2 rounded-2xl bg-white px-3 py-2.5 transition-[border-color,box-shadow]",
+                isDraftFocused
+                  ? "border border-[#006DAD]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08)]"
+                  : "border border-black/10 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+              )}
+            >
+              {/* + add menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#5B5B5B] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    className="h-7 w-7 shrink-0 rounded-full border border-black/10 bg-white text-[#5B5B5B] hover:bg-[#F8F8F9] hover:text-[#333333]"
                     aria-label="Open conversation actions"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -1982,364 +2455,70 @@ export default function ConversationPanel({
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <div className="flex items-center gap-2">
-                <Button
+              {/* Text input */}
+              <Textarea
+                key={draftKey}
+                ref={textareaRef}
+                placeholder="Type your response..."
+                value={draft}
+                onChange={(event) => {
+                  const nextDraft = event.target.value;
+                  setDraft(nextDraft);
+                  onConversationChange?.({
+                    ...conversation,
+                    draft: nextDraft,
+                  }, activeChannel);
+                }}
+                onFocus={() => setIsDraftFocused(true)}
+                onBlur={() => setIsDraftFocused(false)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSend();
+                  }
+                }}
+                rows={1}
+                className="!min-h-0 flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-[15px] shadow-none placeholder:text-[#8A8A8A] focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              />
+
+              {/* Clear button — only visible when there's a draft */}
+              {hasDraft && (
+                <button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                  aria-label="Conversation options"
+                  onClick={() => {
+                    setDraft("");
+                    setIsSuggestionAdded(false);
+                    setSelectedSuggestionIndex(null);
+                    onConversationChange?.({ ...conversation, draft: "" }, activeChannel);
+                    textareaRef.current?.focus({ preventScroll: true });
+                  }}
+                  aria-label="Clear message"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#98A2B3] transition-colors hover:bg-black/[0.06] hover:text-[#475467]"
                 >
-                  <SlidersHorizontal className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full border border-black/10 bg-white text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                  aria-label="Voice input"
-                >
-                  <AudioLines className="h-4 w-4" />
-                </Button>
-                {hasDraft ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={handleClearDraft}
-                    className="h-8 rounded-full border border-black/10 bg-white px-3 text-[#666666] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                    aria-label="Clear input"
-                  >
-                    <X className="mr-1.5 h-3.5 w-3.5" />
-                    Clear
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  onClick={() => handleSend()}
-                  className={cn(
-                    "h-8 w-8 rounded-full bg-[#111827] text-white hover:bg-[#1F2937]",
-                    !hasDraft && "cursor-not-allowed bg-[#D1D5DB] text-white hover:bg-[#D1D5DB]",
-                  )}
-                  size="icon"
-                  aria-label={hasDraft ? `Send via ${getConversationChannelLabel(activeChannel)}` : "Enter a response to send"}
-                  disabled={!hasDraft}
-                >
-                  <Send className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+
+              {/* Send button — inside input */}
+              <Button
+                type="button"
+                onClick={() => handleSend()}
+                className={cn(
+                  "h-8 w-8 shrink-0 rounded-full bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                  !hasDraft && "cursor-not-allowed bg-[#D1D5DB] hover:bg-[#D1D5DB]",
+                )}
+                size="icon"
+                aria-label={hasDraft ? `Send via ${getConversationChannelLabel(activeChannel)}` : "Enter a response to send"}
+                disabled={!hasDraft}
+              >
+                <Send className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
-        </div>
+        </>
       )}
       </div>
 
-      {/* Wide inline mode — resize handle + panel */}
-      {/* Drag resize handle — present during open/close transitions */}
-      {!isNarrowPanel && isAiContentVisible && !hideTranscript && (
-        <div
-          className="relative h-full w-1 shrink-0 cursor-col-resize group z-10"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            aiPanelDragRef.current = { startX: e.clientX, startWidth: aiPanelWidth };
-            const onMove = (ev: MouseEvent) => {
-              if (!aiPanelDragRef.current) return;
-              const delta = aiPanelDragRef.current.startX - ev.clientX;
-              const next = Math.min(640, Math.max(368, aiPanelDragRef.current.startWidth + delta));
-              setAiPanelWidth(next);
-            };
-            const onUp = () => {
-              aiPanelDragRef.current = null;
-              window.removeEventListener("mousemove", onMove);
-              window.removeEventListener("mouseup", onUp);
-            };
-            window.addEventListener("mousemove", onMove);
-            window.addEventListener("mouseup", onUp);
-          }}
-        >
-          <div className="absolute inset-y-0 left-0 w-px bg-border" />
-          <div className="absolute inset-y-0 left-[-1px] w-[5px] bg-transparent group-hover:bg-primary/20 transition-colors" />
-        </div>
-      )}
-      {/* Wide AI panel — width animates open/closed, content fades separately */}
-      <div
-        className={cn(
-          "h-full overflow-hidden transition-[width] duration-300 ease-out",
-          !hideTranscript && "shrink-0",
-          hideTranscript && "flex-1",
-          isNarrowPanel && !hideTranscript && "pointer-events-none",
-        )}
-        style={hideTranscript ? undefined : { width: isNarrowPanel ? 0 : aiDisplayWidth }}
-      >
-        <div
-          className={cn(
-            "h-full flex flex-col overflow-hidden transition-[opacity] duration-[220ms] ease-in-out",
-            isAiContentEntered ? "opacity-100" : "opacity-0",
-          )}
-          style={{ width: aiPanelWidth }}
-        >
-          {/* Scrollable content */}
-          <div className="relative flex-1 min-h-0">
-          <div ref={wideAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
-          {isVoiceChannel && <VoiceAIGuidanceCard />}
-          {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
-            <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              <Accordion
-                type="single"
-                collapsible
-                value={suggestionAccordionValue}
-                onValueChange={(value) => setSuggestionAccordionValue(value)}
-              >
-                <AccordionItem value="ai-suggestion" className="border-b-0">
-                  <AccordionTrigger className="py-4 text-left hover:no-underline">
-                    <div className="flex flex-1 items-center justify-between mr-2">
-                      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
-                        <span>Suggested Response</span>
-                      </div>
-                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                        <Button type="button" size="icon" variant="outline" aria-label="Show previous AI suggestion" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(-1)} disabled={suggestionVariants.length <= 1}><ChevronLeft className="h-3.5 w-3.5" /></Button>
-                        <Button type="button" size="icon" variant="outline" aria-label="Show next AI suggestion" className="h-7 w-7 rounded-full border-black/10 bg-white text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]" onClick={() => handleCycleSuggestion(1)} disabled={suggestionVariants.length <= 1}><ChevronRight className="h-3.5 w-3.5" /></Button>
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-4">
-                    <p key={postActionAnimKey} className="text-sm leading-6 text-[#25403B] animate-in fade-in duration-500">{activeSuggestedReply}</p>
-                    {isSuggestionEditorOpen ? (
-                      <div className="mt-4 rounded-xl border border-[#B7E6DD] bg-white/70 p-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#369D3F]">
-                          Edit AI suggestion
-                        </div>
-                        <Input
-                          value={suggestionEditPrompt}
-                          onChange={(event) => setSuggestionEditPrompt(event.target.value)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              handleApplySuggestionEdit();
-                            }
-                          }}
-                          placeholder="Ask AI to modify this suggestion, e.g. add an attachment or update a ticket"
-                          className="mt-2 h-10 rounded-lg border-black/10 bg-white text-sm text-[#25403B] placeholder:text-[#6E817C] focus-visible:ring-[#B7E6DD]"
-                        />
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <Button
-                            type="button"
-                            size="sm"
-                            className="h-8 rounded-lg bg-[#369D3F] px-3 text-white hover:bg-[#2E8A36]"
-                            onClick={handleApplySuggestionEdit}
-                            disabled={suggestionEditPrompt.trim().length === 0}
-                          >
-                            Update suggestion
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="h-8 rounded-lg border-black/10 bg-white px-3 text-[#333333] hover:bg-[#F8F8F9]"
-                            onClick={() => {
-                              setSuggestionEditPrompt("");
-                              setSuggestionAccordionValue("ai-suggestion");
-                              setIsSuggestionEditorOpen(false);
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : null}
-                    {!isVoiceChannel && (
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          className={cn(
-                            "h-9 rounded-lg px-4",
-                            isSuggestionAdded
-                              ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                              : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
-                          )}
-                          onClick={handleUseSuggestion}
-                          disabled={isSuggestionAdded}
-                        >
-                          {isSuggestionAdded ? <Check className="mr-2 h-4 w-4" /> : null}
-                          {isSuggestionAdded ? "Added" : "Use response"}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          className="h-9 rounded-lg border-black/10 bg-white px-4 text-[#333333] hover:bg-[#F8F8F9]"
-                          onClick={handleOpenSuggestionEditor}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          )}
-
-          {/* Suggested Actions — wide panel */}
-          {agentTasks.length > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-              <div className="px-4 pt-3 pb-1">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
-              </div>
-              <div className="px-3 pb-3 pt-1 space-y-1.5">
-                {agentTasks.map((task) => {
-                  const progress = taskProgress[task.id];
-                  const isChecked = checkedTaskIds.has(task.id);
-                  const steps = TASK_STEPS[task.id] ?? [];
-                  return (
-                    <div
-                      key={task.id}
-                      className={cn(
-                        "rounded-xl border border-black/[0.06] bg-white overflow-hidden transition-[opacity,transform] duration-300 ease-out",
-                        revealedTaskIds.has(task.id)
-                          ? "opacity-100 translate-y-0"
-                          : "opacity-0 translate-y-2 pointer-events-none",
-                      )}
-                    >
-                      {/* Task row */}
-                      <div className="flex items-center gap-3 px-3 py-2.5">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleTaskCheck(task.id)}
-                          className={cn(
-                            "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                            isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
-                          )}
-                        >
-                          {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
-                        </button>
-                        <span className={cn(
-                          "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
-                          isChecked && progress && progress.stepIndex >= steps.length - 1 && "line-through text-[#9CA3AF]",
-                        )}>
-                          {task.label}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAgentTasks((prev) => prev.filter((t) => t.id !== task.id));
-                            setRevealedTaskIds((prev) => { const next = new Set(prev); next.delete(task.id); return next; });
-                            setTaskProgress((p) => { const { [task.id]: _, ...rest } = p; return rest; });
-                          }}
-                          className="shrink-0 text-[#AAAAAA] hover:text-[#EF4444] transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
-                      {/* In-progress steps — shown when checked */}
-                      {isChecked && progress && (
-                        <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
-                          <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
-                            {TASK_ACTION_TITLES[task.id] ?? `${task.label}...`}
-                          </p>
-                          <div className="space-y-2.5">
-                            {steps.map((step, stepIdx) => {
-                              const isStepCompleted = stepIdx < progress.stepIndex;
-                              const isStepInProgress = stepIdx === progress.stepIndex;
-                              const isPaused = progress.paused && isStepInProgress;
-                              const hoverKey = `wide-${task.id}-${stepIdx}`;
-                              const isHovered = hoveredProgressStep === hoverKey;
-                              return (
-                                <div
-                                  key={stepIdx}
-                                  className="flex items-center gap-2.5"
-                                  onMouseEnter={() => isStepInProgress && setHoveredProgressStep(hoverKey)}
-                                  onMouseLeave={() => setHoveredProgressStep(null)}
-                                >
-                                  <div className="shrink-0 h-6 w-6 flex items-center justify-center">
-                                    {isStepCompleted ? (
-                                      <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
-                                        <Check className="h-3.5 w-3.5 text-white" />
-                                      </div>
-                                    ) : isStepInProgress ? (
-                                      (isHovered || isPaused) ? (
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleTaskPause(task.id)}
-                                          className="h-6 w-6 rounded-full border-2 border-[#0B9A8A] flex items-center justify-center hover:bg-[#F0FDFB] transition-colors"
-                                        >
-                                          {isPaused
-                                            ? <Play className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />
-                                            : <Pause className="h-2.5 w-2.5 text-[#0B9A8A] fill-[#0B9A8A]" />}
-                                        </button>
-                                      ) : (
-                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
-                                      )
-                                    ) : (
-                                      <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
-                                    )}
-                                  </div>
-                                  <span className={cn(
-                                    "text-[13px] leading-5",
-                                    isStepCompleted ? "text-[#6B7280]" : "text-[#111827]",
-                                  )}>
-                                    {step}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-        </div>{/* end overflow-y-auto */}
-          {/* New content chip */}
-          {aiNewCount > 0 && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center px-3">
-              <button
-                type="button"
-                onClick={handleAiChipClick}
-                className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-[#111827] px-3 py-1.5 text-[11px] font-medium text-white shadow-lg hover:bg-[#1F2937] transition-colors"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-[#0B9A8A]" />
-                1 new message
-              </button>
-            </div>
-          )}
-          </div>{/* end relative wrapper */}
-          {/* Copilot input footer */}
-          <div className="shrink-0 border-t border-black/[0.06] p-3">
-            <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              {copilotThinking ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
-              ) : (
-                <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
-              )}
-              <input
-                type="text"
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCopilotSubmit(); } }}
-                placeholder={copilotThinking ? "Thinking…" : "Ask Copilot anything..."}
-                disabled={copilotThinking}
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-[#111827] placeholder:text-[#AAAAAA] focus:outline-none disabled:opacity-50"
-              />
-              <button
-                type="button"
-                onClick={handleCopilotSubmit}
-                disabled={!copilotInput.trim() || copilotThinking}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
-              >
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>{/* end flex-col / opacity wrapper */}
-      </div>{/* end width-animating outer panel */}
     </div>
   );
 }

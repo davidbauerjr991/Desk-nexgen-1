@@ -4,7 +4,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowRightLeft,
   Bell,
+  BookUser,
   Bot,
+  CalendarCheck,
+  Check,
+  ListChecks,
+  Loader2,
+  Settings,
+  Minus,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -958,6 +965,254 @@ function getConversationOverviewSummary(conversation: SharedConversationData) {
     : `${customerFirstName} was routed to this agent because the current ${conversation.label.toLowerCase()} thread still needs active ownership to move the issue forward.`;
 }
 
+// Per-customer curated overview bullets, keyed by full name (lowercase).
+// These mirror the control panel queue card data so both views are consistent.
+const overviewActionsByCustomerName: Record<string, string[]> = {
+  "maria chen": [
+    "Reviewed the full chat thread and identified a recurring payment failure tied to an expired card token.",
+    "Cross-referenced Maria's billing profile and confirmed the card on file expired two billing cycles ago.",
+    "Checked if the failure triggered any automated retry logic — no retries were attempted due to hard decline.",
+    "Prepared a card-update prompt and drafted a payment link for agent delivery.",
+  ],
+  "james whitfield": [
+    "Reviewed James's enterprise contract and identified a tier pricing change applied at last renewal.",
+    "Cross-referenced the original quote with the invoiced amount — a $4,200 discrepancy was found.",
+    "Checked account notes and confirmed a verbal pricing commitment was made by the previous account manager.",
+    "Flagged the case for revenue operations review and prepared a dispute summary for the agent.",
+  ],
+  "priya sharma": [
+    "Reviewed the security alert and confirmed an unrecognised login from a foreign IP address.",
+    "Checked session history — the suspicious session accessed personal details but no transactions were made.",
+    "Initiated a temporary account lock and triggered a password reset notification to Priya's verified email.",
+    "Prepared an incident summary and recommended MFA enablement steps for the agent to walk Priya through.",
+  ],
+  "robert okafor": [
+    "Reviewed Robert's SMS thread and identified API authentication errors starting immediately post-migration.",
+    "Checked the developer portal — BlueLine's API keys were not re-issued after the platform version upgrade.",
+    "Confirmed the error pattern matches a known breaking change introduced in API v3.1.",
+    "Prepared a migration guide and new key generation steps for the agent to share.",
+  ],
+  "lisa montenegro": [
+    "Reviewed Lisa's email thread and confirmed a GDPR-mandated data export was requested 18 days ago.",
+    "Checked the data export queue — the request stalled due to a missing data-owner approval in the system.",
+    "Identified the responsible internal team and flagged the overdue approval to compliance ops.",
+    "Prepared an export status summary and escalation note for the agent.",
+  ],
+  "kevin tran": [
+    "Reviewed Kevin's billing history and confirmed duplicate invoices were generated for three consecutive months.",
+    "Identified a billing system sync error introduced during last quarter's ERP migration as the root cause.",
+    "Calculated the total overbilling: $12,600 across three invoices — all currently marked as overdue.",
+    "Prepared a credit memo draft and flagged the case to the billing engineering team.",
+  ],
+  "angela russo": [
+    "Reviewed Angela's chat and confirmed she is requesting a payment method update for her corporate account.",
+    "Verified Angela's identity meets the account's security threshold for payment detail changes.",
+    "Confirmed no active transactions are pending that would be affected by the card change.",
+    "Prepared a secure payment update link and draft confirmation message for the agent.",
+  ],
+  "marcus bell": [
+    "Reviewed Marcus's email thread and confirmed SSO broke immediately after an Azure AD directory sync.",
+    "Checked Vertex's SSO configuration — the entity ID and assertion consumer URL are now mismatched.",
+    "Confirmed the sync overwrote a custom attribute mapping that was set manually.",
+    "Prepared a re-configuration guide and flagged the issue to the identity team.",
+  ],
+  "sandra yip": [
+    "Reviewed Sandra's SMS thread and confirmed she cannot access the Q1 and Q2 report documents in the portal.",
+    "Checked her account permissions — the reports portal role was inadvertently removed during a user audit.",
+    "Confirmed the reports are available and the issue is entirely permission-based, not a data problem.",
+    "Prepared a permission restoration request and flagged it to the admin team.",
+  ],
+  "derek owens": [
+    "Reviewed Derek's account and identified his annual contract expires in 11 days with no renewal initiated.",
+    "Cross-referenced the contract terms — a 30-day notice clause means renewal is technically overdue.",
+    "Identified two pricing options available under the current commercial framework.",
+    "Prepared a contract summary and renewal options brief for the agent.",
+  ],
+  "fatima al-rashid": [
+    "Reviewed the security alert and confirmed an abnormal bulk data export was initiated from Fatima's account.",
+    "Cross-referenced login timestamps — the export was triggered 40 minutes after an unrecognised session began.",
+    "Suspended the export job and flagged the session for security team investigation.",
+    "Prepared an incident report and escalation summary for the agent and security team.",
+  ],
+  "tom hargrove": [
+    "Reviewed Tom's email and confirmed he is following up on a refund issued 22 days ago.",
+    "Checked the refund status — the credit was processed but the bank return is still pending clearance.",
+    "Confirmed the refund amount of $340 is within the expected processing window for Tom's bank.",
+    "Prepared a refund status update and estimated clearance timeline for the agent to share.",
+  ],
+  "nadia petrov": [
+    "Reviewed Nadia's SMS thread and confirmed her international wire transfer is 3 days past the SLA window.",
+    "Checked with the correspondent bank — the transfer is held pending SWIFT compliance screening.",
+    "Identified a flag on the beneficiary country code that triggered an automated compliance hold.",
+    "Prepared a compliance hold explanation and escalation path for the agent.",
+  ],
+  "carlos mendez": [
+    "Reviewed Carlos's call notes and confirmed a real-time data feed outage affecting pipeline monitoring dashboards.",
+    "Checked system status — the outage is caused by a broken WebSocket connection in the v4.2 API gateway.",
+    "Confirmed the engineering team is aware and a fix is in progress, estimated resolution in 2 hours.",
+    "Prepared an outage briefing and interim monitoring workaround for the agent to share.",
+  ],
+  "ingrid holmberg": [
+    "Reviewed Ingrid's email and identified an HS code classification error on a recent shipment declaration.",
+    "Cross-referenced the declared goods with the correct tariff schedule — the error affects duty calculations.",
+    "Confirmed the shipment is currently held at customs pending a corrected declaration.",
+    "Prepared a corrected HS code recommendation and amendment filing instructions for the agent.",
+  ],
+  "darius knox": [
+    "Reviewed Darius's chat and confirmed a $47,500 transfer was sent to an incorrect beneficiary account.",
+    "Checked the transfer status — the transaction completed 8 minutes ago and has not yet been settled.",
+    "Identified the receiving institution and initiated a recall request through the payments network.",
+    "Flagged the case as a priority incident and prepared a reversal brief for the agent.",
+  ],
+  // Live assignment customers (names from customer-database.ts)
+  "alex kowalski": [
+    "Reviewed the full SMS thread and identified a payment-blocking error on Alex's upgrade attempt.",
+    "Checked Alex's account and confirmed the Visa ending in 4092 is valid but encountering a recurring gateway error.",
+    "Identified the error is tied to a temporary payment processing hold, not the card itself.",
+    "Prepared a payment unlock step and drafted a confirmation message for the agent to share.",
+  ],
+  "sarah miller": [
+    "Reviewed Sarah's case and confirmed she missed her scheduled flight and needs a same-day rebooking.",
+    "Checked available same-day options on the relevant route and identified two viable alternatives.",
+    "Confirmed Sarah's booking terms allow a same-day change without a rebooking fee given the circumstances.",
+    "Prepared a rebooking summary with available flight options for the agent to present.",
+  ],
+  "emily chen": [
+    "Reviewed Emily's chat and confirmed her discount code is returning an error at checkout.",
+    "Checked the promo code validity — the code is active but has a tier restriction not shown on the landing page.",
+    "Identified the issue is a backend eligibility mismatch between the code and Emily's current account tier.",
+    "Prepared a manual discount override request and a corrected promo option for the agent to apply.",
+  ],
+  "david brown": [
+    "Reviewed David's inquiry and confirmed a subscription plan change coincided with a potential duplicate charge.",
+    "Checked billing history — two charges were posted during the plan transition window, one of which is a duplicate.",
+    "Confirmed the duplicate is tied to the mid-cycle proration logic and has not yet been reversed.",
+    "Prepared a credit memo for the duplicate charge and a corrected subscription state for agent review.",
+  ],
+  "priya nair": [
+    "Reviewed Priya's case and confirmed her account was locked after five consecutive failed sign-in attempts.",
+    "Checked the sign-in logs — the failed attempts originated from a recognised device and IP address.",
+    "Confirmed the lockout is a standard security trigger and no unauthorised access has occurred.",
+    "Prepared an account unlock flow and identity verification steps for the agent to walk Priya through.",
+  ],
+  "miguel santos": [
+    "Reviewed Miguel's complaint and confirmed an order cancellation did not prevent a charge from completing.",
+    "Checked the order lifecycle — the cancellation was submitted after the payment had already been captured.",
+    "Confirmed a full refund is eligible and the charge has not yet been disputed with the card issuer.",
+    "Prepared a refund initiation summary and estimated processing timeline for the agent to share.",
+  ],
+  "olivia reed": [
+    "Reviewed Olivia's request and confirmed her shipment has a delivery exception due to an address issue.",
+    "Checked the carrier tracking — the package is held at a regional depot and eligible for address correction.",
+    "Confirmed the reroute window is open but closes within 24 hours if no action is taken.",
+    "Prepared the reroute request and carrier contact details for the agent to process immediately.",
+  ],
+  "jamal carter": [
+    "Reviewed Jamal's report and confirmed recent changes saved on mobile are not syncing to desktop.",
+    "Checked the sync logs — a conflict error is preventing the mobile save from propagating to the cloud account state.",
+    "Confirmed the data is not lost — it is queued locally on the mobile device pending a sync resolution.",
+    "Prepared a manual sync trigger procedure and conflict resolution guide for the agent to walk Jamal through.",
+  ],
+  "hannah brooks": [
+    "Reviewed Hannah's invoice query and confirmed the renewal amount is higher than the rate quoted at last renewal.",
+    "Checked account pricing history — a rate adjustment was applied automatically at renewal without notice.",
+    "Confirmed the original quoted rate was documented in account notes but not locked in the billing system.",
+    "Prepared a billing correction request and draft response honouring the original quoted rate for agent review.",
+  ],
+  "noah patel": [
+    "Reviewed the full SMS thread and confirmed an analytics export failed ahead of a stakeholder meeting.",
+    "Cross-referenced Noah's account permissions and recent failed export job logs.",
+    "Confirmed the issue is tied to a report generation timeout — not a permissions error.",
+    "Prepared a step-by-step remediation draft and flagged the relevant knowledge base article.",
+  ],
+  "lauren kim": [
+    "Reviewed Lauren's request and confirmed a seat expansion is blocked by an admin permission error.",
+    "Checked the account admin settings — the billing contact role does not have seat management permissions enabled.",
+    "Confirmed the seat expansion is within plan limits and the only blocker is a permission configuration issue.",
+    "Prepared a permission update request and seat expansion steps for the agent to process with Lauren.",
+  ],
+  "ethan zhang": [
+    "Reviewed Ethan's report and confirmed multiple API sync jobs are stalled due to repeated rate-limit errors.",
+    "Checked the API usage logs — Ethan's integration is hitting the hourly rate cap due to a misconfigured retry interval.",
+    "Identified the retry logic is set to an aggressive interval that compounds the rate-limit violations.",
+    "Prepared a rate-limit configuration fix and backoff strategy guide for the agent to share with Ethan.",
+  ],
+};
+
+function getOverviewActions(conversation: SharedConversationData): string[] | null {
+  const key = conversation.customerName.toLowerCase().trim();
+  return overviewActionsByCustomerName[key] ?? null;
+}
+
+function getInteractionOverview(conversation: SharedConversationData): string {
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+  const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
+  const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
+  const channel = conversation.label;
+
+  const firstCustomerMessage = conversation.messages.find((m) => m.role === "customer");
+  const ticketTime = firstCustomerMessage?.time ?? "today";
+
+  const base = latestCustomerMessage?.content
+    ? `${customerFirstName} reached out via ${channel} regarding: ${latestCustomerMessage.content.slice(0, 120).trim()}${latestCustomerMessage.content.length > 120 ? "…" : ""}`
+    : `${customerFirstName} reached out via ${channel} with an open issue that requires agent follow-up.`;
+
+  const tone = isFrustrated
+    ? ` ${customerFirstName} has expressed frustration — a de-escalation approach is recommended.`
+    : "";
+
+  const ticket = firstCustomerMessage
+    ? ` A ticket has been opened as of ${ticketTime}.`
+    : "";
+
+  return `${base}${tone}${ticket}`;
+}
+
+function getAgentNextSteps(conversation: SharedConversationData): string[] {
+  const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
+  const content = latestCustomerMessage?.content?.toLowerCase() ?? "";
+  const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
+
+  if (content.includes("billing") || content.includes("charged") || content.includes("payment")) {
+    return [
+      "Review the customer's ticket and billing history",
+      "Verify the charge or billing discrepancy on the account",
+      "Determine if a credit or correction is warranted",
+      "Communicate the outcome and next steps to the customer",
+    ];
+  }
+  if (content.includes("upgrade") || content.includes("plan") || content.includes("package")) {
+    return [
+      "Review the customer's current plan and upgrade request",
+      "Check eligibility and any blockers on the account",
+      "Pull a comparison of available options based on account status",
+      "Ask the customer if they'd like you to process the change on their behalf",
+    ];
+  }
+  if (isFrustrated || content.includes("frustrated") || content.includes("escalat")) {
+    return [
+      "Review the full thread and identify the root cause of frustration",
+      "Check prior interactions and any unresolved tickets on the account",
+      "Determine if escalation or a supervisor review is needed",
+      "Respond with empathy and a clear resolution path",
+    ];
+  }
+  if (content.includes("error") || content.includes("failed") || content.includes("retry")) {
+    return [
+      "Review the ticket and the specific error the customer encountered",
+      "Check account logs for failed attempts or system-side blockers",
+      "Identify the root cause and prepare a remediation step",
+      "Guide the customer through a clean retry or issue a resolution",
+    ];
+  }
+  return [
+    "Review the customer's ticket and the latest thread activity",
+    "Check account history and any flagged interactions",
+    "Identify the most appropriate resolution path",
+    "Respond with a clear next step and keep the customer informed",
+  ];
+}
+
 function getAiActionsTaken(conversation: SharedConversationData) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const channel = conversation.label.toLowerCase();
@@ -1020,10 +1275,12 @@ function CustomerContactDropdown({
           type="button"
           variant="outline"
           size="sm"
+          aria-label="Add New Channel"
           onMouseDown={(event) => event.stopPropagation()}
-          className="h-8 rounded-full border-black/10 px-3 text-[#333333]"
+          className="h-8 rounded-full border-[#006DAD] px-3 text-[#006DAD] hover:bg-[#006DAD]/5 hover:text-[#006DAD]"
         >
-          Contact <ChevronDown className="ml-2 h-4 w-4" />
+          <Plus className="mr-1.5 h-3.5 w-3.5 stroke-[2]" />
+          New Channel
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -1622,7 +1879,7 @@ function CustomerProfilePopover({
         onClick={(e) => { e.stopPropagation(); onOpenCustomerInfo(e); }}
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
       >
-        <User className="h-3.5 w-3.5 stroke-[1.8]" />
+        <User className="h-3.5 w-3.5 stroke-[1.5]" />
       </button>
       <button
         type="button"
@@ -1631,7 +1888,7 @@ function CustomerProfilePopover({
         onClick={(e) => { e.stopPropagation(); onOpenNotes(e); }}
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
       >
-        <FileText className="h-3.5 w-3.5 stroke-[1.8]" />
+        <FileText className="h-3.5 w-3.5 stroke-[1.5]" />
       </button>
     </div>
   );
@@ -1698,6 +1955,7 @@ function DockedConversationPanel({
   equalSplitWidth,
   hideTranscript = false,
   showTaskSummary = false,
+  initialSummaryOpen = false,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -1723,6 +1981,7 @@ function DockedConversationPanel({
   showTaskSummary?: boolean;
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
+  initialSummaryOpen?: boolean;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -1730,7 +1989,24 @@ function DockedConversationPanel({
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
-  const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(false);
+  const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
+  const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
+  const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
+  const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // When the panel is opened for a reviewed assignment, auto-expand the summary.
+  useEffect(() => {
+    if (initialSummaryOpen) {
+      setIsHandoffSummaryOpen(true);
+    }
+  }, [initialSummaryOpen]);
+
+  // Clean up perform-actions timer on unmount
+  useEffect(() => {
+    return () => {
+      if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current);
+    };
+  }, []);
   const shouldStackHeaderActions = false;
 
   useEffect(() => {
@@ -1810,7 +2086,7 @@ function DockedConversationPanel({
           <>
             <div
               data-conversation-panel-header
-              className="relative flex flex-col border-b border-border bg-background/50 px-5 py-4 gap-0"
+              className="relative flex flex-col border-b border-border px-5 py-4 gap-0"
             >
               {/* Top row: drag handle · name · actions */}
               <div className={cn(
@@ -1829,62 +2105,28 @@ function DockedConversationPanel({
                   <div className="min-w-0">
                     <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
                   </div>
-                </div>
-                <div
-                  className={cn(
-                    "flex items-center gap-2",
-                    shouldStackHeaderActions ? "pl-9" : "shrink-0",
-                  )}
-                >
                   <CustomerContactDropdown
                     onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
                     onOpenChannel={onOpenChannel}
                     isCallDisabled={isCallDisabled}
                   />
-                  {!isNarrowPanel && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={() => setIsAiPanelVisible((v) => !v)}
-                            aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
-                            className={cn(
-                              "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                              isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                            )}
-                          >
-                            <PanelRight className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Toggle conversation</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
                 </div>
+                {/* Show Summary toggle — far right of header */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => setIsHandoffSummaryOpen((v) => !v)}
+                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD] hover:opacity-75 transition-opacity shrink-0"
+                >
+                  {isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
+                  <ChevronDown
+                    className={cn(
+                      "h-3 w-3 text-[#006DAD] transition-transform duration-200",
+                      isHandoffSummaryOpen && "rotate-180",
+                    )}
+                  />
+                </button>
               </div>
-              {/* AI Handoff Summary — trigger stays in normal flow, content overlays below */}
-              <button
-                type="button"
-                onClick={() => setIsHandoffSummaryOpen((v) => !v)}
-                className="flex items-center gap-1.5 pl-9 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD] hover:opacity-75 transition-opacity"
-              >
-                Task Summary
-                <ChevronDown
-                  className={cn(
-                    "h-3 w-3 text-[#006DAD] transition-transform duration-200",
-                    isHandoffSummaryOpen && "rotate-180",
-                  )}
-                />
-              </button>
-
-              {/* Always-visible quick summary */}
-              <p className="pl-9 text-xs leading-5 text-[#475467]">
-                {getCustomerIssueSummary(conversation)}
-              </p>
 
               {/* Absolutely positioned expanded content — overlays the panel content below */}
               <div
@@ -1896,29 +2138,100 @@ function DockedConversationPanel({
               <div className="overflow-hidden">
                 <div className="px-5 pb-4 pt-3">
                   <div className="grid grid-cols-2 gap-3">
-                    {/* AI Actions Taken */}
-                    <div className="rounded-lg border border-[#D0E8FA] bg-[#F0F8FF] p-3">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD]">
-                        AI Actions Taken
+                    {/* Interaction Overview */}
+                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580]">
+                        Interaction Overview
                       </p>
-                      <ul className="space-y-1.5">
-                        {getAiActionsTaken(conversation).map((action, i) => (
-                          <li key={i} className="flex items-start gap-1.5">
-                            <span className="mt-[3px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3694fd]" />
-                            <span className="text-xs leading-5 text-[#344054]">{action}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      {(() => {
+                        const actions = getOverviewActions(conversation);
+                        return actions ? (
+                          <ul className="space-y-1.5">
+                            {actions.map((action, i) => (
+                              <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3A6580]" />
+                                {action}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-[11.5px] leading-5 text-[#344054]">
+                            {getInteractionOverview(conversation)}
+                          </p>
+                        );
+                      })()}
                     </div>
-                    {/* Why You're Needed */}
-                    <div className="rounded-lg border border-[#FDDCAB] bg-[#FFFBF5] p-3">
-                      <p className="mb-2 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#B54708]">
-                        <TriangleAlert className="h-3 w-3 flex-shrink-0" />
-                        Why You're Needed
+                    {/* Next Steps */}
+                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580]">
+                        Next Steps
                       </p>
-                      <p className="text-xs leading-5 text-[#344054]">
-                        {getWhyAgentIsNeeded(conversation)}
-                      </p>
+                      {(() => {
+                        const steps = getAgentNextSteps(conversation);
+                        return (
+                          <>
+                            <ol className="space-y-1.5 mb-3">
+                              {steps.map((step, i) => {
+                                const isDone = i < performActionsCompletedCount;
+                                const isActive = performActionsState === "running" && i === performActionsCompletedCount;
+                                return (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className={cn(
+                                      "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
+                                      isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580]",
+                                    )}>
+                                      {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
+                                    </span>
+                                    <span className={cn(
+                                      "text-[11.5px] leading-5 transition-colors",
+                                      isDone ? "text-[#6B7280] line-through" : isActive ? "text-[#006DAD] font-medium" : "text-[#344054]",
+                                    )}>
+                                      {step}
+                                    </span>
+                                  </li>
+                                );
+                              })}
+                            </ol>
+                            {performActionsState === "idle" && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPerformActionsState("running");
+                                  setPerformActionsCompletedCount(0);
+                                  let count = 0;
+                                  const tick = () => {
+                                    count += 1;
+                                    setPerformActionsCompletedCount(count);
+                                    if (count < steps.length) {
+                                      performActionsTimerRef.current = setTimeout(tick, 1200);
+                                    } else {
+                                      setPerformActionsState("done");
+                                    }
+                                  };
+                                  performActionsTimerRef.current = setTimeout(tick, 1200);
+                                }}
+                                className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                              >
+                                Perform Actions
+                              </button>
+                            )}
+                            {performActionsState === "running" && (
+                              <div className="flex items-center gap-2 py-1">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD]" />
+                                <span className="text-[11px] text-[#006DAD] font-medium">Working on it…</span>
+                              </div>
+                            )}
+                            {performActionsState === "done" && (
+                              <div className="flex items-center gap-1.5 py-1">
+                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0B9A8A]">
+                                  <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
+                                </span>
+                                <span className="text-[11px] text-[#0B9A8A] font-medium">All actions complete</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -2661,7 +2974,7 @@ function DeskCanvasPopunder({
             ? "Add"
             : showingInlineCustomer
               ? "Customer Information"
-              : "Desk";
+              : "Directory";
 
   useEffect(() => {
     if (!dragActivation) return;
@@ -2967,10 +3280,7 @@ function ConversationPopunder({
       }}
     >
       <div
-        className={cn(
-          "flex cursor-grab border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing",
-          shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-center justify-between gap-3",
-        )}
+        className="flex cursor-grab items-center justify-between gap-3 border-b border-border px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
           onInteractStart?.();
           isDraggingRef.current = true;
@@ -2981,116 +3291,37 @@ function ConversationPopunder({
           document.body.style.userSelect = "none";
         }}
       >
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-            <div>
-              <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
-            </div>
+        <div className="flex items-center gap-3">
+          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+          <div>
+            <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
           </div>
-          {shouldStackHeaderActions ? (
-            <div className="flex items-center gap-1.5">
-              {isVeryNarrow && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={() => setIsAiPanelVisible((v) => !v)}
-                        aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
-                        className={cn(
-                          "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                          isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                        )}
-                      >
-                        <PanelRight className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Toggle conversation</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              {onDock && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={onDock}
-                        className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                        aria-label="Dock panel"
-                      >
-                        <Pin className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Dock panel</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </div>
-          ) : null}
-        </div>
-        <div
-          className={cn(
-            "flex items-center gap-2",
-            shouldStackHeaderActions ? "pl-7" : "",
-          )}
-        >
           <CustomerContactDropdown
             onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
             onOpenChannel={onOpenChannel}
             isCallDisabled={isCallDisabled}
           />
-          {!isVeryNarrow && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onClick={() => setIsAiPanelVisible((v) => !v)}
-                    aria-label={isAiPanelVisible ? "Hide conversation" : "Show conversation"}
-                    className={cn(
-                      "h-8 w-8 shrink-0 transition-colors hover:bg-transparent",
-                      isAiPanelVisible ? "text-primary" : "text-[#AAAAAA] hover:text-[#333333]",
-                    )}
-                  >
-                    <PanelRight className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Toggle conversation</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          {!shouldStackHeaderActions && onDock && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onMouseDown={(event) => event.stopPropagation()}
-                    onClick={onDock}
-                    className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
-                    aria-label="Dock panel"
-                  >
-                    <Pin className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Dock panel</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
         </div>
+        {onDock && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={onDock}
+                  className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  aria-label="Dock panel"
+                >
+                  <Pin className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Dock panel</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       <ConversationPanel
@@ -3893,6 +4124,10 @@ function LeftQueueRail({
     closeChannelKeepTask,
   } = useLayoutContext();
 
+  // When an assignment is selected in the rail, suppress nav-item highlighting —
+  // the active assignment card is the active context, not a nav section.
+  const hasActiveAssignment = visibleAssignments.some((a) => a.id === selectedAssignment.id);
+
   const visibleQueuePreviewItems = useMemo(() => {
     const nextItems = visibleAssignments.map((item) => ({
       ...item,
@@ -3932,7 +4167,20 @@ function LeftQueueRail({
           )}
           aria-hidden={isOpen}
         >
-          <div className="flex h-full w-full flex-col items-center gap-2.5 px-1 pt-0">
+          <div className="flex h-full w-full flex-col items-center gap-2.5 px-1 pt-2">
+            {/* + New Assignment button — top, mirrors open rail */}
+            <div className="flex w-full shrink-0 flex-col items-center pb-1">
+              <button
+                type="button"
+                aria-label="New Assignment"
+                onClick={() => navigate("/control-panel")}
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[0.14] bg-white text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#1D2939]"
+              >
+                <Plus className="h-4 w-4 stroke-[1.5]" />
+              </button>
+            </div>
+
+            {/* Collapsed assignment icons — scroll area */}
             <div
               className={cn(
                 "min-h-0 w-full flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
@@ -4025,6 +4273,35 @@ function LeftQueueRail({
                 })}
               </div>
             </div>
+
+            {/* Collapsed nav icons — at bottom */}
+            <div className="flex w-full shrink-0 flex-col items-center gap-1 border-t border-black/[0.08] pt-2 pb-2">
+              {([
+                { icon: Monitor,       path: "/control-panel", label: "Desk"     },
+                { icon: CalendarCheck, path: "/schedule",      label: "Schedule" },
+                { icon: Settings,      path: "/settings",      label: "Settings" },
+              ] as const).map(({ icon: Icon, path, label }) => {
+                const isActive = path === "/control-panel"
+                  ? location.pathname === path
+                  : !hasActiveAssignment && location.pathname === path;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-label={label}
+                    onClick={() => navigate(path)}
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                      isActive
+                        ? "bg-[#EEF6FC] text-[#006DAD]"
+                        : "text-[#667085] hover:bg-[#F0F0F1] hover:text-[#1D2939]",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 stroke-[1.5]" />
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </aside>
 
@@ -4036,59 +4313,68 @@ function LeftQueueRail({
         >
           <div
             className={cn(
-              "ml-4 mr-4 flex h-full min-h-0 w-[315px] min-w-[315px] flex-col bg-[#F8F8F9] transition-transform duration-300 ease-out",
+              "flex h-full min-h-0 w-full flex-col overflow-y-auto bg-[#F8F8F9] transition-transform duration-300 ease-out [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
               isOpen ? "translate-x-0" : "-translate-x-8",
             )}
           >
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[8px] border border-black/[0.16] bg-white">
-              <div className="shrink-0 border-b border-border bg-background/50 px-4 py-4">
-                <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
-                <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
-                <button
-                  type="button"
-                  disabled={isOnControlCenter}
-                  onClick={() => navigate("/control-panel")}
-                  className={cn(
-                    "mt-2.5 flex w-full items-center rounded-lg border px-3 py-1.5 text-sm font-semibold transition-colors",
-                    isOnControlCenter
-                      ? "cursor-default border-[#006DAD]/30 text-[#006DAD]/40"
-                      : "border-[#006DAD] text-[#006DAD] hover:bg-[#006DAD]/10",
-                  )}
-                >
-                  <span className="flex-1 text-center">Control Center</span>
-                  <ChevronRight className="h-4 w-4 shrink-0" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {groupedQueueItems.length === 0 ? (
-                  <div className="flex h-full flex-col items-center justify-center px-6 py-10 text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none" className="mb-4 h-16 w-16 shrink-0">
-                      <rect x="10" y="18" width="60" height="48" rx="6" fill="#F2F4F7" stroke="#D0D5DD" strokeWidth="1.5"/>
-                      <rect x="18" y="10" width="44" height="48" rx="6" fill="#F9FAFB" stroke="#D0D5DD" strokeWidth="1.5"/>
-                      <rect x="26" y="22" width="28" height="3.5" rx="1.75" fill="#D0D5DD"/>
-                      <rect x="26" y="30" width="20" height="3" rx="1.5" fill="#E4E7EC"/>
-                      <rect x="26" y="37" width="24" height="3" rx="1.5" fill="#E4E7EC"/>
-                      <circle cx="58" cy="56" r="12" fill="#EEF6FC" stroke="#B8D7F0" strokeWidth="1.5"/>
-                      <path d="M54 56l3 3 5-5" stroke="#006DAD" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <p className="text-[12px] font-semibold text-[#344054] leading-snug">No Active Assignments</p>
-                    <p className="mt-1.5 text-[11px] text-[#667085] leading-relaxed">
-                      Please select from the Customer Issue list or wait and the next available will be assigned to you.
-                    </p>
-                  </div>
-                ) : (
-                  <QueueOverlayList
-                    groups={groupedQueueItems}
-                    queueStatuses={queueStatuses}
-                    onStatusChange={onStatusChange}
-                    onRemove={handleRemoveQueueItem}
-                    onCloseChannelKeepTask={closeChannelKeepTask}
-                    taskSummaryIds={taskSummaryIds}
-                    isOpen={isOpen}
-                    onSelectAssignment={selectAssignment}
-                  />
-                )}
-              </div>
+            {/* Assignments section */}
+            <div className="shrink-0 px-3 pb-2 pt-3">
+              <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
+              <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
+              <button
+                type="button"
+                onClick={() => navigate("/control-panel")}
+                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/[0.14] bg-white px-3 py-1.5 text-[13px] font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+              >
+                <Plus className="h-4 w-4 stroke-[1.5]" />
+                New Assignment
+              </button>
+            </div>
+
+            {groupedQueueItems.length > 0 && (
+              <QueueOverlayList
+                groups={groupedQueueItems}
+                queueStatuses={queueStatuses}
+                onStatusChange={onStatusChange}
+                onRemove={handleRemoveQueueItem}
+                onCloseChannelKeepTask={closeChannelKeepTask}
+                taskSummaryIds={taskSummaryIds}
+                isOpen={isOpen}
+                onSelectAssignment={selectAssignment}
+              />
+            )}
+
+            <div className="mx-3 border-t border-black/[0.08]" />
+
+            {/* Nav */}
+            <div className="shrink-0 px-3 pb-3 pt-2">
+              <nav className="space-y-0.5">
+                {[
+                  { label: "Desk",     icon: Monitor,       path: "/control-panel" },
+                  { label: "Schedule", icon: CalendarCheck, path: "/schedule"      },
+                  { label: "Settings", icon: Settings,      path: "/settings"      },
+                ].map(({ label, icon: Icon, path }) => {
+                  const isActive = path === "/control-panel"
+                    ? location.pathname === path
+                    : !hasActiveAssignment && location.pathname === path;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
+                        isActive
+                          ? "bg-[#EEF6FC] text-[#006DAD]"
+                          : "text-[#444444] hover:bg-[#F4F4F5] hover:text-[#1D2939]",
+                      )}
+                    >
+                      <Icon className={cn("h-4 w-4 shrink-0 stroke-[1.5]", isActive ? "text-[#006DAD]" : "text-[#667085]")} />
+                      {label}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
         </div>
@@ -4274,6 +4560,8 @@ export default function Layout({ children }: LayoutProps) {
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
   // Tracks assignments whose channel has been removed — shows task summary in the panel
   const [taskSummaryIds, setTaskSummaryIds] = useState<Set<string>>(new Set());
+  // Tracks assignments opened via the "Review" button — summary auto-expands for these
+  const [reviewedAssignmentIds, setReviewedAssignmentIds] = useState<Set<string>>(new Set());
   // Tracks assignment IDs where the agent has sent at least one message on a "new" channel.
   // Once activated the delete icon is hidden — the channel has real content and can't be discarded.
   const [activatedChannelIds, setActivatedChannelIds] = useState<Set<string>>(new Set());
@@ -4430,6 +4718,8 @@ export default function Layout({ children }: LayoutProps) {
 
     if (status !== "Available") return;
     if (visibleAssignmentIds.length >= 3) return;
+    // Do not push a new assignment while any are still awaiting accept / reject.
+    if (pendingAcceptanceIds.size > 0) return;
 
     // Minimum 15 seconds of availability before pushing an assignment;
     // add up to 10 s of jitter so back-to-back assignments feel natural.
@@ -4471,7 +4761,7 @@ export default function Layout({ children }: LayoutProps) {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, visibleAssignmentIds.length]);
+  }, [status, visibleAssignmentIds.length, pendingAcceptanceIds.size]);
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -4503,8 +4793,10 @@ export default function Layout({ children }: LayoutProps) {
   const isActivityRoute = location.pathname === "/activity";
   const isExpandedCanvasRoute =
     isActivityRoute && ((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel ?? true);
+  // Only treat /desk as an app-space panel route when an explicit ?view= param is
+  // present. The bare /desk path is now the standalone Desk page (no panel popunder).
   const activeDeskRouteView: DeskCanvasView | null = location.pathname === "/desk"
-    ? ((new URLSearchParams(location.search).get("view") as DeskCanvasView | null) ?? "desk")
+    ? ((new URLSearchParams(location.search).get("view") as DeskCanvasView | null) ?? null)
     : null;
   const isCopilotDeskView = activeDeskRouteView === "copilot";
   const isDeskView = activeDeskRouteView === "desk";
@@ -5430,6 +5722,7 @@ export default function Layout({ children }: LayoutProps) {
   const reviewPendingAssignment = (assignmentId: string) => {
     // Do NOT remove from pending — buttons stay until the agent accepts.
     // Just select the assignment and navigate so the agent can read the conversation.
+    setReviewedAssignmentIds((prev) => new Set([...prev, assignmentId]));
     setSelectedAssignmentId(assignmentId);
     navigate("/activity");
   };
@@ -6209,28 +6502,14 @@ export default function Layout({ children }: LayoutProps) {
           </button>
           <div
             className="relative hidden lg:block"
-            onMouseEnter={openWorkspaceMenu}
-            onMouseLeave={closeWorkspaceMenu}
           >
-            {/* Trigger */}
-            <button
-              type="button"
-              aria-label="Select workspace"
-              className="flex min-w-0 items-start gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-white/70 focus:outline-none"
-            >
-              <span className="min-w-0">
-                <span className="block truncate text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
-                  Agent Workspace
-                </span>
-                <span className="mt-0.5 block truncate text-xs font-medium leading-4 text-[#7A7A7A]">
-                  {activeWorkspace.name}
-                </span>
-              </span>
-              <ChevronDown className={cn("mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#666666] transition-transform duration-150", workspaceMenuOpen && "rotate-180")} />
-            </button>
+            {/* Static title — no hover menu, nav items live in the left rail */}
+            <span className="block px-2 py-1.5 text-base font-semibold leading-5 tracking-[-0.02em] text-[#333333]">
+              Agent Workspace
+            </span>
 
-            {/* Hover panel — same DOM subtree, no portal */}
-            {workspaceMenuOpen && (
+            {/* Hover panel — kept in DOM but never shown */}
+            {false && (
               <div className="absolute left-0 top-full z-50 mt-2.5 w-[300px] rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
                 <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#7A7A7A]">
                   Workspaces
@@ -6263,21 +6542,6 @@ export default function Layout({ children }: LayoutProps) {
                   })}
                 </div>
                 <div className="my-2 h-px bg-black/10" />
-              <div className="flex items-center justify-between rounded-xl px-3 py-3">
-                <div className="flex items-center gap-2 text-sm font-semibold text-[#333333]">
-                  {isDarkMode ? <Moon className="h-4 w-4 text-[#006DAD]" /> : <Sun className="h-4 w-4 text-[#006DAD]" />}
-                  <span>Dark Mode</span>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isDarkMode}
-                  onClick={(e) => { e.preventDefault(); setIsDarkMode((v) => !v); }}
-                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isDarkMode ? "bg-[#006DAD]" : "bg-[#D1D5DB]"}`}
-                >
-                  <span className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform ${isDarkMode ? "translate-x-4" : "translate-x-0"}`} />
-                </button>
-              </div>
               <DropdownMenuSeparator className="my-2 bg-black/10" />
               <div className="flex items-center justify-start px-3 py-2">
                 {isDarkMode ? (
@@ -6342,11 +6606,23 @@ export default function Layout({ children }: LayoutProps) {
         {/* Right: Icon buttons + status */}
         <div className="flex items-center justify-end gap-1 sm:gap-1.5">
           <HeaderIconButton
-            ariaLabel="Open Desk"
+            ariaLabel="Open Directory"
             onClick={() => openHeaderAppPanel("desk")}
             isActive={deskCanvasPopunderView === "desk" || isDeskView}
           >
-            <Monitor className="h-4 w-4 stroke-[1.8]" />
+            <BookUser className="h-4 w-4 stroke-[1.5]" />
+          </HeaderIconButton>
+
+          <HeaderIconButton
+            ariaLabel={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => setIsDarkMode((v) => !v)}
+            isActive={isDarkMode}
+          >
+            {isDarkMode ? (
+              <Sun className="h-4 w-4 stroke-[1.5]" />
+            ) : (
+              <Moon className="h-4 w-4 stroke-[1.5]" />
+            )}
           </HeaderIconButton>
 
           <HeaderIconButton
@@ -6355,7 +6631,7 @@ export default function Layout({ children }: LayoutProps) {
             isActive={deskCanvasPopunderView === "notifications" || activeDeskRouteView === "notifications"}
           >
             <div className="relative">
-              <Bell className="h-4 w-4 stroke-[1.8]" />
+              <Bell className="h-4 w-4 stroke-[1.5]" />
               <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />
             </div>
           </HeaderIconButton>
@@ -6374,7 +6650,7 @@ export default function Layout({ children }: LayoutProps) {
               }}
               isActive={isChatPopoverOpen}
             >
-              <MessageCircle className="h-4 w-4 stroke-[1.8]" />
+              <MessageCircle className="h-4 w-4 stroke-[1.5]" />
             </HeaderIconButton>
           </div>
 
@@ -6386,7 +6662,7 @@ export default function Layout({ children }: LayoutProps) {
               onClick={() => openHeaderAppPanel("copilot")}
               isActive={deskCanvasPopunderView === "copilot" || isCopilotDeskView}
             >
-              <Bot className="h-4 w-4 stroke-[1.8]" />
+              <Bot className="h-4 w-4 stroke-[1.5]" />
             </HeaderIconButton>
           </div>
 
@@ -6399,11 +6675,23 @@ export default function Layout({ children }: LayoutProps) {
               type="button"
               className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E6F3FA] focus:outline-none"
             >
-              <span
-                aria-hidden="true"
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold leading-none text-white shadow-[0_3px_8px_rgba(0,0,0,0.18)] ${activeStatus.dotClassName}`}
-              >
-                JD
+              <span className="relative shrink-0" aria-hidden="true">
+                <img
+                  src="https://randomuser.me/api/portraits/men/32.jpg"
+                  alt="Agent avatar"
+                  className="h-8 w-8 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.15)]"
+                />
+                {/* Status badge — bottom-right of avatar */}
+                <span className={cn(
+                  "absolute -bottom-0.5 -right-0.5 flex h-[14px] w-[14px] items-center justify-center rounded-full border-2 border-white",
+                  activeStatus.dotClassName,
+                )}>
+                  {(status === "In a Call" || status === "Busy") ? (
+                    <Minus className="h-2 w-2 text-white stroke-[3]" />
+                  ) : status === "Offline" ? (
+                    <span className="h-1 w-1 rounded-full bg-white/80" />
+                  ) : null}
+                </span>
               </span>
               <span className="hidden min-w-0 flex-col items-start sm:flex">
                 <span className={`text-[15px] font-semibold leading-none tracking-[-0.02em] ${activeStatus.textClassName}`}>
@@ -6551,6 +6839,7 @@ export default function Layout({ children }: LayoutProps) {
                 isCallDisabled={status === "In a Call" || status !== "Available"}
                 onClose={closeConversationPanel}
                 showTrailingGap={false}
+                initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -6672,6 +6961,7 @@ export default function Layout({ children }: LayoutProps) {
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
               showTaskSummary={taskSummaryIds.has(selectedAssignment.id)}
+              initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 

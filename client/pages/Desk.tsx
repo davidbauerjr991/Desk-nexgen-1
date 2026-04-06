@@ -43,7 +43,7 @@ export default function Desk() {
           ? "Customer Information"
           : isNotificationsView
             ? "Notifications"
-            : "Desk";
+            : "Directory";
   const panelView = isCopilotView
     ? "copilot"
     : isNotesView

@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle,
+  Check,
   CheckCircle,
   ChevronDown,
+  Loader2,
   Mail,
   MessageCircle,
   MessageSquare,
@@ -22,6 +24,7 @@ type Priority = "Critical" | "High" | "Medium" | "Low";
 interface AiOverview {
   actions: string[];
   whyNeeded: string;
+  nextSteps: string[];
 }
 
 interface StaticAssignment {
@@ -77,6 +80,12 @@ const liveAiOverview: Record<string, AiOverview> = {
     ],
     whyNeeded:
       "The export failure requires a manual queue reset that the AI cannot trigger autonomously. A human agent is needed to confirm the correct reporting period, initiate the fix, and validate the output before sending it to Noah.",
+    nextSteps: [
+      "Confirm the correct reporting period with Noah",
+      "Initiate a manual queue reset for the failed export job",
+      "Validate the export output before delivering it",
+      "Send the completed report and close the case",
+    ],
   },
   olivia: {
     actions: [
@@ -87,6 +96,12 @@ const liveAiOverview: Record<string, AiOverview> = {
     ],
     whyNeeded:
       "Olivia has contacted support twice for the same billing issue without resolution. She is showing clear frustration signals. A human agent is needed to acknowledge the repeated failure, issue the correct credit, and personally confirm the account is now accurate.",
+    nextSteps: [
+      "Acknowledge the repeated billing failure and apologise",
+      "Issue the correct credit and confirm the amount with Olivia",
+      "Verify the account balance is now accurate",
+      "Confirm resolution and close the case with a personal note",
+    ],
   },
   ethan: {
     actions: [
@@ -97,6 +112,12 @@ const liveAiOverview: Record<string, AiOverview> = {
     ],
     whyNeeded:
       "Releasing a flagged wire transfer requires agent-level authorisation that cannot be granted autonomously. A human agent must verify Ethan's identity, confirm the payee details, and manually clear the hold in the payments system.",
+    nextSteps: [
+      "Verify Ethan's identity against account security requirements",
+      "Confirm the transfer destination as a known and approved payee",
+      "Manually clear the fraud hold in the payments system",
+      "Confirm the transfer has been released and notify Ethan",
+    ],
   },
 };
 
@@ -122,6 +143,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Maria's recurring transactions will continue to fail until the card token is replaced. A human agent is needed to verify her identity, confirm the new card details, and manually trigger the missed payment to bring the account current.",
+      nextSteps: [
+        "Verify Maria's identity before making billing changes",
+        "Confirm and update the new card details on the account",
+        "Manually trigger the missed recurring payment",
+        "Confirm the account is current and future transactions are enabled",
+      ],
     },
   },
   {
@@ -143,6 +170,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "This dispute involves a contractual pricing commitment that requires management approval to honour. A human agent must review the account history, engage the commercial team, and negotiate a resolution before Summit Healthcare escalates further.",
+      nextSteps: [
+        "Review the original quote and the disputed invoice side-by-side",
+        "Confirm the verbal pricing commitment with the previous account manager",
+        "Engage the commercial team for management approval on any correction",
+        "Negotiate a resolution with James and document the outcome",
+      ],
     },
   },
   {
@@ -164,6 +197,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Although the account has been locked, Priya needs a human agent to confirm her identity, review whether any data was accessed, and guide her through securing the account. Trust and reassurance are critical in this interaction.",
+      nextSteps: [
+        "Verify Priya's identity before discussing any account details",
+        "Review the suspicious session and confirm what data was accessed",
+        "Walk Priya through the password reset and account recovery steps",
+        "Enable MFA and confirm the account is fully secured",
+      ],
     },
   },
   {
@@ -185,6 +224,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Issuing new API credentials and verifying the integration is restored requires coordination with the developer team. A human agent is needed to walk Robert through the key rotation and confirm the endpoint configuration is updated correctly.",
+      nextSteps: [
+        "Issue new API credentials from the developer portal",
+        "Share the migration guide and v3.1 breaking-change notes with Robert",
+        "Walk Robert through updating the endpoint configuration",
+        "Verify the integration is restored and confirm with the developer team",
+      ],
     },
   },
   {
@@ -206,6 +251,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Lisa's compliance deadline is imminent and the export request is overdue. A human agent must coordinate with the data team, force-approve the stalled request, and confirm delivery to Lisa with a compliance-safe confirmation email.",
+      nextSteps: [
+        "Coordinate with the data team to unblock the stalled approval",
+        "Force-approve the export request in the compliance system",
+        "Confirm delivery of the export to Lisa within the deadline",
+        "Send a compliance-safe confirmation email and close the case",
+      ],
     },
   },
   {
@@ -227,6 +278,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Kevin has already escalated this case once without resolution. A human agent must personally confirm the overbilling amount, issue the credits, and ensure the ERP sync is corrected to prevent future duplicates. Orion Pharma is a key account.",
+      nextSteps: [
+        "Confirm the total overbilling amount across all three invoices",
+        "Issue the credit memos and update the account balance",
+        "Escalate the ERP sync error to billing engineering for a permanent fix",
+        "Personally confirm with Kevin that the credits have been applied",
+      ],
     },
   },
   {
@@ -248,6 +305,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Payment method updates on corporate accounts require agent verification and manual confirmation in the billing system. A human agent must validate Angela's authorisation level before making changes to the account on file.",
+      nextSteps: [
+        "Verify Angela's authorisation level for corporate account changes",
+        "Confirm no active transactions will be affected by the card change",
+        "Send the secure payment update link and assist Angela through the process",
+        "Confirm the new payment method is active and send a confirmation",
+      ],
     },
   },
   {
@@ -277,6 +340,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Restoring SSO requires manual changes to both the identity provider settings and the application configuration. A human agent must coordinate with Vertex's IT admin and validate the corrected configuration before re-enabling access.",
+      nextSteps: [
+        "Coordinate with Vertex's IT admin to access the identity provider settings",
+        "Apply the corrected entity ID and assertion consumer URL configuration",
+        "Restore the custom attribute mapping that was overwritten by the sync",
+        "Test SSO end-to-end and confirm access is restored for Vertex users",
+      ],
     }),
   },
   {
@@ -298,6 +367,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Restoring portal access requires an admin-level permission change. A human agent must confirm Sandra's role entitlements, apply the correction, and verify she can access the required reports before closing the case.",
+      nextSteps: [
+        "Confirm Sandra's correct role entitlements for the reports portal",
+        "Apply the permission restoration in the admin panel",
+        "Verify Sandra can access the Q1 and Q2 report documents",
+        "Close the case and confirm with Sandra that access is restored",
+      ],
     },
   },
   {
@@ -319,6 +394,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Contract renewal negotiations require human judgement on pricing flexibility and relationship management. A human agent must engage Derek, clarify the terms, and secure a signed renewal before the contract lapses to avoid a service disruption.",
+      nextSteps: [
+        "Contact Derek urgently given the 11-day renewal window",
+        "Review the available pricing options under the current framework",
+        "Clarify contract terms and address any questions Derek has",
+        "Secure a signed renewal before the contract lapses",
+      ],
     },
   },
   {
@@ -340,6 +421,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "This is a potential data breach requiring immediate human intervention. A security agent must assess the scope of the export, notify the data protection officer, and engage Fatima to determine whether account credentials have been compromised.",
+      nextSteps: [
+        "Assess the full scope of the abnormal data export",
+        "Notify the data protection officer immediately",
+        "Engage Fatima to determine if credentials have been compromised",
+        "Initiate full incident response protocol and document findings",
+      ],
     },
   },
   {
@@ -361,6 +448,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Although the refund was processed correctly, Tom needs a human agent to communicate the status clearly and provide a confirmed timeline. A personal follow-up will prevent further escalation and close the loop on this case.",
+      nextSteps: [
+        "Confirm the refund of $340 was processed correctly",
+        "Provide Tom with the estimated bank clearance timeline",
+        "Send a personal follow-up message with the status details",
+        "Close the case once Tom confirms receipt",
+      ],
     },
   },
   {
@@ -382,6 +475,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Releasing a compliance-held wire transfer requires a human agent to liaise with the compliance team, review the beneficiary details, and submit a manual clearance request. Nadia needs a clear status update and a firm release timeline.",
+      nextSteps: [
+        "Liaise with the compliance team regarding the SWIFT hold",
+        "Review and confirm the beneficiary country code and details",
+        "Submit a manual clearance request on Nadia's behalf",
+        "Provide Nadia with a firm release timeline and status update",
+      ],
     },
   },
   {
@@ -403,6 +502,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Carlos's production monitoring is offline and the situation carries operational risk. A human agent must confirm the incident timeline, provide SouthStar Energy with a reliable ETA, and arrange direct engineering contact if the outage extends beyond the estimate.",
+      nextSteps: [
+        "Confirm the current incident timeline and engineering ETA with the team",
+        "Share the interim monitoring workaround with Carlos immediately",
+        "Provide SouthStar Energy a reliable restoration ETA",
+        "Arrange direct engineering contact if the outage extends beyond 2 hours",
+      ],
     },
   },
   {
@@ -424,6 +529,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Amending a customs declaration requires a human agent to coordinate with the freight broker and submit a formal correction. Ingrid needs clear guidance on the amendment process and confirmation the shipment will be released without penalty.",
+      nextSteps: [
+        "Coordinate with the freight broker on the corrected HS code",
+        "Submit the amended customs declaration to the relevant authority",
+        "Confirm the shipment has been cleared for release",
+        "Guide Ingrid through the amendment process and confirm no penalty",
+      ],
     },
   },
   {
@@ -445,6 +556,12 @@ const staticAssignments: StaticAssignment[] = [
       ],
       whyNeeded:
         "Reversing a completed transfer requires immediate human action and direct contact with the receiving bank. A human agent must authorise the recall, coordinate with the payments team, and keep Darius informed at every step until the funds are confirmed returned.",
+      nextSteps: [
+        "Authorise the transfer recall in the payments system immediately",
+        "Contact the receiving institution to request the reversal",
+        "Coordinate with the payments team to track the recall status",
+        "Keep Darius informed at every step until funds are confirmed returned",
+      ],
     },
   },
 ];
@@ -463,6 +580,12 @@ function getLiveAiOverview(customerRecordId: string, name: string, preview: stri
       `Prepared a suggested response draft and identified relevant knowledge base articles.`,
     ],
     whyNeeded: `The issue ${firstName} raised requires judgment and account-level context that the AI cannot act on autonomously. A human agent is needed to review the details, confirm the right course of action, and deliver a personalised resolution that closes the loop.`,
+    nextSteps: [
+      `Review the customer's ticket and the latest thread activity`,
+      `Check account history and any flagged interactions`,
+      `Identify the most appropriate resolution path`,
+      `Respond with a clear next step and keep the customer informed`,
+    ],
   };
 }
 
@@ -765,6 +888,10 @@ function IssueRow({
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const isInProgress = isAccepted && !isClosed;
+  const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
+  const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
+  const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
 
   return (
     <div className="group/row border-b border-border last:border-b-0">
@@ -903,28 +1030,87 @@ function IssueRow({
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
-              {/* Overview */}
-              <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">
-                  Overview
+              {/* Interaction Overview */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
+                  Interaction Overview
                 </p>
                 <ul className="space-y-1.5">
                   {aiOverview.actions.map((action, i) => (
                     <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580]" />
                       {action}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Next Steps / Outcome */}
-              <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
-                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
-                  <AlertTriangle className="h-3 w-3" />
-                  {status === "resolved" ? "Outcome" : "Next Steps"}
+              {/* Next Steps */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
+                  Next Steps
                 </p>
-                <p className="text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
+                <ol className="space-y-1.5 mb-3">
+                  {aiOverview.nextSteps.map((step, i) => {
+                    const isDone = i < performActionsCompletedCount;
+                    const isActive = performActionsState === "running" && i === performActionsCompletedCount;
+                    return (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className={cn(
+                          "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
+                          isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580]",
+                        )}>
+                          {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
+                        </span>
+                        <span className={cn(
+                          "text-[11.5px] leading-relaxed transition-colors",
+                          isDone ? "text-[#6B7280] line-through" : isActive ? "text-[#006DAD] font-medium" : "text-[#344054]",
+                        )}>
+                          {step}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+                {performActionsState === "idle" && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPerformActionsState("running");
+                      setPerformActionsCompletedCount(0);
+                      let count = 0;
+                      const steps = aiOverview.nextSteps;
+                      const tick = () => {
+                        count += 1;
+                        setPerformActionsCompletedCount(count);
+                        if (count < steps.length) {
+                          performActionsTimerRef.current = setTimeout(tick, 1200);
+                        } else {
+                          setPerformActionsState("done");
+                        }
+                      };
+                      performActionsTimerRef.current = setTimeout(tick, 1200);
+                    }}
+                    className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                  >
+                    Perform Actions
+                  </button>
+                )}
+                {performActionsState === "running" && (
+                  <div className="flex items-center gap-2 py-1">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD]" />
+                    <span className="text-[11px] text-[#006DAD] font-medium">Working on it…</span>
+                  </div>
+                )}
+                {performActionsState === "done" && (
+                  <div className="flex items-center gap-1.5 py-1">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0B9A8A]">
+                      <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
+                    </span>
+                    <span className="text-[11px] text-[#0B9A8A] font-medium">All actions complete</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -992,26 +1178,36 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
-              {/* Overview */}
-              <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">Overview</p>
+              {/* Interaction Overview */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
+                  Interaction Overview
+                </p>
                 <ul className="space-y-1.5">
                   {aiOverview.actions.map((action, i) => (
                     <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580]" />
                       {action}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Outcome */}
-              <div className="flex flex-col rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-3.5">
-                <p className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
-                  <AlertTriangle className="h-3 w-3" />
-                  Outcome
+              {/* Next Steps (resolved — shows outcome + Transfer/Open actions) */}
+              <div className="flex flex-col rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
+                  Next Steps
                 </p>
-                <p className="flex-1 text-[11.5px] text-[#344054] leading-relaxed">{aiOverview.whyNeeded}</p>
+                <ol className="flex-1 space-y-1.5">
+                  {aiOverview.nextSteps.map((step, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#C8D9E6] text-[9px] font-bold text-[#3A6580]">
+                        {i + 1}
+                      </span>
+                      <span className="text-[11.5px] leading-relaxed text-[#344054]">{step}</span>
+                    </li>
+                  ))}
+                </ol>
                 <div className="mt-3 flex items-center justify-end gap-2">
                   {showReject && rejectTriggerRect && (
                     <RejectPopover
