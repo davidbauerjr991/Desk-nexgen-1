@@ -1213,7 +1213,7 @@ export default function ControlCenterPage() {
             <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-[14px] font-semibold text-[#333333]">Tasks</h2>
+                  <h2 className="text-[14px] font-semibold text-[#333333]">Queue</h2>
                   <p className="text-xs text-[#7A7A7A] mt-0.5">
                     {tabCount} task{tabCount !== 1 ? "s" : ""}
                   </p>
