@@ -19,7 +19,7 @@ const TICKET_PAGE_SIZE = 6;
 export const NOTES_PANEL_MENU_ITEMS = [...PRIMARY_TABS, ...SWITCHABLE_TABS];
 
 const DEFAULT_NOTE_AGENT = {
-  name: "Jordan Doe",
+  name: "Jeff Comstock",
   id: "AGT-10984",
 };
 

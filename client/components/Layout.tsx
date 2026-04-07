@@ -2,8 +2,10 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   ArrowRightLeft,
   Bell,
+  LogOut,
   BookUser,
   Bot,
   CalendarCheck,
@@ -61,8 +63,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
 import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
+import DirectoryPanel from "@/components/DirectoryPanel";
 import AddPanelContent from "@/components/AddPanelContent";
 import ChatPopoverContent from "@/components/ChatPopover";
+import NotificationsPopoverContent, { seedNotifications, type AppNotification } from "@/components/NotificationsPopover";
 import NotesPanel from "@/components/NotesPanel";
 import { conversationChannelOptions } from "@/components/ConversationChannelToggleGroup";
 import { type RecentInteractionItem } from "@/components/RecentInteractionsPanel";
@@ -75,6 +79,7 @@ import {
   type CustomerChannel,
   type CustomerQueueIcon,
 } from "@/lib/customer-database";
+import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -83,7 +88,7 @@ interface LayoutProps {
 
 type RightPanelView = "info" | "desk" | "interactions" | null;
 type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer" | "notifications";
-type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew" | "chat";
+type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew" | "chat" | "notifications";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 type DeskPanelSelection = {
   initialTab?: string;
@@ -683,7 +688,7 @@ const DESK_CANVAS_POPOUNDER_MARGIN = 16;
 const DESK_CANVAS_POPOUNDER_MIN_HEIGHT = 420;
 const DESK_CANVAS_POPOUNDER_DESK_MIN_WIDTH = 360;
 const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 360;
-const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 760;
+const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 360;
 const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
 const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
 const FLOATING_PANEL_BASE_Z_INDEX = 70;
@@ -1169,47 +1174,42 @@ function getInteractionOverview(conversation: SharedConversationData): string {
 }
 
 function getAgentNextSteps(conversation: SharedConversationData): string[] {
+  // Prefer per-customer database entry for unique, context-specific next steps.
+  const entry = getCustomerAssignmentEntry(conversation.customerName);
+  if (entry) return entry.nextSteps;
+
+  // Fallback: keyword-based generic steps.
   const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
   const content = latestCustomerMessage?.content?.toLowerCase() ?? "";
   const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
 
   if (content.includes("billing") || content.includes("charged") || content.includes("payment")) {
     return [
-      "Review the customer's ticket and billing history",
-      "Verify the charge or billing discrepancy on the account",
-      "Determine if a credit or correction is warranted",
-      "Communicate the outcome and next steps to the customer",
-    ];
-  }
-  if (content.includes("upgrade") || content.includes("plan") || content.includes("package")) {
-    return [
-      "Review the customer's current plan and upgrade request",
-      "Check eligibility and any blockers on the account",
-      "Pull a comparison of available options based on account status",
-      "Ask the customer if they'd like you to process the change on their behalf",
+      "Update Salesforce Record with the billing discrepancy details",
+      "Create ADP Ticket to document the charge issue",
+      "Send Discount Coupon as goodwill if a billing error is confirmed",
+      "Set Assignment to Resolved after communicating the outcome",
     ];
   }
   if (isFrustrated || content.includes("frustrated") || content.includes("escalat")) {
     return [
-      "Review the full thread and identify the root cause of frustration",
-      "Check prior interactions and any unresolved tickets on the account",
-      "Determine if escalation or a supervisor review is needed",
-      "Respond with empathy and a clear resolution path",
+      "Escalate to Supervisor given the elevated frustration signals",
+      "Update Salesforce Record with the escalation notes",
+      "Set Assignment to Resolved once the supervisor has taken over",
     ];
   }
   if (content.includes("error") || content.includes("failed") || content.includes("retry")) {
     return [
-      "Review the ticket and the specific error the customer encountered",
-      "Check account logs for failed attempts or system-side blockers",
-      "Identify the root cause and prepare a remediation step",
-      "Guide the customer through a clean retry or issue a resolution",
+      "Create ADP Ticket to document the error and assign it for investigation",
+      "Update Salesforce Record with the root cause and remediation steps",
+      "Schedule Callback to verify the issue is resolved after the fix is applied",
     ];
   }
   return [
-    "Review the customer's ticket and the latest thread activity",
-    "Check account history and any flagged interactions",
-    "Identify the most appropriate resolution path",
-    "Respond with a clear next step and keep the customer informed",
+    "Update Salesforce Record with the latest interaction details",
+    "Create ADP Ticket to log the open issue for the support team",
+    "Schedule Callback to follow up on the resolution",
+    "Set Assignment to Resolved once the customer confirms the issue is closed",
   ];
 }
 
@@ -1904,26 +1904,26 @@ function TaskSummaryView({
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
       <div className="grid grid-cols-2 gap-4">
         {/* AI Actions Taken */}
-        <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-4">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#006DAD]">
+        <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#006DAD] dark:text-[#3D7A9C]">
             AI Actions Taken
           </p>
           <ul className="space-y-2">
             {overview.actions.map((action, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD] dark:bg-[#244D68]" />
                 {action}
               </li>
             ))}
           </ul>
         </div>
         {/* Why You're Needed */}
-        <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-4">
-          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708]">
+        <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-4 dark:border-[#7A4500]/40 dark:bg-[#1A1000]">
+          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708] dark:text-[#C87030]">
             <TriangleAlert className="h-3 w-3" />
             Why You're Needed
           </p>
-          <p className="text-[12px] text-[#344054] leading-relaxed">{overview.whyNeeded}</p>
+          <p className="text-[12px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">{overview.whyNeeded}</p>
         </div>
       </div>
     </div>
@@ -1956,6 +1956,8 @@ function DockedConversationPanel({
   hideTranscript = false,
   showTaskSummary = false,
   initialSummaryOpen = false,
+  isPendingAcceptance = false,
+  onAcceptAssignment,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -1982,6 +1984,8 @@ function DockedConversationPanel({
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
   initialSummaryOpen?: boolean;
+  isPendingAcceptance?: boolean;
+  onAcceptAssignment?: () => void;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -1993,6 +1997,7 @@ function DockedConversationPanel({
   const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
   const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [performAllActionsKey, setPerformAllActionsKey] = useState(0);
 
   // When the panel is opened for a reviewed assignment, auto-expand the summary.
   useEffect(() => {
@@ -2131,40 +2136,40 @@ function DockedConversationPanel({
               {/* Absolutely positioned expanded content — overlays the panel content below */}
               <div
                 className={cn(
-                  "absolute left-0 right-0 top-full z-50 grid border-b border-border bg-card shadow-[0_8px_16px_rgba(16,24,40,0.10)] transition-[grid-template-rows,opacity] duration-300 ease-out",
+                  "absolute left-0 right-0 top-full z-50 grid border-b border-border bg-card shadow-[0_8px_16px_rgba(16,24,40,0.10)] dark:border-[#0D1E2D] dark:bg-[#0C1A26] dark:shadow-[0_8px_24px_rgba(0,0,0,0.40)] transition-[grid-template-rows,opacity] duration-300 ease-out",
                   isHandoffSummaryOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
                 )}
               >
               <div className="overflow-hidden">
                 <div className="px-5 pb-4 pt-3">
                   <div className="grid grid-cols-2 gap-3">
-                    {/* Interaction Overview */}
-                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580]">
-                        Interaction Overview
+                    {/* Assignment Overview */}
+                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                        Assignment Overview
                       </p>
                       {(() => {
                         const actions = getOverviewActions(conversation);
                         return actions ? (
                           <ul className="space-y-1.5">
                             {actions.map((action, i) => (
-                              <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
-                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3A6580]" />
+                              <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
                                 {action}
                               </li>
                             ))}
                           </ul>
                         ) : (
-                          <p className="text-[11.5px] leading-5 text-[#344054]">
+                          <p className="text-[11.5px] leading-5 text-[#344054] dark:text-[#4E7D96]">
                             {getInteractionOverview(conversation)}
                           </p>
                         );
                       })()}
                     </div>
-                    {/* Next Steps */}
-                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580]">
-                        Next Steps
+                    {/* Suggested Next Steps */}
+                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                        Suggested Next Steps
                       </p>
                       {(() => {
                         const steps = getAgentNextSteps(conversation);
@@ -2178,13 +2183,13 @@ function DockedConversationPanel({
                                   <li key={i} className="flex items-start gap-2">
                                     <span className={cn(
                                       "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
-                                      isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580]",
+                                      isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]",
                                     )}>
                                       {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
                                     </span>
                                     <span className={cn(
                                       "text-[11.5px] leading-5 transition-colors",
-                                      isDone ? "text-[#6B7280] line-through" : isActive ? "text-[#006DAD] font-medium" : "text-[#344054]",
+                                      isDone ? "text-[#6B7280] line-through dark:text-[#2A5A70]" : isActive ? "text-[#006DAD] font-medium dark:text-[#4BADD6]" : "text-[#344054] dark:text-[#4E7D96]",
                                     )}>
                                       {step}
                                     </span>
@@ -2196,29 +2201,19 @@ function DockedConversationPanel({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setPerformActionsState("running");
-                                  setPerformActionsCompletedCount(0);
-                                  let count = 0;
-                                  const tick = () => {
-                                    count += 1;
-                                    setPerformActionsCompletedCount(count);
-                                    if (count < steps.length) {
-                                      performActionsTimerRef.current = setTimeout(tick, 1200);
-                                    } else {
-                                      setPerformActionsState("done");
-                                    }
-                                  };
-                                  performActionsTimerRef.current = setTimeout(tick, 1200);
+                                  // Close summary and trigger ConversationPanel to cycle through all suggested actions
+                                  setIsHandoffSummaryOpen(false);
+                                  setPerformAllActionsKey((k) => k + 1);
                                 }}
-                                className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                                className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] dark:hover:bg-[#0080CC] transition-colors"
                               >
-                                Perform Actions
+                                Perform All Actions
                               </button>
                             )}
                             {performActionsState === "running" && (
                               <div className="flex items-center gap-2 py-1">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD]" />
-                                <span className="text-[11px] text-[#006DAD] font-medium">Working on it…</span>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD] dark:text-[#4BADD6]" />
+                                <span className="text-[11px] text-[#006DAD] dark:text-[#4BADD6] font-medium">Working on it…</span>
                               </div>
                             )}
                             {performActionsState === "done" && (
@@ -2226,7 +2221,7 @@ function DockedConversationPanel({
                                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0B9A8A]">
                                   <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
                                 </span>
-                                <span className="text-[11px] text-[#0B9A8A] font-medium">All actions complete</span>
+                                <span className="text-[11px] text-[#0B9A8A] dark:text-[#0EC9B4] font-medium">All actions complete</span>
                               </div>
                             )}
                           </>
@@ -2260,6 +2255,9 @@ function DockedConversationPanel({
                 onResolveAssignment={onResolveAssignment}
                 showAiPanel={isAiPanelVisible}
                 hideTranscript={hideTranscript}
+                performAllActionsKey={performAllActionsKey}
+                isPendingAcceptance={isPendingAcceptance}
+                onAcceptAssignment={onAcceptAssignment}
               />
             )}
           </>
@@ -3121,7 +3119,7 @@ function DeskCanvasPopunder({
                   ? <AddPanelContent />
                   : showingInlineCustomer
                     ? <NotesPanel key={inlineCustomerId!} customerId={inlineCustomerId!} />
-                    : <DeskDataTable onSelectCustomer={(id) => { setInlineCustomerId(id); setInlineAddOpen(false); }} />}
+                    : <DirectoryPanel onSelectCustomer={(id) => { setInlineCustomerId(id); setInlineAddOpen(false); }} />}
       </div>
 
       <button
@@ -3522,6 +3520,7 @@ function HeaderIconButton({
   ariaExpanded,
   ariaControls,
   isActive = false,
+  tooltip,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
@@ -3529,23 +3528,32 @@ function HeaderIconButton({
   ariaExpanded?: boolean;
   ariaControls?: string;
   isActive?: boolean;
+  tooltip?: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      aria-expanded={ariaExpanded}
-      aria-controls={ariaControls}
-      aria-pressed={isActive}
-      className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
-        isActive
-          ? "text-[#006DAD] hover:bg-[#E6F3FA]"
-          : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
-      }`}
-    >
-      {children}
-    </button>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        aria-pressed={isActive}
+        className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+          isActive
+            ? "text-[#006DAD] hover:bg-[#E6F3FA]"
+            : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
+        }`}
+      >
+        {children}
+      </button>
+      {tooltip && (
+        <div className="pointer-events-none absolute left-1/2 top-full z-[9999] mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-[#1D2939] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+          {tooltip}
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#1D2939]" />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -3707,7 +3715,7 @@ function QueueAssignmentCard({
 // ─── Inline agent roster (for the Reject → Assign popover) ───────────────────
 
 const inlineAgents = [
-  { id: "a1", name: "Jordan Doe",     initials: "JD", availability: "Available" as const, active: 2 },
+  { id: "a1", name: "Jeff Comstock",     initials: "JC", availability: "Available" as const, active: 2 },
   { id: "a2", name: "Priya Mehra",    initials: "PM", availability: "Available" as const, active: 1 },
   { id: "a3", name: "Sam Torres",     initials: "ST", availability: "Available" as const, active: 3 },
   { id: "a4", name: "Kenji Watanabe", initials: "KW", availability: "In a Call" as const, active: 4 },
@@ -3721,6 +3729,236 @@ const agentDot: Record<string, string> = {
   Away:       "bg-[#D0D5DD]",
 };
 
+const REJECT_REASONS = [
+  "Not enough time",
+  "Too many active assignments",
+  "Outside my skill set",
+  "End of shift",
+  "Requires supervisor review",
+  "Duplicate assignment",
+];
+
+// ─── Add New Assignment two-step flow popover ─────────────────────────────────
+
+type AddNewFlowStep = "channel" | "customer";
+type AddNewFlowChannel = "voice" | "email" | "sms";
+
+const ADD_NEW_CHANNEL_OPTIONS: Array<{ channel: AddNewFlowChannel; label: string; icon: React.ElementType }> = [
+  { channel: "voice", label: "Call",  icon: Phone },
+  { channel: "email", label: "Email", icon: Mail },
+  { channel: "sms",   label: "SMS",   icon: MessageSquare },
+];
+
+function AddNewAssignmentFlowPopover({
+  anchorRect,
+  onClose,
+  onOpenCustomerConversation,
+  onOpenCall,
+}: {
+  anchorRect: DOMRect;
+  onClose: () => void;
+  onOpenCustomerConversation: (customerRecordId: string, channel: "email" | "sms") => void;
+  onOpenCall: (customerRecordId: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [step, setStep] = useState<AddNewFlowStep>("channel");
+  const [selectedChannel, setSelectedChannel] = useState<AddNewFlowChannel | null>(null);
+  const [search, setSearch] = useState("");
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  // Auto-focus search when reaching step 2
+  useEffect(() => {
+    if (step === "customer") {
+      setTimeout(() => searchRef.current?.focus(), 50);
+    }
+  }, [step]);
+
+  const filteredCustomers = customerDatabase.filter((c) => {
+    const q = search.toLowerCase();
+    return !q || c.name.toLowerCase().includes(q) || c.customerId.toLowerCase().includes(q);
+  });
+
+  const POPOVER_WIDTH = 288;
+  const estimatedHeight = step === "channel" ? 170 : 440;
+
+  // Prefer opening to the right of the button (for rail buttons); fall back to smart vertical flip
+  const margin = 8;
+  const spaceRight = window.innerWidth - anchorRect.right - margin;
+  const useRightSide = spaceRight >= POPOVER_WIDTH + margin;
+  let posStyle: React.CSSProperties;
+  if (useRightSide) {
+    const top = Math.min(
+      Math.max(margin, anchorRect.top),
+      window.innerHeight - estimatedHeight - margin,
+    );
+    posStyle = { left: anchorRect.right + 8, top, width: POPOVER_WIDTH };
+  } else {
+    const { left, top, transform } = getSmartPopoverPositionFn(anchorRect, POPOVER_WIDTH, estimatedHeight);
+    posStyle = { left, top, width: POPOVER_WIDTH, transform };
+  }
+
+  const handleChannelSelect = (ch: AddNewFlowChannel) => {
+    setSelectedChannel(ch);
+    setStep("customer");
+    setSearch("");
+  };
+
+  const handleCustomerSelect = (customerRecordId: string) => {
+    if (selectedChannel === "voice") {
+      onOpenCall(customerRecordId);
+    } else if (selectedChannel) {
+      onOpenCustomerConversation(customerRecordId, selectedChannel);
+    }
+    onClose();
+  };
+
+  const channelLabel = ADD_NEW_CHANNEL_OPTIONS.find((o) => o.channel === selectedChannel)?.label ?? "";
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[9999] flex flex-col rounded-xl border border-border bg-white shadow-[0_8px_28px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={posStyle}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
+        {step === "customer" && (
+          <button
+            type="button"
+            onClick={() => { setStep("channel"); setSelectedChannel(null); }}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] transition-colors hover:bg-[#F2F4F7] hover:text-[#344054]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <p className="flex-1 text-[12px] font-semibold text-[#333333]">
+          {step === "channel" ? "New Assignment" : `${channelLabel} — Select Customer`}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] transition-colors hover:bg-[#F2F4F7] hover:text-[#344054]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {step === "channel" ? (
+        /* Step 1: channel picker */
+        <div className="py-1.5">
+          {ADD_NEW_CHANNEL_OPTIONS.map(({ channel: ch, label, icon: Icon }) => (
+            <button
+              key={ch}
+              type="button"
+              onClick={() => handleChannelSelect(ch)}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
+            >
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F2F4F7] text-[#475467]">
+                <Icon className="h-3.5 w-3.5" />
+              </div>
+              <span className="text-[13px] font-medium text-[#344054]">{label}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        /* Step 2: customer search + list */
+        <>
+          <div className="shrink-0 border-b border-border px-3 py-2.5">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-[#F9FAFB] px-3 py-1.5">
+              <Search className="h-3.5 w-3.5 shrink-0 text-[#98A2B3]" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or ID…"
+                className="flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+              />
+              {search && (
+                <button type="button" onClick={() => setSearch("")} className="text-[#98A2B3] hover:text-[#475467]">
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto divide-y divide-border" style={{ maxHeight: 280 }}>
+            {filteredCustomers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-[12px] text-[#98A2B3]">No customers found</p>
+              </div>
+            ) : (
+              filteredCustomers.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => handleCustomerSelect(customer.id)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EEF6FC] text-[11px] font-bold text-[#006DAD]">
+                    {customer.initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-semibold text-[#1D2939] truncate">{customer.name}</p>
+                    <p className="text-[11px] text-[#98A2B3]">{customer.customerId}</p>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </>
+      )}
+    </div>,
+    document.body,
+  );
+}
+
+// ─── Smart popover positioning ───────────────────────────────────────────────
+// (alias so AddNewAssignmentFlowPopover above can reference it before the real definition)
+function getSmartPopoverPositionFn(
+  triggerRect: DOMRect,
+  popoverWidth: number,
+  estimatedHeight: number,
+  gap = 6,
+  margin = 8,
+) {
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap - margin;
+  const spaceAbove = triggerRect.top - gap - margin;
+  const openBelow = spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove;
+  const left = Math.max(margin, Math.min(triggerRect.left, window.innerWidth - popoverWidth - margin));
+  if (openBelow) {
+    return { left, top: triggerRect.bottom + gap, maxHeight: Math.max(160, spaceBelow), transform: "none" as const };
+  }
+  return { left, top: triggerRect.top - gap, maxHeight: Math.max(160, spaceAbove), transform: "translateY(-100%)" as const };
+}
+
+// ─── Smart popover positioning ───────────────────────────────────────────────
+function getSmartPopoverPosition(
+  triggerRect: DOMRect,
+  popoverWidth: number,
+  estimatedHeight: number,
+  gap = 6,
+  margin = 8,
+) {
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap - margin;
+  const spaceAbove = triggerRect.top - gap - margin;
+  const openBelow = spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove;
+  const left = Math.max(margin, Math.min(triggerRect.left, window.innerWidth - popoverWidth - margin));
+  if (openBelow) {
+    return { left, top: triggerRect.bottom + gap, maxHeight: Math.max(160, spaceBelow), transform: "none" as const };
+  }
+  return { left, top: triggerRect.top - gap, maxHeight: Math.max(160, spaceAbove), transform: "translateY(-100%)" as const };
+}
+
 function AgentSelectPopover({
   triggerRect,
   onClose,
@@ -3731,7 +3969,7 @@ function AgentSelectPopover({
   onAssign: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [assigned, setAssigned] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -3742,61 +3980,49 @@ function AgentSelectPopover({
   }, [onClose]);
 
   const POPOVER_WIDTH = 272;
-  const GAP = 8;
-  const left = Math.max(8, Math.min(triggerRect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
-  const top = triggerRect.top - GAP;
+  // 6 reasons × ~40px each + header ~49px = ~289px
+  const ESTIMATED_HEIGHT = 289;
+  const { left, top, maxHeight, transform } = getSmartPopoverPosition(triggerRect, POPOVER_WIDTH, ESTIMATED_HEIGHT);
 
-  const handleAssign = (agentId: string) => {
-    setAssigned(agentId);
+  const handleSelect = (reason: string) => {
+    setSelected(reason);
     setTimeout(() => { onAssign(); onClose(); }, 700);
   };
 
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999] w-68 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
-      style={{ left, top, transform: "translateY(-100%)", width: POPOVER_WIDTH }}
+      className="fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={{ left, top, width: POPOVER_WIDTH, transform }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <p className="text-[12px] font-semibold text-[#333333]">Assign to Agent</p>
+        <p className="text-[12px] font-semibold text-[#333333]">Reason for Rejecting</p>
         <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="max-h-56 overflow-y-auto divide-y divide-border">
-        {inlineAgents.map((agent) => {
-          const isAssigned = assigned === agent.id;
-          const isDisabled = agent.availability !== "Available" || (assigned !== null && !isAssigned);
+      <div className="divide-y divide-border overflow-y-auto" style={{ maxHeight: Math.min(240, maxHeight - 60) }}>
+        {REJECT_REASONS.map((reason) => {
+          const isSelected = selected === reason;
+          const isDisabled = selected !== null && !isSelected;
           return (
             <button
-              key={agent.id}
+              key={reason}
               type="button"
               disabled={isDisabled}
-              onClick={() => handleAssign(agent.id)}
+              onClick={() => handleSelect(reason)}
               className={cn(
-                "w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors",
-                isAssigned ? "bg-[#EEF6FC]" : "hover:bg-[#F9FAFB]",
+                "w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors",
+                isSelected ? "bg-[#FEF3F2] text-[#D92D20]" : "hover:bg-[#F9FAFB] text-[#344054]",
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
-              <div className="relative shrink-0">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">
-                  {agent.initials}
-                </div>
-                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", agentDot[agent.availability])} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                <p className="text-[10px] text-[#98A2B3]">{agent.active} active</p>
-              </div>
-              {isAssigned && <span className="text-[10px] font-semibold text-[#006DAD]">Assigned</span>}
+              <span className="text-[12px] font-medium">{reason}</span>
+              {isSelected && <span className="text-[10px] font-semibold text-[#D92D20]">Selected</span>}
             </button>
           );
         })}
-      </div>
-      <div className="px-4 py-2 border-t border-border bg-[#F9FAFB]">
-        <p className="text-[10px] text-[#98A2B3]">Sorted by availability</p>
       </div>
     </div>,
     document.body,
@@ -4100,6 +4326,7 @@ function LeftQueueRail({
   isOpen,
   onToggle,
   completedTodayCount,
+  onAddNewAssignment,
 }: {
   visibleAssignments: QueuePreviewItem[];
   queueStatuses: Record<string, QueueAssignmentStatus>;
@@ -4108,6 +4335,7 @@ function LeftQueueRail({
   isOpen: boolean;
   onToggle: () => void;
   completedTodayCount: number;
+  onAddNewAssignment: (rect: DOMRect) => void;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -4155,14 +4383,14 @@ function LeftQueueRail({
   return (
     <div
       className={cn(
-        "relative z-30 block h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-out",
+        "relative z-30 block h-full shrink-0 transition-[width] duration-300 ease-out",
         isOpen ? "w-[347px]" : "w-[60px]",
       )}
     >
       <div className="relative flex h-full bg-[#F8F8F9]">
         <aside
           className={cn(
-            "flex h-full shrink-0 flex-col items-center overflow-hidden bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
+            "flex h-full shrink-0 flex-col items-center overflow-visible bg-[#F8F8F9] pb-3 pt-0 transition-[width,opacity] duration-300 ease-out",
             isOpen ? "w-0 opacity-0 pointer-events-none" : "w-[60px] opacity-100",
           )}
           aria-hidden={isOpen}
@@ -4170,14 +4398,20 @@ function LeftQueueRail({
           <div className="flex h-full w-full flex-col items-center gap-2.5 px-1 pt-2">
             {/* + New Assignment button — top, mirrors open rail */}
             <div className="flex w-full shrink-0 flex-col items-center pb-1">
-              <button
-                type="button"
-                aria-label="New Assignment"
-                onClick={() => navigate("/control-panel")}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[0.14] bg-white text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#1D2939]"
-              >
-                <Plus className="h-4 w-4 stroke-[1.5]" />
-              </button>
+              <div className="group relative">
+                <button
+                  type="button"
+                  aria-label="Add New Assignment"
+                  onClick={(e) => onAddNewAssignment(e.currentTarget.getBoundingClientRect())}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[0.14] bg-white text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#1D2939]"
+                >
+                  <Plus className="h-4 w-4 stroke-[1.5]" />
+                </button>
+                <div className="pointer-events-none absolute left-full top-1/2 z-[9999] ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1D2939] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                  Add New Assignment
+                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#1D2939]" />
+                </div>
+              </div>
             </div>
 
             {/* Collapsed assignment icons — scroll area */}
@@ -4285,20 +4519,25 @@ function LeftQueueRail({
                   ? location.pathname === path
                   : !hasActiveAssignment && location.pathname === path;
                 return (
-                  <button
-                    key={label}
-                    type="button"
-                    aria-label={label}
-                    onClick={() => navigate(path)}
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-                      isActive
-                        ? "bg-[#EEF6FC] text-[#006DAD]"
-                        : "text-[#667085] hover:bg-[#F0F0F1] hover:text-[#1D2939]",
-                    )}
-                  >
-                    <Icon className="h-4 w-4 stroke-[1.5]" />
-                  </button>
+                  <div key={label} className="group relative">
+                    <button
+                      type="button"
+                      aria-label={label}
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                        isActive
+                          ? "bg-[#EEF6FC] text-[#006DAD]"
+                          : "text-[#667085] hover:bg-[#F0F0F1] hover:text-[#1D2939]",
+                      )}
+                    >
+                      <Icon className="h-4 w-4 stroke-[1.5]" />
+                    </button>
+                    <div className="pointer-events-none absolute left-full top-1/2 z-[9999] ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1D2939] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+                      {label}
+                      <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#1D2939]" />
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -4323,7 +4562,7 @@ function LeftQueueRail({
               <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
               <button
                 type="button"
-                onClick={() => navigate("/control-panel")}
+                onClick={(e) => onAddNewAssignment(e.currentTarget.getBoundingClientRect())}
                 className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/[0.14] bg-white px-3 py-1.5 text-[13px] font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
               >
                 <Plus className="h-4 w-4 stroke-[1.5]" />
@@ -4479,7 +4718,18 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [status, setStatus] = useState<AgentStatus>("Available");
+  const [status, setStatus] = useState<AgentStatus>("Offline");
+  const [showLoginBriefing, setShowLoginBriefing] = useState(true);
+  const [briefingClosing, setBriefingClosing] = useState(false);
+
+  const closeBriefing = (callback?: () => void) => {
+    setBriefingClosing(true);
+    setTimeout(() => {
+      callback?.();
+      setShowLoginBriefing(false);
+      setBriefingClosing(false);
+    }, 280);
+  };
   const [isLeftRailOpen, setIsLeftRailOpen] = useState(true);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
@@ -4490,9 +4740,31 @@ export default function Layout({ children }: LayoutProps) {
     width: 360,
     height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
   }));
+  const [isNotificationsPopoverOpen, setIsNotificationsPopoverOpen] = useState(false);
+  const [notificationsPopunderPosition, setNotificationsPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
+  const [notificationsPopunderSize, setNotificationsPopunderSize] = useState(() => ({
+    width: 360,
+    height: typeof window === "undefined" ? 520 : Math.min(Math.max(360, window.innerHeight - 120), 600),
+  }));
+  const [notificationsData, setNotificationsData] = useState<AppNotification[]>(seedNotifications);
   const [isAddNewPopoverOpen, setIsAddNewPopoverOpen] = useState(false);
+  const [isAddNewFlowOpen, setIsAddNewFlowOpen] = useState(false);
+  const [addNewFlowAnchorRect, setAddNewFlowAnchorRect] = useState<DOMRect | null>(null);
   const [isCopilotPopoverOpen, setIsCopilotPopoverOpen] = useState(true);
   const [deskCanvasPopunderView, setDeskCanvasPopunderView] = useState<DeskCanvasView | null>(null);
+  // Independent popovers for Directory ("desk") and Copilot so they can be open simultaneously
+  const [isDeskViewPopunderOpen, setIsDeskViewPopunderOpen] = useState(false);
+  const [deskViewPopunderPosition, setDeskViewPopunderPosition] = useState<DeskCanvasPopunderPosition>(() => ({ x: 0, y: 0 }));
+  const [deskViewPopunderSize, setDeskViewPopunderSize] = useState<DeskCanvasPopunderSize>(() => ({
+    width: DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH,
+    height: typeof window === "undefined" ? 720 : Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
+  }));
+  const [isCopilotViewPopunderOpen, setIsCopilotViewPopunderOpen] = useState(false);
+  const [copilotViewPopunderPosition, setCopilotViewPopunderPosition] = useState<DeskCanvasPopunderPosition>(() => ({ x: 0, y: 0 }));
+  const [copilotViewPopunderSize, setCopilotViewPopunderSize] = useState<DeskCanvasPopunderSize>(() => ({
+    width: getDeskCanvasPopunderDefaultWidth("copilot"),
+    height: typeof window === "undefined" ? 720 : Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
+  }));
   const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isPageEntered, setIsPageEntered] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
@@ -4531,7 +4803,9 @@ export default function Layout({ children }: LayoutProps) {
   const [deskCanvasDragActivation, setDeskCanvasDragActivation] = useState<CopilotDragActivation | null>(null);
   const [statusStartedAt, setStatusStartedAt] = useState(() => Date.now());
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(
+    () => localStorage.getItem("agentDarkMode") === "true",
+  );
   const [workspaceOptions, setWorkspaceOptions] = useState(initialWorkspaceOptions);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceOption["id"]>("control-panel");
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
@@ -4552,6 +4826,9 @@ export default function Layout({ children }: LayoutProps) {
   const closeStatusMenu = () => {
     statusMenuTimeout.current = setTimeout(() => setStatusMenuOpen(false), 120);
   };
+  const [notificationCount, setNotificationCount] = useState(0);
+  // Pre-seed with the unread messages already in the chat (Sarah Kim 2 + Emma Larsen 1 + Risk & Compliance 3 = 6)
+  const [chatUnreadCount, setChatUnreadCount] = useState(6);
   const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>({});
   const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>([]);
   const [pendingAcceptanceIds, setPendingAcceptanceIds] = useState<Set<string>>(new Set());
@@ -4615,6 +4892,7 @@ export default function Layout({ children }: LayoutProps) {
     "call",
     "notes",
     "addNew",
+    "notifications",
     "chat",
     "conversation",
     "customerInfo",
@@ -4662,6 +4940,7 @@ export default function Layout({ children }: LayoutProps) {
   const channelStateArchiveRef = useRef<Map<string, SharedConversationData>>(new Map());
   const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
+  const bellButtonRef = useRef<HTMLDivElement | null>(null);
   const chatButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
@@ -4743,6 +5022,7 @@ export default function Layout({ children }: LayoutProps) {
 
         // Mark as pending so the card shows Reject / Accept / Review buttons.
         setPendingAcceptanceIds((prev) => new Set([...prev, nextItem.id]));
+        setNotificationCount((n) => n + 1);
 
         toast(`New assignment — ${nextItem.name}`, {
           description: nextItem.preview,
@@ -4974,7 +5254,7 @@ export default function Layout({ children }: LayoutProps) {
         };
       });
       delete customerReplyTimeoutsRef.current[targetConversationStateKey];
-    }, 1200);
+    }, 4500);
   };
 
   const handleConversationStatusChange = (nextStatus: ConversationStatus) => {
@@ -5315,6 +5595,7 @@ export default function Layout({ children }: LayoutProps) {
     } else {
       document.documentElement.classList.remove("dark");
     }
+    localStorage.setItem("agentDarkMode", String(isDarkMode));
     return () => {
       document.documentElement.classList.remove("dark");
     };
@@ -5703,6 +5984,14 @@ export default function Layout({ children }: LayoutProps) {
 
   const acceptPendingAssignment = (assignmentId: string) => {
     removePending(assignmentId);
+    // Advance the status badge from "open" → "pending" so the left rail
+    // visually reflects that the agent has accepted and is working on it.
+    setAssignmentStatusesById((prev) => {
+      if ((prev[assignmentId] ?? "open") === "open") {
+        return { ...prev, [assignmentId]: "pending" };
+      }
+      return prev;
+    });
     setSelectedAssignmentId(assignmentId);
     const assignment = assignmentItemsById[assignmentId];
     if (assignment?.channel === "voice") {
@@ -5985,6 +6274,24 @@ export default function Layout({ children }: LayoutProps) {
     setIsChatPopoverOpen(true);
   };
 
+  const openNotificationsPopover = () => {
+    const margin = 16;
+    const gap = 10;
+    const buttonBounds = bellButtonRef.current?.getBoundingClientRect();
+    const popunderWidth = Math.min(notificationsPopunderSize.width, window.innerWidth - margin * 2);
+    const x = buttonBounds
+      ? Math.min(Math.max(margin, buttonBounds.right - popunderWidth), window.innerWidth - popunderWidth - margin)
+      : Math.max(window.innerWidth - popunderWidth - margin, margin);
+    const y = buttonBounds
+      ? Math.max(margin, buttonBounds.bottom + gap)
+      : margin + 60;
+    const maxHeight = window.innerHeight - y - margin;
+    setNotificationsPopunderSize((prev) => ({ ...prev, height: Math.min(Math.max(360, maxHeight), 600) }));
+    bringFloatingPanelToFront("notifications");
+    setNotificationsPopunderPosition({ x, y });
+    setIsNotificationsPopoverOpen(true);
+  };
+
   const openCustomerInfoIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
     const anchorRect = event?.currentTarget.getBoundingClientRect();
     const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
@@ -6180,6 +6487,51 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openHeaderAppPanel = (view: DeskCanvasView) => {
+    // Directory and Copilot each get their own independent floating window
+    if (view === "desk") {
+      if (isDeskViewPopunderOpen) {
+        bringFloatingPanelToFront("deskCanvas");
+        return;
+      }
+      const defaultWidth = getDeskCanvasPopunderDefaultWidth("desk");
+      const defaultHeight = typeof window !== "undefined"
+        ? Math.min(Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80), window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : 720;
+      const width = typeof window !== "undefined"
+        ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : defaultWidth;
+      const position = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+      bringFloatingPanelToFront("deskCanvas");
+      setDeskViewPopunderSize({ width, height: defaultHeight });
+      setDeskViewPopunderPosition(position);
+      setIsDeskViewPopunderOpen(true);
+      return;
+    }
+
+    if (view === "copilot") {
+      if (isCopilotViewPopunderOpen) {
+        bringFloatingPanelToFront("deskCanvas");
+        return;
+      }
+      const defaultWidth = getDeskCanvasPopunderDefaultWidth("copilot");
+      const defaultHeight = typeof window !== "undefined"
+        ? Math.min(Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80), window.innerHeight - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : 720;
+      const width = typeof window !== "undefined"
+        ? Math.min(defaultWidth, window.innerWidth - DESK_CANVAS_POPOUNDER_MARGIN * 2)
+        : defaultWidth;
+      // Offset from Directory so they don't stack exactly
+      const basePosition = getAnchoredDeskCanvasPopunderPosition(width, defaultHeight);
+      const position = isDeskViewPopunderOpen
+        ? { x: Math.max(DESK_CANVAS_POPOUNDER_MARGIN, basePosition.x - width - 12), y: basePosition.y }
+        : basePosition;
+      bringFloatingPanelToFront("deskCanvas");
+      setCopilotViewPopunderSize({ width, height: defaultHeight });
+      setCopilotViewPopunderPosition(position);
+      setIsCopilotViewPopunderOpen(true);
+      return;
+    }
+
     setActiveRightPanel(null);
     setIsNotesPopoverOpen(false);
     setIsAddNewPopoverOpen(false);
@@ -6228,17 +6580,15 @@ export default function Layout({ children }: LayoutProps) {
         }
         return;
       }
-      const nextRoute = view === "copilot"
-        ? "/desk?view=copilot"
-        : view === "notes"
-          ? "/desk?view=notes"
-          : view === "add"
-            ? "/desk?view=add"
-            : view === "customer"
-              ? "/desk?view=customer"
-              : view === "notifications"
-                ? "/desk?view=notifications"
-                : "/desk";
+      const nextRoute = view === "notes"
+        ? "/desk?view=notes"
+        : view === "add"
+          ? "/desk?view=add"
+          : view === "customer"
+            ? "/desk?view=customer"
+            : view === "notifications"
+              ? "/desk?view=notifications"
+              : "/desk";
       navigate(nextRoute);
       return;
     }
@@ -6491,15 +6841,21 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
       <header className="grid min-h-[60px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2">
         <div className="flex flex-none items-center lg:min-w-0 lg:gap-3">
-          <button
-            type="button"
-            onClick={() => setIsLeftRailOpen((v) => !v)}
-            aria-label={isLeftRailOpen ? "Collapse assignments rail" : "Expand assignments rail"}
-            aria-pressed={isLeftRailOpen}
-            className="flex h-10 w-[30px] flex-shrink-0 items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#006DAD]"
-          >
-            <PanelLeft className="h-4 w-4" />
-          </button>
+          <div className="group relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsLeftRailOpen((v) => !v)}
+              aria-label={isLeftRailOpen ? "Collapse assignments rail" : "Expand assignments rail"}
+              aria-pressed={isLeftRailOpen}
+              className="flex h-10 w-[30px] items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#006DAD]"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+            <div className="pointer-events-none absolute left-full top-1/2 z-[9999] ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-[#1D2939] px-2 py-1 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100">
+              {isLeftRailOpen ? "Close navigation" : "Open navigation"}
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#1D2939]" />
+            </div>
+          </div>
           <div
             className="relative hidden lg:block"
           >
@@ -6607,50 +6963,62 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex items-center justify-end gap-1 sm:gap-1.5">
           <HeaderIconButton
             ariaLabel="Open Directory"
-            onClick={() => openHeaderAppPanel("desk")}
-            isActive={deskCanvasPopunderView === "desk" || isDeskView}
+            tooltip="Directory"
+            onClick={() => isDeskViewPopunderOpen ? setIsDeskViewPopunderOpen(false) : openHeaderAppPanel("desk")}
+            isActive={isDeskViewPopunderOpen}
           >
             <BookUser className="h-4 w-4 stroke-[1.5]" />
           </HeaderIconButton>
 
-          <HeaderIconButton
-            ariaLabel={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-            onClick={() => setIsDarkMode((v) => !v)}
-            isActive={isDarkMode}
-          >
-            {isDarkMode ? (
-              <Sun className="h-4 w-4 stroke-[1.5]" />
-            ) : (
-              <Moon className="h-4 w-4 stroke-[1.5]" />
-            )}
-          </HeaderIconButton>
-
-          <HeaderIconButton
-            ariaLabel="Open notifications"
-            onClick={() => openHeaderAppPanel("notifications")}
-            isActive={deskCanvasPopunderView === "notifications" || activeDeskRouteView === "notifications"}
-          >
-            <div className="relative">
-              <Bell className="h-4 w-4 stroke-[1.5]" />
-              <span className="absolute -right-0.5 top-0 h-1.5 w-1.5 rounded-full bg-[#006DAD]" />
-            </div>
-          </HeaderIconButton>
+          <div ref={bellButtonRef}>
+            <HeaderIconButton
+              ariaLabel="Open notifications"
+              tooltip="Notifications"
+              onClick={() => {
+                if (isNotificationsPopoverOpen) {
+                  setIsNotificationsPopoverOpen(false);
+                } else {
+                  setNotificationCount(0);
+                  openNotificationsPopover();
+                }
+              }}
+              isActive={isNotificationsPopoverOpen}
+            >
+              <div className="relative">
+                <Bell className="h-4 w-4 stroke-[1.5]" />
+                {notificationCount > 0 && !isNotificationsPopoverOpen && (
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#F04438] px-0.5 text-[9px] font-bold leading-none text-white">
+                    {notificationCount > 9 ? "9+" : notificationCount}
+                  </span>
+                )}
+              </div>
+            </HeaderIconButton>
+          </div>
 
           <div ref={notesButtonRef} className="hidden" aria-hidden="true" />
 
           <div ref={chatButtonRef}>
             <HeaderIconButton
               ariaLabel="Open messages"
+              tooltip="Messages"
               onClick={() => {
                 if (isChatPopoverOpen) {
                   setIsChatPopoverOpen(false);
                 } else {
+                  setChatUnreadCount(0);
                   openChatPopover();
                 }
               }}
               isActive={isChatPopoverOpen}
             >
-              <MessageCircle className="h-4 w-4 stroke-[1.5]" />
+              <div className="relative">
+                <MessageCircle className="h-4 w-4 stroke-[1.5]" />
+                {chatUnreadCount > 0 && !isChatPopoverOpen && (
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#F04438] px-0.5 text-[9px] font-bold leading-none text-white">
+                    {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+                  </span>
+                )}
+              </div>
             </HeaderIconButton>
           </div>
 
@@ -6659,8 +7027,9 @@ export default function Layout({ children }: LayoutProps) {
           <div ref={copilotButtonRef}>
             <HeaderIconButton
               ariaLabel="Open Copilot"
-              onClick={() => openHeaderAppPanel("copilot")}
-              isActive={deskCanvasPopunderView === "copilot" || isCopilotDeskView}
+              tooltip="Copilot"
+              onClick={() => isCopilotViewPopunderOpen ? setIsCopilotViewPopunderOpen(false) : openHeaderAppPanel("copilot")}
+              isActive={isCopilotViewPopunderOpen}
             >
               <Bot className="h-4 w-4 stroke-[1.5]" />
             </HeaderIconButton>
@@ -6722,6 +7091,47 @@ export default function Layout({ children }: LayoutProps) {
                     </button>
                   ))}
                 </div>
+                <div className="mt-1 border-t border-[#F2F4F7] pt-1">
+                  {/* Dark mode toggle */}
+                  <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5">
+                    <span className="flex items-center gap-3 text-sm font-normal text-[#333333]">
+                      {isDarkMode ? (
+                        <Sun className="h-3.5 w-3.5 text-[#667085]" />
+                      ) : (
+                        <Moon className="h-3.5 w-3.5 text-[#667085]" />
+                      )}
+                      <span>Dark Mode</span>
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={isDarkMode}
+                      onClick={() => setIsDarkMode((v) => !v)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
+                        isDarkMode ? "bg-[#006DAD]" : "bg-[#D0D5DD]",
+                      )}
+                    >
+                      <span className={cn(
+                        "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200",
+                        isDarkMode ? "translate-x-4" : "translate-x-0",
+                      )} />
+                    </button>
+                  </div>
+
+                  {/* Log Out */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStatusMenuOpen(false);
+                      navigate("/login");
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#B42318] hover:bg-[#FEF3F2] transition-colors"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -6738,6 +7148,10 @@ export default function Layout({ children }: LayoutProps) {
           isOpen={isLeftRailOpen}
           onToggle={() => setIsLeftRailOpen((v) => !v)}
           completedTodayCount={completedTodayCount}
+          onAddNewAssignment={(rect) => {
+            setAddNewFlowAnchorRect(rect);
+            setIsAddNewFlowOpen((v) => !v);
+          }}
         />
         {isActivityRoute && visibleAssignments.length === 0 && (
           <div className={cn(
@@ -6840,6 +7254,8 @@ export default function Layout({ children }: LayoutProps) {
                 onClose={closeConversationPanel}
                 showTrailingGap={false}
                 initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
+                isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
+                onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -6962,6 +7378,8 @@ export default function Layout({ children }: LayoutProps) {
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
               showTaskSummary={taskSummaryIds.has(selectedAssignment.id)}
               initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
+              isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
+              onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -7113,6 +7531,37 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      {/* Independent Directory (desk) popunder */}
+      {isDeskViewPopunderOpen && (
+        <DeskCanvasPopunder
+          view="desk"
+          position={deskViewPopunderPosition}
+          size={deskViewPopunderSize}
+          customerId={selectedAssignment.customerRecordId}
+          zIndex={getFloatingPanelZIndex("deskCanvas")}
+          onPositionChange={setDeskViewPopunderPosition}
+          onSizeChange={setDeskViewPopunderSize}
+          onClose={() => setIsDeskViewPopunderOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("deskCanvas")}
+        />
+      )}
+
+      {/* Independent Copilot popunder */}
+      {isCopilotViewPopunderOpen && (
+        <DeskCanvasPopunder
+          view="copilot"
+          position={copilotViewPopunderPosition}
+          size={copilotViewPopunderSize}
+          customerId={selectedAssignment.customerRecordId}
+          zIndex={getFloatingPanelZIndex("deskCanvas") + 1}
+          onPositionChange={setCopilotViewPopunderPosition}
+          onSizeChange={setCopilotViewPopunderSize}
+          onClose={() => setIsCopilotViewPopunderOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("deskCanvas")}
+        />
+      )}
+
+      {/* Shared popunder for notes / add / customer / notifications */}
       {deskCanvasPopunderView && (
         <DeskCanvasPopunder
           view={deskCanvasPopunderView}
@@ -7233,6 +7682,35 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      {isNotificationsPopoverOpen && (
+        <NotificationsPopoverContent
+          position={notificationsPopunderPosition}
+          size={notificationsPopunderSize}
+          zIndex={getFloatingPanelZIndex("notifications")}
+          onPositionChange={setNotificationsPopunderPosition}
+          onSizeChange={setNotificationsPopunderSize}
+          onClose={() => setIsNotificationsPopoverOpen(false)}
+          onInteractStart={() => bringFloatingPanelToFront("notifications")}
+          onUnreadCountChange={setNotificationCount}
+          initialNotifications={notificationsData}
+        />
+      )}
+
+      {isAddNewFlowOpen && addNewFlowAnchorRect && (
+        <AddNewAssignmentFlowPopover
+          anchorRect={addNewFlowAnchorRect}
+          onClose={() => setIsAddNewFlowOpen(false)}
+          onOpenCustomerConversation={(customerRecordId, channel) => {
+            openCustomerConversation(customerRecordId, channel);
+            navigate("/activity");
+          }}
+          onOpenCall={(customerRecordId) => {
+            layoutContextValue.toggleCallPopunder(null, customerRecordId);
+            navigate("/activity");
+          }}
+        />
+      )}
+
       {isChatPopoverOpen && (
         <ChatPopoverContent
           position={chatPopunderPosition}
@@ -7242,6 +7720,7 @@ export default function Layout({ children }: LayoutProps) {
           onSizeChange={setChatPopunderSize}
           onClose={() => setIsChatPopoverOpen(false)}
           onInteractStart={() => bringFloatingPanelToFront("chat")}
+          onUnreadCountChange={setChatUnreadCount}
         />
       )}
 
@@ -7269,6 +7748,100 @@ export default function Layout({ children }: LayoutProps) {
           onClose={() => setIsAddNewPopoverOpen(false)}
           onInteractStart={() => bringFloatingPanelToFront("addNew")}
         />
+      )}
+
+      {/* ── Login Briefing Modal ─────────────────────────────────────────── */}
+      {showLoginBriefing && (
+        <div className={cn(
+          "fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-280",
+          briefingClosing ? "opacity-0" : "animate-in fade-in duration-200",
+        )}>
+          <div className={cn(
+            "w-[400px] rounded-2xl border border-black/[0.08] bg-white shadow-[0_32px_80px_rgba(0,0,0,0.55),0_8px_24px_rgba(0,0,0,0.35)] transition-all duration-280",
+            briefingClosing
+              ? "opacity-0 scale-95 translate-y-2"
+              : "animate-in fade-in zoom-in-95 slide-in-from-bottom-3 duration-300",
+          )}>
+
+            {/* Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F7]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEF6FC]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#006DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[15px] font-semibold text-[#101828]">Good morning, Jeff</p>
+                  <p className="text-[12px] text-[#667085]">Here's what's waiting for you today</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="px-6 py-4 space-y-3">
+              {/* Tasks in queue */}
+              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF6FC]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#006DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-medium text-[#344054]">Tasks in queue</span>
+                </div>
+                <span className="rounded-full bg-[#006DAD] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
+              </div>
+
+              {/* Chats to review */}
+              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ECFDF3]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#027A48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-medium text-[#344054]">Chats from agents to review</span>
+                </div>
+                <span className="rounded-full bg-[#027A48] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
+              </div>
+
+              {/* Applications to upgrade */}
+              <div className="flex items-center justify-between rounded-xl border border-[#FEF0C7] bg-[#FFFAEB] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEF0C7]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B54708" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-medium text-[#344054]">Applications needing upgrade</span>
+                </div>
+                <span className="rounded-full bg-[#B54708] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2.5 px-6 pb-6">
+              <button
+                type="button"
+                onClick={() => closeBriefing(() => {
+                  setStatus("Available");
+                  setStatusStartedAt(Date.now());
+                })}
+                className="flex-1 rounded-xl bg-[#006DAD] py-2.5 text-[14px] font-semibold text-white shadow-[0_1px_3px_rgba(0,109,173,0.20)] hover:bg-[#005d94] active:bg-[#004e7e] transition-colors"
+              >
+                Go Available
+              </button>
+              <button
+                type="button"
+                onClick={() => closeBriefing()}
+                className="flex-1 rounded-xl border border-[#D0D5DD] bg-white py-2.5 text-[14px] font-semibold text-[#344054] hover:bg-[#F9FAFB] active:bg-[#F2F4F7] transition-colors"
+              >
+                Start Offline
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

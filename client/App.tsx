@@ -12,6 +12,7 @@ import Activity from "./pages/Activity";
 import ControlPanelPage from "./pages/ControlPanelPage";
 import Desk from "./pages/Desk";
 import DeskPage from "./pages/DeskPage";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import Placeholder from "./pages/Placeholder";
 import Schedule from "./pages/Schedule";
@@ -24,57 +25,47 @@ import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
 
+// ─── Inner workspace routes (rendered inside Layout) ─────────────────────────
+function WorkspaceRoutes() {
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/activity"     element={<Activity />} />
+        <Route path="/control-panel" element={<ControlPanelPage />} />
+        <Route path="/desk"         element={<DeskPage />} />
+        <Route path="/desk-panel"   element={<Desk />} />
+        <Route path="/schedule"     element={<Schedule />} />
+        <Route path="/settings"     element={<SettingsPage />} />
+        <Route path="/reporting"    element={<ReportingPage />} />
+        <Route path="/salesforce"   element={<SalesforcePage />} />
+        <Route path="/service-now"  element={<ServiceNowPage />} />
+        <Route path="/wem"          element={<WemPage />} />
+        <Route path="/calls"    element={<Placeholder title="Active Calls"       description="Manage active voice calls, view call history, and access call analytics in one place." icon={PhoneCall} />} />
+        <Route path="/chats"    element={<Placeholder title="Active Chats"       description="Handle multi-channel chat interactions from web, SMS, and social platforms."           icon={MessageSquare} />} />
+        <Route path="/customers" element={<Placeholder title="Customer Directory" description="View comprehensive customer profiles, interaction history, and segment data."           icon={Users} />} />
+        <Route path="/knowledge" element={<Placeholder title="Knowledge Base"    description="Access internal documentation, canned responses, and AI-suggested articles."           icon={BookOpen} />} />
+        <Route path="*"         element={<NotFound />} />
+      </Routes>
+    </Layout>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner position="bottom-right" />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Navigate to="/control-panel" replace />} />
-            <Route path="/activity" element={<Activity />} />
-            <Route path="/control-panel" element={<ControlPanelPage />} />
-            <Route path="/desk" element={<DeskPage />} />
-            <Route path="/desk-panel" element={<Desk />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/reporting" element={<ReportingPage />} />
-            <Route path="/salesforce" element={<SalesforcePage />} />
-            <Route path="/service-now" element={<ServiceNowPage />} />
-            <Route path="/wem" element={<WemPage />} />
+        <Routes>
+          {/* Default → login */}
+          <Route path="/"      element={<Navigate to="/login" replace />} />
 
-            <Route path="/calls" element={
-              <Placeholder 
-                title="Active Calls" 
-                description="Manage active voice calls, view call history, and access call analytics in one place." 
-                icon={PhoneCall} 
-              />
-            } />
-            <Route path="/chats" element={
-              <Placeholder 
-                title="Active Chats" 
-                description="Handle multi-channel chat interactions from web, SMS, and social platforms." 
-                icon={MessageSquare} 
-              />
-            } />
-            <Route path="/customers" element={
-              <Placeholder 
-                title="Customer Directory" 
-                description="View comprehensive customer profiles, interaction history, and segment data." 
-                icon={Users} 
-              />
-            } />
-            <Route path="/knowledge" element={
-              <Placeholder 
-                title="Knowledge Base" 
-                description="Access internal documentation, canned responses, and AI-suggested articles." 
-                icon={BookOpen} 
-              />
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+          {/* Login page — no sidebar / header chrome */}
+          <Route path="/login" element={<LoginPage />} />
+
+          {/* All workspace routes — wrapped in Layout */}
+          <Route path="/*" element={<WorkspaceRoutes />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

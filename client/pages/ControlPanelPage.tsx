@@ -15,6 +15,18 @@ import {
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import DeskDataTable from "@/components/DeskDataTable";
+
+type DeskPageTab = "queue" | "customers" | "inbox" | "tickets" | "accounts" | "contact-history";
+
+const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
+  { id: "queue",           label: "Queue"           },
+  { id: "customers",       label: "Customers"       },
+  { id: "inbox",           label: "Inbox"           },
+  { id: "tickets",         label: "Tickets"         },
+  { id: "accounts",        label: "Accounts"        },
+  { id: "contact-history", label: "Contact History" },
+];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -640,8 +652,8 @@ interface Agent {
 const agentRoster: Agent[] = [
   {
     id: "agent-1",
-    name: "Jordan Doe",
-    initials: "JD",
+    name: "Jeff Comstock",
+    initials: "JC",
     availability: "Available",
     skills: ["Billing", "Account Management", "Escalations"],
     activeCount: 2,
@@ -704,6 +716,41 @@ const agentRoster: Agent[] = [
   },
 ];
 
+const supervisorRoster: Agent[] = [
+  {
+    id: "sup-1",
+    name: "Rachel Kim",
+    initials: "RK",
+    availability: "Available",
+    skills: ["Escalations", "Enterprise Accounts", "Compliance"],
+    activeCount: 3,
+  },
+  {
+    id: "sup-2",
+    name: "David Okafor",
+    initials: "DO",
+    availability: "Available",
+    skills: ["Fraud", "Risk Management", "Wire Transfers"],
+    activeCount: 2,
+  },
+  {
+    id: "sup-3",
+    name: "Sandra Howell",
+    initials: "SH",
+    availability: "In a Call",
+    skills: ["Billing", "Licensing", "Contract Renewals"],
+    activeCount: 4,
+  },
+  {
+    id: "sup-4",
+    name: "Tom Ellison",
+    initials: "TE",
+    availability: "Away",
+    skills: ["Security", "Identity Management", "Escalations"],
+    activeCount: 1,
+  },
+];
+
 const availabilityOrder: Record<AgentAvailability, number> = {
   Available: 0,
   "In a Call": 1,
@@ -732,7 +779,27 @@ function scoreAgent(agent: Agent, priority: Priority, preview: string): number {
   return score;
 }
 
-// ─── Reject popover ───────────────────────────────────────────────────────────
+// ─── Smart popover positioning ───────────────────────────────────────────────
+function getSmartPopoverPosition(
+  triggerRect: DOMRect,
+  popoverWidth: number,
+  estimatedHeight: number,
+  gap = 6,
+  margin = 8,
+) {
+  const spaceBelow = window.innerHeight - triggerRect.bottom - gap - margin;
+  const spaceAbove = triggerRect.top - gap - margin;
+  const openBelow = spaceBelow >= estimatedHeight || spaceBelow >= spaceAbove;
+  const left = Math.max(margin, Math.min(triggerRect.left, window.innerWidth - popoverWidth - margin));
+  if (openBelow) {
+    return { left, top: triggerRect.bottom + gap, maxHeight: Math.max(160, spaceBelow), transform: "none" as const };
+  }
+  return { left, top: triggerRect.top - gap, maxHeight: Math.max(160, spaceAbove), transform: "translateY(-100%)" as const };
+}
+
+// ─── Transfer popover ─────────────────────────────────────────────────────────
+
+type TransferTab = "Agents" | "Supervisors";
 
 function RejectPopover({
   priority,
@@ -749,6 +816,7 @@ function RejectPopover({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [assigned, setAssigned] = useState<string | null>(null);
+  const [tab, setTab] = useState<TransferTab>("Agents");
 
   // Close on outside click
   useEffect(() => {
@@ -759,40 +827,65 @@ function RejectPopover({
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  const sorted = [...agentRoster].sort((a, b) => {
+  const sortedAgents = [...agentRoster].sort((a, b) => {
     const avail = availabilityOrder[a.availability] - availabilityOrder[b.availability];
     if (avail !== 0) return avail;
     return scoreAgent(b, priority, preview) - scoreAgent(a, priority, preview);
   });
+
+  const sortedSupervisors = [...supervisorRoster].sort((a, b) =>
+    availabilityOrder[a.availability] - availabilityOrder[b.availability],
+  );
+
+  const roster = tab === "Agents" ? sortedAgents : sortedSupervisors;
 
   const handleAssign = (agent: Agent) => {
     setAssigned(agent.id);
     setTimeout(() => { onAssign(agent); onClose(); }, 800);
   };
 
-  const POPOVER_WIDTH = 288; // w-72
-  const GAP = 8;
-  const left = Math.max(8, Math.min(triggerRect.right - POPOVER_WIDTH, window.innerWidth - POPOVER_WIDTH - 8));
-  const top = triggerRect.top - GAP;
+  const POPOVER_WIDTH = 300;
+  const ESTIMATED_HEIGHT = 370;
+  const { left, top, maxHeight, transform } = getSmartPopoverPosition(triggerRect, POPOVER_WIDTH, ESTIMATED_HEIGHT);
 
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999] w-72 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
-      style={{ left, top, transform: "translateY(-100%)" }}
+      className="fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+      style={{ left, top, width: POPOVER_WIDTH, transform }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <p className="text-[12px] font-semibold text-[#333333]">Assign to Agent</p>
+        <p className="text-[12px] font-semibold text-[#333333]">Transfer to</p>
         <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
 
-      {/* Agent list */}
-      <div className="max-h-64 overflow-y-auto divide-y divide-border">
-        {sorted.map((agent) => {
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        {(["Agents", "Supervisors"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn(
+              "relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
+              tab === t ? "text-[#006DAD]" : "text-[#667085] hover:text-[#344054]",
+            )}
+          >
+            {t}
+            {tab === t && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Roster list */}
+      <div className="overflow-y-auto divide-y divide-border" style={{ maxHeight: Math.min(224, maxHeight - 120) }}>
+        {roster.map((agent) => {
           const isAssigned = assigned === agent.id;
           const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
           return (
@@ -807,35 +900,28 @@ function RejectPopover({
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
-              {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F4F7] text-[11px] font-bold text-[#475467]">
                   {agent.initials}
                 </div>
                 <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white", availabilityDot[agent.availability])} />
               </div>
-
-              {/* Name + skills */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                  {isAssigned && (
-                    <span className="text-[10px] font-semibold text-[#006DAD]">Assigned</span>
-                  )}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#006DAD]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
               </div>
-
-              {/* Load badge */}
               <span className="shrink-0 text-[10px] text-[#667085]">{agent.activeCount} active</span>
             </button>
           );
         })}
       </div>
 
-      {/* Footer note */}
+      {/* Footer */}
       <div className="px-4 py-2.5 border-t border-border bg-[#F9FAFB]">
-        <p className="text-[10px] text-[#98A2B3]">Sorted by availability and skill match</p>
+        <p className="text-[10px] text-[#98A2B3]">Sorted by availability</p>
       </div>
     </div>,
     document.body,
@@ -982,7 +1068,7 @@ function IssueRow({
                 }}
                 className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Reject
+                Transfer
               </button>
               <button
                 type="button"
@@ -1030,25 +1116,25 @@ function IssueRow({
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
-              {/* Interaction Overview */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
-                  Interaction Overview
+              {/* Assignment Overview */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                  Assignment Overview
                 </p>
                 <ul className="space-y-1.5">
                   {aiOverview.actions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580]" />
+                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
                       {action}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Next Steps */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
-                  Next Steps
+              {/* Suggested Next Steps */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                  Suggested Next Steps
                 </p>
                 <ol className="space-y-1.5 mb-3">
                   {aiOverview.nextSteps.map((step, i) => {
@@ -1058,13 +1144,13 @@ function IssueRow({
                       <li key={i} className="flex items-start gap-2">
                         <span className={cn(
                           "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
-                          isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580]",
+                          isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]",
                         )}>
                           {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
                         </span>
                         <span className={cn(
                           "text-[11.5px] leading-relaxed transition-colors",
-                          isDone ? "text-[#6B7280] line-through" : isActive ? "text-[#006DAD] font-medium" : "text-[#344054]",
+                          isDone ? "text-[#6B7280] line-through dark:text-[#2A5A70]" : isActive ? "text-[#006DAD] font-medium dark:text-[#4BADD6]" : "text-[#344054] dark:text-[#4E7D96]",
                         )}>
                           {step}
                         </span>
@@ -1072,45 +1158,6 @@ function IssueRow({
                     );
                   })}
                 </ol>
-                {performActionsState === "idle" && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setPerformActionsState("running");
-                      setPerformActionsCompletedCount(0);
-                      let count = 0;
-                      const steps = aiOverview.nextSteps;
-                      const tick = () => {
-                        count += 1;
-                        setPerformActionsCompletedCount(count);
-                        if (count < steps.length) {
-                          performActionsTimerRef.current = setTimeout(tick, 1200);
-                        } else {
-                          setPerformActionsState("done");
-                        }
-                      };
-                      performActionsTimerRef.current = setTimeout(tick, 1200);
-                    }}
-                    className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
-                  >
-                    Perform Actions
-                  </button>
-                )}
-                {performActionsState === "running" && (
-                  <div className="flex items-center gap-2 py-1">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD]" />
-                    <span className="text-[11px] text-[#006DAD] font-medium">Working on it…</span>
-                  </div>
-                )}
-                {performActionsState === "done" && (
-                  <div className="flex items-center gap-1.5 py-1">
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0B9A8A]">
-                      <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
-                    </span>
-                    <span className="text-[11px] text-[#0B9A8A] font-medium">All actions complete</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -1178,33 +1225,33 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-1">
             <div className="grid grid-cols-2 gap-3">
-              {/* Interaction Overview */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
-                  Interaction Overview
+              {/* Assignment Overview */}
+              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                  Assignment Overview
                 </p>
                 <ul className="space-y-1.5">
                   {aiOverview.actions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580]" />
+                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
                       {action}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Next Steps (resolved — shows outcome + Transfer/Open actions) */}
-              <div className="flex flex-col rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580]">
-                  Next Steps
+              {/* Suggested Next Steps (resolved — shows outcome + Transfer/Open actions) */}
+              <div className="flex flex-col rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
+                  Suggested Next Steps
                 </p>
                 <ol className="flex-1 space-y-1.5">
                   {aiOverview.nextSteps.map((step, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#C8D9E6] text-[9px] font-bold text-[#3A6580]">
+                      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#C8D9E6] text-[9px] font-bold text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]">
                         {i + 1}
                       </span>
-                      <span className="text-[11.5px] leading-relaxed text-[#344054]">{step}</span>
+                      <span className="text-[11.5px] leading-relaxed text-[#344054] dark:text-[#4E7D96]">{step}</span>
                     </li>
                   ))}
                 </ol>
@@ -1249,13 +1296,14 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CURRENT_AGENT_NAME = "John Doe";
+const CURRENT_AGENT_NAME = "Jeff Comstock";
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
   const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments } = useLayoutContext();
   const navigate = useNavigate();
+  const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("open");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -1348,18 +1396,26 @@ export default function ControlCenterPage() {
       };
     });
 
-  const allRows = [...liveNormalised, ...staticNormalised]
+  const baseRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
+    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter);
+
+  const allRows = baseRows
     .filter((a) => a.status === issueTab)
-    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter)
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => priorityFilter === "all" || r.priority === priorityFilter,
   );
 
-  const resolvedTabCount = allRows.length + (issueTab === "resolved" ? filteredResolvedAssignments.length : 0);
-  const tabCount = issueTab === "resolved" ? resolvedTabCount : allRows.length;
+  // Per-tab counts for badges
+  const tabCounts: Record<IssueTab, number> = {
+    open: baseRows.filter((a) => a.status === "open").length,
+    pending: baseRows.filter((a) => a.status === "pending").length,
+    resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.length,
+    escalated: baseRows.filter((a) => a.status === "escalated").length,
+  };
+  const totalTasks = tabCounts.open + tabCounts.pending + tabCounts.resolved + tabCounts.escalated;
 
   const agentFirstName = CURRENT_AGENT_NAME.split(" ")[0] ?? CURRENT_AGENT_NAME;
 
@@ -1386,7 +1442,7 @@ export default function ControlCenterPage() {
     <div className="flex h-full flex-col">
       {/* Welcome header */}
       <div className="shrink-0 border-b border-border bg-background/50 px-6 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-sm font-semibold tracking-tight text-[#333333]">
               Welcome back, {agentFirstName}
@@ -1400,6 +1456,32 @@ export default function ControlCenterPage() {
         </div>
       </div>
 
+      {/* Top-level page tabs */}
+      <div className="shrink-0 border-b border-border bg-white px-6">
+        <div className="flex gap-0">
+          {DESK_PAGE_TABS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActivePageTab(id)}
+              className={cn(
+                "relative px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors",
+                activePageTab === id
+                  ? "text-[#006DAD]"
+                  : "text-[#7A7A7A] hover:text-[#333333]",
+              )}
+            >
+              {label}
+              {activePageTab === id && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
+      {activePageTab === "queue" && (
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <div className="flex gap-5 h-full">
 
@@ -1411,7 +1493,7 @@ export default function ControlCenterPage() {
                 <div>
                   <h2 className="text-[14px] font-semibold text-[#333333]">Queue</h2>
                   <p className="text-xs text-[#7A7A7A] mt-0.5">
-                    {tabCount} task{tabCount !== 1 ? "s" : ""}
+                    {totalTasks} Total Task{totalTasks !== 1 ? "s" : ""}
                   </p>
                 </div>
                 {/* Priority filter */}
@@ -1451,13 +1533,21 @@ export default function ControlCenterPage() {
                     type="button"
                     onClick={() => setIssueTab(tab)}
                     className={cn(
-                      "relative px-4 py-2 text-[13px] font-medium capitalize transition-colors",
+                      "relative flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium capitalize transition-colors",
                       issueTab === tab
                         ? "text-[#006DAD]"
                         : "text-[#7A7A7A] hover:text-[#333333]",
                     )}
                   >
                     {tab}
+                    <span className={cn(
+                      "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold transition-colors",
+                      issueTab === tab
+                        ? "bg-[#006DAD] text-white"
+                        : "bg-[#F2F4F7] text-[#667085]",
+                    )}>
+                      {tabCounts[tab]}
+                    </span>
                     {issueTab === tab && (
                       <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
                     )}
@@ -1542,6 +1632,51 @@ export default function ControlCenterPage() {
 
         </div>
       </div>
+      )} {/* end queue tab */}
+
+      {/* ── Customers tab ─────────────────────────────────────────────────────── */}
+      {activePageTab === "customers" && (
+        <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
+          <DeskDataTable defaultTab="Customers" hideTabs />
+        </div>
+      )}
+
+      {/* ── Inbox tab ─────────────────────────────────────────────────────────── */}
+      {activePageTab === "inbox" && (
+        <div className="min-h-0 flex-1 overflow-hidden flex flex-col items-center justify-center gap-3 text-center p-8">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F2F4F7]">
+            <MessageCircle className="h-6 w-6 text-[#98A2B3]" />
+          </div>
+          <p className="text-[14px] font-semibold text-[#344054]">Inbox</p>
+          <p className="text-[13px] text-[#98A2B3] max-w-xs">Your unified message inbox will appear here. Coming soon.</p>
+        </div>
+      )}
+
+      {/* ── Tickets tab ───────────────────────────────────────────────────────── */}
+      {activePageTab === "tickets" && (
+        <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
+          <DeskDataTable defaultTab="Tickets" hideTabs />
+        </div>
+      )}
+
+      {/* ── Accounts tab ──────────────────────────────────────────────────────── */}
+      {activePageTab === "accounts" && (
+        <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
+          <DeskDataTable defaultTab="Accounts" hideTabs />
+        </div>
+      )}
+
+      {/* ── Contact History tab ───────────────────────────────────────────────── */}
+      {activePageTab === "contact-history" && (
+        <div className="min-h-0 flex-1 overflow-hidden flex flex-col items-center justify-center gap-3 text-center p-8">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F2F4F7]">
+            <Phone className="h-6 w-6 text-[#98A2B3]" />
+          </div>
+          <p className="text-[14px] font-semibold text-[#344054]">Contact History</p>
+          <p className="text-[13px] text-[#98A2B3] max-w-xs">A full log of all customer contact interactions will appear here. Coming soon.</p>
+        </div>
+      )}
+
     </div>
   );
 }

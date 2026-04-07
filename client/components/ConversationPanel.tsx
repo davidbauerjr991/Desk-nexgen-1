@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getRelevantCustomerTicket, type CustomerTicket } from "@/components/NotesPanel";
 import { VoiceAIGuidanceCard, VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
 import { getCustomerRecord, type CustomerChannel } from "@/lib/customer-database";
+import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { cn } from "@/lib/utils";
 
 export type ConversationMessage = {
@@ -49,6 +50,9 @@ interface ConversationPanelProps {
   onResolveAssignment?: () => void;
   showAiPanel?: boolean;
   hideTranscript?: boolean;
+  performAllActionsKey?: number;
+  isPendingAcceptance?: boolean;
+  onAcceptAssignment?: () => void;
 }
 
 const conversationFooterMenuItems = [
@@ -94,6 +98,33 @@ type SuggestionAction = {
   ticketId?: string;
   ticket?: CustomerTicket;
 };
+
+const MESSAGE_TAG_DEFS = [
+  {
+    id: "complaint",
+    label: "Complaint",
+    activeClass: "bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#FEF3F2] hover:text-[#B42318] hover:border-[#FECDCA]",
+  },
+  {
+    id: "help",
+    label: "Help",
+    activeClass: "bg-[#EEF4FF] text-[#3538CD] border-[#C7D7FD]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#EEF4FF] hover:text-[#3538CD] hover:border-[#C7D7FD]",
+  },
+  {
+    id: "praise",
+    label: "Praise",
+    activeClass: "bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#ECFDF3] hover:text-[#027A48] hover:border-[#ABEFC6]",
+  },
+  {
+    id: "share",
+    label: "Share",
+    activeClass: "bg-[#F9F5FF] text-[#6941C6] border-[#E9D7FE]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#F9F5FF] hover:text-[#6941C6] hover:border-[#E9D7FE]",
+  },
+] as const;
 
 type AgentTask = {
   id: string;
@@ -198,6 +229,11 @@ function matchCopilotInput(input: string): AgentTask | null {
 function getSuggestedAgentTasks(conversation: SharedConversationData, latestCustomerMessage: ConversationMessage | null): AgentTask[] {
   if (!latestCustomerMessage) return [];
 
+  // Prefer per-customer database entry for unique, context-specific suggested actions.
+  const entry = getCustomerAssignmentEntry(conversation.customerName);
+  if (entry) return entry.suggestedActions;
+
+  // Fallback: keyword-based generic tasks.
   const allContent = conversation.messages.map((m) => m.content).join(" ").toLowerCase();
   const tasks: AgentTask[] = [];
 
@@ -210,20 +246,20 @@ function getSuggestedAgentTasks(conversation: SharedConversationData, latestCust
   }
 
   if (["discount", "coupon", "compensation", "charged twice", "double charge", "trouble", "frustrated", "inconvenience", "sorry", "billing"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "send-coupon", label: "Send an email with a discount coupon" });
+    tasks.push({ id: "send-coupon", label: "Send Discount Coupon" });
   }
 
   if (["supervisor", "escalate", "manager", "speak to someone", "call me"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "escalate", label: "Escalate to supervisor" });
+    tasks.push({ id: "escalate", label: "Escalate to Supervisor" });
   }
 
   if (["callback", "call back", "schedule", "appointment", "call me"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "callback", label: "Schedule a callback" });
+    tasks.push({ id: "callback", label: "Schedule Callback" });
   }
 
   const latestContent = latestCustomerMessage.content.toLowerCase();
   if (["thank you", "thanks", "that's great", "that was helpful", "resolved", "satisfied", "happy", "all set", "appreciate", "perfect", "wonderful", "great help", "problem solved", "sorted"].some((k) => latestContent.includes(k))) {
-    tasks.push({ id: "set-resolved", label: "Set assignment to resolved" });
+    tasks.push({ id: "set-resolved", label: "Set Assignment to Resolved" });
   }
 
   return tasks;
@@ -986,6 +1022,9 @@ export default function ConversationPanel({
   onResolveAssignment,
   showAiPanel = true,
   hideTranscript = false,
+  performAllActionsKey = 0,
+  isPendingAcceptance = false,
+  onAcceptAssignment,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1044,6 +1083,25 @@ export default function ConversationPanel({
   const prevRevealedCountRef = useRef(0);
   const taskRevealTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const copilotThinkingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Message animation & tagging ─────────────────────────────────────────
+  // Track which messages are pre-existing so only new arrivals animate in.
+  const _convAnimKey = `${conversation.label}-${draftKey}`;
+  const convAnimKeyRef = useRef(_convAnimKey);
+  const seenMessageIdsRef = useRef(new Set(conversation.messages.map((m) => m.id)));
+  if (convAnimKeyRef.current !== _convAnimKey) {
+    convAnimKeyRef.current = _convAnimKey;
+    seenMessageIdsRef.current = new Set(conversation.messages.map((m) => m.id));
+  }
+  const [messageTags, setMessageTags] = useState<Record<number, string[]>>({});
+  const handleToggleTag = (messageId: number, tag: string) => {
+    setMessageTags((prev) => {
+      const current = prev[messageId] ?? [];
+      const next = current.includes(tag) ? current.filter((t) => t !== tag) : [...current, tag];
+      return { ...prev, [messageId]: next };
+    });
+  };
+  // ────────────────────────────────────────────────────────────────────────
+
   const conversationRef = useRef(conversation);
   conversationRef.current = conversation;
   const notedTaskIdsRef = useRef<Set<string>>(new Set());
@@ -1179,6 +1237,7 @@ export default function ConversationPanel({
     taskRevealTimersRef.current.forEach(clearTimeout);
     taskRevealTimersRef.current = [];
     notedTaskIdsRef.current = new Set();
+    setMessageTags({});
     // Cancel any pending copilot thinking animation so it doesn't fire on the new assignment.
     if (copilotThinkingTimerRef.current !== null) {
       clearTimeout(copilotThinkingTimerRef.current);
@@ -1188,7 +1247,27 @@ export default function ConversationPanel({
     setCopilotThinking(false);
   }, [conversation.label, draftKey]);
 
-  // Generate and stagger-reveal suggested agent tasks when a new customer message arrives.
+  // When "Perform All Actions" is clicked in the summary panel, auto-check and start all tasks.
+  useEffect(() => {
+    if (!performAllActionsKey) return;
+    // Ensure all tasks are visible, checked, and have progress started.
+    setRevealedTaskIds(new Set(agentTasks.map((t) => t.id)));
+    setCheckedTaskIds(new Set(agentTasks.map((t) => t.id)));
+    setTaskProgress((prev) => {
+      const additions = Object.fromEntries(
+        agentTasks
+          .filter((t) => !prev[t.id])
+          .map((t) => [t.id, { stepIndex: 0, paused: false }]),
+      );
+      return { ...prev, ...additions };
+    });
+    requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [performAllActionsKey]);
+
+  // Generate and stagger-reveal suggested agent tasks when a new customer message arrives
+  // OR when the conversation itself changes (conversation.label ensures this re-runs after
+  // the reset effect above clears the task list for the incoming assignment).
   useEffect(() => {
     if (!latestCustomerMessage) return;
 
@@ -1213,7 +1292,7 @@ export default function ConversationPanel({
       return [...prev, ...newTasks];
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latestCustomerMessage?.id]);
+  }, [latestCustomerMessage?.id, conversation.label]);
 
   // Animate in voice-specific suggested tasks when the call is connected.
   useEffect(() => {
@@ -1317,6 +1396,8 @@ export default function ConversationPanel({
       } else {
         next.add(taskId);
         setTaskProgress((p) => ({ ...p, [taskId]: { stepIndex: 0, paused: false } }));
+        // Auto-accept a pending assignment the moment the agent acts on a suggested next step.
+        if (isPendingAcceptance) onAcceptAssignment?.();
         // Always scroll to bottom when checking a task — the card is expanding and the
         // agent needs to see the in-progress steps that are about to appear below it.
         requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
@@ -1813,8 +1894,18 @@ export default function ConversationPanel({
                   </p>
                 </div>
 
-                {conversation.messages.map((message) => (
-                  <div key={message.id} className="space-y-3">
+                {conversation.messages.map((message) => {
+                  const isNewMessage = !seenMessageIdsRef.current.has(message.id);
+                  if (isNewMessage) seenMessageIdsRef.current.add(message.id);
+                  const appliedTags = messageTags[message.id] ?? [];
+                  return (
+                  <div
+                    key={message.id}
+                    className={cn(
+                      "space-y-3 transition-all duration-300 ease-out",
+                      isNewMessage && "animate-in fade-in slide-in-from-bottom-3",
+                    )}
+                  >
                     {message.isInternal ? (
                       /* Internal note — not visible to the customer */
                       <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] overflow-hidden">
@@ -1869,7 +1960,7 @@ export default function ConversationPanel({
                     ) : (
                       <div
                         className={cn(
-                          "py-3",
+                          "group/msg py-3",
                           message.id === latestNonInternalMessage?.id
                             ? "border-l-[3px] border-[#006DAD] bg-[#F4FAFF] -mx-6 px-6"
                             : "",
@@ -1901,17 +1992,61 @@ export default function ConversationPanel({
                             Frustrated sentiment detected
                           </div>
                         )}
+                        {/* Applied tag chips — always visible when tags exist */}
+                        {appliedTags.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {appliedTags.map((tagId) => {
+                              const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
+                              return tag ? (
+                                <span
+                                  key={tagId}
+                                  className={cn(
+                                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                    tag.activeClass,
+                                  )}
+                                >
+                                  {tag.label}
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+                        {/* Tag picker — slides open on hover */}
+                        <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-all duration-200 ease-out">
+                          <div className="overflow-hidden">
+                            <div className="flex items-center gap-1 pt-1.5 pb-0.5">
+                              <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
+                              {MESSAGE_TAG_DEFS.map((tag) => {
+                                const isApplied = appliedTags.includes(tag.id);
+                                return (
+                                  <button
+                                    key={tag.id}
+                                    type="button"
+                                    onClick={() => handleToggleTag(message.id, tag.id)}
+                                    className={cn(
+                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                                      isApplied ? tag.activeClass : tag.ghostClass,
+                                    )}
+                                  >
+                                    {tag.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     )}
 
                   </div>
-                ))}
+                  );
+                })}
 
-                {/* Suggested Actions — rendered after all messages so completed internal notes appear above */}
+                {/* Suggested Next Steps — rendered after all messages so completed internal notes appear above */}
                 {agentTasks.length > 0 && (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                     <div className="px-4 pt-3 pb-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
                     </div>
                     <div className="px-3 pb-2 pt-1 space-y-1.5" id="inline-task-list-main">
                       {agentTasks.map((task) => {
@@ -2130,7 +2265,7 @@ export default function ConversationPanel({
                 {agentTasks.length > 0 && (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                     <div className="px-4 pt-3 pb-1">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Actions</span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
                     </div>
                     <div className="px-3 pb-3 pt-1 space-y-1.5">
                       {agentTasks.map((task) => {

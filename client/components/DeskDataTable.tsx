@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { ChevronDown, Mail, MessageSquare, Phone, Search } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, Mail, MessageSquare, Phone, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { useLayoutContext } from "@/components/Layout";
 import { getCustomerTickets } from "@/components/NotesPanel";
@@ -23,6 +23,8 @@ type DeskCustomerRow = {
   firstName: string;
   lastName: string;
   lastUpdated: string;
+  agent: string;
+  aum: number; // parsed numeric AUM for filtering
 };
 
 type DeskAccountRow = {
@@ -31,33 +33,64 @@ type DeskAccountRow = {
   type: string;
   holderName: string;
   balance: string;
+  balanceNum: number; // parsed numeric balance for filtering
   status: "Active" | "Inactive" | "Frozen" | "Pending";
   lastUpdated: string;
 };
 
 type DeskTab = "Customers" | "Accounts" | "Tickets";
 
+type FilterKey = "paymentBalance" | "agent" | "agentTeam";
+type ActiveFilters = Record<FilterKey, string[]>;
+
+const EMPTY_FILTERS: ActiveFilters = { paymentBalance: [], agent: [], agentTeam: [] };
+
+// ─── Balance helpers ──────────────────────────────────────────────────────────
+
+function parseBalance(str: string): number {
+  return parseFloat(str.replace(/[$,]/g, "")) || 0;
+}
+
+// Buckets for customer AUM
+const CUSTOMER_BALANCE_BUCKETS = [
+  { label: "Under $500K",  test: (n: number) => n < 500_000 },
+  { label: "$500K – $1M",  test: (n: number) => n >= 500_000 && n < 1_000_000 },
+  { label: "Over $1M",     test: (n: number) => n >= 1_000_000 },
+];
+
+// Buckets for account balance
+const ACCOUNT_BALANCE_BUCKETS = [
+  { label: "Under $10K",   test: (n: number) => n < 10_000 },
+  { label: "$10K – $50K",  test: (n: number) => n >= 10_000 && n < 50_000 },
+  { label: "$50K – $100K", test: (n: number) => n >= 50_000 && n < 100_000 },
+  { label: "Over $100K",   test: (n: number) => n >= 100_000 },
+];
+
+function getBalanceBucket(n: number, buckets: typeof CUSTOMER_BALANCE_BUCKETS) {
+  return buckets.find((b) => b.test(n))?.label ?? null;
+}
+
 // ─── Seed Accounts ────────────────────────────────────────────────────────────
 
 const accountsDatabase: DeskAccountRow[] = [
-  { id: "acc-001", accountNumber: "ACC-48201", type: "Checking",    holderName: "Alex Kowalski",  balance: "$12,450.00",  status: "Active",   lastUpdated: "02/23/26" },
-  { id: "acc-002", accountNumber: "ACC-48202", type: "Savings",     holderName: "Alex Kowalski",  balance: "$34,720.50",  status: "Active",   lastUpdated: "02/23/26" },
-  { id: "acc-003", accountNumber: "ACC-48310", type: "Investment",  holderName: "Sarah Miller",   balance: "$98,100.00",  status: "Active",   lastUpdated: "02/24/26" },
-  { id: "acc-004", accountNumber: "ACC-48311", type: "Checking",    holderName: "Sarah Miller",   balance: "$5,230.75",   status: "Active",   lastUpdated: "02/24/26" },
-  { id: "acc-005", accountNumber: "ACC-48420", type: "Business",    holderName: "Emily Chen",     balance: "$210,000.00", status: "Active",   lastUpdated: "02/25/26" },
-  { id: "acc-006", accountNumber: "ACC-48530", type: "Checking",    holderName: "David Brown",    balance: "$8,900.20",   status: "Active",   lastUpdated: "02/26/26" },
-  { id: "acc-007", accountNumber: "ACC-48531", type: "Business",    holderName: "David Brown",    balance: "$54,300.00",  status: "Frozen",   lastUpdated: "02/26/26" },
-  { id: "acc-008", accountNumber: "ACC-48640", type: "Savings",     holderName: "Priya Nair",     balance: "$19,875.00",  status: "Active",   lastUpdated: "02/27/26" },
-  { id: "acc-009", accountNumber: "ACC-48750", type: "Checking",    holderName: "Miguel Santos",  balance: "$3,410.60",   status: "Active",   lastUpdated: "02/28/26" },
-  { id: "acc-010", accountNumber: "ACC-48751", type: "Investment",  holderName: "Miguel Santos",  balance: "$45,000.00",  status: "Inactive", lastUpdated: "02/28/26" },
-  { id: "acc-011", accountNumber: "ACC-48860", type: "Trust",       holderName: "Olivia Reed",    balance: "$320,000.00", status: "Active",   lastUpdated: "03/01/26" },
-  { id: "acc-012", accountNumber: "ACC-48970", type: "Checking",    holderName: "Jamal Carter",   balance: "$7,100.00",   status: "Active",   lastUpdated: "03/02/26" },
-  { id: "acc-013", accountNumber: "ACC-49080", type: "Savings",     holderName: "Hannah Brooks",  balance: "$22,500.00",  status: "Active",   lastUpdated: "03/03/26" },
-  { id: "acc-014", accountNumber: "ACC-49081", type: "Savings",     holderName: "Hannah Brooks",  balance: "$11,200.00",  status: "Pending",  lastUpdated: "03/03/26" },
-  { id: "acc-015", accountNumber: "ACC-49190", type: "Mortgage",    holderName: "Noah Patel",     balance: "$285,000.00", status: "Active",   lastUpdated: "03/04/26" },
-  { id: "acc-016", accountNumber: "ACC-49300", type: "Investment",  holderName: "Lauren Kim",     balance: "$130,450.00", status: "Active",   lastUpdated: "03/05/26" },
-  { id: "acc-017", accountNumber: "ACC-49410", type: "Business",    holderName: "Ethan Zhang",    balance: "$76,200.00",  status: "Active",   lastUpdated: "03/06/26" },
-  { id: "acc-018", accountNumber: "ACC-49411", type: "Checking",    holderName: "Ethan Zhang",    balance: "$4,850.00",   status: "Active",   lastUpdated: "03/06/26" },
+  { id: "acc-001", accountNumber: "ACC-48201", type: "Checking",    holderName: "Alex Kowalski",  balance: "$12,450.00",  balanceNum: 12450,   status: "Active",   lastUpdated: "02/23/26" },
+  { id: "acc-002", accountNumber: "ACC-48202", type: "Savings",     holderName: "Alex Kowalski",  balance: "$34,720.50",  balanceNum: 34720,   status: "Active",   lastUpdated: "02/23/26" },
+  { id: "acc-003", accountNumber: "ACC-48310", type: "Investment",  holderName: "Sarah Miller",   balance: "$98,100.00",  balanceNum: 98100,   status: "Active",   lastUpdated: "02/24/26" },
+  { id: "acc-004", accountNumber: "ACC-48311", type: "Checking",    holderName: "Sarah Miller",   balance: "$5,230.75",   balanceNum: 5230,    status: "Active",   lastUpdated: "02/24/26" },
+  { id: "acc-005", accountNumber: "ACC-48420", type: "Business",    holderName: "Emily Chen",     balance: "$210,000.00", balanceNum: 210000,  status: "Active",   lastUpdated: "02/25/26" },
+  { id: "acc-006", accountNumber: "ACC-48530", type: "Checking",    holderName: "David Brown",    balance: "$8,900.20",   balanceNum: 8900,    status: "Active",   lastUpdated: "02/26/26" },
+  { id: "acc-007", accountNumber: "ACC-48531", type: "Business",    holderName: "David Brown",    balance: "$54,300.00",  balanceNum: 54300,   status: "Frozen",   lastUpdated: "02/26/26" },
+  { id: "acc-008", accountNumber: "ACC-48640", type: "Savings",     holderName: "Priya Nair",     balance: "$19,875.00",  balanceNum: 19875,   status: "Active",   lastUpdated: "02/27/26" },
+  { id: "acc-009", accountNumber: "ACC-48750", type: "Checking",    holderName: "Miguel Santos",  balance: "$3,410.60",   balanceNum: 3410,    status: "Active",   lastUpdated: "02/28/26" },
+  { id: "acc-010", accountNumber: "ACC-48751", type: "Investment",  holderName: "Miguel Santos",  balance: "$45,000.00",  balanceNum: 45000,   status: "Inactive", lastUpdated: "02/28/26" },
+  { id: "acc-011", accountNumber: "ACC-48860", type: "Trust",       holderName: "Olivia Reed",    balance: "$320,000.00", balanceNum: 320000,  status: "Active",   lastUpdated: "03/01/26" },
+  { id: "acc-012", accountNumber: "ACC-48970", type: "Checking",    holderName: "Jamal Carter",   balance: "$7,100.00",   balanceNum: 7100,    status: "Active",   lastUpdated: "03/02/26" },
+  { id: "acc-013", accountNumber: "ACC-49080", type: "Savings",     holderName: "Hannah Brooks",  balance: "$22,500.00",  balanceNum: 22500,   status: "Active",   lastUpdated: "03/03/26" },
+  { id: "acc-014", accountNumber: "ACC-49081", type: "Savings",     holderName: "Hannah Brooks",  balance: "$11,200.00",  balanceNum: 11200,   status: "Pending",  lastUpdated: "03/03/26" },
+  { id: "acc-015", accountNumber: "ACC-49190", type: "Mortgage",    holderName: "Noah Patel",     balance: "$285,000.00", balanceNum: 285000,  status: "Active",   lastUpdated: "03/04/26" },
+  { id: "acc-016", accountNumber: "ACC-49300", type: "Investment",  holderName: "Lauren Kim",     balance: "$130,450.00", balanceNum: 130450,  status: "Active",   lastUpdated: "03/05/26" },
+  { id: "acc-017", accountNumber: "ACC-49410", type: "Business",    holderName: "Ethan Zhang",    balance: "$76,200.00",  balanceNum: 76200,   status: "Active",   lastUpdated: "03/06/26" },
+  { id: "acc-018", accountNumber: "ACC-49411", type: "Checking",    holderName: "Ethan Zhang",    balance: "$4,850.00",   balanceNum: 4850,    status: "Active",   lastUpdated: "03/06/26" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -116,12 +149,101 @@ function DeskTabBar({ active, onChange }: { active: DeskTab; onChange: (t: DeskT
   );
 }
 
+// ─── Filter dropdown ──────────────────────────────────────────────────────────
+
+type FilterSection = {
+  key: FilterKey;
+  label: string;
+  options: string[];
+};
+
+function FilterDropdown({
+  sections,
+  activeFilters,
+  onToggle,
+  onClearAll,
+  onClose,
+}: {
+  sections: FilterSection[];
+  activeFilters: ActiveFilters;
+  onToggle: (key: FilterKey, value: string) => void;
+  onClearAll: () => void;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const totalActive = Object.values(activeFilters).reduce((s, v) => s + v.length, 0);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-full z-50 mt-1.5 w-64 rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+    >
+      {/* Dropdown header */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+        <span className="text-[12px] font-semibold text-[#333333]">Filters</span>
+        {totalActive > 0 && (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="text-[11px] font-medium text-[#006DAD] hover:underline"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* Sections */}
+      <div className="max-h-72 overflow-y-auto divide-y divide-border">
+        {sections.map((section) => (
+          <div key={section.key} className="px-4 py-3">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#98A2B3]">
+              {section.label}
+            </p>
+            <div className="space-y-1">
+              {section.options.map((opt) => {
+                const checked = activeFilters[section.key].includes(opt);
+                return (
+                  <label
+                    key={opt}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-md px-1 py-1 hover:bg-[#F9FAFB]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => onToggle(section.key, opt)}
+                      className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#006DAD]"
+                    />
+                    <span className="text-[12px] text-[#344054]">{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DeskDataTable({
   onSelectCustomer,
+  defaultTab = "Customers",
+  hideTabs = false,
 }: {
   onSelectCustomer?: (customerRecordId: string) => void;
+  defaultTab?: DeskTab;
+  hideTabs?: boolean;
 }) {
   const {
     selectedAssignment,
@@ -131,16 +253,40 @@ export default function DeskDataTable({
     isAgentInCall,
   } = useLayoutContext();
 
-  const [activeTab, setActiveTab] = useState<DeskTab>("Customers");
+  const [activeTab, setActiveTab] = useState<DeskTab>(defaultTab);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // Reset search when switching tabs
+  // Reset search + filters when switching tabs
   const handleTabChange = (tab: DeskTab) => {
     setActiveTab(tab);
     setSearchQuery("");
+    setActiveFilters(EMPTY_FILTERS);
   };
 
-  // ── Customers ──
+  const toggleFilter = (key: FilterKey, value: string) => {
+    setActiveFilters((prev) => {
+      const current = prev[key];
+      return {
+        ...prev,
+        [key]: current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value],
+      };
+    });
+  };
+
+  const removeFilterChip = (key: FilterKey, value: string) => {
+    setActiveFilters((prev) => ({
+      ...prev,
+      [key]: prev[key].filter((v) => v !== value),
+    }));
+  };
+
+  const clearAllFilters = () => setActiveFilters(EMPTY_FILTERS);
+
+  // ── Base data (with agent/aum annotations) ──
   const customerRows = useMemo<DeskCustomerRow[]>(
     () =>
       customerDatabase.map((customer) => {
@@ -151,46 +297,81 @@ export default function DeskDataTable({
           firstName,
           lastName: lastNameParts.join(" "),
           lastUpdated: customer.lastUpdated,
+          agent: customer.profile.financialAdvisor,
+          aum: parseBalance(customer.profile.totalAUM),
         };
       }),
     [],
   );
 
+  const allTickets = useMemo(() => getCustomerTickets(), []);
+
+  // ── Filter sections per tab ──
+  const filterSections = useMemo<FilterSection[]>(() => {
+    if (activeTab === "Customers") {
+      const agents = [...new Set(customerRows.map((r) => r.agent))].sort();
+      return [
+        {
+          key: "paymentBalance",
+          label: "Payment Balance (AUM)",
+          options: CUSTOMER_BALANCE_BUCKETS.map((b) => b.label),
+        },
+        { key: "agent", label: "Agent", options: agents },
+      ];
+    }
+    if (activeTab === "Accounts") {
+      return [
+        {
+          key: "paymentBalance",
+          label: "Payment Balance",
+          options: ACCOUNT_BALANCE_BUCKETS.map((b) => b.label),
+        },
+      ];
+    }
+    // Tickets
+    const agents = [...new Set(allTickets.map((t) => t.agent))].sort();
+    const teams  = [...new Set(allTickets.map((t) => t.agentTeam))].sort();
+    return [
+      { key: "agent",     label: "Agent",      options: agents },
+      { key: "agentTeam", label: "Agent Team", options: teams  },
+    ];
+  }, [activeTab, customerRows, allTickets]);
+
+  // ── Filtered + searched data ──
   const filteredCustomers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return customerRows;
-    return customerRows.filter((r) =>
-      [r.customerId, r.firstName, r.lastName, `${r.firstName} ${r.lastName}`]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [customerRows, searchQuery]);
+    return customerRows.filter((r) => {
+      if (q && !([r.customerId, r.firstName, r.lastName, `${r.firstName} ${r.lastName}`].join(" ").toLowerCase().includes(q))) return false;
+      if (activeFilters.agent.length > 0 && !activeFilters.agent.includes(r.agent)) return false;
+      if (activeFilters.paymentBalance.length > 0) {
+        const bucket = getBalanceBucket(r.aum, CUSTOMER_BALANCE_BUCKETS);
+        if (!bucket || !activeFilters.paymentBalance.includes(bucket)) return false;
+      }
+      return true;
+    });
+  }, [customerRows, searchQuery, activeFilters]);
 
-  // ── Accounts ──
   const filteredAccounts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return accountsDatabase;
-    return accountsDatabase.filter((a) =>
-      [a.accountNumber, a.type, a.holderName, a.status]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [searchQuery]);
+    return accountsDatabase.filter((a) => {
+      if (q && !([a.accountNumber, a.type, a.holderName, a.status].join(" ").toLowerCase().includes(q))) return false;
+      if (activeFilters.paymentBalance.length > 0) {
+        const bucket = getBalanceBucket(a.balanceNum, ACCOUNT_BALANCE_BUCKETS);
+        if (!bucket || !activeFilters.paymentBalance.includes(bucket)) return false;
+      }
+      return true;
+    });
+  }, [searchQuery, activeFilters]);
 
-  // ── Tickets ──
-  const allTickets = useMemo(() => getCustomerTickets(), []);
   const filteredTickets = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return allTickets;
-    return allTickets.filter((t) =>
-      [t.id, t.subject, t.type, t.priority, t.status, t.agent]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [allTickets, searchQuery]);
+    return allTickets.filter((t) => {
+      if (q && !([t.id, t.subject, t.type, t.priority, t.status, t.agent].join(" ").toLowerCase().includes(q))) return false;
+      if (activeFilters.agent.length > 0 && !activeFilters.agent.includes(t.agent)) return false;
+      if (activeFilters.agentTeam.length > 0 && !activeFilters.agentTeam.includes(t.agentTeam)) return false;
+      return true;
+    });
+  }, [allTickets, searchQuery, activeFilters]);
 
   const handleOpenChannel = (id: string, channel: Extract<CustomerChannel, "sms" | "email">) =>
     openCustomerConversation(id, channel);
@@ -198,7 +379,14 @@ export default function DeskDataTable({
   const handleStartCall = (id: string, anchorRect?: DOMRect | null) =>
     toggleCallPopunder(anchorRect, id);
 
-  const recordCount =
+  const displayCount =
+    activeTab === "Customers"
+      ? filteredCustomers.length
+      : activeTab === "Accounts"
+        ? filteredAccounts.length
+        : filteredTickets.length;
+
+  const totalCount =
     activeTab === "Customers"
       ? customerRows.length
       : activeTab === "Accounts"
@@ -212,14 +400,82 @@ export default function DeskDataTable({
         ? "Search accounts"
         : "Search tickets";
 
+  const totalActiveFilters = Object.values(activeFilters).reduce((s, v) => s + v.length, 0);
+
+  // Flat list of active chips: {key, value, label}
+  const activeChips = (Object.entries(activeFilters) as [FilterKey, string[]][]).flatMap(
+    ([key, values]) => values.map((value) => ({ key, value })),
+  );
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[#F8F8F9]">
       {/* Header */}
       <div className="border-b border-black/10 bg-white px-6 pt-5 pb-0">
         <div className="pb-4">
-          <h2 className="text-lg font-semibold tracking-tight text-[#111827]">{activeTab}</h2>
-          <p className="mt-1 text-sm text-[#667085]">{recordCount} records</p>
-          <div className="relative mt-4">
+
+          {/* Record count row + filter button */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[13px] font-semibold text-[#333333]">
+                {displayCount === totalCount
+                  ? `${totalCount} record${totalCount !== 1 ? "s" : ""}`
+                  : `${displayCount} of ${totalCount} record${totalCount !== 1 ? "s" : ""}`}
+              </p>
+            </div>
+            <div className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsFilterOpen((v) => !v)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors",
+                  totalActiveFilters > 0
+                    ? "border-[#006DAD] bg-[#EEF6FC] text-[#006DAD]"
+                    : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                )}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Filter
+                {totalActiveFilters > 0 && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#006DAD] text-[10px] font-bold text-white">
+                    {totalActiveFilters}
+                  </span>
+                )}
+              </button>
+              {isFilterOpen && (
+                <FilterDropdown
+                  sections={filterSections}
+                  activeFilters={activeFilters}
+                  onToggle={toggleFilter}
+                  onClearAll={clearAllFilters}
+                  onClose={() => setIsFilterOpen(false)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Active filter chips */}
+          {activeChips.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {activeChips.map(({ key, value }) => (
+                <span
+                  key={`${key}:${value}`}
+                  className="inline-flex items-center gap-1 rounded-full bg-[#EEF6FC] px-2.5 py-1 text-[11px] font-medium text-[#006DAD]"
+                >
+                  {value}
+                  <button
+                    type="button"
+                    onClick={() => removeFilterChip(key, value)}
+                    className="ml-0.5 rounded-full text-[#006DAD] opacity-70 hover:opacity-100"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Search bar */}
+          <div className="relative mt-3">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#98A2B3]" />
             <Input
               type="search"
@@ -231,7 +487,7 @@ export default function DeskDataTable({
             />
           </div>
         </div>
-        <DeskTabBar active={activeTab} onChange={handleTabChange} />
+        {!hideTabs && <DeskTabBar active={activeTab} onChange={handleTabChange} />}
       </div>
 
       {/* Content */}

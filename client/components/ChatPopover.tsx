@@ -429,6 +429,7 @@ export default function ChatPopoverContent({
   onSizeChange,
   onClose,
   onInteractStart,
+  onUnreadCountChange,
 }: {
   position: { x: number; y: number };
   size: { width: number; height: number };
@@ -437,6 +438,7 @@ export default function ChatPopoverContent({
   onSizeChange: (s: { width: number; height: number }) => void;
   onClose: () => void;
   onInteractStart?: () => void;
+  onUnreadCountChange?: (count: number) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>(seedConversations);
@@ -444,6 +446,12 @@ export default function ChatPopoverContent({
   const isResizingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
+
+  // Bubble total unread count up to parent whenever it changes
+  useEffect(() => {
+    const total = [...conversations, ...seedTeams].reduce((sum, c) => sum + (c.unread ?? 0), 0);
+    onUnreadCountChange?.(total);
+  }, [conversations, onUnreadCountChange]);
 
   // All conversations = recents + any created from agents/teams
   const allConversations = [...conversations, ...seedTeams];
