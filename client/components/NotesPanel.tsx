@@ -262,36 +262,36 @@ function formatNoteTimestamp(date: Date) {
 function getPriorityTone(priority: CustomerTicket["priority"]) {
   switch (priority) {
     case "Urgent":
-      return "bg-[#F04438]";
+      return "bg-[#E32926]";
     case "High":
-      return "bg-[#F79009]";
+      return "bg-[#FFB800]";
     case "Medium":
-      return "bg-[#006DAD]";
+      return "bg-[#6E56CF]";
     default:
-      return "bg-[#369D3F]";
+      return "bg-[#208337]";
   }
 }
 
 function getStatusBadgeClasses(status: CustomerTicket["status"]) {
   switch (status) {
     case "Open":
-      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
+      return "border-[#24943E] bg-[#EFFBF1] text-[#208337]";
     case "Escalated":
     case "Needing Attention":
-      return "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]";
+      return "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]";
     case "In Progress":
     case "Pending Customer":
     case "On-Hold":
     case "Training Rescheduled":
-      return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]";
+      return "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00]";
     case "Closed":
     case "Cancelled":
     case "Duplicate":
       return "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]";
     case "De-Escalated":
-      return "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]";
+      return "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]";
     default:
-      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
+      return "border-[#24943E] bg-[#EFFBF1] text-[#208337]";
   }
 }
 
@@ -389,9 +389,9 @@ function NoteItem({ note }: { note: CustomerNote }) {
     .toUpperCase();
 
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC]">
+    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA]">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#006DAD]">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#6E56CF]">
           {initials}
         </div>
 
@@ -433,7 +433,7 @@ function TicketRecordView({ ticket }: { ticket: CustomerTicket }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6E56CF]">
                     <Ticket className="h-3.5 w-3.5" />
                     {ticket.id}
                   </span>
@@ -620,7 +620,7 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search tickets, status, agents, or subjects"
-            className="h-9 border-black/10 bg-white pl-9 text-xs text-[#111827] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#B8D7F0]"
+            className="h-9 border-black/10 bg-white pl-9 text-xs text-[#111827] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#C8BFF0]"
           />
         </div>
 
@@ -659,7 +659,7 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
                     type="button"
                     aria-label={`Resize ${column.label}`}
                     onMouseDown={(event) => handleResizeStart(event, column.key)}
-                    className="absolute inset-y-0 right-0 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[#B8D7F0]/60 focus-visible:outline-none"
+                    className="absolute inset-y-0 right-0 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[#C8BFF0]/60 focus-visible:outline-none"
                   />
                 </th>
               ))}
@@ -737,6 +737,7 @@ interface NotesPanelProps {
   notesOnly?: boolean;
   addNoteTrigger?: number;
   customerId?: string;
+  customerName?: string;
 }
 
 export default function NotesPanel({
@@ -745,6 +746,7 @@ export default function NotesPanel({
   notesOnly = false,
   addNoteTrigger = 0,
   customerId,
+  customerName,
 }: NotesPanelProps) {
   const availableTickets = useMemo(() => getCustomerTickets(customerId), [customerId]);
   const requestedTicket = useMemo(() => getCustomerTicketById(initialTicketId, customerId), [customerId, initialTicketId]);
@@ -883,7 +885,7 @@ export default function NotesPanel({
                   className={cn(
                     "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === tab
-                      ? "text-[#006DAD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#006DAD]"
+                      ? "text-[#6E56CF] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E56CF]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
@@ -922,7 +924,7 @@ export default function NotesPanel({
                   className={cn(
                     "relative ml-1 flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === ticket.id
-                      ? "text-[#006DAD] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#006DAD]"
+                      ? "text-[#6E56CF] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E56CF]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
@@ -1000,7 +1002,7 @@ export default function NotesPanel({
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-3 pb-2">
               {isComposerOpen && (
-                <div className="rounded-xl border border-[#B8D7F0] bg-[#EEF6FC] p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                   <div className="text-[12px] font-semibold leading-5 text-[#333333]">New Note</div>
                   <div className="mt-1 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
                     <span className="font-medium text-[#333333]">{DEFAULT_NOTE_AGENT.name}</span>
@@ -1011,7 +1013,7 @@ export default function NotesPanel({
                     value={noteDraft}
                     onChange={(event) => setNoteDraft(event.target.value)}
                     placeholder="Add a note"
-                    className="mt-3 min-h-[112px] resize-none border-black/10 bg-white text-sm text-[#333333] placeholder:text-[#9CA3AF] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#B8D7F0]"
+                    className="mt-3 min-h-[112px] resize-none border-black/10 bg-white text-sm text-[#333333] placeholder:text-[#9CA3AF] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#C8BFF0]"
                   />
                   <div className="mt-3 flex items-center justify-end gap-2">
                     <Button type="button" variant="outline" className="h-8 rounded-lg px-3" onClick={handleCancelNote}>
@@ -1019,7 +1021,7 @@ export default function NotesPanel({
                     </Button>
                     <Button
                       type="button"
-                      className="h-8 rounded-lg bg-[#006DAD] px-3 hover:bg-[#0A5E92] disabled:bg-[#B8D7F0]"
+                      className="h-8 rounded-lg bg-[#6E56CF] px-3 hover:bg-[#0A5E92] disabled:bg-[#C8BFF0]"
                       onClick={handleSaveNote}
                       disabled={!noteDraft.trim()}
                     >
@@ -1041,7 +1043,7 @@ export default function NotesPanel({
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
           <div className="min-h-0 flex-1 overflow-hidden">
             <ScrollArea className="h-full min-h-0 w-full">
-              {customerId ? <OverviewDashboard customerId={customerId} /> : null}
+              {customerId ? <OverviewDashboard customerId={customerId} customerName={customerName} /> : null}
             </ScrollArea>
           </div>
         </div>
@@ -1049,7 +1051,7 @@ export default function NotesPanel({
 
       {activeTab === "Details" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
-          <CustomerInfoPanel className="h-full" />
+          <CustomerInfoPanel className="h-full" customerId={customerId} />
         </div>
       )}
 
@@ -1060,7 +1062,7 @@ export default function NotesPanel({
           <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
             <ScrollArea className="h-full min-h-0 w-full">
               {customerId ? (
-                <CustomerOverviewCard customerId={customerId} />
+                <CustomerOverviewCard customerId={customerId} customerName={customerName} />
               ) : (
                 <div className="flex min-h-[280px] items-center justify-center text-xs text-[#9CA3AF]">
                   No account details to display

@@ -34,7 +34,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#006DAD]",
+    statusColor: "bg-[#6E56CF]",
   },
   {
     id: 2,
@@ -45,7 +45,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#369D3F]",
+    statusColor: "bg-[#208337]",
   },
   {
     id: 3,
@@ -56,7 +56,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#369D3F]",
+    statusColor: "bg-[#208337]",
   },
   {
     id: 4,
@@ -67,7 +67,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "Inbound Voice - Mortgage Queue",
-    statusColor: "bg-[#369D3F]",
+    statusColor: "bg-[#208337]",
   },
   {
     id: 5,
@@ -78,7 +78,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "AI Agent - Billing Triage",
-    statusColor: "bg-[#F04438]",
+    statusColor: "bg-[#E32926]",
   },
   {
     id: 6,
@@ -89,7 +89,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXi SME Email",
-    statusColor: "bg-[#F04438]",
+    statusColor: "bg-[#E32926]",
   },
   {
     id: 7,
@@ -100,7 +100,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXi SME Email",
-    statusColor: "bg-[#F04438]",
+    statusColor: "bg-[#E32926]",
   },
   {
     id: 8,
@@ -111,7 +111,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXi SME Email",
-    statusColor: "bg-[#F04438]",
+    statusColor: "bg-[#E32926]",
   },
   {
     id: 9,
@@ -122,7 +122,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#F04438]",
+    statusColor: "bg-[#E32926]",
   },
 ] as const;
 
@@ -147,10 +147,10 @@ function InteractionTypeIcon({
   const colorClass = isEmail
     ? "text-[#E83E8C]"
     : isVoice
-      ? "text-[#006DAD]"
+      ? "text-[#6E56CF]"
       : isAiAgent
-        ? "text-[#006DAD]"
-        : "text-[#369D3F]";
+        ? "text-[#6E56CF]"
+        : "text-[#208337]";
   const DirectionIcon = direction === "inbound" ? ArrowDown : ArrowUp;
   const BaseIcon = isEmail ? Mail : isVoice ? Phone : isAiAgent ? Bot : MessageSquare;
 
@@ -180,7 +180,7 @@ function InteractionRow({
           onOpen(interaction);
         }
       }}
-      className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30"
+      className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30"
     >
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9]">
@@ -211,7 +211,7 @@ function InteractionRow({
 
             <button
               type="button"
-              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#E6F3FA] hover:text-[#006DAD]"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#E0DBF5] hover:text-[#6E56CF]"
               aria-label="Interaction options"
               onClick={(event) => event.stopPropagation()}
               onMouseDown={(event) => event.stopPropagation()}
@@ -287,8 +287,8 @@ export default function RecentInteractionsPanel({
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                   isActive
-                    ? "border-[#B8D7F0] bg-[#E6F3FA] text-[#006DAD]"
-                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#B8D7F0] hover:text-[#006DAD]",
+                    ? "border-[#C8BFF0] bg-[#E0DBF5] text-[#6E56CF]"
+                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#C8BFF0] hover:text-[#6E56CF]",
                 )}
               >
                 {chip.label}

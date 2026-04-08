@@ -90,8 +90,8 @@ export function CopilotContent() {
                       onClick={() => toggleTopic(i)}
                       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
                         topic.checked
-                          ? "border-[#006DAD] bg-[#006DAD]"
-                          : "border-[#D0D5DD] bg-white hover:border-[#006DAD]"
+                          ? "border-[#6E56CF] bg-[#6E56CF]"
+                          : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]"
                       }`}
                       aria-label={topic.checked ? "Uncheck topic" : "Check topic"}
                     >
@@ -107,7 +107,7 @@ export function CopilotContent() {
                     <button
                       type="button"
                       onClick={() => deleteTopic(i)}
-                      className="shrink-0 text-[#D0D5DD] transition-colors hover:text-[#F04438]"
+                      className="shrink-0 text-[#D0D5DD] transition-colors hover:text-[#E32926]"
                       aria-label="Remove topic"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ export function CopilotContent() {
 
       {/* Chat input footer */}
       <div className="shrink-0 border-t border-border bg-background px-4 py-3">
-        <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-2 focus-within:border-[#006DAD]/40 focus-within:bg-white transition-colors">
+        <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-2 focus-within:border-[#6E56CF]/40 focus-within:bg-white transition-colors">
           <Bot className="h-4 w-4 shrink-0 text-[#7A7A7A]" />
           <input
             type="text"
@@ -155,7 +155,7 @@ export function CopilotContent() {
             type="button"
             onClick={handleSend}
             disabled={!chatInput.trim()}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#006DAD] text-white transition-colors hover:bg-[#0A5E92] disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] text-white transition-colors hover:bg-[#0A5E92] disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Send message"
           >
             <Send className="h-3.5 w-3.5" />

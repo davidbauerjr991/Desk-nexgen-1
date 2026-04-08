@@ -53,6 +53,10 @@ interface ConversationPanelProps {
   performAllActionsKey?: number;
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
+  /** True when the containing panel is ≥1280px wide — used to center conversation content. */
+  isWidePanel?: boolean;
+  /** Called whenever the agentTasks list changes length, so the parent can show/hide the portal slot. */
+  onAgentTasksChange?: (hasTasks: boolean) => void;
 }
 
 const conversationFooterMenuItems = [
@@ -103,8 +107,8 @@ const MESSAGE_TAG_DEFS = [
   {
     id: "complaint",
     label: "Complaint",
-    activeClass: "bg-[#FEF3F2] text-[#B42318] border-[#FECDCA]",
-    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#FEF3F2] hover:text-[#B42318] hover:border-[#FECDCA]",
+    activeClass: "bg-[#FDEAEA] text-[#C71D1A] border-[#E53935]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#FDEAEA] hover:text-[#C71D1A] hover:border-[#E53935]",
   },
   {
     id: "help",
@@ -115,8 +119,8 @@ const MESSAGE_TAG_DEFS = [
   {
     id: "praise",
     label: "Praise",
-    activeClass: "bg-[#ECFDF3] text-[#027A48] border-[#ABEFC6]",
-    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#ECFDF3] hover:text-[#027A48] hover:border-[#ABEFC6]",
+    activeClass: "bg-[#EFFBF1] text-[#208337] border-[#24943E]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#EFFBF1] hover:text-[#208337] hover:border-[#24943E]",
   },
   {
     id: "share",
@@ -139,7 +143,7 @@ const TASK_COMPLETION_NOTES: Record<string, string> = {
   "callback": "Callback scheduled",
   "upgrade-beverage-package": "Beverage package upgraded",
   "confirm-credit-line": "Credit line confirmed",
-  "set-resolved": "Assignment resolved",
+  "set-resolved": "Case resolved",
 };
 
 const TASK_COMPLETION_REPLIES: Record<string, string> = {
@@ -161,7 +165,7 @@ const TASK_ACTION_TITLES: Record<string, string> = {
   "callback": "Scheduling Callback...",
   "upgrade-beverage-package": "Upgrading Beverage Package...",
   "confirm-credit-line": "Confirming Credit Line...",
-  "set-resolved": "Resolving Assignment...",
+  "set-resolved": "Resolving Case...",
 };
 
 const TASK_STEPS: Record<string, string[]> = {
@@ -204,7 +208,7 @@ const TASK_STEPS: Record<string, string[]> = {
   ],
   "set-resolved": [
     "Closing conversation thread",
-    "Updating assignment status",
+    "Updating case status",
     "Removing from queue",
   ],
 };
@@ -227,7 +231,17 @@ function matchCopilotInput(input: string): AgentTask | null {
 }
 
 function getSuggestedAgentTasks(conversation: SharedConversationData, latestCustomerMessage: ConversationMessage | null): AgentTask[] {
-  if (!latestCustomerMessage) return [];
+  // Always use per-customer entry if available
+  const entryEarly = latestCustomerMessage ? null : getCustomerAssignmentEntry(conversation.customerName);
+  if (entryEarly) return entryEarly.suggestedActions;
+
+  // If no customer message yet, return universal fallback tasks
+  if (!latestCustomerMessage) {
+    return [
+      { id: "update-case-record", label: "Update Case Record" },
+      { id: "set-resolved", label: "Set Case to Resolved" },
+    ];
+  }
 
   // Prefer per-customer database entry for unique, context-specific suggested actions.
   const entry = getCustomerAssignmentEntry(conversation.customerName);
@@ -259,7 +273,15 @@ function getSuggestedAgentTasks(conversation: SharedConversationData, latestCust
 
   const latestContent = latestCustomerMessage.content.toLowerCase();
   if (["thank you", "thanks", "that's great", "that was helpful", "resolved", "satisfied", "happy", "all set", "appreciate", "perfect", "wonderful", "great help", "problem solved", "sorted"].some((k) => latestContent.includes(k))) {
-    tasks.push({ id: "set-resolved", label: "Set Assignment to Resolved" });
+    tasks.push({ id: "set-resolved", label: "Set Case to Resolved" });
+  }
+
+  // Always ensure at least two tasks — universal fallbacks fill any gaps
+  if (!tasks.some((t) => t.id === "update-case-record")) {
+    tasks.push({ id: "update-case-record", label: "Update Case Record" });
+  }
+  if (!tasks.some((t) => t.id === "set-resolved")) {
+    tasks.push({ id: "set-resolved", label: "Set Case to Resolved" });
   }
 
   return tasks;
@@ -778,29 +800,29 @@ function getReplyEmailSubject(conversation: SharedConversationData) {
 function getTicketPriorityDotClassName(priority: CustomerTicket["priority"]) {
   switch (priority) {
     case "Low":
-      return "bg-[#369D3F]";
+      return "bg-[#208337]";
     case "Medium":
-      return "bg-[#006DAD]";
+      return "bg-[#6E56CF]";
     case "High":
-      return "bg-[#F79009]";
+      return "bg-[#FFB800]";
     default:
-      return "bg-[#F04438]";
+      return "bg-[#E32926]";
   }
 }
 
 function getTicketStatusBadgeClasses(status: CustomerTicket["status"]) {
   switch (status) {
     case "Open":
-      return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]";
+      return "border-[#24943E] bg-[#EFFBF1] text-[#208337]";
     case "In Progress":
-      return "border-[#F4E1A1] bg-[#FFF9E8] text-[#7A5B00]";
+      return "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00]";
     case "Pending Customer":
     case "On-Hold":
     case "Training Rescheduled":
-      return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]";
+      return "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00]";
     case "Escalated":
     case "Needing Attention":
-      return "border-[#FECDCA] bg-[#FEF3F2] text-[#B42318]";
+      return "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]";
     default:
       return "border-black/10 bg-white text-[#475467]";
   }
@@ -824,7 +846,7 @@ function InlineTicketRecord({
       >
         <div className="flex w-full items-start justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#006DAD]">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6E56CF]">
               <Ticket className="h-3 w-3" />
               {ticket.id}
             </span>
@@ -1025,6 +1047,8 @@ export default function ConversationPanel({
   performAllActionsKey = 0,
   isPendingAcceptance = false,
   onAcceptAssignment,
+  isWidePanel = false,
+  onAgentTasksChange,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1042,7 +1066,6 @@ export default function ConversationPanel({
   const [narrowTab, setNarrowTab] = useState<"conversation" | "copilot">("conversation");
   const [footerHeight, setFooterHeight] = useState(0);
 
-  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
   const [draft, setDraft] = useState(conversation.draft);
@@ -1265,6 +1288,13 @@ export default function ConversationPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [performAllActionsKey]);
 
+  // Notify parent whenever task presence changes so it can show/hide the portal slot
+  const hasAgentTasks = agentTasks.length > 0;
+  useEffect(() => {
+    onAgentTasksChange?.(hasAgentTasks);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasAgentTasks]);
+
   // Generate and stagger-reveal suggested agent tasks when a new customer message arrives
   // OR when the conversation itself changes (conversation.label ensures this re-runs after
   // the reset effect above clears the task list for the incoming assignment).
@@ -1406,6 +1436,20 @@ export default function ConversationPanel({
     });
   };
 
+  const handlePerformAllActions = () => {
+    setRevealedTaskIds(new Set(agentTasks.map((t) => t.id)));
+    setCheckedTaskIds(new Set(agentTasks.map((t) => t.id)));
+    setTaskProgress((prev) => {
+      const additions = Object.fromEntries(
+        agentTasks
+          .filter((t) => !prev[t.id])
+          .map((t) => [t.id, { stepIndex: 0, paused: false }]),
+      );
+      return { ...prev, ...additions };
+    });
+    requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+  };
+
   const toggleTaskPause = (taskId: string) => {
     setTaskProgress((prev) => {
       const current = prev[taskId];
@@ -1523,13 +1567,7 @@ export default function ConversationPanel({
   }, [inlineSuggestion?.suggestedReply, revealedTaskIds.size]);
 
   const getScrollViewport = () => {
-    if (scrollViewportRef.current) return scrollViewportRef.current;
-
-    const viewport = scrollAreaRef.current?.querySelector("[data-radix-scroll-area-viewport]");
-    if (!(viewport instanceof HTMLDivElement)) return null;
-
-    scrollViewportRef.current = viewport;
-    return viewport;
+    return scrollAreaRef.current ?? null;
   };
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
@@ -1776,20 +1814,20 @@ export default function ConversationPanel({
                 onClick={() => setNarrowTab(tab)}
                 className={cn(
                   "relative flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-medium capitalize transition-colors",
-                  narrowTab === tab ? "text-[#006DAD]" : "text-[#7A7A7A] hover:text-[#333333]",
+                  narrowTab === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
                 )}
               >
                 {tab}
                 {tab === "copilot" && aiNewCount > 0 && (
                   <span className={cn(
                     "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold",
-                    narrowTab === "copilot" ? "bg-[#EEF6FC] text-[#006DAD]" : "bg-[#F2F4F7] text-[#667085]",
+                    narrowTab === "copilot" ? "bg-[#F2F0FA] text-[#6E56CF]" : "bg-[#F2F4F7] text-[#667085]",
                   )}>
                     {aiNewCount}
                   </span>
                 )}
                 {narrowTab === tab && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
                 )}
               </button>
             ))}
@@ -1798,9 +1836,9 @@ export default function ConversationPanel({
 
         {/* Conversation view — hidden on copilot tab when narrow */}
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          <ScrollArea ref={scrollAreaRef} className="h-full p-6">
-            <div className="mx-auto max-w-3xl space-y-6">
+        <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
+          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6">
+            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-3xl" : "w-full")}>
             <div className="text-center">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -1924,8 +1962,8 @@ export default function ConversationPanel({
                             });
                           }}
                         >
-                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E4E7EC]">
-                            <NotebookPen className="h-2.5 w-2.5 text-[#667085]" />
+                          <div className="shrink-0 h-7 w-7 rounded-full bg-[#F2F4F7] border border-[#E4E7EC] flex items-center justify-center">
+                            <NotebookPen className="h-3.5 w-3.5 text-[#667085]" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
@@ -1962,76 +2000,96 @@ export default function ConversationPanel({
                         className={cn(
                           "group/msg py-3",
                           message.id === latestNonInternalMessage?.id
-                            ? "border-l-[3px] border-[#006DAD] bg-[#F4FAFF] -mx-6 px-6"
+                            ? "border-l-[3px] border-[#6E56CF] bg-[#F2F0FA] -mx-6 px-6"
                             : "",
                         )}
                       >
-                        <div className="mb-0.5 flex items-baseline gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
-                            {message.role === "agent"
-                              ? `Agent ${agentFullName}`
-                              : conversation.customerName.toUpperCase()}
-                          </span>
-                          <span className="text-[10px] text-[#98A2B3]">
-                            {formatConversationMessageTimestamp(message.time)} | {getConversationChannelLabel(message.channel ?? activeChannel)}
-                          </span>
-                        </div>
-                        <p
-                          className={cn(
-                            "text-sm leading-6",
-                            message.id === latestNonInternalMessage?.id
-                              ? "font-medium text-[#111827]"
-                              : "text-[#475467]",
-                          )}
-                        >
-                          {message.content}
-                        </p>
-                        {message.sentiment === "frustrated" && (
-                          <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-[#B54708]">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            Frustrated sentiment detected
-                          </div>
-                        )}
-                        {/* Applied tag chips — always visible when tags exist */}
-                        {appliedTags.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {appliedTags.map((tagId) => {
-                              const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
-                              return tag ? (
-                                <span
-                                  key={tagId}
-                                  className={cn(
-                                    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                    tag.activeClass,
-                                  )}
-                                >
-                                  {tag.label}
-                                </span>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-                        {/* Tag picker — slides open on hover */}
-                        <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-all duration-200 ease-out">
-                          <div className="overflow-hidden">
-                            <div className="flex items-center gap-1 pt-1.5 pb-0.5">
-                              <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
-                              {MESSAGE_TAG_DEFS.map((tag) => {
-                                const isApplied = appliedTags.includes(tag.id);
-                                return (
-                                  <button
-                                    key={tag.id}
-                                    type="button"
-                                    onClick={() => handleToggleTag(message.id, tag.id)}
-                                    className={cn(
-                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                                      isApplied ? tag.activeClass : tag.ghostClass,
-                                    )}
-                                  >
-                                    {tag.label}
-                                  </button>
-                                );
-                              })}
+                        <div className="flex items-start gap-3">
+                          {/* Avatar */}
+                          {(() => {
+                            const isAgent = message.role === "agent";
+                            const name = isAgent ? agentFullName : conversation.customerName;
+                            const initials = name.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                            return isAgent ? (
+                              <div className="mt-0.5 shrink-0 h-7 w-7 rounded-full bg-[#344054] flex items-center justify-center text-[10px] font-bold text-white select-none">
+                                {initials}
+                              </div>
+                            ) : (
+                              <div className="mt-0.5 shrink-0 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+                                {initials}
+                              </div>
+                            );
+                          })()}
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="mb-0.5 flex items-baseline gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
+                                {message.role === "agent"
+                                  ? `Agent ${agentFullName}`
+                                  : conversation.customerName.toUpperCase()}
+                              </span>
+                              <span className="text-[10px] text-[#98A2B3]">
+                                {formatConversationMessageTimestamp(message.time)} | {getConversationChannelLabel(message.channel ?? activeChannel)}
+                              </span>
+                            </div>
+                            <p
+                              className={cn(
+                                "text-sm leading-6",
+                                message.id === latestNonInternalMessage?.id
+                                  ? "font-medium text-[#111827]"
+                                  : "text-[#475467]",
+                              )}
+                            >
+                              {message.content}
+                            </p>
+                            {message.sentiment === "frustrated" && (
+                              <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-[#A37A00]">
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                Frustrated sentiment detected
+                              </div>
+                            )}
+                            {/* Applied tag chips — always visible when tags exist */}
+                            {appliedTags.length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {appliedTags.map((tagId) => {
+                                  const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
+                                  return tag ? (
+                                    <span
+                                      key={tagId}
+                                      className={cn(
+                                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                        tag.activeClass,
+                                      )}
+                                    >
+                                      {tag.label}
+                                    </span>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                            {/* Tag picker — slides open on hover */}
+                            <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-all duration-200 ease-out">
+                              <div className="overflow-hidden">
+                                <div className="flex items-center gap-1 pt-1.5 pb-0.5">
+                                  <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
+                                  {MESSAGE_TAG_DEFS.map((tag) => {
+                                    const isApplied = appliedTags.includes(tag.id);
+                                    return (
+                                      <button
+                                        key={tag.id}
+                                        type="button"
+                                        onClick={() => handleToggleTag(message.id, tag.id)}
+                                        className={cn(
+                                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                                          isApplied ? tag.activeClass : tag.ghostClass,
+                                        )}
+                                      >
+                                        {tag.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2042,8 +2100,9 @@ export default function ConversationPanel({
                   );
                 })}
 
-                {/* Suggested Next Steps — rendered after all messages so completed internal notes appear above */}
-                {agentTasks.length > 0 && (
+                {/* Suggested Next Steps — always inline */}
+                {agentTasks.length > 0 && (() => {
+                  const nextStepsContent = (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                     <div className="px-4 pt-3 pb-1">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
@@ -2069,7 +2128,7 @@ export default function ConversationPanel({
                                 onClick={() => handleToggleTaskCheck(task.id)}
                                 className={cn(
                                   "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                                  isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                                  isChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
                                 )}
                               >
                                 {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -2150,11 +2209,23 @@ export default function ConversationPanel({
                         );
                       })}
                     </div>
+                    {/* Perform All Actions — shown when at least one task hasn't started yet */}
+                    {agentTasks.some((t) => !taskProgress[t.id]) && (
+                      <div className="px-3 pb-2.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={handlePerformAllActions}
+                          className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Perform All Actions
+                        </button>
+                      </div>
+                    )}
                     {/* Inline Copilot action input */}
                     <div className="border-t border-black/[0.06] px-3 py-2.5">
                       <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                         {inlineActionThinking ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#006DAD]" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#6E56CF]" />
                         ) : (
                           <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
                         )}
@@ -2171,33 +2242,47 @@ export default function ConversationPanel({
                           type="button"
                           onClick={handleInlineActionSubmit}
                           disabled={!inlineActionInput.trim() || inlineActionThinking}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
                         >
                           <Send className="h-3 w-3" />
                         </button>
                       </div>
                     </div>
                   </div>
-                )}
+                  );
+                  return nextStepsContent;
+                })()
+                }
 
                 {conversation.isCustomerTyping && (
-                  <div className="py-3">
-                    <div className="mb-0.5 flex items-baseline gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
-                        {conversation.customerName.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 pt-1">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]" />
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]" />
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]" />
+                  <div className="py-3 flex items-start gap-3">
+                    {/* Customer avatar */}
+                    {(() => {
+                      const initials = conversation.customerName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                      return (
+                        <div className="mt-0.5 shrink-0 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+                          {initials}
+                        </div>
+                      );
+                    })()}
+                    <div>
+                      <div className="mb-0.5 flex items-baseline gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#344054]">
+                          {conversation.customerName.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 pt-1">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280]" />
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:120ms]" />
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-[#6B7280] [animation-delay:240ms]" />
+                      </div>
                     </div>
                   </div>
                 )}
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {!isVoiceChannel && !isEmailChannel && newMessagesCount > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-6">
@@ -2221,12 +2306,12 @@ export default function ConversationPanel({
               <div ref={narrowAiScrollRef} onScroll={(e) => handleAiScroll(e.currentTarget)} className="h-full overflow-y-auto p-3 space-y-3">
                 {isVoiceChannel && <VoiceAIGuidanceCard />}
                 {shouldShowSuggestion && (inlineSuggestion || postActionSuggestion) && (
-                  <div className="rounded-2xl border border-[#B7E6DD] bg-[#EAF8F4] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                  <div className="rounded-2xl border border-[#24943E] bg-[#EFFBF1] px-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                     <Accordion type="single" collapsible value={suggestionAccordionValue} onValueChange={setSuggestionAccordionValue}>
                       <AccordionItem value="ai-suggestion" className="border-b-0">
                         <AccordionTrigger className="py-4 text-left hover:no-underline">
                           <div className="flex flex-1 items-center justify-between mr-2">
-                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#369D3F]">
+                            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#208337]">
                               <span>Suggested Response</span>
                             </div>
                             <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
@@ -2245,8 +2330,8 @@ export default function ConversationPanel({
                                 className={cn(
                                   "h-9 rounded-lg px-4",
                                   isSuggestionAdded
-                                    ? "bg-[#D9F2EA] text-[#369D3F] hover:bg-[#D9F2EA]"
-                                    : "bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                                    ? "bg-[#EFFBF1] text-[#208337] hover:bg-[#EFFBF1]"
+                                    : "bg-[#6E56CF] text-white hover:bg-[#0A5E92]",
                                 )}
                                 onClick={handleUseSuggestion}
                                 disabled={isSuggestionAdded}
@@ -2289,7 +2374,7 @@ export default function ConversationPanel({
                                 onClick={() => handleToggleTaskCheck(task.id)}
                                 className={cn(
                                   "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                                  isChecked ? "border-[#006DAD] bg-[#006DAD]" : "border-[#D0D5DD] bg-white hover:border-[#006DAD]",
+                                  isChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
                                 )}
                               >
                                 {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -2372,11 +2457,23 @@ export default function ConversationPanel({
                         );
                       })}
                     </div>
+                    {/* Perform All Actions — shown when at least one task hasn't started yet */}
+                    {agentTasks.some((t) => !taskProgress[t.id]) && (
+                      <div className="px-3 pb-2.5 pt-1">
+                        <button
+                          type="button"
+                          onClick={handlePerformAllActions}
+                          className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Perform All Actions
+                        </button>
+                      </div>
+                    )}
                     {/* Inline Copilot action input */}
                     <div className="border-t border-black/[0.06] px-3 py-2.5">
                       <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                         {inlineActionThinking ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#006DAD]" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#6E56CF]" />
                         ) : (
                           <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
                         )}
@@ -2393,7 +2490,7 @@ export default function ConversationPanel({
                           type="button"
                           onClick={handleInlineActionSubmit}
                           disabled={!inlineActionInput.trim() || inlineActionThinking}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
                         >
                           <Send className="h-3 w-3" />
                         </button>
@@ -2419,7 +2516,7 @@ export default function ConversationPanel({
             <div className="shrink-0 border-t border-black/[0.06] p-3">
               <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 {copilotThinking ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#006DAD]" />
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#6E56CF]" />
                 ) : (
                   <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
                 )}
@@ -2436,7 +2533,7 @@ export default function ConversationPanel({
                   type="button"
                   onClick={handleCopilotSubmit}
                   disabled={!copilotInput.trim() || copilotThinking}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF6FC] text-[#006DAD] transition-colors hover:bg-[#DAEEF9] disabled:pointer-events-none disabled:opacity-40"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </button>
@@ -2448,7 +2545,7 @@ export default function ConversationPanel({
       {!isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <>
           {/* Live response input — relative so suggestion cards can overlay above it */}
-          <div ref={footerRef} className="relative shrink-0 border-t border-border bg-background px-4 py-3">
+          <div ref={footerRef} className="relative z-[60] shrink-0 border-t border-border bg-background px-4 py-3">
 
             {/* Suggested response cards — absolutely positioned above the input, only visible when input is focused */}
             {shouldShowSuggestion && suggestionVariants.length > 0 && isDraftFocused && (() => {
@@ -2519,12 +2616,12 @@ export default function ConversationPanel({
                           className={cn(
                             "relative min-w-0 flex-1 rounded-xl border p-3 text-left text-[13px] leading-5 transition-colors",
                             isSelected
-                              ? "border-[#006DAD] bg-[#EEF6FC] text-[#00457A] shadow-[inset_0_0_0_1px_#006DAD]"
-                              : "border-[#B7E6DD] bg-[#EAF8F4] text-[#25403B] hover:bg-[#D9F2EA]",
+                              ? "border-[#6E56CF] bg-[#F2F0FA] text-[#00457A] shadow-[inset_0_0_0_1px_#6E56CF]"
+                              : "border-[#24943E] bg-[#EFFBF1] text-[#25403B] hover:bg-[#EFFBF1]",
                           )}
                         >
                           {isSelected && (
-                            <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#006DAD]">
+                            <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF]">
                               <Check className="h-2.5 w-2.5 text-white stroke-[2.5]" />
                             </span>
                           )}
@@ -2540,7 +2637,7 @@ export default function ConversationPanel({
               className={cn(
                 "flex items-center gap-2 rounded-2xl bg-white px-3 py-2.5 transition-[border-color,box-shadow]",
                 isDraftFocused
-                  ? "border border-[#006DAD]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08)]"
+                  ? "border border-[#6E56CF]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08)]"
                   : "border border-black/10 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
               )}
             >
@@ -2639,7 +2736,7 @@ export default function ConversationPanel({
                 type="button"
                 onClick={() => handleSend()}
                 className={cn(
-                  "h-8 w-8 shrink-0 rounded-full bg-[#006DAD] text-white hover:bg-[#0A5E92]",
+                  "h-8 w-8 shrink-0 rounded-full bg-[#6E56CF] text-white hover:bg-[#0A5E92]",
                   !hasDraft && "cursor-not-allowed bg-[#D1D5DB] hover:bg-[#D1D5DB]",
                 )}
                 size="icon"

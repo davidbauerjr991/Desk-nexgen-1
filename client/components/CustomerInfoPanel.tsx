@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface CustomerInfoPanelProps {
   className?: string;
   bordered?: boolean;
+  customerId?: string;
 }
 
 function CustomerDetailRow({
@@ -23,11 +24,11 @@ function CustomerDetailRow({
   );
 }
 
-export function CustomerOverviewCard({ customerId }: { customerId: string }) {
+export function CustomerOverviewCard({ customerId, customerName }: { customerId: string; customerName?: string }) {
   const customer = getCustomerRecord(customerId);
   const rows = [
     { label: "Contact number", value: customer.overview.contactNumber },
-    { label: "Customer name", value: customer.name },
+    { label: "Customer name", value: customerName ?? customer.name },
     { label: "Assigned agent", value: customer.overview.assignedAgent },
     { label: "Pronoun", value: customer.overview.pronoun },
     { label: "Last contact time", value: customer.overview.lastContactTime },
@@ -58,7 +59,7 @@ function TextInput({ placeholder }: { placeholder?: string }) {
     <input
       type="text"
       placeholder={placeholder}
-      className="w-full rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] placeholder:text-transparent focus:border-[#006DAD] focus:outline-none focus:ring-1 focus:ring-[#006DAD]/30"
+      className="w-full rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] placeholder:text-transparent focus:border-[#6E56CF] focus:outline-none focus:ring-1 focus:ring-[#6E56CF]/30"
     />
   );
 }
@@ -66,7 +67,7 @@ function TextInput({ placeholder }: { placeholder?: string }) {
 function SelectInput() {
   return (
     <div className="relative w-full">
-      <select className="w-full appearance-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#006DAD] focus:outline-none focus:ring-1 focus:ring-[#006DAD]/30 pr-7">
+      <select className="w-full appearance-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#6E56CF] focus:outline-none focus:ring-1 focus:ring-[#6E56CF]/30 pr-7">
         <option value=""></option>
       </select>
       <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF]">
@@ -107,7 +108,9 @@ function SectionHeader({
 export default function CustomerInfoPanel({
   className,
   bordered = false,
+  customerId,
 }: CustomerInfoPanelProps) {
+  const customer = customerId ? getCustomerRecord(customerId) : null;
   const [isGeneralOpen, setIsGeneralOpen] = useState(true);
   const [isScopeOpen, setIsScopeOpen] = useState(true);
 
@@ -132,39 +135,36 @@ export default function CustomerInfoPanel({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <FieldLabel>Account</FieldLabel>
-                  <TextInput />
+                  <TextInput placeholder={customer?.customerId ?? ""} />
                 </div>
                 <div>
                   <FieldLabel>Contact</FieldLabel>
-                  <SelectInput />
+                  <TextInput placeholder={customer?.name ?? ""} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <FieldLabel>Phone 1</FieldLabel>
-                  <TextInput />
+                  <FieldLabel>Phone</FieldLabel>
+                  <TextInput placeholder={customer?.overview.contactNumber ?? ""} />
                 </div>
                 <div>
-                  <FieldLabel>Phone 2</FieldLabel>
-                  <TextInput />
+                  <FieldLabel>Last Contact</FieldLabel>
+                  <TextInput placeholder={customer?.overview.lastContactTime ?? ""} />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <FieldLabel>Email</FieldLabel>
-                  <TextInput />
+                  <FieldLabel>Pronoun</FieldLabel>
+                  <TextInput placeholder={customer?.overview.pronoun ?? ""} />
                 </div>
                 <div>
-                  <FieldLabel>SLA Due Date</FieldLabel>
-                  <TextInput />
+                  <FieldLabel>Assigned Agent</FieldLabel>
+                  <TextInput placeholder={customer?.overview.assignedAgent ?? ""} />
                 </div>
               </div>
               <div>
-                <FieldLabel>Description</FieldLabel>
-                <textarea
-                  rows={2}
-                  className="w-full resize-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#006DAD] focus:outline-none focus:ring-1 focus:ring-[#006DAD]/30"
-                />
+                <FieldLabel>Address</FieldLabel>
+                <TextInput placeholder={customer?.overview.address?.toString() ?? ""} />
               </div>
             </div>
           )}

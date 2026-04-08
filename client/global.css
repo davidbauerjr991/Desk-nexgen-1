@@ -15,8 +15,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 20%;
 
-    /* #006DAD => hsl(202, 100%, 34%) */
-    --primary: 202 100% 34%;
+    /* Primary: #6E56CF (primary-500) => hsl(252, 56%, 57%) */
+    --primary: 252 56% 57%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 10% 92%;
@@ -25,26 +25,48 @@
     --muted: 240 10% 94%;
     --muted-foreground: 240 5% 50%;
 
-    --accent: 202 100% 95%;
-    --accent-foreground: 202 100% 34%;
+    /* Accent: primary-25 #F2F0FA => hsl(252, 50%, 96%) */
+    --accent: 252 50% 96%;
+    --accent-foreground: 252 56% 57%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 84%;
     --input: 0 0% 85%;
-    --ring: 202 100% 34%;
+    --ring: 252 56% 57%;
 
     --radius: 0.5rem;
 
+    /* ── Status: Success ── */
+    --success-default:  134 61% 31%;   /* #208337 */
+    --success-border:   134 58% 36%;   /* #24943E */
+    --success-bg:       130 60% 95%;   /* #EFFBF1 */
+    --success-hover:    134 61% 27%;   /* #1C7330 */
+    --success-disabled: 134 61% 31%;   /* rgba(40,167,69,0.5) → as opacity-50 on default */
+
+    /* ── Status: Warning ── */
+    --warning-default:  44 100% 50%;   /* #FFB800 */
+    --warning-border:   44 100% 32%;   /* #A37A00 */
+    --warning-bg:       44 100% 93%;   /* #FFF6E0 */
+    --warning-hover:    44 100% 50%;   /* #FFBF00 */
+    --warning-disabled: 44 100% 50%;   /* rgba(255,184,0,0.5) → opacity-50 on default */
+
+    /* ── Status: Error ── */
+    --error-default:    1 79% 52%;     /* #E32926 */
+    --error-border:     1 76% 55%;     /* #E53935 */
+    --error-bg:         1 90% 95%;     /* #FDEAEA */
+    --error-hover:      1 79% 44%;     /* #C71D1A */
+    --error-disabled:   1 79% 52%;     /* rgba(227,41,38,0.5) → opacity-50 on default */
+
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 202 100% 34%;
+    --sidebar-primary: 252 56% 57%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 202 100% 95%;
-    --sidebar-accent-foreground: 202 100% 34%;
+    --sidebar-accent: 252 50% 96%;
+    --sidebar-accent-foreground: 252 56% 57%;
     --sidebar-border: 0 0% 88%;
-    --sidebar-ring: 202 100% 34%;
+    --sidebar-ring: 252 56% 57%;
   }
 
   .dark {
@@ -58,34 +80,56 @@
     --popover: 222 20% 13%;            /* #172030 — dropdown/popover */
     --popover-foreground: 215 25% 92%;
 
-    /* Brand blue — slightly brighter so it reads well on dark */
-    --primary: 202 80% 56%;
+    /* Primary dark: primary-300 #8F73E3 => hsl(255, 67%, 67%) — brighter for dark bg */
+    --primary: 255 67% 67%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 222 20% 17%;          /* #1D2535 */
     --secondary-foreground: 215 20% 86%;
 
     --muted: 222 20% 15%;              /* #192030 */
-    --muted-foreground: 215 15% 62%;   /* #8999AC — ~4.6:1 on bg, ADA AA ✓ */
+    --muted-foreground: 215 15% 62%;   /* ~4.6:1 on bg, ADA AA ✓ */
 
-    --accent: 202 55% 17%;             /* deep blue tint */
-    --accent-foreground: 202 80% 74%;
+    /* Accent: deep purple tint surface */
+    --accent: 252 35% 17%;
+    --accent-foreground: 255 67% 74%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 222 20% 21%;             /* #222C3E */
     --input: 222 20% 18%;              /* #1C2436 */
-    --ring: 202 80% 56%;
+    --ring: 255 67% 67%;
+
+    /* ── Status: Success (dark) ── */
+    --success-default:  134 55% 52%;   /* lighter green for dark bg */
+    --success-border:   134 45% 38%;
+    --success-bg:       134 40% 10%;
+    --success-hover:    134 55% 44%;
+    --success-disabled: 134 55% 52%;
+
+    /* ── Status: Warning (dark) ── */
+    --warning-default:  44 100% 55%;   /* brighter amber on dark */
+    --warning-border:   44 80%  35%;
+    --warning-bg:       44 60%  10%;
+    --warning-hover:    44 100% 46%;
+    --warning-disabled: 44 100% 55%;
+
+    /* ── Status: Error (dark) ── */
+    --error-default:    1 72% 58%;     /* brighter red on dark */
+    --error-border:     1 65% 46%;
+    --error-bg:         1 50%  10%;
+    --error-hover:      1 72% 48%;
+    --error-disabled:   1 72% 58%;
 
     --sidebar-background: 222 24% 6%;  /* #090D18 — sidebar slightly darker than content */
     --sidebar-foreground: 215 25% 88%;
-    --sidebar-primary: 202 80% 56%;
+    --sidebar-primary: 255 67% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 202 55% 17%;
-    --sidebar-accent-foreground: 202 80% 74%;
+    --sidebar-accent: 252 35% 17%;
+    --sidebar-accent-foreground: 255 67% 74%;
     --sidebar-border: 222 22% 17%;     /* subtle sidebar dividers */
-    --sidebar-ring: 202 80% 56%;
+    --sidebar-ring: 255 67% 67%;
   }
 
   * {
@@ -132,15 +176,28 @@
 .dark .bg-\[\#D1D5DB\]        { background-color: hsl(222 20% 24%) !important; }
 
 /* ── Coloured tint surfaces (keep hue, go deep-dark) ── */
-/* Blue highlight row — conversation latest message */
-.dark .bg-\[\#F4FAFF\]        { background-color: hsl(202 55% 10%) !important; }  /* deep navy blue */
+/* Status tint surfaces */
+.dark .bg-\[\#EFFBF1\]        { background-color: hsl(134 40% 10%) !important; }  /* success-bg */
+.dark .bg-\[\#FFF6E0\]        { background-color: hsl(44 60% 10%) !important; }   /* warning-bg */
+.dark .bg-\[\#FDEAEA\]        { background-color: hsl(1 50% 10%) !important; }    /* error-bg */
+.dark .border-\[\#24943E\]    { border-color: hsl(134 45% 30%) !important; }      /* success-border */
+.dark .border-\[\#A37A00\]    { border-color: hsl(44 80% 28%) !important; }       /* warning-border */
+.dark .border-\[\#E53935\]    { border-color: hsl(1 65% 38%) !important; }        /* error-border */
+.dark .text-\[\#208337\]      { color: hsl(134 55% 52%) !important; }             /* success-default */
+.dark .text-\[\#A37A00\]      { color: hsl(44 100% 55%) !important; }             /* warning-default */
+.dark .text-\[\#E32926\]      { color: hsl(1 72% 58%) !important; }              /* error-default */
+.dark .hover\:bg-\[\#EFFBF1\]:hover { background-color: hsl(134 40% 14%) !important; }
+.dark .hover\:bg-\[\#FFF6E0\]:hover { background-color: hsl(44 60% 14%) !important; }
+.dark .hover\:bg-\[\#FDEAEA\]:hover { background-color: hsl(1 50% 14%) !important; }
+
+/* Primary purple tint surfaces */
+.dark .bg-\[\#F2F0FA\]        { background-color: hsl(252 35% 11%) !important; }  /* primary-25 deep */
+.dark .bg-\[\#E0DBF5\]        { background-color: hsl(252 35% 13%) !important; }  /* primary-50 deep */
+.dark .bg-\[\#C8BFF0\]        { background-color: hsl(252 40% 17%) !important; }  /* primary-100 deep */
 /* Teal / green suggested response cards */
 .dark .bg-\[\#EAF8F4\]        { background-color: hsl(162 40% 9%) !important; }   /* deep teal */
 .dark .bg-\[\#D9F2EA\]        { background-color: hsl(162 38% 12%) !important; }
 .dark .bg-\[\#ECFDF3\]        { background-color: hsl(150 35% 9%) !important; }
-/* Blue accent surfaces */
-.dark .bg-\[\#EEF6FC\]        { background-color: hsl(202 55% 10%) !important; }  /* deep blue */
-.dark .bg-\[\#B8D7F0\]        { background-color: hsl(202 45% 17%) !important; }
 /* Amber / warning surfaces */
 .dark .bg-\[\#FFFAEB\]        { background-color: hsl(45 35% 10%) !important; }
 .dark .bg-\[\#FFF9E8\]        { background-color: hsl(45 35% 10%) !important; }
@@ -179,6 +236,10 @@
 .dark .text-\[\#1A7A3C\]       { color: hsl(140 45% 62%) !important; }
 .dark .text-\[\#7A5B00\]       { color: hsl(45 70% 62%) !important; }   /* amber */
 
+/* Primary purple text overrides */
+.dark .text-\[\#6E56CF\]       { color: hsl(255 67% 74%) !important; }  /* primary-500 → primary-300 on dark */
+.dark .text-\[\#5C46B8\]       { color: hsl(255 67% 74%) !important; }  /* primary-600 → primary-300 on dark */
+
 /* ── Border overrides ── */
 .dark .border-black\/10        { border-color: hsl(222 20% 22%) !important; }
 .dark .border-black\/\[0\.06\] { border-color: hsl(222 20% 19%) !important; }
@@ -191,6 +252,9 @@
 .dark .border-\[\#ABEFC6\]    { border-color: hsl(140 35% 26%) !important; }
 .dark .border-\[\#D0D5DD\]    { border-color: hsl(222 18% 30%) !important; }
 .dark .border-\[\#A1A1AA\]    { border-color: hsl(222 18% 34%) !important; }
+/* Primary purple border overrides */
+.dark .border-\[\#C8BFF0\]    { border-color: hsl(252 40% 30%) !important; }
+.dark .border-\[\#E0DBF5\]    { border-color: hsl(252 35% 22%) !important; }
 
 /* ── Inputs and textareas ── */
 .dark input:not([type="range"]),
@@ -242,10 +306,13 @@
 .dark .hover\:bg-\[\#F4F4F5\]:hover      { background-color: hsl(222 20% 20%) !important; }
 .dark .hover\:bg-\[\#1F2937\]:hover      { background-color: hsl(222 20% 22%) !important; }
 
-/* Coloured hover tints */
-.dark .hover\:bg-\[\#EEF6FC\]:hover      { background-color: hsl(202 55% 14%) !important; }
-.dark .hover\:bg-\[\#E6F3FA\]:hover      { background-color: hsl(202 55% 14%) !important; }
-.dark .hover\:bg-\[\#DAEEF9\]:hover      { background-color: hsl(202 55% 14%) !important; }
+/* Primary purple hover tints */
+.dark .hover\:bg-\[\#F2F0FA\]:hover      { background-color: hsl(252 35% 16%) !important; }
+.dark .hover\:bg-\[\#E0DBF5\]:hover      { background-color: hsl(252 35% 18%) !important; }
+/* Legacy blue hover tints → mapped to purple */
+.dark .hover\:bg-\[\#EEF6FC\]:hover      { background-color: hsl(252 35% 16%) !important; }
+.dark .hover\:bg-\[\#E6F3FA\]:hover      { background-color: hsl(252 35% 16%) !important; }
+.dark .hover\:bg-\[\#DAEEF9\]:hover      { background-color: hsl(252 35% 16%) !important; }
 .dark .hover\:bg-\[\#FEF0C7\]:hover      { background-color: hsl(45 35% 14%) !important; }
 .dark .hover\:bg-\[\#F6EDCF\]:hover      { background-color: hsl(45 35% 14%) !important; }
 .dark .hover\:bg-\[\#D1FADF\]:hover      { background-color: hsl(140 35% 13%) !important; }
@@ -255,7 +322,7 @@
 
 /* Focus backgrounds */
 .dark .focus\:bg-\[\#F8F8F9\]:focus      { background-color: hsl(222 20% 20%) !important; }
-.dark .focus\:bg-\[\#E6F3FA\]:focus      { background-color: hsl(202 55% 14%) !important; }
+.dark .focus\:bg-\[\#F2F0FA\]:focus      { background-color: hsl(252 35% 16%) !important; }
 .dark .focus\:bg-\[\#F8F8F9\]           { background-color: hsl(222 20% 14%) !important; }
 
 /* Hover text colours */

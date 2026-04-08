@@ -95,12 +95,12 @@ function DashboardCard({
   );
 }
 
-function OverviewCard({ customerId }: { customerId: string }) {
+function OverviewCard({ customerId, customerName }: { customerId: string; customerName?: string }) {
   return (
     <DashboardCard title="Overview" subtitle="Customer profile snapshot">
       <ScrollArea className="h-full w-full">
         <div className="p-3">
-          <CustomerOverviewCard customerId={customerId} />
+          <CustomerOverviewCard customerId={customerId} customerName={customerName} />
         </div>
       </ScrollArea>
     </DashboardCard>
@@ -122,9 +122,9 @@ function TimelineCard({ customerId }: { customerId: string }) {
               <span
                 className={cn(
                   "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm",
-                  item.tone === "critical" && "bg-[#F04438]",
-                  item.tone === "warning" && "bg-[#F79009]",
-                  item.tone === "info" && "bg-[#006DAD]",
+                  item.tone === "critical" && "bg-[#E32926]",
+                  item.tone === "warning" && "bg-[#FFB800]",
+                  item.tone === "info" && "bg-[#6E56CF]",
                   item.tone === "default" && "bg-[#CBD5E1]",
                 )}
               />
@@ -151,18 +151,18 @@ function TicketsCard() {
           {recentTickets.map((ticket) => (
             <div
               key={ticket.id}
-              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#B8D7F0] hover:bg-[#EEF6FC]"
+              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#006DAD]">{ticket.id}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6E56CF]">{ticket.id}</span>
                     <span
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",
-                        ticket.status === "Open" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
-                        ticket.status === "Pending" && "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708]",
-                        ticket.status === "Resolved" && "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
+                        ticket.status === "Open" && "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+                        ticket.status === "Pending" && "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00]",
+                        ticket.status === "Resolved" && "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
                         ticket.status === "Closed" && "border-black/10 bg-white text-[#6B7280]",
                       )}
                     >
@@ -182,16 +182,16 @@ function TicketsCard() {
   );
 }
 
-export default function OverviewDashboard({ customerId }: { customerId: string }) {
+export default function OverviewDashboard({ customerId, customerName }: { customerId: string; customerName?: string }) {
   const [layouts, setLayouts] = useState<ResponsiveLayouts>(defaultLayouts);
 
   const cards = useMemo(
     () => ({
-      overview: <OverviewCard customerId={customerId} />,
+      overview: <OverviewCard customerId={customerId} customerName={customerName} />,
       timeline: <TimelineCard customerId={customerId} />,
       tickets: <TicketsCard />,
     }),
-    [customerId],
+    [customerId, customerName],
   );
 
   const orderedItems = useMemo(() => ["overview", "timeline", "tickets"], []);

@@ -31,7 +31,7 @@ const seedConversations: Conversation[] = [
     name: "Sarah Kim",
     role: "Senior Agent",
     initials: "SK",
-    avatarColor: "#006DAD",
+    avatarColor: "#6E56CF",
     lastMessage: "Let me know when you're free to review Case 271",
     timestamp: "2:14 PM",
     unread: 2,
@@ -98,7 +98,7 @@ type Agent = {
 };
 
 const seedAgents: Agent[] = [
-  { id: "sarah-kim",     name: "Sarah Kim",     role: "Senior Agent",     initials: "SK", avatarColor: "#006DAD", status: "online"  },
+  { id: "sarah-kim",     name: "Sarah Kim",     role: "Senior Agent",     initials: "SK", avatarColor: "#6E56CF", status: "online"  },
   { id: "mike-torres",   name: "Mike Torres",   role: "Team Lead",         initials: "MT", avatarColor: "#7C3AED", status: "online"  },
   { id: "emma-larsen",   name: "Emma Larsen",   role: "Quality Coach",     initials: "EL", avatarColor: "#059669", status: "online"  },
   { id: "carlos-mendez", name: "Carlos Mendez", role: "IT Support",        initials: "CM", avatarColor: "#BE123C", status: "away"    },
@@ -113,8 +113,8 @@ const seedAgents: Agent[] = [
 ];
 
 const STATUS_DOT: Record<Agent["status"], string> = {
-  online:  "bg-[#12B76A]",
-  away:    "bg-[#F79009]",
+  online:  "bg-[#208337]",
+  away:    "bg-[#FFB800]",
   offline: "bg-[#D0D5DD]",
 };
 
@@ -213,7 +213,7 @@ function ConversationRow({ conv, onSelect }: { conv: Conversation; onSelect: (id
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="truncate text-xs text-[#667085]">{conv.lastMessage}</p>
           {conv.unread > 0 && (
-            <span className="flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-[#006DAD] px-1 text-[10px] font-semibold text-white">
+            <span className="flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full bg-[#6E56CF] px-1 text-[10px] font-semibold text-white">
               {conv.unread}
             </span>
           )}
@@ -273,12 +273,12 @@ function ConversationList({
             onClick={() => setActiveTab(tab)}
             className={cn(
               "relative px-4 py-3 text-[13px] font-medium transition-colors",
-              activeTab === tab ? "text-[#006DAD]" : "text-[#7A7A7A] hover:text-[#333333]",
+              activeTab === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
             )}
           >
             {tab}
             {activeTab === tab && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
             )}
           </button>
         ))}
@@ -372,7 +372,7 @@ function ThreadView({ conversation }: { conversation: Conversation }) {
                       className={cn(
                         "rounded-2xl px-3 py-2 text-sm leading-relaxed",
                         msg.isMe
-                          ? "rounded-br-sm bg-[#006DAD] text-white"
+                          ? "rounded-br-sm bg-[#6E56CF] text-white"
                           : "rounded-bl-sm bg-[#F2F4F7] text-[#111827]",
                       )}
                     >
@@ -404,7 +404,7 @@ function ThreadView({ conversation }: { conversation: Conversation }) {
             type="button"
             onClick={handleSend}
             disabled={!draft.trim()}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#006DAD] text-white transition-colors hover:bg-[#0A5E92] disabled:opacity-40"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#6E56CF] text-white transition-colors hover:bg-[#0A5E92] disabled:opacity-40"
             aria-label="Send message"
           >
             <Send className="h-3.5 w-3.5" />
@@ -430,6 +430,7 @@ export default function ChatPopoverContent({
   onClose,
   onInteractStart,
   onUnreadCountChange,
+  initialConversationId,
 }: {
   position: { x: number; y: number };
   size: { width: number; height: number };
@@ -439,8 +440,9 @@ export default function ChatPopoverContent({
   onClose: () => void;
   onInteractStart?: () => void;
   onUnreadCountChange?: (count: number) => void;
+  initialConversationId?: string;
 }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialConversationId ?? null);
   const [conversations, setConversations] = useState<Conversation[]>(seedConversations);
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
@@ -546,7 +548,7 @@ export default function ChatPopoverContent({
               type="button"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={() => setSelectedId(null)}
-              className="flex items-center gap-1 text-sm font-semibold text-[#006DAD] transition-colors hover:text-[#0A5E92]"
+              className="flex items-center gap-1 text-sm font-semibold text-[#6E56CF] transition-colors hover:text-[#0A5E92]"
               aria-label="Back to messages"
             >
               <svg className="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

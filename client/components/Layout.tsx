@@ -22,6 +22,7 @@ import {
   FilePlus2,
   FileText,
   GripHorizontal,
+  Inbox,
   Mail,
   Trash2,
   MessageCircle,
@@ -147,9 +148,21 @@ interface LayoutContextValue {
   closeChannelKeepTask: (assignmentId: string) => void;
   activatedChannelIds: Set<string>;
   liveLastCustomerCommentByAssignmentId: Record<string, string>;
+  setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
 }
 
-export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated";
+export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
+
+export type AgentChatNotification = {
+  id: string;
+  conversationId: string;   // matches ChatPopover conversation id
+  agentName: string;
+  agentRole: string;
+  agentInitials: string;
+  agentAvatarColor: string;
+  message: string;          // preview of the inbound message
+  time: string;
+};
 
 export type ResolvedAssignment = {
   id: string;
@@ -186,11 +199,11 @@ const statusOptions: Array<{
   dotClassName: string;
   textClassName: string;
 }> = [
-  { label: "Available", dotClassName: "bg-[#369D3F]", textClassName: "text-[#369D3F]" },
-  { label: "Busy", dotClassName: "bg-[#F04438]", textClassName: "text-[#B42318]" },
-  { label: "Away", dotClassName: "bg-[#F79009]", textClassName: "text-[#B54708]" },
+  { label: "Available", dotClassName: "bg-[#208337]", textClassName: "text-[#208337]" },
+  { label: "Busy", dotClassName: "bg-[#E32926]", textClassName: "text-[#C71D1A]" },
+  { label: "Away", dotClassName: "bg-[#FFB800]", textClassName: "text-[#A37A00]" },
   { label: "Offline", dotClassName: "bg-[#A3A3A3]", textClassName: "text-[#A3A3A3]" },
-  { label: "In a Call", dotClassName: "bg-[#F04438]", textClassName: "text-[#B42318]" },
+  { label: "In a Call", dotClassName: "bg-[#E32926]", textClassName: "text-[#C71D1A]" },
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
@@ -211,19 +224,23 @@ const conversationStatusOptions: Array<{ value: QueueAssignmentStatus; label: st
 
 function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
   if (status === "open") {
-    return "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F] hover:bg-[#D9F2EA]";
+    return "border-[#24943E] bg-[#EFFBF1] text-[#208337] hover:bg-[#EFFBF1]";
   }
 
   if (status === "pending") {
-    return "border-[#FEDF89] bg-[#FFFAEB] text-[#B54708] hover:bg-[#FEF0C7]";
+    return "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00] hover:bg-[#FFF6E0]";
   }
 
   if (status === "resolved") {
-    return "border-[#ABEFC6] bg-[#ECFDF3] text-[#027A48] hover:bg-[#D1FADF]";
+    return "border-[#24943E] bg-[#EFFBF1] text-[#208337] hover:bg-[#EFFBF1]";
   }
 
   if (status === "escalated") {
-    return "border-[#FECDCA] bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]";
+    return "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A] hover:bg-[#FDEAEA]";
+  }
+
+  if (status === "parked") {
+    return "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054] hover:bg-[#E4E7EC]";
   }
 
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
@@ -320,23 +337,25 @@ const priorityRankMap: Record<string, number> = {
 };
 
 const priorityClassNameMap: Record<string, string> = {
-  critical: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
-  high:     "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-  medium:   "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-  low:      "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
+  critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+  high:     "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+  medium:   "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+  low:      "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
 };
 
 const priorityBadgeColorMap: Record<string, string> = {
-  critical: "bg-[#F04438]",
-  high:     "bg-[#F79009]",
-  medium:   "bg-[#006DAD]",
-  low:      "bg-[#369D3F]",
+  critical: "bg-[#E32926]",
+  high:     "bg-[#FFB800]",
+  medium:   "bg-[#6E56CF]",
+  low:      "bg-[#208337]",
 };
 
 export type AcceptIssueData = {
   id: string;
   name: string;
   customerId: string;
+  /** ID matching a record in customer-database — drives Customer Profile and Customer Information panels */
+  customerRecordId?: string;
   channel: AssignmentChannel;
   priority: string;
   preview: string;
@@ -466,6 +485,14 @@ const lastCustomerMessageByKey: Record<string, string> = (() => {
   return map;
 })();
 
+function getIncomingCustomerIssue(customerRecordId: string, name: string, channel: string): string {
+  const firstName = name.split(" ")[0] ?? name;
+  const msg = lastCustomerMessageByKey[`${customerRecordId}::${channel}`];
+  if (!msg) return `${firstName}'s current issue has not been fully captured in the thread yet.`;
+  const snippet = msg.length > 160 ? `${msg.slice(0, 157)}…` : msg;
+  return `${firstName} is reporting: "${snippet}"`;
+}
+
 function getLaunchedAssignmentPreview(channel: AssignmentChannel) {
   if (channel === "voice") {
     return "Live call in progress.";
@@ -562,17 +589,17 @@ function createRecentInteractionAssignment(
 }
 
 const priorityDotClassNameMap: Record<string, string> = {
-  critical: "bg-[#F04438]",
-  high: "bg-[#F79009]",
-  medium: "bg-[#006DAD]",
-  low: "bg-[#369D3F]",
+  critical: "bg-[#E32926]",
+  high: "bg-[#FFB800]",
+  medium: "bg-[#6E56CF]",
+  low: "bg-[#208337]",
 };
 
 const priorityIconClassNameMap: Record<string, string> = {
-  critical: "text-[#F04438]",
-  high: "text-[#F79009]",
-  medium: "text-[#006DAD]",
-  low: "text-[#369D3F]",
+  critical: "text-[#E32926]",
+  high: "text-[#FFB800]",
+  medium: "text-[#6E56CF]",
+  low: "text-[#208337]",
 };
 
 function groupQueueItems(items: QueuePreviewItem[], selectedAssignmentId: string): GroupedQueueItem[] {
@@ -907,20 +934,22 @@ function formatRecentInteractionTimestamp(date: Date) {
 }
 
 function getDispositionStatusColor(disposition: (typeof CALL_DISPOSITION_OPTIONS)[number]) {
-  if (disposition === "Resolved") return "bg-[#369D3F]";
-  if (disposition === "Escalated") return "bg-[#F04438]";
-  return "bg-[#F79009]";
+  if (disposition === "Resolved") return "bg-[#208337]";
+  if (disposition === "Escalated") return "bg-[#E32926]";
+  return "bg-[#FFB800]";
 }
 
 function ConversationStatusDropdown({
   status,
   onStatusChange,
+  onOpenChange,
 }: {
   status: QueueAssignmentStatus;
   onStatusChange: (status: QueueAssignmentStatus) => void;
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
           type="button"
@@ -1188,14 +1217,14 @@ function getAgentNextSteps(conversation: SharedConversationData): string[] {
       "Update Salesforce Record with the billing discrepancy details",
       "Create ADP Ticket to document the charge issue",
       "Send Discount Coupon as goodwill if a billing error is confirmed",
-      "Set Assignment to Resolved after communicating the outcome",
+      "Set Case to Resolved after communicating the outcome",
     ];
   }
   if (isFrustrated || content.includes("frustrated") || content.includes("escalat")) {
     return [
       "Escalate to Supervisor given the elevated frustration signals",
       "Update Salesforce Record with the escalation notes",
-      "Set Assignment to Resolved once the supervisor has taken over",
+      "Set Case to Resolved once the supervisor has taken over",
     ];
   }
   if (content.includes("error") || content.includes("failed") || content.includes("retry")) {
@@ -1209,7 +1238,7 @@ function getAgentNextSteps(conversation: SharedConversationData): string[] {
     "Update Salesforce Record with the latest interaction details",
     "Create ADP Ticket to log the open issue for the support team",
     "Schedule Callback to follow up on the resolution",
-    "Set Assignment to Resolved once the customer confirms the issue is closed",
+    "Set Case to Resolved once the customer confirms the issue is closed",
   ];
 }
 
@@ -1277,7 +1306,7 @@ function CustomerContactDropdown({
           size="sm"
           aria-label="Add New Channel"
           onMouseDown={(event) => event.stopPropagation()}
-          className="h-8 rounded-full border-[#006DAD] px-3 text-[#006DAD] hover:bg-[#006DAD]/5 hover:text-[#006DAD]"
+          className="h-8 rounded-full border-[#6E56CF] px-3 text-[#6E56CF] hover:bg-[#6E56CF]/5 hover:text-[#6E56CF]"
         >
           <Plus className="mr-1.5 h-3.5 w-3.5 stroke-[2]" />
           New Channel
@@ -1346,14 +1375,14 @@ function ConversationOverviewButton({
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
-        className="z-[95] w-[320px] rounded-2xl border border-[#E7D7A6] bg-[#FFF9E8] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
+        className="z-[95] w-[320px] rounded-2xl border border-[#A37A00] bg-[#FFF6E0] p-0 shadow-[0_16px_40px_rgba(122,91,0,0.16)]"
       >
-        <div className="flex items-center justify-between border-b border-[#E7D7A6] px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7A5B00]">Context overview</p>
+        <div className="flex items-center justify-between border-b border-[#A37A00] px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#A37A00]">Context overview</p>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#7A5B00] transition-colors hover:bg-[#F6EDCF]"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#A37A00] transition-colors hover:bg-[#FFF6E0]"
             aria-label="Close context overview"
           >
             <X className="h-4 w-4" />
@@ -1553,7 +1582,7 @@ function CallControlsPopunder({
         {mode === "setup" ? (
           <>
             {isJoiningCall ? (
-              <div className="rounded-xl border border-[#B8D7F0] bg-[#EEF6FC] px-4 py-3.5">
+              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] px-4 py-3.5">
                 <p className="text-[13px] leading-relaxed text-[#1D2939]">
                   You are about to join a call on hold with{" "}
                   <span className="font-semibold">{joiningCallCustomerName}</span>.
@@ -1584,7 +1613,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.mic}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#006DAD] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
+                <div className="h-full rounded-full bg-[#6E56CF] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-1 text-sm text-[#333333]">
@@ -1595,7 +1624,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.speaker}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#006DAD] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
+                <div className="h-full rounded-full bg-[#6E56CF] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
               </div>
 
               <Button
@@ -1612,14 +1641,14 @@ function CallControlsPopunder({
               type="button"
               onClick={onLaunchCall}
               disabled={!isJoiningCall && !accountNumber.trim()}
-              className="w-full bg-[#369D3F] text-white hover:bg-[#2E8A36]"
+              className="w-full bg-[#208337] text-white hover:bg-[#1C7330]"
             >
               Launch Call
             </Button>
           </>
         ) : mode === "connecting" ? (
           <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E6F3FA] text-[#006DAD] animate-pulse">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E0DBF5] text-[#6E56CF] animate-pulse">
               <Phone className="h-5 w-5" />
             </div>
             <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
@@ -1650,7 +1679,7 @@ function CallControlsPopunder({
               variant="outline"
               size="sm"
               onClick={onEndCall}
-              className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+              className="h-auto flex-1 flex-col gap-1 border-[#E32926]/20 px-2 py-2 text-[11px] text-[#E32926] hover:bg-[#FDEAEA] hover:text-[#E32926]"
             >
               <PhoneOff className="h-4 w-4" />
               End Call
@@ -1904,22 +1933,22 @@ function TaskSummaryView({
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
       <div className="grid grid-cols-2 gap-4">
         {/* AI Actions Taken */}
-        <div className="rounded-lg border border-[#B8D7F0] bg-[#EEF6FC] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#006DAD] dark:text-[#3D7A9C]">
+        <div className="rounded-lg border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#6E56CF] dark:text-[#5C46B8]">
             AI Actions Taken
           </p>
           <ul className="space-y-2">
             {overview.actions.map((action, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD] dark:bg-[#244D68]" />
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6E56CF] dark:bg-[#244D68]" />
                 {action}
               </li>
             ))}
           </ul>
         </div>
         {/* Why You're Needed */}
-        <div className="rounded-lg border border-[#F79009]/40 bg-[#FFFAEB] p-4 dark:border-[#7A4500]/40 dark:bg-[#1A1000]">
-          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#B54708] dark:text-[#C87030]">
+        <div className="rounded-lg border border-[#FFB800]/40 bg-[#FFF6E0] p-4 dark:border-[#A37A00]/40 dark:bg-[#1A1000]">
+          <p className="mb-3 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#A37A00] dark:text-[#A37A00]">
             <TriangleAlert className="h-3 w-3" />
             Why You're Needed
           </p>
@@ -1955,9 +1984,11 @@ function DockedConversationPanel({
   equalSplitWidth,
   hideTranscript = false,
   showTaskSummary = false,
-  initialSummaryOpen = false,
+  initialSummaryOpen = true,
+  onSummaryClose,
   isPendingAcceptance = false,
   onAcceptAssignment,
+  casePreview,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -1984,8 +2015,10 @@ function DockedConversationPanel({
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
   initialSummaryOpen?: boolean;
+  onSummaryClose?: () => void;
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
+  casePreview?: string;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -1994,6 +2027,11 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
+  const [hasAgentTasks, setHasAgentTasks] = useState(false);
+  const customerRecord = getCustomerRecord(customerRecordId);
+  const [isWidePanel, setIsWidePanel] = useState(false);
   const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
   const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2014,12 +2052,15 @@ function DockedConversationPanel({
   }, []);
   const shouldStackHeaderActions = false;
 
+
+
   useEffect(() => {
     const el = panelContainerRef.current;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? el.offsetWidth;
       setIsNarrowPanel(width < 640);
+      setIsWidePanel(width >= 1280);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -2116,150 +2157,329 @@ function DockedConversationPanel({
                     isCallDisabled={isCallDisabled}
                   />
                 </div>
-                {/* Show Summary toggle — far right of header */}
+                {/* Show Summary toggle — always visible, works in both wide and narrow modes */}
                 <button
                   type="button"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => setIsHandoffSummaryOpen((v) => !v)}
-                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#006DAD] hover:opacity-75 transition-opacity shrink-0"
+                  onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
+                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#6E56CF] hover:opacity-75 transition-opacity shrink-0"
                 >
                   {isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
-                  <ChevronDown
-                    className={cn(
-                      "h-3 w-3 text-[#006DAD] transition-transform duration-200",
-                      isHandoffSummaryOpen && "rotate-180",
-                    )}
-                  />
+                  <PanelRight className="h-3.5 w-3.5 text-[#6E56CF]" />
                 </button>
               </div>
 
-              {/* Absolutely positioned expanded content — overlays the panel content below */}
-              <div
-                className={cn(
-                  "absolute left-0 right-0 top-full z-50 grid border-b border-border bg-card shadow-[0_8px_16px_rgba(16,24,40,0.10)] dark:border-[#0D1E2D] dark:bg-[#0C1A26] dark:shadow-[0_8px_24px_rgba(0,0,0,0.40)] transition-[grid-template-rows,opacity] duration-300 ease-out",
-                  isHandoffSummaryOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
-                )}
-              >
-              <div className="overflow-hidden">
-                <div className="px-5 pb-4 pt-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Assignment Overview */}
-                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                        Assignment Overview
-                      </p>
-                      {(() => {
-                        const actions = getOverviewActions(conversation);
-                        return actions ? (
-                          <ul className="space-y-1.5">
-                            {actions.map((action, i) => (
-                              <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
-                                <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
-                                {action}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-[11.5px] leading-5 text-[#344054] dark:text-[#4E7D96]">
-                            {getInteractionOverview(conversation)}
-                          </p>
-                        );
-                      })()}
-                    </div>
-                    {/* Suggested Next Steps */}
-                    <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                        Suggested Next Steps
-                      </p>
-                      {(() => {
-                        const steps = getAgentNextSteps(conversation);
-                        return (
-                          <>
-                            <ol className="space-y-1.5 mb-3">
-                              {steps.map((step, i) => {
-                                const isDone = i < performActionsCompletedCount;
-                                const isActive = performActionsState === "running" && i === performActionsCompletedCount;
-                                return (
-                                  <li key={i} className="flex items-start gap-2">
-                                    <span className={cn(
-                                      "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
-                                      isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]",
-                                    )}>
-                                      {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
-                                    </span>
-                                    <span className={cn(
-                                      "text-[11.5px] leading-5 transition-colors",
-                                      isDone ? "text-[#6B7280] line-through dark:text-[#2A5A70]" : isActive ? "text-[#006DAD] font-medium dark:text-[#4BADD6]" : "text-[#344054] dark:text-[#4E7D96]",
-                                    )}>
-                                      {step}
-                                    </span>
-                                  </li>
-                                );
-                              })}
-                            </ol>
-                            {performActionsState === "idle" && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  // Close summary and trigger ConversationPanel to cycle through all suggested actions
-                                  setIsHandoffSummaryOpen(false);
-                                  setPerformAllActionsKey((k) => k + 1);
-                                }}
-                                className="w-full rounded-md bg-[#006DAD] py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] dark:hover:bg-[#0080CC] transition-colors"
-                              >
-                                Perform All Actions
-                              </button>
-                            )}
-                            {performActionsState === "running" && (
-                              <div className="flex items-center gap-2 py-1">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#006DAD] dark:text-[#4BADD6]" />
-                                <span className="text-[11px] text-[#006DAD] dark:text-[#4BADD6] font-medium">Working on it…</span>
-                              </div>
-                            )}
-                            {performActionsState === "done" && (
-                              <div className="flex items-center gap-1.5 py-1">
-                                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0B9A8A]">
-                                  <Check className="h-2.5 w-2.5 text-white stroke-[3]" />
-                                </span>
-                                <span className="text-[11px] text-[#0B9A8A] dark:text-[#0EC9B4] font-medium">All actions complete</span>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              </div>
             </div>
 
-            {showTaskSummary ? (
-              <TaskSummaryView
-                assignment={{
-                  customerRecordId,
-                  name: conversation.customerName,
-                  channel: activeChannel,
-                } as QueuePreviewItem}
-              />
-            ) : (
-              <ConversationPanel
-                conversation={conversation}
-                openChannels={openChannels}
-                activeChannel={activeChannel}
-                customerId={customerRecordId}
-                draftKey={`docked-${conversation.label}-${conversation.customerName}`}
-                onConversationChange={onConversationChange}
-                onSelectChannel={onSelectChannel}
-                onOpenDeskPanel={onOpenDeskPanel}
-                onResolveAssignment={onResolveAssignment}
-                showAiPanel={isAiPanelVisible}
-                hideTranscript={hideTranscript}
-                performAllActionsKey={performAllActionsKey}
-                isPendingAcceptance={isPendingAcceptance}
-                onAcceptAssignment={onAcceptAssignment}
-              />
-            )}
+            {/* Content area — flex-row when wide (>=1280px) to show persistent sidebar */}
+            <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row" : "flex-col")}>
+
+              {/* Main conversation / task summary */}
+              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                {showTaskSummary ? (
+                  <TaskSummaryView
+                    assignment={{
+                      customerRecordId,
+                      name: conversation.customerName,
+                      channel: activeChannel,
+                    } as QueuePreviewItem}
+                  />
+                ) : (
+                  <ConversationPanel
+                    conversation={conversation}
+                    openChannels={openChannels}
+                    activeChannel={activeChannel}
+                    customerId={customerRecordId}
+                    draftKey={`docked-${conversation.label}-${conversation.customerName}`}
+                    onConversationChange={onConversationChange}
+                    onSelectChannel={onSelectChannel}
+                    onOpenDeskPanel={onOpenDeskPanel}
+                    onResolveAssignment={onResolveAssignment}
+                    showAiPanel={isAiPanelVisible}
+                    hideTranscript={hideTranscript}
+                    performAllActionsKey={performAllActionsKey}
+                    isPendingAcceptance={isPendingAcceptance}
+                    onAcceptAssignment={onAcceptAssignment}
+                    isWidePanel={isWidePanel}
+                    onAgentTasksChange={setHasAgentTasks}
+                  />
+                )}
+              </div>
+
+              {/* Narrow/medium-mode summary drawer — slides in from the right as an overlay */}
+              {!isWidePanel && (
+                <>
+                  {/* Drawer panel */}
+                  <div
+                    className={cn(
+                      "absolute inset-y-0 right-0 z-50 w-[350px] flex flex-col overflow-y-auto bg-card dark:bg-[#0C1A26] border-l border-border shadow-[-8px_0_24px_rgba(16,24,40,0.12)] transition-transform duration-300 ease-out",
+                      isHandoffSummaryOpen ? "translate-x-0" : "translate-x-full",
+                    )}
+                  >
+                    <div className="p-4 space-y-3">
+                        {/* Customer Profile — collapsible */}
+                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomerProfileOpen((v) => !v)}
+                          className="flex w-full items-center justify-between px-4 py-3 text-left"
+                        >
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                            Customer Profile
+                          </p>
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+                        </button>
+                        <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                          <div className="overflow-hidden">
+                            <div className="px-4 pb-4 space-y-3">
+                              {/* Identity row */}
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8] dark:bg-[#2D1F5E] dark:text-[#AB99EA]">
+                                    {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{conversation.customerName}</p>
+                                    <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                                  <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
+                                </div>
+                              </div>
+                              {/* Stats row */}
+                              <div className="grid grid-cols-2 gap-2">
+                                {/* Fraud Risk Score */}
+                                <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                                  <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                                    {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                                  </p>
+                                  <div className="h-1.5 rounded-full bg-[#E4E7EC] dark:bg-[#1B3A52] overflow-hidden">
+                                    <div
+                                      className={cn("h-full rounded-full transition-all", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                      style={{ width: `${customerRecord.profile.fraudRiskScore}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                {/* Prior Disputes */}
+                                <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                                  <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
+                                  <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                                    Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                                  </p>
+                                </div>
+                              </div>
+                              {/* Tags */}
+                              {customerRecord.profile.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {customerRecord.profile.tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className={cn(
+                                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                                        tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
+                                        tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
+                                        "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
+                                      )}
+                                    >
+                                      {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    {/* Section 1: Customer Issue */}
+                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                          Customer Issue
+                        </p>
+                        <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                          {casePreview ?? getCustomerIssueSummary(conversation)}
+                        </p>
+                      </div>
+                      {/* Section 2: Collapsible Attempted Resolution */}
+                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                          className="flex w-full items-center justify-between px-4 py-3 text-left"
+                        >
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                            Attempted Resolution
+                          </p>
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                        </button>
+                        <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                          <div className="overflow-hidden">
+                            <div className="px-4 pb-4">
+                              {(() => {
+                                const actions = getOverviewActions(conversation);
+                                return actions ? (
+                                  <ul className="space-y-2">
+                                    {actions.map((action, i) => (
+                                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                        {action}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                                    {getInteractionOverview(conversation)}
+                                  </p>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Wide-mode sidebar — persistent Case Overview + Suggested Next Steps */}
+              {isWidePanel && isHandoffSummaryOpen && (
+                <div
+                  className="w-[350px] flex-shrink-0 border-l border-border flex flex-col bg-card dark:bg-[#0C1A26]"
+                  style={{ transition: "width 300ms ease" }}
+                >
+                  <div className="overflow-y-auto flex-1 p-4 space-y-3">
+
+                    {/* Customer Profile — collapsible */}
+                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomerProfileOpen((v) => !v)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left"
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                          Customer Profile
+                        </p>
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+                      </button>
+                      <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                        <div className="overflow-hidden">
+                          <div className="px-4 pb-4 space-y-3">
+                            {/* Identity row */}
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8] dark:bg-[#2D1F5E] dark:text-[#AB99EA]">
+                                  {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{conversation.customerName}</p>
+                                  <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                                <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
+                              </div>
+                            </div>
+                            {/* Stats row */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {/* Fraud Risk Score */}
+                              <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                                <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                                  {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                                </p>
+                                <div className="h-1.5 rounded-full bg-[#E4E7EC] dark:bg-[#1B3A52] overflow-hidden">
+                                  <div
+                                    className={cn("h-full rounded-full transition-all", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                    style={{ width: `${customerRecord.profile.fraudRiskScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                              {/* Prior Disputes */}
+                              <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                                <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
+                                <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                                  Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Tags */}
+                            {customerRecord.profile.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {customerRecord.profile.tags.map((tag) => (
+                                  <span
+                                    key={tag}
+                                    className={cn(
+                                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                                      tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
+                                      tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
+                                      "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
+                                    )}
+                                  >
+                                    {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Section 1: Customer Issue */}
+                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                        Customer Issue
+                      </p>
+                      <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                        {casePreview ?? getCustomerIssueSummary(conversation)}
+                      </p>
+                    </div>
+
+                    {/* Section 2: Collapsible Attempted Resolution */}
+                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left"
+                      >
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                          Attempted Resolution
+                        </p>
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                      </button>
+                      <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                        <div className="overflow-hidden">
+                          <div className="px-4 pb-4">
+                            {(() => {
+                              const actions = getOverviewActions(conversation);
+                              return actions ? (
+                                <ul className="space-y-2">
+                                  {actions.map((action, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                      {action}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                                  {getInteractionOverview(conversation)}
+                                </p>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         )}
       </div>
@@ -2408,6 +2628,7 @@ function CombinedInteractionPanel({
               initialTab={panelSelection?.initialTab ?? "Overview"}
               initialTicketId={panelSelection?.ticketId}
               customerId={customerRecordId}
+              customerName={customerName}
             />
           </TabsContent>
           {showCanvasTab && (
@@ -2640,6 +2861,7 @@ function DockedCustomerInfoPanel({
               initialTab={panelSelection?.initialTab ?? "Overview"}
               initialTicketId={panelSelection?.ticketId}
               customerId={customerRecordId}
+              customerName={customerName}
             />
           </>
         ) : null}
@@ -3069,7 +3291,7 @@ function DeskCanvasPopunder({
               type="button"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={() => { setInlineCustomerId(null); setInlineAddOpen(false); }}
-              className="flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[#006DAD] transition-colors hover:text-[#0A5E92]"
+              className="flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[#6E56CF] transition-colors hover:text-[#0A5E92]"
               aria-label="Back to desk"
             >
               <ChevronLeft className="h-4 w-4 shrink-0" />
@@ -3541,7 +3763,7 @@ function HeaderIconButton({
         aria-pressed={isActive}
         className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
           isActive
-            ? "text-[#006DAD] hover:bg-[#E6F3FA]"
+            ? "text-[#6E56CF] hover:bg-[#E0DBF5]"
             : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
         }`}
       >
@@ -3595,7 +3817,7 @@ function ActiveVoiceAssignmentControls({
           onOpenDisposition(event.currentTarget.getBoundingClientRect());
         }}
         onMouseDown={(event) => event.stopPropagation()}
-        className="h-auto flex-1 flex-col gap-1 border-[#F04438]/20 px-2 py-2 text-[11px] text-[#F04438] hover:bg-[#FFF5F5] hover:text-[#F04438]"
+        className="h-auto flex-1 flex-col gap-1 border-[#E32926]/20 px-2 py-2 text-[11px] text-[#E32926] hover:bg-[#FDEAEA] hover:text-[#E32926]"
       >
         <PhoneOff className="h-4 w-4" />
         End Call
@@ -3629,10 +3851,10 @@ function QueueAssignmentCard({
 
   const priorityKey = (item.priority ?? "medium").toLowerCase();
   const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
-    critical: { idle: "#FECACA", active: "#F04438", stripe: "#F04438", shadow: "rgba(240,68,56,0.14)" },
-    high:     { idle: "#FECDA7", active: "#F79009", stripe: "#F79009", shadow: "rgba(247,144,9,0.14)" },
-    medium:   { idle: "#B8D7F0", active: "#006DAD", stripe: "#006DAD", shadow: "rgba(0,109,173,0.14)" },
-    low:      { idle: "#B7E6DD", active: "#369D3F", stripe: "#369D3F", shadow: "rgba(54,157,63,0.14)" },
+    critical: { idle: "#E53935", active: "#E32926", stripe: "#E32926", shadow: "rgba(240,68,56,0.14)" },
+    high:     { idle: "#FECDA7", active: "#FFB800", stripe: "#FFB800", shadow: "rgba(247,144,9,0.14)" },
+    medium:   { idle: "#C8BFF0", active: "#6E56CF", stripe: "#6E56CF", shadow: "rgba(108,0,255,0.14)" },
+    low:      { idle: "#24943E", active: "#208337", stripe: "#208337", shadow: "rgba(54,157,63,0.14)" },
   };
   const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
 
@@ -3648,7 +3870,7 @@ function QueueAssignmentCard({
         }
       }}
       className={cn(
-        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
+        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30",
         !item.isActive && "hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
         className,
       )}
@@ -3697,7 +3919,7 @@ function QueueAssignmentCard({
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
           <span className="inline-flex items-center gap-1.5">
-            <ItemIcon className="h-4 w-4 text-[#369D3F]" />
+            <ItemIcon className="h-4 w-4 text-[#208337]" />
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5" />
@@ -3724,18 +3946,18 @@ const inlineAgents = [
 ];
 
 const agentDot: Record<string, string> = {
-  Available:  "bg-[#12B76A]",
-  "In a Call": "bg-[#F79009]",
+  Available:  "bg-[#208337]",
+  "In a Call": "bg-[#FFB800]",
   Away:       "bg-[#D0D5DD]",
 };
 
 const REJECT_REASONS = [
   "Not enough time",
-  "Too many active assignments",
+  "Too many active cases",
   "Outside my skill set",
   "End of shift",
   "Requires supervisor review",
-  "Duplicate assignment",
+  "Duplicate case",
 ];
 
 // ─── Add New Assignment two-step flow popover ─────────────────────────────────
@@ -3842,7 +4064,7 @@ function AddNewAssignmentFlowPopover({
           </button>
         )}
         <p className="flex-1 text-[12px] font-semibold text-[#333333]">
-          {step === "channel" ? "New Assignment" : `${channelLabel} — Select Customer`}
+          {step === "channel" ? "New Case" : `${channelLabel} — Select Customer`}
         </p>
         <button
           type="button"
@@ -3904,7 +4126,7 @@ function AddNewAssignmentFlowPopover({
                   onClick={() => handleCustomerSelect(customer.id)}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EEF6FC] text-[11px] font-bold text-[#006DAD]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] text-[11px] font-bold text-[#6E56CF]">
                     {customer.initials}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -4014,12 +4236,12 @@ function AgentSelectPopover({
               onClick={() => handleSelect(reason)}
               className={cn(
                 "w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors",
-                isSelected ? "bg-[#FEF3F2] text-[#D92D20]" : "hover:bg-[#F9FAFB] text-[#344054]",
+                isSelected ? "bg-[#FDEAEA] text-[#E32926]" : "hover:bg-[#F9FAFB] text-[#344054]",
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
               <span className="text-[12px] font-medium">{reason}</span>
-              {isSelected && <span className="text-[10px] font-semibold text-[#D92D20]">Selected</span>}
+              {isSelected && <span className="text-[10px] font-semibold text-[#E32926]">Selected</span>}
             </button>
           );
         })}
@@ -4037,6 +4259,7 @@ function GroupedQueueCard({
   onCloseChannelKeepTask,
   taskSummaryIds,
   onSelectAssignment,
+  onStatusDropdownOpenChange,
   className,
   style,
 }: {
@@ -4047,6 +4270,7 @@ function GroupedQueueCard({
   onCloseChannelKeepTask?: (assignmentId: string) => void;
   taskSummaryIds?: Set<string>;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  onStatusDropdownOpenChange?: (open: boolean) => void;
   className?: string;
   style?: React.CSSProperties;
 }) {
@@ -4073,10 +4297,10 @@ function GroupedQueueCard({
 
   const priorityKey = (group.priority ?? "medium").toLowerCase();
   const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
-    critical: { idle: "#FECACA", active: "#F04438", stripe: "#F04438", shadow: "rgba(240,68,56,0.14)" },
-    high:     { idle: "#FECDA7", active: "#F79009", stripe: "#F79009", shadow: "rgba(247,144,9,0.14)" },
-    medium:   { idle: "#B8D7F0", active: "#006DAD", stripe: "#006DAD", shadow: "rgba(0,109,173,0.14)" },
-    low:      { idle: "#B7E6DD", active: "#369D3F", stripe: "#369D3F", shadow: "rgba(54,157,63,0.14)" },
+    critical: { idle: "#E53935", active: "#E32926", stripe: "#E32926", shadow: "rgba(240,68,56,0.14)" },
+    high:     { idle: "#FECDA7", active: "#FFB800", stripe: "#FFB800", shadow: "rgba(247,144,9,0.14)" },
+    medium:   { idle: "#C8BFF0", active: "#6E56CF", stripe: "#6E56CF", shadow: "rgba(108,0,255,0.14)" },
+    low:      { idle: "#24943E", active: "#208337", stripe: "#208337", shadow: "rgba(54,157,63,0.14)" },
   };
   const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
 
@@ -4116,6 +4340,7 @@ function GroupedQueueCard({
             <ConversationStatusDropdown
               status={primaryStatus}
               onStatusChange={handleGroupStatusChange}
+              onOpenChange={onStatusDropdownOpenChange}
             />
             {canRemoveTask && (
               <button
@@ -4184,15 +4409,15 @@ function GroupedQueueCard({
                 }
               }}
               className={cn(
-                "flex w-full cursor-pointer flex-col gap-1.5 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#006DAD]/30",
-                isChannelActive ? "bg-[#EEF6FC]" : "hover:bg-[#F8F8F9]",
+                "flex w-full cursor-pointer flex-col gap-1.5 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30",
+                isChannelActive ? "bg-[#F2F0FA]" : "hover:bg-[#F8F8F9]",
               )}
             >
               {/* Channel badge + timestamp + trash */}
               <div className="flex items-center gap-2">
                 {/* Channel badge */}
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5B5B5B]">
-                  <ItemIcon className="h-3 w-3 text-[#369D3F]" />
+                  <ItemIcon className="h-3 w-3 text-[#208337]" />
                   {channelLabel}
                 </span>
 
@@ -4212,7 +4437,7 @@ function GroupedQueueCard({
                       onRemove(item.id);
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="ml-auto flex h-5 w-5 items-center justify-center rounded text-[#C0C5CE] transition-colors hover:bg-[#FEF2F2] hover:text-[#B42318]"
+                    className="ml-auto flex h-5 w-5 items-center justify-center rounded text-[#C0C5CE] transition-colors hover:bg-[#FDEAEA] hover:text-[#C71D1A]"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -4258,14 +4483,14 @@ function GroupedQueueCard({
                   <button
                     type="button"
                     onClick={() => acceptPendingAssignment(item.id)}
-                    className="flex-1 rounded-md bg-[#006DAD] py-1.5 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                    className="flex-1 rounded-md bg-[#6E56CF] py-1.5 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                   >
                     Accept
                   </button>
                   <button
                     type="button"
                     onClick={() => reviewPendingAssignment(item.id)}
-                    className="flex-1 rounded-md border border-[#006DAD] py-1.5 text-[11px] font-semibold text-[#006DAD] hover:bg-[#006DAD]/10 transition-colors"
+                    className="flex-1 rounded-md border border-[#6E56CF] py-1.5 text-[11px] font-semibold text-[#6E56CF] hover:bg-[#6E56CF]/10 transition-colors"
                   >
                     Review
                   </button>
@@ -4318,6 +4543,515 @@ function QueueOverlayList({
   );
 }
 
+// ── Shared roster data for the Transfer popover ───────────────────────────────
+type NotifAgentAvailability = "Available" | "In a Call" | "Away" | "Offline";
+type NotifAgent = { id: string; name: string; initials: string; availability: NotifAgentAvailability; skills: string[]; activeCount: number };
+
+const notifAgentRoster: NotifAgent[] = [
+  { id: "agent-1", name: "Jeff Comstock",   initials: "JC", availability: "Available",  skills: ["Billing", "Account Management", "Escalations"],        activeCount: 2 },
+  { id: "agent-2", name: "Priya Mehra",     initials: "PM", availability: "Available",  skills: ["Technical Support", "API Integration", "Security"],    activeCount: 1 },
+  { id: "agent-3", name: "Sam Torres",      initials: "ST", availability: "Available",  skills: ["Compliance", "Data Exports", "Contract Renewals"],     activeCount: 3 },
+  { id: "agent-4", name: "Kenji Watanabe",  initials: "KW", availability: "In a Call", skills: ["Payments", "Fraud", "Wire Transfers"],                  activeCount: 4 },
+  { id: "agent-5", name: "Amara Osei",      initials: "AO", availability: "Available",  skills: ["Enterprise Accounts", "Licensing", "Escalations"],     activeCount: 2 },
+  { id: "agent-6", name: "Lena Fischer",    initials: "LF", availability: "Away",       skills: ["Billing", "Refunds", "Account Management"],            activeCount: 1 },
+  { id: "agent-7", name: "Marcus Webb",     initials: "MW", availability: "Available",  skills: ["Security", "Identity Management", "SSO"],              activeCount: 2 },
+  { id: "agent-8", name: "Chloe Nguyen",    initials: "CN", availability: "Offline",    skills: ["Technical Support", "Logistics", "Customs"],           activeCount: 0 },
+];
+const notifSupervisorRoster: NotifAgent[] = [
+  { id: "sup-1", name: "Rachel Kim",    initials: "RK", availability: "Available",  skills: ["Escalations", "Enterprise Accounts", "Compliance"],  activeCount: 3 },
+  { id: "sup-2", name: "David Okafor", initials: "DO", availability: "Available",  skills: ["Fraud", "Risk Management", "Wire Transfers"],         activeCount: 2 },
+  { id: "sup-3", name: "Sandra Howell",initials: "SH", availability: "In a Call", skills: ["Billing", "Licensing", "Contract Renewals"],           activeCount: 4 },
+  { id: "sup-4", name: "Tom Ellison",  initials: "TE", availability: "Away",       skills: ["Security", "Identity Management", "Escalations"],     activeCount: 1 },
+];
+const notifAvailabilityOrder: Record<NotifAgentAvailability, number> = { Available: 0, "In a Call": 1, Away: 2, Offline: 3 };
+const notifAvailabilityDot: Record<NotifAgentAvailability, string> = {
+  Available: "bg-[#208337]", "In a Call": "bg-[#FFB800]", Away: "bg-[#D0D5DD]", Offline: "bg-[#98A2B3]",
+};
+
+// ── Transfer popover for incoming notification ────────────────────────────────
+function IncomingTransferPopover({
+  triggerRef,
+  onClose,
+  onTransferred,
+}: {
+  triggerRef: React.RefObject<HTMLButtonElement>;
+  onClose: () => void;
+  onTransferred: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"Agents" | "Supervisors">("Agents");
+  const [assigned, setAssigned] = useState<string | null>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPos({ top: rect.top - 8, right: window.innerWidth - rect.right });
+    }
+  }, [triggerRef]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const roster = tab === "Agents" ? notifAgentRoster : notifSupervisorRoster;
+  const sorted = [...roster].sort((a, b) => notifAvailabilityOrder[a.availability] - notifAvailabilityOrder[b.availability]);
+
+  const handleAssign = (agent: NotifAgent) => {
+    setAssigned(agent.id);
+    setTimeout(() => { onTransferred(); onClose(); }, 800);
+  };
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[10000] w-[280px] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={{ bottom: `calc(100vh - ${pos.top}px)`, right: pos.right }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <p className="text-[12px] font-semibold text-[#333333]">Transfer to</p>
+        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex border-b border-border">
+        {(["Agents", "Supervisors"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn("relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
+              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
+          >
+            {t}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+          </button>
+        ))}
+      </div>
+      <div className="max-h-[220px] overflow-y-auto divide-y divide-border">
+        {sorted.map((agent) => {
+          const isAssigned = assigned === agent.id;
+          const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
+          return (
+            <button
+              key={agent.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => handleAssign(agent)}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isDisabled && "opacity-40 cursor-not-allowed")}
+            >
+              <div className="relative shrink-0">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">
+                  {agent.initials}
+                </div>
+                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", notifAvailabilityDot[agent.availability])} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                </div>
+                <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
+              </div>
+              <span className="shrink-0 text-[10px] text-[#667085]">{agent.activeCount}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ── Persistent incoming-assignment notification (bottom-right) ───────────────
+function IncomingAssignmentCard({
+  item,
+  onPark,
+  onAccept,
+  onTransfer,
+}: {
+  item: QueuePreviewItem;
+  onPark: (item: QueuePreviewItem) => void;
+  onAccept: (item: QueuePreviewItem) => void;
+  onTransfer: (item: QueuePreviewItem) => void;
+}) {
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const transferBtnRef = useRef<HTMLButtonElement>(null);
+
+  const channelIconMap: Record<string, React.ElementType> = {
+    voice: Phone,
+    email: Mail,
+    sms: MessageCircle,
+  };
+  const ChannelIcon = channelIconMap[item.channel] ?? MessageCircle;
+  const channelLabel = item.channel === "voice" ? "Voice" : item.channel === "email" ? "Email" : "SMS";
+
+  const aiOverview = getTaskAiOverview(item.customerRecordId, item.name, item.channel);
+  const assignmentEntry = getCustomerAssignmentEntry(item.name);
+
+  return (
+    <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-start justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F4F7] text-[13px] font-semibold text-[#344054]">
+            {item.initials}
+          </div>
+          <div>
+            <p className="text-[14px] font-semibold leading-tight text-[#101828]">{item.name}</p>
+            <p className="text-[12px] text-[#667085] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
+          </div>
+        </div>
+        <span className="shrink-0 ml-2 rounded-full border border-[#24943E] bg-[#EFFBF1] px-2.5 py-0.5 text-[11px] font-medium text-[#208337]">
+          Open
+        </span>
+      </div>
+
+      {/* Channel + time */}
+      <div className="flex items-center gap-3 px-4 pb-2">
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.08] px-2 py-0.5 text-[11px] font-medium text-[#344054]">
+          <ChannelIcon className="h-3 w-3" />
+          {channelLabel}
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-[#667085]">
+          <Clock className="h-3 w-3" />
+          {item.lastUpdated}
+        </span>
+      </div>
+
+      {/* Summary — always visible, collapsible */}
+      <div className="border-t border-black/[0.06]">
+        <button
+          type="button"
+          onClick={() => setSummaryOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#667085]">
+            Case Summary
+          </span>
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 text-[#667085] transition-transform duration-200",
+              summaryOpen ? "rotate-180" : "rotate-0",
+            )}
+          />
+        </button>
+
+        <div
+          className="overflow-hidden transition-all duration-300 ease-in-out"
+          style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
+        >
+          <div className="px-4 pb-3 flex flex-col gap-3">
+            {/* Customer Issue */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#4A7FA5]">
+                Customer Issue
+              </p>
+              <p className="text-[12px] leading-snug text-[#1D3A52]">
+                {getIncomingCustomerIssue(item.customerRecordId, item.name, item.channel)}
+              </p>
+            </div>
+            {/* Attempted Resolution — collapsible */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4A7FA5]">
+                  Attempted Resolution
+                </p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#4A7FA5] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-3 pb-3">
+                    <ul className="space-y-1.5">
+                      {aiOverview.actions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] leading-snug text-[#1D3A52]">
+                          <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#4A7FA5]" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => onPark(item)}
+          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+        >
+          Park
+        </button>
+        <button
+          ref={transferBtnRef}
+          type="button"
+          onClick={() => setShowTransfer((v) => !v)}
+          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+        >
+          Transfer
+        </button>
+        <button
+          type="button"
+          onClick={() => onAccept(item)}
+          className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
+        >
+          Accept
+        </button>
+      </div>
+
+      {showTransfer && (
+        <IncomingTransferPopover
+          triggerRef={transferBtnRef}
+          onClose={() => setShowTransfer(false)}
+          onTransferred={() => onTransfer(item)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Agent-to-agent inbound chat notification toast ───────────────────────────
+
+function IncomingAgentChatCard({
+  notif,
+  onOpen,
+  onDismiss,
+}: {
+  notif: AgentChatNotification;
+  onOpen: (notif: AgentChatNotification) => void;
+  onDismiss: (notif: AgentChatNotification) => void;
+}) {
+  return (
+    <div className="pointer-events-auto w-full overflow-hidden rounded-2xl border border-[#6E56CF]/20 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300">
+
+
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+        {/* Avatar */}
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+          style={{ backgroundColor: notif.agentAvatarColor }}
+        >
+          {notif.agentInitials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-semibold text-[#1D2939] leading-none">{notif.agentName}</span>
+            <span className="rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] leading-none">
+              {notif.agentRole}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[11px] text-[#98A2B3]">{notif.time}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onDismiss(notif)}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] transition-colors hover:bg-[#F2F4F7] hover:text-[#344054]"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Message preview */}
+      <div className="mx-4 mb-3 rounded-xl bg-[#F8F8F9] px-3 py-2.5">
+        <div className="flex items-start gap-2">
+          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+          <p className="text-[12px] leading-[1.5] text-[#344054]">{notif.message}</p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => onDismiss(notif)}
+          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+        >
+          Dismiss
+        </button>
+        <button
+          type="button"
+          onClick={() => onOpen(notif)}
+          className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
+        >
+          Open Chat
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Unified notification stack — assignment + chat toasts in one rolodex ──────
+
+// Rolodex collapsed-mode constants
+const NOTIF_PEEK_PX         = 72;   // px of each background card visible above the one in front
+const NOTIF_SCALE_STEP      = 0.04; // each layer shrinks 4 %
+const NOTIF_BRIGHTNESS_STEP = 0.12; // each layer darkens 12 %
+
+// Expanded column spacing
+const NOTIF_CARD_GAP = 8; // px gap between cards in expanded mode
+// Estimated heights drive expand-position calculation (no DOM measurement needed)
+const NOTIF_CARD_HEIGHT: Record<string, number> = {
+  assignment: 172,
+  chat: 146,
+};
+
+function NotificationStack({
+  assignmentItems,
+  chatItems,
+  onPark,
+  onAccept,
+  onTransfer,
+  onChatOpen,
+  onChatDismiss,
+}: {
+  assignmentItems: QueuePreviewItem[];
+  chatItems: AgentChatNotification[];
+  onPark: (item: QueuePreviewItem) => void;
+  onAccept: (item: QueuePreviewItem) => void;
+  onTransfer: (item: QueuePreviewItem) => void;
+  onChatOpen: (notif: AgentChatNotification) => void;
+  onChatDismiss: (notif: AgentChatNotification) => void;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  type StackItem =
+    | { type: "assignment"; key: string; assignmentData: QueuePreviewItem }
+    | { type: "chat";       key: string; chatData: AgentChatNotification  };
+
+  // Cases first (index 0 = front/bottom, most prominent by default), chats peeking above.
+  // On hover the chat card's z-index boosts to bring it forward without moving.
+  // DOM order never changes — only CSS props update → pure CSS transitions, no re-mounts.
+  const defaultOrder = useMemo<StackItem[]>(
+    () => [
+      ...assignmentItems.map((a) => ({ type: "assignment" as const, key: a.id, assignmentData: a })),
+      ...chatItems.map(      (c) => ({ type: "chat"       as const, key: c.id, chatData: c       })),
+    ],
+    [assignmentItems, chatItems],
+  );
+
+  if (defaultOrder.length === 0) return null;
+
+  const n = defaultOrder.length;
+
+  const cancelLeave = () => {
+    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+  };
+  const scheduleCollapse = () => {
+    leaveTimerRef.current = setTimeout(() => { setIsExpanded(false); setHoveredKey(null); }, 250);
+  };
+
+  // Pre-compute each card's translateY in expanded mode.
+  // Index 0 (case) stays at the bottom (translateY=0); higher-indexed cards stack above it.
+  const expandedTranslateY = defaultOrder.map((_, i) => {
+    let offset = 0;
+    for (let j = 0; j < i; j++) {
+      offset += NOTIF_CARD_HEIGHT[defaultOrder[j].type] + NOTIF_CARD_GAP;
+    }
+    return -offset;
+  });
+
+  const renderCard = (item: StackItem) =>
+    item.type === "assignment" ? (
+      <IncomingAssignmentCard
+        item={item.assignmentData}
+        onPark={onPark}
+        onAccept={onAccept}
+        onTransfer={onTransfer}
+      />
+    ) : (
+      <IncomingAgentChatCard
+        notif={item.chatData}
+        onOpen={onChatOpen}
+        onDismiss={onChatDismiss}
+      />
+    );
+
+  return createPortal(
+    // Single render — all cards always in the DOM.
+    // isExpanded only changes CSS target values; the browser interpolates every frame.
+    <div
+      className="pointer-events-none fixed bottom-5 right-5 z-[9998]"
+      style={{ width: 400 }}
+    >
+      {defaultOrder.map((item, idx) => {
+        const isBackground = idx > 0;
+        const isHovered    = hoveredKey === item.key;
+
+        // ── Collapsed (rolodex) targets ─────────────────────────────────────
+        const cY         = -(idx * NOTIF_PEEK_PX);
+        const cScale     = Math.max(0.88, 1 - idx * NOTIF_SCALE_STEP);
+        const cBrightness = idx === 0 ? 1 : Math.max(0.65, 1 - idx * NOTIF_BRIGHTNESS_STEP);
+
+        // ── Expanded (column) targets ───────────────────────────────────────
+        const eY = expandedTranslateY[idx];
+
+        const translateY = isExpanded ? eY  : cY;
+        const scale      = isExpanded ? 1   : cScale;
+        const brightness = isExpanded ? 1   : cBrightness;
+
+        // Hovered background card jumps to front z-order (expanded or collapsed).
+        const zIndex = isHovered ? n + 1 : n - idx;
+
+        // Stagger: on expand top cards move first (they travel furthest); on collapse bottom card moves first.
+        const staggerDelay = isExpanded
+          ? `${idx * 40}ms`
+          : `${(n - 1 - idx) * 28}ms`;
+
+        return (
+          <div
+            key={item.key}
+            className="pointer-events-auto absolute bottom-0 left-0 right-0"
+            style={{
+              transform: `translateY(${translateY}px) scale(${scale})`,
+              transformOrigin: "bottom center",
+              filter: brightness < 1 ? `brightness(${brightness})` : undefined,
+              zIndex,
+              cursor: isBackground && !isExpanded ? "pointer" : undefined,
+              transition: [
+                `transform 420ms cubic-bezier(0.34,1.12,0.64,1) ${staggerDelay}`,
+                `filter 300ms ease-out ${staggerDelay}`,
+                `opacity 200ms ease ${staggerDelay}`,
+              ].join(", "),
+            }}
+            onMouseEnter={() => {
+              cancelLeave();
+              setHoveredKey(item.key);
+              if (isBackground && !isExpanded) setIsExpanded(true);
+            }}
+            onMouseLeave={scheduleCollapse}
+          >
+            {renderCard(item)}
+          </div>
+        );
+      })}
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function LeftQueueRail({
   visibleAssignments,
   queueStatuses,
@@ -4356,6 +5090,10 @@ function LeftQueueRail({
   // the active assignment card is the active context, not a nav section.
   const hasActiveAssignment = visibleAssignments.some((a) => a.id === selectedAssignment.id);
 
+  // If the agent is on a top-level nav page (Desk / Inbox / Schedule / Settings), the
+  // assignment icon should not appear "active" — the nav destination is the focus.
+  const isOnNavPage = ["/control-panel", "/inbox", "/schedule", "/settings"].includes(location.pathname);
+
   const visibleQueuePreviewItems = useMemo(() => {
     const nextItems = visibleAssignments.map((item) => ({
       ...item,
@@ -4375,6 +5113,14 @@ function LeftQueueRail({
     [visibleQueuePreviewItems, selectedAssignment.id],
   );
 
+  // Track which group's status dropdown is open so we can keep the HoverCard pinned open.
+  // Also track pointer-inside state so the card stays open while the agent is interacting.
+  // Both use debounced clears to survive the brief moment when a portaled dropdown disappears
+  // and the browser re-fires pointerenter on the underlying card content.
+  const [statusDropdownOpenGroupId, setStatusDropdownOpenGroupId] = useState<string | null>(null);
+  const [pointerInsideGroupId, setPointerInsideGroupId] = useState<string | null>(null);
+  const dropdownCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerLeaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
     onRemoveAssignment(assignmentId);
@@ -4404,14 +5150,14 @@ function LeftQueueRail({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      aria-label="Add New Assignment"
+                      aria-label="Add New Case"
                       onClick={(e) => onAddNewAssignment(e.currentTarget.getBoundingClientRect())}
                       className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/[0.14] bg-white text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition-colors hover:bg-[#F9FAFB] hover:text-[#1D2939]"
                     >
                       <Plus className="h-4 w-4 stroke-[1.5]" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">Add New Assignment</TooltipContent>
+                  <TooltipContent side="right">Add New Case</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
@@ -4440,61 +5186,83 @@ function LeftQueueRail({
                     group.channels.some((c) => c.id === activeCallAssignmentId);
 
                   const pcCollapsed = ({
-                    critical: { border: "rgba(240,68,56,0.15)", shadow: "rgba(240,68,56,0.12)", accent: "#F04438" },
-                    high:     { border: "rgba(247,144,9,0.15)",  shadow: "rgba(247,144,9,0.12)",  accent: "#F79009" },
-                    medium:   { border: "rgba(0,109,173,0.15)",  shadow: "rgba(0,109,173,0.12)",  accent: "#006DAD" },
-                    low:      { border: "rgba(54,157,63,0.15)",  shadow: "rgba(54,157,63,0.12)",  accent: "#369D3F" },
-                  } as Record<string, { border: string; shadow: string; accent: string }>)[priorityKey] ?? { border: "rgba(0,109,173,0.15)", shadow: "rgba(0,109,173,0.12)", accent: "#006DAD" };
+                    critical: { border: "rgba(240,68,56,0.15)", shadow: "rgba(240,68,56,0.12)", accent: "#E32926" },
+                    high:     { border: "rgba(247,144,9,0.15)",  shadow: "rgba(247,144,9,0.12)",  accent: "#FFB800" },
+                    medium:   { border: "rgba(108,0,255,0.15)",  shadow: "rgba(108,0,255,0.12)",  accent: "#6E56CF" },
+                    low:      { border: "rgba(54,157,63,0.15)",  shadow: "rgba(54,157,63,0.12)",  accent: "#208337" },
+                  } as Record<string, { border: string; shadow: string; accent: string }>)[priorityKey] ?? { border: "rgba(108,0,255,0.15)", shadow: "rgba(108,0,255,0.12)", accent: "#6E56CF" };
+
+                  const groupId = group.customerRecordId;
+                  const isCardEngaged =
+                    hasActiveCall ||
+                    statusDropdownOpenGroupId === groupId ||
+                    pointerInsideGroupId === groupId;
 
                   return (
                     <HoverCard
-                      key={group.customerRecordId}
+                      key={groupId}
                       openDelay={120}
-                      closeDelay={80}
-                      open={hasActiveCall ? true : undefined}
+                      closeDelay={200}
+                      open={isCardEngaged ? true : undefined}
                     >
                       <HoverCardTrigger asChild>
-                        <button
-                          type="button"
-                          className={cn(
-                            "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
-                            group.isAnyActive
-                              ? "border bg-white"
-                              : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
-                          )}
-                          style={group.isAnyActive ? {
-                            borderColor: pcCollapsed.border,
-                            boxShadow: `0 6px 18px ${pcCollapsed.shadow}`,
-                          } : undefined}
-                          aria-label={`${group.name} queue item`}
-                          onClick={() => selectAssignment(lastChannel.id)}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
-                          />
-                          {multiChannel && (
-                            <span
-                              className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                              style={{ backgroundColor: pcCollapsed.accent }}
+                        {(() => {
+                          // Suppress "active" card styling when the agent has navigated
+                          // to a top-level nav page — the nav destination is the focus.
+                          const isActiveInRail = group.isAnyActive && !isOnNavPage;
+                          return (
+                            <button
+                              type="button"
+                              className={cn(
+                                "relative flex h-[50px] w-[52px] flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1 text-center transition-all duration-200",
+                                isActiveInRail
+                                  ? "border bg-white"
+                                  : "border border-transparent bg-transparent hover:border-black/5 hover:bg-white/80",
+                              )}
+                              style={isActiveInRail ? {
+                                borderColor: pcCollapsed.border,
+                                boxShadow: `0 6px 18px ${pcCollapsed.shadow}`,
+                              } : undefined}
+                              aria-label={`${group.name} queue item`}
+                              onClick={() => selectAssignment(lastChannel.id)}
                             >
-                              {group.channels.length}
-                            </span>
-                          )}
-                          <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
-                          <span
-                            className="text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]"
-                            style={{ color: group.isAnyActive ? pcCollapsed.accent : "#667085" }}
-                          >
-                            {lastChannel.time}
-                          </span>
-                        </button>
+                              <span
+                                aria-hidden="true"
+                                className={cn("absolute right-1.5 top-1.5 h-2 w-2 rounded-full", priorityDotClassName)}
+                              />
+                              {multiChannel && (
+                                <span
+                                  className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold text-white"
+                                  style={{ backgroundColor: pcCollapsed.accent }}
+                                >
+                                  {group.channels.length}
+                                </span>
+                              )}
+                              <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
+                              <span
+                                className="text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]"
+                                style={{ color: isActiveInRail ? pcCollapsed.accent : "#667085" }}
+                              >
+                                {lastChannel.time}
+                              </span>
+                            </button>
+                          );
+                        })()}
                       </HoverCardTrigger>
                       <HoverCardContent
                         side="right"
                         align="start"
                         sideOffset={14}
                         className="w-[295px] border-none bg-transparent p-0 shadow-none"
+                        onMouseEnter={() => {
+                          if (pointerLeaveTimerRef.current) clearTimeout(pointerLeaveTimerRef.current);
+                          setPointerInsideGroupId(groupId);
+                        }}
+                        onMouseLeave={() => {
+                          pointerLeaveTimerRef.current = setTimeout(() => {
+                            setPointerInsideGroupId((prev) => (prev === groupId ? null : prev));
+                          }, 150);
+                        }}
                       >
                         <GroupedQueueCard
                           group={group}
@@ -4502,6 +5270,16 @@ function LeftQueueRail({
                           onStatusChange={onStatusChange}
                           onRemove={handleRemoveQueueItem}
                           onSelectAssignment={selectAssignment}
+                          onStatusDropdownOpenChange={(open) => {
+                            if (open) {
+                              if (dropdownCloseTimerRef.current) clearTimeout(dropdownCloseTimerRef.current);
+                              setStatusDropdownOpenGroupId(groupId);
+                            } else {
+                              dropdownCloseTimerRef.current = setTimeout(() => {
+                                setStatusDropdownOpenGroupId((prev) => (prev === groupId ? null : prev));
+                              }, 150);
+                            }
+                          }}
                         />
                       </HoverCardContent>
                     </HoverCard>
@@ -4515,12 +5293,11 @@ function LeftQueueRail({
               <div className="flex w-full flex-col items-center gap-1 pt-2 pb-2">
                 {([
                   { icon: Monitor,       path: "/control-panel", label: "Desk"     },
+                  { icon: Inbox,         path: "/inbox",         label: "Inbox"    },
                   { icon: CalendarCheck, path: "/schedule",      label: "Schedule" },
                   { icon: Settings,      path: "/settings",      label: "Settings" },
                 ] as const).map(({ icon: Icon, path, label }) => {
-                  const isActive = path === "/control-panel"
-                    ? location.pathname === path
-                    : !hasActiveAssignment && location.pathname === path;
+                  const isActive = location.pathname === path;
                   return (
                     <Tooltip key={label}>
                       <TooltipTrigger asChild>
@@ -4531,8 +5308,8 @@ function LeftQueueRail({
                           className={cn(
                             "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
                             isActive
-                              ? "bg-[#EEF6FC] text-[#006DAD]"
-                              : "text-[#667085] hover:bg-[#F0F0F1] hover:text-[#1D2939]",
+                              ? "bg-[#6E56CF] text-white"
+                              : "text-[#667085] hover:bg-[#EBEBEC] hover:text-[#1D2939]",
                           )}
                         >
                           <Icon className="h-4 w-4 stroke-[1.5]" />
@@ -4572,7 +5349,7 @@ function LeftQueueRail({
           >
             {/* Assignments section */}
             <div className="shrink-0 px-3 pb-2 pt-3">
-              <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Assignments</h3>
+              <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Cases</h3>
               <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
               <button
                 type="button"
@@ -4580,7 +5357,7 @@ function LeftQueueRail({
                 className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/[0.14] bg-white px-3 py-1.5 text-[13px] font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
               >
                 <Plus className="h-4 w-4 stroke-[1.5]" />
-                New Assignment
+                New Case
               </button>
             </div>
 
@@ -4604,12 +5381,11 @@ function LeftQueueRail({
               <nav className="space-y-0.5">
                 {[
                   { label: "Desk",     icon: Monitor,       path: "/control-panel" },
+                  { label: "Inbox",    icon: Inbox,         path: "/inbox"         },
                   { label: "Schedule", icon: CalendarCheck, path: "/schedule"      },
                   { label: "Settings", icon: Settings,      path: "/settings"      },
                 ].map(({ label, icon: Icon, path }) => {
-                  const isActive = path === "/control-panel"
-                    ? location.pathname === path
-                    : !hasActiveAssignment && location.pathname === path;
+                  const isActive = location.pathname === path;
                   return (
                     <button
                       key={label}
@@ -4618,11 +5394,11 @@ function LeftQueueRail({
                       className={cn(
                         "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                         isActive
-                          ? "bg-[#EEF6FC] text-[#006DAD]"
-                          : "text-[#444444] hover:bg-[#F4F4F5] hover:text-[#1D2939]",
+                          ? "bg-[#6E56CF] text-white"
+                          : "text-[#444444] hover:bg-[#EBEBEC] hover:text-[#1D2939]",
                       )}
                     >
-                      <Icon className={cn("h-4 w-4 shrink-0 stroke-[1.5]", isActive ? "text-[#006DAD]" : "text-[#667085]")} />
+                      <Icon className={cn("h-4 w-4 shrink-0 stroke-[1.5]", isActive ? "text-white" : "text-[#667085]")} />
                       {label}
                     </button>
                   );
@@ -4633,7 +5409,7 @@ function LeftQueueRail({
             {/* CXone logo — pinned footer of open rail */}
             <div className="mt-auto shrink-0 px-4 py-3">
               {/* Light mode logo */}
-              <svg viewBox="0 0 1953 277.14" xmlns="http://www.w3.org/2000/svg" aria-label="NICE CXone" className="block h-[22px] w-auto dark:hidden">
+              <svg viewBox="0 0 1953 277.14" xmlns="http://www.w3.org/2000/svg" aria-label="NICE CXone" className="block h-[18px] w-auto dark:hidden">
                 <defs>
                   <linearGradient id="cxone-gradient-light" x1="1327.72" y1="146.68" x2="1953" y2="146.68" gradientUnits="userSpaceOnUse">
                     <stop offset=".45" stopColor="#3694fc"/>
@@ -4657,7 +5433,7 @@ function LeftQueueRail({
                 </g>
               </svg>
               {/* Dark mode logo */}
-              <svg viewBox="0 0 1953 277.14" xmlns="http://www.w3.org/2000/svg" aria-label="NICE CXone" className="hidden h-[22px] w-auto dark:block">
+              <svg viewBox="0 0 1953 277.14" xmlns="http://www.w3.org/2000/svg" aria-label="NICE CXone" className="hidden h-[18px] w-auto dark:block">
                 <g>
                   <path fill="#fff" d="M1953,146.68c0,89.08-41.99,125.6-144.43,125.6h-336.41c-102.44,0-144.43-36.51-144.43-125.6s41.99-125.6,144.43-125.6h336.41c102.44,0,144.43,36.51,144.43,125.6Z"/>
                   <path fill="#fff" d="M1122.16,178.19h-53.36c-1.44,0-2.7,1.02-2.96,2.44-2.47,13.59-7.12,24.42-13.94,32.51-7.69,9.1-18.56,13.65-32.63,13.65-10.83,0-20.13-3.31-27.92-9.93-7.79-6.62-13.8-15.96-18.02-28.01-4.22-12.06-6.33-26.36-6.33-42.9,0-16.07,2-30.26,6.01-42.55,4-12.29,9.95-21.86,17.86-28.72,7.9-6.85,17.48-10.28,28.74-10.28,12.77,0,23.16,4.26,31.17,12.76,7.01,7.46,11.87,17.46,14.57,29.99.3,1.38,1.53,2.35,2.94,2.35h53.16c1.89,0,3.3-1.72,2.96-3.58-5.29-28.91-16.13-51.27-32.55-67.06-17.21-16.54-41.29-24.82-72.24-24.82-22.52,0-42.1,5.44-58.77,16.31-16.67,10.88-29.5,26.18-38.48,45.92-8.98,19.74-13.47,42.97-13.47,69.68s4.71,51.24,14.12,70.74c9.42,19.5,22.4,34.46,38.96,44.86,16.56,10.4,35.44,15.6,56.66,15.6,20.56,0,38.2-3.9,52.92-11.7,14.72-7.8,26.62-19.09,35.72-33.86,8.52-13.85,14.48-30.46,17.86-49.83.32-1.85-1.08-3.56-2.96-3.56Z"/>
@@ -4788,7 +5564,10 @@ export default function Layout({ children }: LayoutProps) {
       setBriefingClosing(false);
     }, 280);
   };
-  const [isLeftRailOpen, setIsLeftRailOpen] = useState(true);
+  const [isLeftRailOpen, setIsLeftRailOpen] = useState(false);
+  const [incomingNotifications, setIncomingNotifications] = useState<QueuePreviewItem[]>([]);
+  const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
+  const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
   const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
@@ -4897,6 +5676,8 @@ export default function Layout({ children }: LayoutProps) {
   const [taskSummaryIds, setTaskSummaryIds] = useState<Set<string>>(new Set());
   // Tracks assignments opened via the "Review" button — summary auto-expands for these
   const [reviewedAssignmentIds, setReviewedAssignmentIds] = useState<Set<string>>(new Set());
+  // Tracks cases where the agent has explicitly closed the summary panel
+  const [closedSummaryIds, setClosedSummaryIds] = useState<Set<string>>(new Set());
   // Tracks assignment IDs where the agent has sent at least one message on a "new" channel.
   // Once activated the delete icon is hidden — the channel has real content and can't be discarded.
   const [activatedChannelIds, setActivatedChannelIds] = useState<Set<string>>(new Set());
@@ -5054,9 +5835,13 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     if (status !== "Available") return;
-    if (visibleAssignmentIds.length >= 3) return;
-    // Do not push a new assignment while any are still awaiting accept / reject.
-    if (pendingAcceptanceIds.size > 0) return;
+    // Count only non-parked active assignments toward the 3-assignment cap.
+    const activeCount = visibleAssignmentIds.filter(
+      (id) => assignmentStatusesById[id] !== "parked",
+    ).length;
+    if (activeCount >= 3) return;
+    // Do not push a new assignment while one is already awaiting action.
+    if (incomingNotifications.length > 0) return;
 
     // Minimum 15 seconds of availability before pushing an assignment;
     // add up to 10 s of jitter so back-to-back assignments feel natural.
@@ -5065,31 +5850,25 @@ export default function Layout({ children }: LayoutProps) {
     autoAssignTimerRef.current = window.setTimeout(() => {
       autoAssignTimerRef.current = null;
 
-      setVisibleAssignmentIds((currentIds) => {
-        if (currentIds.length >= 3) return currentIds;
+      // Find next item not already visible or pending.
+      const allKnownIds = [
+        ...visibleAssignmentIdsRef.current,
+        ...incomingNotifications.map((n) => n.id),
+      ];
+      const nextItem = queuePreviewItems.find((item) => !allKnownIds.includes(item.id));
+      if (!nextItem) return;
 
-        const nextItem = queuePreviewItems.find((item) => !currentIds.includes(item.id));
-        if (!nextItem) return currentIds;
+      const conversationStateKey = getConversationStateKey(nextItem.id);
+      const conversationState = createConversationState(nextItem.customerRecordId, nextItem.channel);
 
-        const conversationStateKey = getConversationStateKey(nextItem.id);
-        const conversationState = createConversationState(nextItem.customerRecordId, nextItem.channel);
+      // Pre-load conversation state so Review works immediately.
+      setAssignmentItemsById((current) => ({ ...current, [nextItem.id]: nextItem }));
+      setAssignmentStatusesById((current) => ({ ...current, [nextItem.id]: "open" }));
+      setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
+      setNotificationCount((n) => n + 1);
 
-        setAssignmentItemsById((current) => ({ ...current, [nextItem.id]: nextItem }));
-        setAssignmentStatusesById((current) => ({ ...current, [nextItem.id]: "open" }));
-        setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
-
-        // Mark as pending so the card shows Reject / Accept / Review buttons.
-        setPendingAcceptanceIds((prev) => new Set([...prev, nextItem.id]));
-        setNotificationCount((n) => n + 1);
-
-        toast(`New assignment — ${nextItem.name}`, {
-          description: nextItem.preview,
-          position: "bottom-right",
-          duration: 5000,
-        });
-
-        return [...currentIds, nextItem.id];
-      });
+      // Add to the incoming notification queue (shown as a persistent bottom-right card).
+      setIncomingNotifications((prev) => [...prev, nextItem]);
     }, delay);
 
     return () => {
@@ -5099,7 +5878,83 @@ export default function Layout({ children }: LayoutProps) {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, visibleAssignmentIds.length, pendingAcceptanceIds.size]);
+  }, [status, visibleAssignmentIds.length, incomingNotifications.length]);
+
+  // ── Agent-to-agent inbound chat notifications ──────────────────────────────
+  // Pool of realistic inbound messages that correspond to ChatPopover conversations.
+  const agentChatPool: Omit<AgentChatNotification, "id">[] = useMemo(() => [
+    {
+      conversationId: "sarah-kim",
+      agentName: "Sarah Kim",
+      agentRole: "Senior Agent",
+      agentInitials: "SK",
+      agentAvatarColor: "#6E56CF",
+      message: "Let me know when you're free to review Case 271",
+      time: "2:14 PM",
+    },
+    {
+      conversationId: "emma-larsen",
+      agentName: "Emma Larsen",
+      agentRole: "Quality Coach",
+      agentInitials: "EL",
+      agentAvatarColor: "#059669",
+      message: "Your CSAT scores look great this week 🎉",
+      time: "11:22 AM",
+    },
+    {
+      conversationId: "mike-torres",
+      agentName: "Mike Torres",
+      agentRole: "Team Lead",
+      agentInitials: "MT",
+      agentAvatarColor: "#7C3AED",
+      message: "Quick heads up — David Brown's Enterprise plan change is flagging in the system.",
+      time: "1:30 PM",
+    },
+  ], []);
+
+  const autoChatTimerRef = useRef<number | null>(null);
+  const shownChatConversationIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (autoChatTimerRef.current !== null) {
+      window.clearTimeout(autoChatTimerRef.current);
+      autoChatTimerRef.current = null;
+    }
+    if (status !== "Available") return;
+    // Don't show a new chat notification while one is already visible.
+    if (incomingChatNotifications.length > 0) return;
+
+    // Chat notifications are less frequent than assignment toasts: 40–70 s.
+    const delay = Math.floor(Math.random() * 30_000) + 40_000;
+
+    autoChatTimerRef.current = window.setTimeout(() => {
+      autoChatTimerRef.current = null;
+      const next = agentChatPool.find((c) => !shownChatConversationIds.current.has(c.conversationId));
+      if (!next) return;
+      shownChatConversationIds.current.add(next.conversationId);
+      const notification: AgentChatNotification = {
+        ...next,
+        id: `chat-notif-${Date.now()}`,
+      };
+      setIncomingChatNotifications((prev) => [...prev, notification]);
+    }, delay);
+
+    return () => {
+      if (autoChatTimerRef.current !== null) {
+        window.clearTimeout(autoChatTimerRef.current);
+        autoChatTimerRef.current = null;
+      }
+    };
+  }, [status, incomingChatNotifications.length, agentChatPool]);
+
+  const dismissChatNotification = (notif: AgentChatNotification) =>
+    setIncomingChatNotifications((prev) => prev.filter((n) => n.id !== notif.id));
+
+  const openChatNotification = (notif: AgentChatNotification) => {
+    dismissChatNotification(notif);
+    setChatInitialConversationId(notif.conversationId);
+    openChatPopover();
+  };
 
   const activeStatus = useMemo(
     () => statusOptions.find((option) => option.label === status) ?? statusOptions[0],
@@ -5129,6 +5984,16 @@ export default function Layout({ children }: LayoutProps) {
     [activeConversationChannel, activeConversationStateKey, conversationStatesByKey, selectedAssignment.customerRecordId],
   );
   const isActivityRoute = location.pathname === "/activity";
+
+  // When the left rail empties (all assignments removed/resolved), send the agent
+  // to the Desk dashboard so they're not left on a blank activity screen.
+  const railAssignments = visibleAssignments.filter((a) => assignmentStatusesById[a.id] !== "parked");
+  useEffect(() => {
+    if (railAssignments.length === 0 && isActivityRoute) {
+      navigate("/control-panel");
+    }
+  }, [railAssignments.length, isActivityRoute, navigate]);
+
   const isExpandedCanvasRoute =
     isActivityRoute && ((location.state as { hideMainCanvasPanel?: boolean } | null)?.hideMainCanvasPanel ?? true);
   // Only treat /desk as an app-space panel route when an explicit ?view= param is
@@ -5325,8 +6190,8 @@ export default function Layout({ children }: LayoutProps) {
   const handleResolveAssignment = () => {
     const assignmentName = selectedAssignment.name;
     handleRemoveVisibleAssignment(selectedAssignmentId);
-    toast(`Assignment resolved — ${assignmentName}`, {
-      description: "The assignment has been marked as resolved and removed from the queue.",
+    toast(`Case resolved — ${assignmentName}`, {
+      description: "The case has been marked as resolved and removed from the queue.",
       position: "bottom-right",
       duration: 4000,
     });
@@ -6074,6 +6939,45 @@ export default function Layout({ children }: LayoutProps) {
     navigate("/activity");
   };
 
+  // ── Incoming notification actions ─────────────────────────────────────────
+  const removeIncoming = (assignmentId: string) =>
+    setIncomingNotifications((prev) => prev.filter((n) => n.id !== assignmentId));
+
+  const transferIncomingAssignment = (item: QueuePreviewItem) => {
+    // Simply dismiss — no need to add to any queue; transfer is handled inside the popover.
+    removeIncoming(item.id);
+  };
+
+  const parkIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
+    // Add to visible list with "parked" status — shows on control panel but not left rail.
+    setVisibleAssignmentIds((current) => [...current, item.id]);
+    setAssignmentStatusesById((prev) => ({ ...prev, [item.id]: "parked" }));
+  };
+
+  const acceptIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
+    setVisibleAssignmentIds((current) => [...current, item.id]);
+    setAssignmentStatusesById((prev) => ({ ...prev, [item.id]: "pending" }));
+    setSelectedAssignmentId(item.id);
+    if (item.channel === "voice") {
+      setJoiningCallAssignmentId(item.id);
+      setCallPopunderMode("setup");
+      setCallPopunderPosition(getAnchoredCallPopunderPosition());
+      setIsCallPopunderOpen(true);
+    }
+    navigate("/activity");
+  };
+
+  const reviewIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
+    setVisibleAssignmentIds((current) => [...current, item.id]);
+    setReviewedAssignmentIds((prev) => new Set([...prev, item.id]));
+    setSelectedAssignmentId(item.id);
+    navigate("/activity");
+  };
+  // ──────────────────────────────────────────────────────────────────────────
+
   const acceptIssue = (data: AcceptIssueData) => {
     const timestamp = new Date();
     const isoTimestamp = timestamp.toISOString();
@@ -6082,7 +6986,7 @@ export default function Layout({ children }: LayoutProps) {
 
     const newItem: QueuePreviewItem = {
       id: `issue-${data.id}-${timestamp.getTime()}`,
-      customerRecordId: `issue-${data.id}`,
+      customerRecordId: data.customerRecordId ?? `issue-${data.id}`,
       channel: data.channel,
       initials,
       name: data.name,
@@ -6841,6 +7745,8 @@ export default function Layout({ children }: LayoutProps) {
       closeChannelKeepTask,
       activatedChannelIds,
       liveLastCustomerCommentByAssignmentId,
+      setAssignmentStatus: (assignmentId: string, newStatus: QueueAssignmentStatus) =>
+        setAssignmentStatusesById((prev) => ({ ...prev, [assignmentId]: newStatus })),
     }),
     [
       activeRightPanel,
@@ -6891,6 +7797,7 @@ export default function Layout({ children }: LayoutProps) {
       closeChannelKeepTask,
       activatedChannelIds,
       liveLastCustomerCommentByAssignmentId,
+      setAssignmentStatusesById,
     ],
   );
 
@@ -6903,9 +7810,9 @@ export default function Layout({ children }: LayoutProps) {
             <button
               type="button"
               onClick={() => setIsLeftRailOpen((v) => !v)}
-              aria-label={isLeftRailOpen ? "Collapse assignments rail" : "Expand assignments rail"}
+              aria-label={isLeftRailOpen ? "Collapse cases rail" : "Expand cases rail"}
               aria-pressed={isLeftRailOpen}
-              className="flex h-10 w-[30px] items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#006DAD]"
+              className="flex h-10 w-[30px] items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#6E56CF]"
             >
               <PanelLeft className="h-4 w-4" />
             </button>
@@ -6944,7 +7851,7 @@ export default function Layout({ children }: LayoutProps) {
                         }}
                         className="flex w-full min-w-0 items-start gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#F8F8F9] transition-colors"
                       >
-                        <span className={cn("mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full", isActiveWorkspace ? "bg-[#006DAD]" : "bg-black/10")} />
+                        <span className={cn("mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full", isActiveWorkspace ? "bg-[#6E56CF]" : "bg-black/10")} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-semibold text-[#333333]">{workspace.name}</div>
                           {workspace.description ? (
@@ -7012,7 +7919,7 @@ export default function Layout({ children }: LayoutProps) {
               type="search"
               placeholder="Search workspace"
               aria-label="Search workspace"
-              className="h-9 w-full rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#B8D7F0] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#B8D7F0]"
+              className="h-9 w-full rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C8BFF0] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#C8BFF0]"
             />
           </div>
         </div>
@@ -7045,7 +7952,7 @@ export default function Layout({ children }: LayoutProps) {
               <div className="relative">
                 <Bell className="h-4 w-4 stroke-[1.5]" />
                 {notificationCount > 0 && !isNotificationsPopoverOpen && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#F04438] px-0.5 text-[9px] font-bold leading-none text-white">
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#E32926] px-0.5 text-[9px] font-bold leading-none text-white">
                     {notificationCount > 9 ? "9+" : notificationCount}
                   </span>
                 )}
@@ -7072,7 +7979,7 @@ export default function Layout({ children }: LayoutProps) {
               <div className="relative">
                 <MessageCircle className="h-4 w-4 stroke-[1.5]" />
                 {chatUnreadCount > 0 && !isChatPopoverOpen && (
-                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#F04438] px-0.5 text-[9px] font-bold leading-none text-white">
+                  <span className="absolute -right-1 -top-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#E32926] px-0.5 text-[9px] font-bold leading-none text-white">
                     {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
                   </span>
                 )}
@@ -7100,7 +8007,7 @@ export default function Layout({ children }: LayoutProps) {
           >
             <button
               type="button"
-              className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E6F3FA] focus:outline-none"
+              className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E0DBF5] focus:outline-none"
             >
               <span className="relative shrink-0" aria-hidden="true">
                 <img
@@ -7151,31 +8058,18 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <div className="mt-1 border-t border-[#F2F4F7] pt-1">
                   {/* Dark mode toggle */}
-                  <div className="flex w-full items-center justify-between rounded-xl px-3 py-2.5">
-                    <span className="flex items-center gap-3 text-sm font-normal text-[#333333]">
-                      {isDarkMode ? (
-                        <Sun className="h-3.5 w-3.5 text-[#667085]" />
-                      ) : (
-                        <Moon className="h-3.5 w-3.5 text-[#667085]" />
-                      )}
-                      <span>Dark Mode</span>
-                    </span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={isDarkMode}
-                      onClick={() => setIsDarkMode((v) => !v)}
-                      className={cn(
-                        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
-                        isDarkMode ? "bg-[#006DAD]" : "bg-[#D0D5DD]",
-                      )}
-                    >
-                      <span className={cn(
-                        "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200",
-                        isDarkMode ? "translate-x-4" : "translate-x-0",
-                      )} />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsDarkMode((v) => !v)}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] hover:bg-[#F2F4F7] transition-colors duration-150"
+                  >
+                    {isDarkMode ? (
+                      <Sun className="h-3.5 w-3.5 text-[#667085]" />
+                    ) : (
+                      <Moon className="h-3.5 w-3.5 text-[#667085]" />
+                    )}
+                    <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+                  </button>
 
                   {/* Log Out */}
                   <button
@@ -7184,7 +8078,7 @@ export default function Layout({ children }: LayoutProps) {
                       setStatusMenuOpen(false);
                       navigate("/login");
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#B42318] hover:bg-[#FEF3F2] transition-colors"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#C71D1A] hover:bg-[#FDEAEA] transition-colors"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Log Out</span>
@@ -7199,7 +8093,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <div className="flex min-h-0 flex-1 overflow-hidden gap-0 pb-4 pr-4 pt-0">
         <LeftQueueRail
-          visibleAssignments={visibleAssignments}
+          visibleAssignments={visibleAssignments.filter((a) => assignmentStatusesById[a.id] !== "parked")}
           queueStatuses={assignmentStatusesById}
           onStatusChange={handleAssignmentStatusChange}
           onRemoveAssignment={handleRemoveVisibleAssignment}
@@ -7225,8 +8119,8 @@ export default function Layout({ children }: LayoutProps) {
                   <rect x="15" y="13" width="18" height="2.5" rx="1.25" fill="#D0D5DD"/>
                   <rect x="15" y="19" width="13" height="2" rx="1" fill="#E4E7EC"/>
                   <rect x="15" y="24" width="16" height="2" rx="1" fill="#E4E7EC"/>
-                  <circle cx="35" cy="34" r="8" fill="#EEF6FC" stroke="#B8D7F0" strokeWidth="1.5"/>
-                  <path d="M32 34l2 2 4-4" stroke="#006DAD" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="35" cy="34" r="8" fill="#F2F0FA" stroke="#C8BFF0" strokeWidth="1.5"/>
+                  <path d="M32 34l2 2 4-4" stroke="#6E56CF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div>
@@ -7235,9 +8129,9 @@ export default function Layout({ children }: LayoutProps) {
                   You're all caught up. New assignments will appear here automatically when they become available.
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-[#B8D7F0] bg-[#EEF6FC] px-3.5 py-1.5">
-                <span className="h-2 w-2 rounded-full bg-[#369D3F] animate-pulse" />
-                <span className="text-[12px] font-medium text-[#006DAD]">Listening for new assignments</span>
+              <div className="flex items-center gap-1.5 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-3.5 py-1.5">
+                <span className="h-2 w-2 rounded-full bg-[#208337] animate-pulse" />
+                <span className="text-[12px] font-medium text-[#6E56CF]">Listening for new assignments</span>
               </div>
             </div>
           </div>
@@ -7311,9 +8205,11 @@ export default function Layout({ children }: LayoutProps) {
                 isCallDisabled={status === "In a Call" || status !== "Available"}
                 onClose={closeConversationPanel}
                 showTrailingGap={false}
-                initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
+                initialSummaryOpen={!closedSummaryIds.has(selectedAssignment.id)}
+                onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
                 isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
                 onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
+                casePreview={selectedAssignment.preview}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -7435,9 +8331,11 @@ export default function Layout({ children }: LayoutProps) {
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
               showTaskSummary={taskSummaryIds.has(selectedAssignment.id)}
-              initialSummaryOpen={reviewedAssignmentIds.has(selectedAssignment.id)}
+              initialSummaryOpen={!closedSummaryIds.has(selectedAssignment.id)}
+                onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
               isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
               onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
+              casePreview={selectedAssignment.preview}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -7754,6 +8652,16 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      <NotificationStack
+        assignmentItems={incomingNotifications}
+        chatItems={incomingChatNotifications}
+        onPark={parkIncomingAssignment}
+        onAccept={acceptIncomingAssignment}
+        onTransfer={transferIncomingAssignment}
+        onChatOpen={openChatNotification}
+        onChatDismiss={dismissChatNotification}
+      />
+
       {isAddNewFlowOpen && addNewFlowAnchorRect && (
         <AddNewAssignmentFlowPopover
           anchorRect={addNewFlowAnchorRect}
@@ -7776,9 +8684,10 @@ export default function Layout({ children }: LayoutProps) {
           zIndex={getFloatingPanelZIndex("chat")}
           onPositionChange={setChatPopunderPosition}
           onSizeChange={setChatPopunderSize}
-          onClose={() => setIsChatPopoverOpen(false)}
+          onClose={() => { setIsChatPopoverOpen(false); setChatInitialConversationId(undefined); }}
           onInteractStart={() => bringFloatingPanelToFront("chat")}
           onUnreadCountChange={setChatUnreadCount}
+          initialConversationId={chatInitialConversationId}
         />
       )}
 
@@ -7824,11 +8733,9 @@ export default function Layout({ children }: LayoutProps) {
             {/* Header */}
             <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F7]">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#EEF6FC]">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#006DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>
-                  </svg>
-                </div>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M23.7188 5.89062C23.8757 5.89077 24.0015 6.01655 24 6.17188C23.8494 15.8941 15.9182 23.7747 6.13379 23.9238C5.97839 23.9255 5.85077 23.7999 5.85059 23.6445V19.3848C5.85059 19.2325 5.97502 19.1097 6.12891 19.1064C13.2448 18.9606 19.0048 13.236 19.1523 6.16602C19.1556 6.01217 19.2788 5.88872 19.4326 5.88867L23.7188 5.89062ZM12.2559 0.0771484C13.8714 0.0772122 15.1804 1.37836 15.1807 2.98242C15.1807 4.58668 13.8716 5.88861 12.2559 5.88867C10.6401 5.88867 9.33008 4.58672 9.33008 2.98242C9.33031 1.37832 10.6402 0.0771484 12.2559 0.0771484ZM2.92578 0.0761719C4.5412 0.0763851 5.85033 1.3775 5.85059 2.98145C5.85059 4.58561 4.54135 5.88748 2.92578 5.8877C1.31003 5.8877 0 4.58574 0 2.98145C0.000253194 1.37736 1.31018 0.0761719 2.92578 0.0761719Z" fill="#2196F3"/>
+                </svg>
                 <div>
                   <p className="text-[15px] font-semibold text-[#101828]">Good morning, Jeff</p>
                   <p className="text-[12px] text-[#667085]">Here's what's waiting for you today</p>
@@ -7838,43 +8745,43 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Stats */}
             <div className="px-6 py-4 space-y-3">
-              {/* Tasks in queue */}
+              {/* Cases in queue */}
               <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EEF6FC]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#006DAD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F0FA]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054]">Tasks in queue</span>
+                  <span className="text-[13px] font-medium text-[#344054]">Cases in queue</span>
                 </div>
-                <span className="rounded-full bg-[#006DAD] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
+                <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
               </div>
 
               {/* Chats to review */}
               <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#ECFDF3]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#027A48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFFBF1]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#208337" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                   </div>
                   <span className="text-[13px] font-medium text-[#344054]">Chats from agents to review</span>
                 </div>
-                <span className="rounded-full bg-[#027A48] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
+                <span className="rounded-full bg-[#208337] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
               </div>
 
               {/* Applications to upgrade */}
-              <div className="flex items-center justify-between rounded-xl border border-[#FEF0C7] bg-[#FFFAEB] px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-[#FFF6E0] bg-[#FFF6E0] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEF0C7]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#B54708" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF6E0]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A37A00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
                   <span className="text-[13px] font-medium text-[#344054]">Applications needing upgrade</span>
                 </div>
-                <span className="rounded-full bg-[#B54708] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
+                <span className="rounded-full bg-[#A37A00] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
               </div>
             </div>
 
@@ -7886,7 +8793,7 @@ export default function Layout({ children }: LayoutProps) {
                   setStatus("Available");
                   setStatusStartedAt(Date.now());
                 })}
-                className="flex-1 rounded-xl bg-[#006DAD] py-2.5 text-[14px] font-semibold text-white shadow-[0_1px_3px_rgba(0,109,173,0.20)] hover:bg-[#005d94] active:bg-[#004e7e] transition-colors"
+                className="flex-1 rounded-xl bg-[#6E56CF] py-2.5 text-[14px] font-semibold text-white shadow-[0_1px_3px_rgba(108,0,255,0.20)] hover:bg-[#5C46B8] active:bg-[#4A369F] transition-colors"
               >
                 Go Available
               </button>

@@ -16,13 +16,14 @@ import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, typ
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
+import { getCustomerRecord } from "@/lib/customer-database";
 
-type DeskPageTab = "queue" | "customers" | "inbox" | "tickets" | "accounts" | "contact-history";
+type DeskPageTab = "queue" | "customers" | "tickets" | "accounts" | "contact-history";
+type IssueTab = "open" | "pending" | "resolved" | "escalated";
 
 const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
-  { id: "queue",           label: "Queue"           },
+  { id: "queue",           label: "Dashboard"       },
   { id: "customers",       label: "Customers"       },
-  { id: "inbox",           label: "Inbox"           },
   { id: "tickets",         label: "Tickets"         },
   { id: "accounts",        label: "Accounts"        },
   { id: "contact-history", label: "Contact History" },
@@ -43,6 +44,7 @@ interface StaticAssignment {
   id: string;
   name: string;
   customerId: string;
+  customerRecordId?: string;
   company: string;
   channel: Channel;
   priority: Priority;
@@ -55,10 +57,10 @@ interface StaticAssignment {
 // ─── Lookups ──────────────────────────────────────────────────────────────────
 
 const priorityStyles: Record<Priority, string> = {
-  Critical: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
-  High:     "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-  Medium:   "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-  Low:      "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
+  Critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+  High:     "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+  Medium:   "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+  Low:      "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
 };
 
 const priorityRank: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
@@ -140,6 +142,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-1",
     name: "Maria Chen",
     customerId: "CST-10482",
+    customerRecordId: "emily",
     company: "Apex Financial Group",
     channel: "chat",
     priority: "High",
@@ -167,6 +170,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-2",
     name: "James Whitfield",
     customerId: "CST-10591",
+    customerRecordId: "david",
     company: "Summit Healthcare Inc.",
     channel: "voice",
     priority: "Critical",
@@ -194,6 +198,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-3",
     name: "Priya Sharma",
     customerId: "CST-10814",
+    customerRecordId: "priya",
     company: "Priya Sharma (Personal)",
     channel: "email",
     priority: "High",
@@ -221,6 +226,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-4",
     name: "Robert Okafor",
     customerId: "CST-10363",
+    customerRecordId: "jamal",
     company: "BlueLine Logistics",
     channel: "sms",
     priority: "Medium",
@@ -248,6 +254,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-5",
     name: "Lisa Montenegro",
     customerId: "CST-11024",
+    customerRecordId: "lauren",
     company: "Coastal Realty Partners",
     channel: "email",
     priority: "Medium",
@@ -275,6 +282,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-6",
     name: "Kevin Tran",
     customerId: "CST-11130",
+    customerRecordId: "miguel",
     company: "Orion Pharma Group",
     channel: "voice",
     priority: "Critical",
@@ -302,6 +310,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-7",
     name: "Angela Russo",
     customerId: "CST-11247",
+    customerRecordId: "hannah",
     company: "Clearwater Consulting",
     channel: "chat",
     priority: "Low",
@@ -329,6 +338,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-8",
     name: "Marcus Bell",
     customerId: "CST-11389",
+    customerRecordId: "alex",
     company: "Vertex Systems",
     channel: "email",
     priority: "High",
@@ -364,6 +374,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-9",
     name: "Sandra Yip",
     customerId: "CST-11412",
+    customerRecordId: "sarah",
     company: "Harbor Bridge Capital",
     channel: "sms",
     priority: "Medium",
@@ -391,6 +402,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-10",
     name: "Derek Owens",
     customerId: "CST-11508",
+    customerRecordId: "emily",
     company: "Stonewall Manufacturing",
     channel: "voice",
     priority: "High",
@@ -418,6 +430,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-11",
     name: "Fatima Al-Rashid",
     customerId: "CST-11621",
+    customerRecordId: "david",
     company: "Crescent Media Group",
     channel: "chat",
     priority: "Critical",
@@ -445,6 +458,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-12",
     name: "Tom Hargrove",
     customerId: "CST-11734",
+    customerRecordId: "priya",
     company: "GreenLeaf Retail",
     channel: "email",
     priority: "Low",
@@ -472,6 +486,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-13",
     name: "Nadia Petrov",
     customerId: "CST-11856",
+    customerRecordId: "jamal",
     company: "Eurozone Trade Ltd.",
     channel: "sms",
     priority: "Medium",
@@ -499,6 +514,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-14",
     name: "Carlos Mendez",
     customerId: "CST-11972",
+    customerRecordId: "lauren",
     company: "SouthStar Energy",
     channel: "voice",
     priority: "High",
@@ -526,6 +542,7 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-15",
     name: "Ingrid Holmberg",
     customerId: "CST-12045",
+    customerRecordId: "miguel",
     company: "Nordic Freight Solutions",
     channel: "email",
     priority: "Medium",
@@ -553,11 +570,12 @@ const staticAssignments: StaticAssignment[] = [
     id: "static-16",
     name: "Darius Knox",
     customerId: "CST-12187",
+    customerRecordId: "darius",
     company: "Pinnacle Wealth Advisors",
     channel: "chat",
     priority: "Critical",
     status: "open",
-    preview: "Client funds transferred to wrong account — urgent reversal",
+    preview: "I just realized I sent money to the wrong account — I need this fixed right away",
     waitTime: "3m",
     aiOverview: {
       actions: [
@@ -610,8 +628,6 @@ const priorityFilterOptions: { value: PriorityFilter; label: string }[] = [
   { value: "Medium",   label: "Medium" },
   { value: "Low",      label: "Low" },
 ];
-
-type IssueTab = "open" | "pending" | "resolved" | "escalated";
 
 // Module-level store so the accepted-task map survives component remounts
 // (ControlCenterPage unmounts on every navigate("/activity") call).
@@ -759,8 +775,8 @@ const availabilityOrder: Record<AgentAvailability, number> = {
 };
 
 const availabilityDot: Record<AgentAvailability, string> = {
-  Available:  "bg-[#12B76A]",
-  "In a Call": "bg-[#F79009]",
+  Available:  "bg-[#208337]",
+  "In a Call": "bg-[#FFB800]",
   Away:       "bg-[#D0D5DD]",
   Offline:    "bg-[#98A2B3]",
 };
@@ -872,12 +888,12 @@ function RejectPopover({
             onClick={() => setTab(t)}
             className={cn(
               "relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
-              tab === t ? "text-[#006DAD]" : "text-[#667085] hover:text-[#344054]",
+              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]",
             )}
           >
             {t}
             {tab === t && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
             )}
           </button>
         ))}
@@ -896,7 +912,7 @@ function RejectPopover({
               onClick={() => handleAssign(agent)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#EEF6FC]" : "hover:bg-[#F9FAFB]",
+                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
@@ -909,7 +925,7 @@ function RejectPopover({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#006DAD]">Transferred</span>}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
               </div>
@@ -934,6 +950,7 @@ function IssueRow({
   id,
   name,
   customerId,
+  customerRecordId,
   company,
   channel,
   priority,
@@ -944,6 +961,7 @@ function IssueRow({
   isLive,
   isAccepted,
   isClosed,
+  isParkedFromToast,
   liveAssignmentId,
   onAccept,
   onReject,
@@ -952,6 +970,7 @@ function IssueRow({
   id: string;
   name: string;
   customerId: string;
+  customerRecordId?: string;
   company: string;
   channel: Channel;
   priority: Priority;
@@ -962,6 +981,7 @@ function IssueRow({
   isLive: boolean;
   isAccepted: boolean;
   isClosed: boolean;
+  isParkedFromToast: boolean;
   liveAssignmentId: string | null;
   onAccept: () => void;
   onReject: () => void;
@@ -977,6 +997,9 @@ function IssueRow({
   const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
   const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const customerRecord = customerRecordId ? getCustomerRecord(customerRecordId) : null;
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
 
   return (
@@ -987,12 +1010,12 @@ function IssueRow({
         tabIndex={0}
         onClick={() => setIsOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsOpen((v) => !v); } }}
-        className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#006DAD]/30"
+        className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30"
       >
-        {(isLive || (isAccepted && !isClosed)) && (
+        {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
           <div className="shrink-0 relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#12B76A] opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#12B76A]" />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#208337] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#208337]" />
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -1005,8 +1028,8 @@ function IssueRow({
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
               status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
               status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
-              status === "resolved"  && "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-              status === "escalated" && "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
+              status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+              status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
             )}>
               {status}
             </span>
@@ -1053,7 +1076,7 @@ function IssueRow({
                   navigate("/activity");
                 }
               }}
-              className="rounded-md border border-[#B8D7F0] bg-[#EEF6FC] px-3 py-1 text-[11px] font-semibold text-[#006DAD] hover:bg-[#DAEEFA] transition-colors"
+              className="rounded-md border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-1 text-[11px] font-semibold text-[#6E56CF] hover:bg-[#DAEEFA] transition-colors"
             >
               In Progress
             </button>
@@ -1073,7 +1096,7 @@ function IssueRow({
               <button
                 type="button"
                 onClick={() => onAccept()}
-                className="rounded-md bg-[#006DAD] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
               >
                 Accept
               </button>
@@ -1094,7 +1117,7 @@ function IssueRow({
               <button
                 type="button"
                 onClick={() => onReopen()}
-                className="rounded-md bg-[#006DAD] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#005d94] transition-colors"
+                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
               >
                 Open
               </button>
@@ -1114,50 +1137,131 @@ function IssueRow({
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
       )}>
         <div className="overflow-hidden">
-          <div className="px-5 pb-4 pt-1">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Assignment Overview */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                  Assignment Overview
+          <div className="px-5 pb-4 pt-2 space-y-3">
+            {/* Customer Profile — collapsible */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsCustomerProfileOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                  Customer Profile
                 </p>
-                <ul className="space-y-1.5">
-                  {aiOverview.actions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
-                      {action}
-                    </li>
-                  ))}
-                </ul>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-3">
+                    {customerRecord ? (
+                      <>
+                        {/* Identity row */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8] dark:bg-[#1B3A52] dark:text-[#4BADD6]">
+                              {name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{name}</p>
+                              <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">
+                                {customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                            <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
+                          </div>
+                        </div>
+                        {/* Stats row */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                            <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                              {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                            </p>
+                            <div className="h-1.5 rounded-full bg-[#E4E7EC] dark:bg-[#1B3A52] overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                style={{ width: `${customerRecord.profile.fraudRiskScore}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                            <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
+                            <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                              Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Tags */}
+                        {customerRecord.profile.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {customerRecord.profile.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                                  tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
+                                  tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
+                                  "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
+                                )}
+                              >
+                                {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Fallback for static assignments without a DB record */
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8]">
+                            {name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-semibold text-[#111827] leading-tight">{name}</p>
+                            <p className="text-[11px] text-[#667085] leading-snug">{company}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-[#98A2B3]">Customer ID</p>
+                          <p className="text-[12px] font-medium text-[#475467]">{customerId}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+            </div>
 
-              {/* Suggested Next Steps */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                  Suggested Next Steps
+            {/* Attempted Resolution — collapsible */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                  Attempted Resolution
                 </p>
-                <ol className="space-y-1.5 mb-3">
-                  {aiOverview.nextSteps.map((step, i) => {
-                    const isDone = i < performActionsCompletedCount;
-                    const isActive = performActionsState === "running" && i === performActionsCompletedCount;
-                    return (
-                      <li key={i} className="flex items-start gap-2">
-                        <span className={cn(
-                          "mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors",
-                          isDone ? "bg-[#0B9A8A] text-white" : isActive ? "bg-[#006DAD] text-white" : "bg-[#C8D9E6] text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]",
-                        )}>
-                          {isDone ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : i + 1}
-                        </span>
-                        <span className={cn(
-                          "text-[11.5px] leading-relaxed transition-colors",
-                          isDone ? "text-[#6B7280] line-through dark:text-[#2A5A70]" : isActive ? "text-[#006DAD] font-medium dark:text-[#4BADD6]" : "text-[#344054] dark:text-[#4E7D96]",
-                        )}>
-                          {step}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4">
+                    <ul className="space-y-2">
+                      {aiOverview.actions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1183,8 +1287,11 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
   const [showReject, setShowReject] = useState(false);
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
+  const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const priorityKey = item.priority as Priority;
   const aiOverview = getLiveAiOverview(item.customerRecordId, item.name, item.preview, item.channel);
+  const customerRecord = item.customerRecordId ? getCustomerRecord(item.customerRecordId) : null;
 
   return (
     <div className="border-b border-border last:border-b-0">
@@ -1223,69 +1330,156 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
       )}>
         <div className="overflow-hidden">
-          <div className="px-5 pb-4 pt-1">
-            <div className="grid grid-cols-2 gap-3">
-              {/* Assignment Overview */}
-              <div className="rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                  Assignment Overview
-                </p>
-                <ul className="space-y-1.5">
-                  {aiOverview.actions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[11.5px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
-                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3A6580] dark:bg-[#244D68]" />
-                      {action}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Suggested Next Steps (resolved — shows outcome + Transfer/Open actions) */}
-              <div className="flex flex-col rounded-lg border border-[#C8D9E6] bg-[#EEF4F9] p-3.5 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[#3A6580] dark:text-[#3D7A9C]">
-                  Suggested Next Steps
-                </p>
-                <ol className="flex-1 space-y-1.5">
-                  {aiOverview.nextSteps.map((step, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#C8D9E6] text-[9px] font-bold text-[#3A6580] dark:bg-[#162E42] dark:text-[#3D7A9C]">
-                        {i + 1}
-                      </span>
-                      <span className="text-[11.5px] leading-relaxed text-[#344054] dark:text-[#4E7D96]">{step}</span>
-                    </li>
-                  ))}
-                </ol>
-                <div className="mt-3 flex items-center justify-end gap-2">
-                  {showReject && rejectTriggerRect && (
-                    <RejectPopover
-                      priority={priorityKey}
-                      preview={item.preview}
-                      triggerRect={rejectTriggerRect}
-                      onClose={() => setShowReject(false)}
-                      onAssign={() => { setShowReject(false); }}
-                    />
-                  )}
-                  <button
-                    ref={rejectButtonRef}
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const rect = rejectButtonRef.current?.getBoundingClientRect();
-                      if (rect) { setRejectTriggerRect(rect); setShowReject((v) => !v); }
-                    }}
-                    className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-                  >
-                    Transfer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onOpen(); }}
-                    className="rounded-md bg-[#006DAD] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#005d94] transition-colors"
-                  >
-                    Open
-                  </button>
+          <div className="px-5 pb-4 pt-2 space-y-3">
+            {/* Customer Profile — collapsible */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsCustomerProfileOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">Customer Profile</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-3">
+                    {customerRecord ? (
+                      <>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8] dark:bg-[#1B3A52] dark:text-[#4BADD6]">
+                              {name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{name}</p>
+                              <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">
+                                {customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                            <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                            <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                              {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                            </p>
+                            <div className="h-1.5 rounded-full bg-[#E4E7EC] dark:bg-[#1B3A52] overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                style={{ width: `${customerRecord.profile.fraudRiskScore}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                            <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
+                            <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                              Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                            </p>
+                          </div>
+                        </div>
+                        {customerRecord.profile.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {customerRecord.profile.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className={cn(
+                                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                                  tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0]" :
+                                  tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E]" :
+                                  "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE]",
+                                )}
+                              >
+                                {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8]">
+                            {item.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-[13px] font-semibold text-[#111827] leading-tight">{item.name}</p>
+                            <p className="text-[11px] text-[#667085] leading-snug capitalize">{item.channel}</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] text-[#98A2B3]">Resolved</p>
+                          <p className="text-[12px] font-medium text-[#475467]">{formatResolvedTime(item.resolvedAt)}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Attempted Resolution — collapsible */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">Attempted Resolution</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4">
+                    <ul className="space-y-2">
+                      {aiOverview.actions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Transfer / Open actions */}
+            <div className="flex items-center justify-end gap-2 pt-1">
+              {showReject && rejectTriggerRect && (
+                <RejectPopover
+                  priority={priorityKey}
+                  preview={item.preview}
+                  triggerRect={rejectTriggerRect}
+                  onClose={() => setShowReject(false)}
+                  onAssign={() => { setShowReject(false); }}
+                />
+              )}
+              <button
+                ref={rejectButtonRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = rejectButtonRef.current?.getBoundingClientRect();
+                  if (rect) { setRejectTriggerRect(rect); setShowReject((v) => !v); }
+                }}
+                className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Transfer
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onOpen(); }}
+                className="rounded-md bg-[#6E56CF] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+              >
+                Open
+              </button>
             </div>
           </div>
         </div>
@@ -1301,7 +1495,7 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("open");
@@ -1319,6 +1513,7 @@ export default function ControlCenterPage() {
       id: a.id,
       name: a.name,
       customerId: a.customerId,
+      customerRecordId: a.customerRecordId,
       channel: a.channel,
       priority: a.priority,
       preview: a.preview,
@@ -1337,6 +1532,7 @@ export default function ControlCenterPage() {
     isLive: boolean;
     isAccepted: boolean;
     isClosed: boolean;
+    isParkedFromToast: boolean;
     liveAssignmentId: string | null;
     onAccept: () => void;
     onReject: () => void;
@@ -1358,6 +1554,7 @@ export default function ControlCenterPage() {
       isLive: false,
       isAccepted,
       isClosed,
+      isParkedFromToast: false,
       liveAssignmentId: assignmentId ?? null,
       onAccept: () => handleAcceptStatic(a),
       onReject: () => rejectIssue(a.id),
@@ -1374,23 +1571,31 @@ export default function ControlCenterPage() {
     .filter((a) => !acceptedAssignmentIds.has(a.id) && !/\d{10,}/.test(a.id))
     .map((a) => {
       const liveStatus = (assignmentStatusesById[a.id] as QueueAssignmentStatus | undefined) ?? "open";
+      const isParkedFromToast = liveStatus === "parked";
+      // Parked items are held out of the left rail but belong in the Open queue tab.
+      // Show them as unaccepted "open" rows so the agent can Accept them later.
+      const displayStatus = isParkedFromToast ? "open" : liveStatus;
       const priority = (validPriorities.has(a.priority) ? a.priority : "Medium") as Priority;
       return {
         id: a.id,
         name: a.name,
         customerId: a.customerId,
+        customerRecordId: a.customerRecordId,
         company: companyByCustomerId[a.customerRecordId] ?? a.name,
         channel: a.channel as Channel,
         priority,
-        status: liveStatus,
+        status: displayStatus as QueueAssignmentStatus,
         preview: a.preview,
         waitTime: a.time,
         aiOverview: getLiveAiOverview(a.customerRecordId, a.name, a.preview, a.channel),
         isLive: true,
-        isAccepted: true,
+        isAccepted: !isParkedFromToast,
         isClosed: false,
+        isParkedFromToast,
         liveAssignmentId: a.id,
-        onAccept: () => {},
+        onAccept: isParkedFromToast
+          ? () => { setAssignmentStatus(a.id, "open"); selectAssignment(a.id); navigate("/activity"); }
+          : () => {},
         onReject: () => {},
         onReopen: () => {},
       };
@@ -1407,6 +1612,9 @@ export default function ControlCenterPage() {
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => priorityFilter === "all" || r.priority === priorityFilter,
   );
+
+  // Number of items parked from a toast — used for the red Queue tab badge
+  const parkedCount = liveNormalised.filter((a) => a.isParkedFromToast).length;
 
   // Per-tab counts for badges
   const tabCounts: Record<IssueTab, number> = {
@@ -1465,15 +1673,20 @@ export default function ControlCenterPage() {
               type="button"
               onClick={() => setActivePageTab(id)}
               className={cn(
-                "relative px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors",
+                "relative flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors",
                 activePageTab === id
-                  ? "text-[#006DAD]"
+                  ? "text-[#6E56CF]"
                   : "text-[#7A7A7A] hover:text-[#333333]",
               )}
             >
               {label}
+              {id === "queue" && totalTasks > 0 && (
+                <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#E32926] px-1.5 text-[10px] font-semibold text-white">
+                  {totalTasks}
+                </span>
+              )}
               {activePageTab === id && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
               )}
             </button>
           ))}
@@ -1493,7 +1706,7 @@ export default function ControlCenterPage() {
                 <div>
                   <h2 className="text-[14px] font-semibold text-[#333333]">Queue</h2>
                   <p className="text-xs text-[#7A7A7A] mt-0.5">
-                    {totalTasks} Total Task{totalTasks !== 1 ? "s" : ""}
+                    {totalTasks} Total Case{totalTasks !== 1 ? "s" : ""}
                   </p>
                 </div>
                 {/* Priority filter */}
@@ -1515,7 +1728,7 @@ export default function ControlCenterPage() {
                           onClick={() => { setPriorityFilter(option.value); setIsFilterOpen(false); }}
                           className={cn(
                             "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
-                            priorityFilter === option.value ? "font-semibold text-[#006DAD]" : "text-[#333333]",
+                            priorityFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
                           )}
                         >
                           {option.label}
@@ -1526,31 +1739,28 @@ export default function ControlCenterPage() {
                 </div>
               </div>
               {/* Status tabs */}
-              <div className="flex gap-0">
+              <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] p-1 gap-0.5 mb-4">
                 {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setIssueTab(tab)}
                     className={cn(
-                      "relative flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium capitalize transition-colors",
+                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
                       issueTab === tab
-                        ? "text-[#006DAD]"
-                        : "text-[#7A7A7A] hover:text-[#333333]",
+                        ? "bg-white text-[#101828] shadow-sm"
+                        : "text-[#667085] hover:text-[#333333]",
                     )}
                   >
                     {tab}
                     <span className={cn(
-                      "inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold transition-colors",
+                      "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
                       issueTab === tab
-                        ? "bg-[#006DAD] text-white"
-                        : "bg-[#F2F4F7] text-[#667085]",
+                        ? "bg-[#6E56CF] text-white"
+                        : "bg-[#E4E7EC] text-[#667085]",
                     )}>
                       {tabCounts[tab]}
                     </span>
-                    {issueTab === tab && (
-                      <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#006DAD]" />
-                    )}
                   </button>
                 ))}
               </div>
@@ -1562,7 +1772,7 @@ export default function ControlCenterPage() {
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
                     <p className="text-sm font-medium text-[#7A7A7A]">No resolved tasks</p>
-                    <p className="text-xs text-[#B0B7C3] mt-1">Assignments you resolve today will appear here.</p>
+                    <p className="text-xs text-[#B0B7C3] mt-1">Cases you resolve today will appear here.</p>
                   </div>
                 ) : (
                   <>
@@ -1623,7 +1833,7 @@ export default function ControlCenterPage() {
                   </div>
                   <div className={cn(
                     "shrink-0 h-2.5 w-2.5 rounded-full",
-                    app.status === "healthy" ? "bg-[#12B76A]" : "bg-[#F79009]",
+                    app.status === "healthy" ? "bg-[#208337]" : "bg-[#FFB800]",
                   )} />
                 </div>
               ))}
@@ -1638,17 +1848,6 @@ export default function ControlCenterPage() {
       {activePageTab === "customers" && (
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
           <DeskDataTable defaultTab="Customers" hideTabs />
-        </div>
-      )}
-
-      {/* ── Inbox tab ─────────────────────────────────────────────────────────── */}
-      {activePageTab === "inbox" && (
-        <div className="min-h-0 flex-1 overflow-hidden flex flex-col items-center justify-center gap-3 text-center p-8">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F2F4F7]">
-            <MessageCircle className="h-6 w-6 text-[#98A2B3]" />
-          </div>
-          <p className="text-[14px] font-semibold text-[#344054]">Inbox</p>
-          <p className="text-[13px] text-[#98A2B3] max-w-xs">Your unified message inbox will appear here. Coming soon.</p>
         </div>
       )}
 

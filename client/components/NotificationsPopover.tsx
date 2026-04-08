@@ -49,10 +49,10 @@ export const seedNotifications: AppNotification[] = [
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<NotificationType, { label: string; Icon: typeof Bell; iconClass: string }> = {
-  new_assignment: { label: "New Assignment",  Icon: UserPlus,     iconClass: "text-[#006DAD] bg-[#E6F3FA]" },
+  new_assignment: { label: "New Case",        Icon: UserPlus,     iconClass: "text-[#6E56CF] bg-[#E0DBF5]" },
   new_chat:       { label: "New Chat",        Icon: MessageSquare,iconClass: "text-[#059669] bg-[#ECFDF5]" },
-  escalation:     { label: "Escalation",      Icon: AlertTriangle,iconClass: "text-[#DC6803] bg-[#FFFAEB]" },
-  call_missed:    { label: "Missed Call",     Icon: Phone,        iconClass: "text-[#D92D20] bg-[#FEF3F2]" },
+  escalation:     { label: "Escalation",      Icon: AlertTriangle,iconClass: "text-[#A37A00] bg-[#FFF6E0]" },
+  call_missed:    { label: "Missed Call",     Icon: Phone,        iconClass: "text-[#E32926] bg-[#FDEAEA]" },
   resolved:       { label: "Resolved",        Icon: CheckCircle2, iconClass: "text-[#7A7A7A] bg-[#F2F4F7]" },
 };
 
@@ -125,7 +125,7 @@ function NotificationRow({
 
       {/* Unread dot */}
       {!notification.read && (
-        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#006DAD]" />
+        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6E56CF]" />
       )}
     </div>
   );
@@ -242,7 +242,7 @@ export default function NotificationsPopoverContent({
           <GripHorizontal className="h-4 w-4 shrink-0 text-[#7A7A7A]" />
           <h3 className="text-sm font-semibold text-[#333333]">Notifications</h3>
           {notifications.length > 0 && (
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#EEF4F9] px-1.5 text-[11px] font-semibold text-[#006DAD]">
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#F2F0FA] px-1.5 text-[11px] font-semibold text-[#6E56CF]">
               {notifications.length}
             </span>
           )}

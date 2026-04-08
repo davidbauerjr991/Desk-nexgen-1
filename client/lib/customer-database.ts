@@ -23,6 +23,9 @@ export type CustomerProfile = {
   financialAdvisor: string;
   advisorTitle: string;
   tags: string[];
+  fraudRiskScore: number; // 0–100 (higher = higher risk)
+  priorDisputeCount: number;
+  cardBlocked: boolean;
 };
 
 export type CustomerSeedRecord = {
@@ -78,6 +81,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Jeff Comstock",
       advisorTitle: "Business Banking Advisor",
       tags: ["Premier", "IVR Auth"],
+      fraudRiskScore: 34,
+      priorDisputeCount: 1,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Dispute a fraudulent Costco charge",
@@ -145,8 +151,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "Now",
       preview: "Need help resolving a blocked upgrade.",
       priority: "Critical",
-      priorityClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
-      badgeColor: "bg-[#F04438]",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
       icon: "phone",
       isActive: true,
       createdAt: "2026-03-11T08:30:00",
@@ -289,6 +295,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Priya Shah",
       advisorTitle: "Wealth Management Advisor",
       tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+      fraudRiskScore: 18,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review portfolio rebalancing options",
@@ -356,8 +365,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "2m ago",
       preview: "Missed flight and needs a same-day rebooking.",
       priority: "High",
-      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-      badgeColor: "bg-[#F79009]",
+      priorityClassName: "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+      badgeColor: "bg-[#FFB800]",
       icon: "phone",
       isActive: false,
       createdAt: "2026-03-11T09:02:00",
@@ -497,6 +506,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Marcus Lee",
       advisorTitle: "Retail Banking Advisor",
       tags: ["IVR Auth"],
+      fraudRiskScore: 22,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Resolve ATM deposit discrepancy",
@@ -564,8 +576,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "5m ago",
       preview: "Discount code is failing during checkout.",
       priority: "Medium",
-      priorityClassName: "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-      badgeColor: "bg-[#006DAD]",
+      priorityClassName: "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+      badgeColor: "bg-[#6E56CF]",
       icon: "clipboardList",
       isActive: false,
       createdAt: "2026-03-11T08:55:00",
@@ -705,6 +717,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Alex Bogush",
       advisorTitle: "High Net Worth Advisor",
       tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+      fraudRiskScore: 47,
+      priorDisputeCount: 1,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review commercial line of credit terms",
@@ -772,8 +787,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "24m ago",
       preview: "Subscription change and duplicate-charge concern.",
       priority: "Low",
-      priorityClassName: "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
-      badgeColor: "bg-[#369D3F]",
+      priorityClassName: "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+      badgeColor: "bg-[#208337]",
       icon: "messageSquare",
       isActive: false,
       createdAt: "2026-03-11T07:40:00",
@@ -913,6 +928,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Jeff Comstock",
       advisorTitle: "Wealth Management Advisor",
       tags: ["Premier", "Voice Biometrics"],
+      fraudRiskScore: 12,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Discuss Roth IRA conversion strategy",
@@ -980,8 +998,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "1m ago",
       preview: "Locked out after failed sign-in attempts.",
       priority: "Critical",
-      priorityClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
-      badgeColor: "bg-[#F04438]",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
       icon: "phone",
       isActive: false,
       createdAt: "2026-03-11T08:15:00",
@@ -1121,6 +1139,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Marcus Lee",
       advisorTitle: "Retail Banking Advisor",
       tags: ["IVR Auth"],
+      fraudRiskScore: 81,
+      priorDisputeCount: 2,
+      cardBlocked: true,
     },
     conversationTopics: [
       "Dispute a fraudulent Costco charge",
@@ -1188,8 +1209,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "3m ago",
       preview: "Canceled order still posted a completed charge.",
       priority: "High",
-      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-      badgeColor: "bg-[#006DAD]",
+      priorityClassName: "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+      badgeColor: "bg-[#6E56CF]",
       icon: "clipboardList",
       isActive: false,
       createdAt: "2026-03-11T11:55:00",
@@ -1329,6 +1350,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Priya Shah",
       advisorTitle: "Wealth Management Advisor",
       tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+      fraudRiskScore: 29,
+      priorDisputeCount: 2,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review estate planning options",
@@ -1396,8 +1420,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "7m ago",
       preview: "Delivery exception needs an address reroute.",
       priority: "Medium",
-      priorityClassName: "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-      badgeColor: "bg-[#F79009]",
+      priorityClassName: "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+      badgeColor: "bg-[#FFB800]",
       icon: "messageSquare",
       isActive: false,
       createdAt: "2026-03-11T13:05:00",
@@ -1537,6 +1561,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Alex Bogush",
       advisorTitle: "High Net Worth Advisor",
       tags: ["Premier", "Voice Biometrics"],
+      fraudRiskScore: 15,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Resolve wire transfer delay",
@@ -1604,8 +1631,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "9m ago",
       preview: "Changes saved on mobile are missing on desktop.",
       priority: "High",
-      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-      badgeColor: "bg-[#369D3F]",
+      priorityClassName: "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+      badgeColor: "bg-[#208337]",
       icon: "phone",
       isActive: false,
       createdAt: "2026-03-11T13:40:00",
@@ -1745,6 +1772,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Jeff Comstock",
       advisorTitle: "Retail Banking Advisor",
       tags: ["IVR Auth"],
+      fraudRiskScore: 9,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Dispute incorrect mortgage payment posting",
@@ -1812,8 +1842,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "11m ago",
       preview: "Renewal invoice total doesn’t match the quoted rate.",
       priority: "Critical",
-      priorityClassName: "border-[#FECACA] bg-[#FEF2F2] text-[#B42318]",
-      badgeColor: "bg-[#F04438]",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
       icon: "clipboardList",
       isActive: false,
       createdAt: "2026-03-11T14:25:00",
@@ -1953,6 +1983,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Marcus Lee",
       advisorTitle: "Private Wealth Advisor",
       tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+      fraudRiskScore: 38,
+      priorDisputeCount: 1,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review private equity fund allocation",
@@ -2020,8 +2053,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "14m ago",
       preview: "Analytics export failed before a stakeholder meeting.",
       priority: "High",
-      priorityClassName: "border-[#F79009] bg-[#FFFAEB] text-[#B54708]",
-      badgeColor: "bg-[#006DAD]",
+      priorityClassName: "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
+      badgeColor: "bg-[#6E56CF]",
       icon: "messageSquare",
       isActive: false,
       createdAt: "2026-03-11T15:45:00",
@@ -2161,6 +2194,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Priya Shah",
       advisorTitle: "High Net Worth Advisor",
       tags: ["Premier", "IVR Auth", "Voice Biometrics"],
+      fraudRiskScore: 25,
+      priorDisputeCount: 0,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review business succession planning",
@@ -2228,8 +2264,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "18m ago",
       preview: "Seat expansion blocked by admin permissions.",
       priority: "Low",
-      priorityClassName: "border-[#B7E6DD] bg-[#EAF8F4] text-[#369D3F]",
-      badgeColor: "bg-[#369D3F]",
+      priorityClassName: "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+      badgeColor: "bg-[#208337]",
       icon: "phone",
       isActive: false,
       createdAt: "2026-03-11T16:20:00",
@@ -2369,6 +2405,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
       financialAdvisor: "Alex Bogush",
       advisorTitle: "High Net Worth Advisor",
       tags: ["Premier", "IVR Auth"],
+      fraudRiskScore: 76,
+      priorDisputeCount: 1,
+      cardBlocked: false,
     },
     conversationTopics: [
       "Review commercial real estate loan status",
@@ -2436,8 +2475,8 @@ export const customerDatabase: CustomerSeedRecord[] = [
       time: "22m ago",
       preview: "API sync jobs stalled after rate-limit errors.",
       priority: "Medium",
-      priorityClassName: "border-[#B8D7F0] bg-[#EEF6FC] text-[#006DAD]",
-      badgeColor: "bg-[#F79009]",
+      priorityClassName: "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+      badgeColor: "bg-[#FFB800]",
       icon: "messageSquare",
       isActive: false,
       createdAt: "2026-03-11T16:52:00",
@@ -2558,6 +2597,207 @@ export const customerDatabase: CustomerSeedRecord[] = [
             content:
               "Thanks. We can adjust the retry cadence if needed once the backlog is cleared.",
             time: "5:09 PM",
+          },
+        ],
+      },
+    },
+  },
+  {
+    id: "darius",
+    initials: "DK",
+    name: "Darius Knox",
+    customerId: "CST-12187",
+    lastUpdated: "04/08/26 | 10:14 AM",
+    profile: {
+      department: "Wealth Management",
+      tenureYears: 3,
+      totalAUM: "$2,875,000.00",
+      financialReadiness: 62,
+      financialAdvisor: "Jeff Comstock",
+      advisorTitle: "Senior Wealth Advisor",
+      tags: ["Premier", "High-Value"],
+      fraudRiskScore: 72,
+      priorDisputeCount: 2,
+      cardBlocked: false,
+    },
+    conversationTopics: [
+      "Reverse $47,500 transfer sent to wrong account",
+      "Contact receiving bank to initiate recall",
+      "Confirm funds returned and close incident",
+    ],
+    overview: {
+      contactNumber: "(312) 555-0877",
+      assignedAgent: "Jeff Comstock",
+      pronoun: "he",
+      lastContactTime: "Today, 10:11 AM",
+      address: "1420 N Lake Shore Dr, Unit 22B, Chicago, IL 60610",
+    },
+    interactionTimeline: [
+      {
+        id: "darius-transfer-sent",
+        title: "Transfer completed to wrong account",
+        timestamp: "Today · 10:03 AM",
+        detail: "A $47,500 wire transfer was processed to an incorrect beneficiary. Darius noticed the error shortly after submission.",
+        tone: "critical",
+        sortOrder: 1,
+      },
+      {
+        id: "darius-chat-open",
+        title: "Customer opened live chat",
+        timestamp: "Today · 10:08 AM",
+        detail: "Darius contacted support immediately and requested an urgent reversal of the misdirected transfer.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "darius-recall-initiated",
+        title: "Recall request initiated",
+        timestamp: "Today · 10:10 AM",
+        detail: "AI flagged the case as a priority incident and initiated a recall request through the payments network.",
+        tone: "warning",
+        sortOrder: 3,
+      },
+      {
+        id: "darius-payments-team",
+        title: "Payments team notified",
+        timestamp: "Today · 10:14 AM",
+        detail: "The payments team was alerted and a reversal brief was prepared for the assigned human agent.",
+        tone: "info",
+        sortOrder: 4,
+      },
+    ],
+    queue: {
+      time: "3m ago",
+      preview: "I just realized I sent money to the wrong account — I need this fixed right away",
+      priority: "Critical",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
+      icon: "messageSquare",
+      isActive: false,
+      createdAt: "2026-04-08T10:08:00",
+      updatedAt: "2026-04-08T10:14:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 10:08 AM",
+        draft:
+          "I've reviewed the transfer details and initiated a recall request with the receiving bank. I'm escalating this now and will keep you updated every step of the way.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "I just realized I sent money to the wrong account — I need this fixed right away",
+            time: "10:08 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I can see the transfer in your account. I'm pulling up the details now — can you confirm the amount and when it was sent?",
+            time: "10:09 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "It was $47,500 sent about 10 minutes ago. The beneficiary name looks completely wrong. Is there any way to stop it?",
+            time: "10:11 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 10:08 AM",
+        draft:
+          "Hi Darius — we've flagged the misdirected transfer and a recall has been submitted. I'll notify you as soon as we have a status update from the receiving bank.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Hi, I sent a wire transfer to the wrong account by mistake. $47,500. How do I get it back?",
+            time: "10:08 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Darius, I'm on this right away. I can see the transaction — I'm initiating a recall request now.",
+            time: "10:10 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Please hurry — that's a large amount and I can't afford for it to disappear.",
+            time: "10:12 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 10:08 AM",
+        draft:
+          "I've escalated this to our payments team and they're coordinating the recall with the receiving institution. I'll send you a confirmation as soon as it's confirmed.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Hey, urgent — I accidentally wired $47,500 to the wrong person. What can be done?",
+            time: "10:08 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I have your account open now and can see the transfer. I'm working with our payments team to submit a recall.",
+            time: "10:10 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "OK, thank you. Please keep me posted — I'm really worried about this.",
+            time: "10:13 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 10:08 AM",
+        draft:
+          "Hi Darius — I've reviewed the transfer and submitted an urgent recall request. Our payments team is now in direct contact with the receiving institution. I'll follow up with a full status update within the hour.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Urgent — wrong wire transfer\n\nHi, I just sent a $47,500 wire to the wrong account. I realized the mistake moments after submitting. Please tell me what options I have.",
+            time: "10:08 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Darius, I've received your message and I'm treating this as a priority case. I'm reviewing the transfer now and will initiate a recall immediately.",
+            time: "10:10 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. The beneficiary account number I used was completely wrong — I must have copied an old entry. Please do everything you can.",
+            time: "10:14 AM",
+            sentiment: "frustrated",
           },
         ],
       },
