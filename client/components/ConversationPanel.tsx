@@ -2102,10 +2102,13 @@ export default function ConversationPanel({
 
                 {/* Suggested Next Steps — always inline */}
                 {agentTasks.length > 0 && (() => {
+                  const assignmentEntry = getCustomerAssignmentEntry(conversation.customerName);
+                  const taskSummary = assignmentEntry?.summary ?? "I've reviewed the conversation and identified the key actions needed to resolve this case. Here are my suggested next steps, or feel free to ask for more assistance.";
                   const nextStepsContent = (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-                    <div className="px-4 pt-3 pb-1">
+                    <div className="px-4 pt-3 pb-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-[#667085]">{taskSummary}</p>
                     </div>
                     <div className="px-3 pb-2 pt-1 space-y-1.5" id="inline-task-list-main">
                       {agentTasks.map((task) => {
@@ -2349,8 +2352,11 @@ export default function ConversationPanel({
                 )}
                 {agentTasks.length > 0 && (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
-                    <div className="px-4 pt-3 pb-1">
+                    <div className="px-4 pt-3 pb-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-[#667085]">
+                        {getCustomerAssignmentEntry(conversation.customerName)?.summary ?? "I've reviewed the conversation and identified the key actions needed to resolve this case. Here are my suggested next steps, or feel free to ask for more assistance."}
+                      </p>
                     </div>
                     <div className="px-3 pb-3 pt-1 space-y-1.5">
                       {agentTasks.map((task) => {

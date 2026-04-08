@@ -40,6 +40,7 @@ import {
   PhoneOff,
   Plus,
   Search,
+  Sparkles,
   Sun,
   Volume2,
   X,
@@ -7990,14 +7991,20 @@ export default function Layout({ children }: LayoutProps) {
           <div ref={addNewButtonRef} className="hidden" aria-hidden="true" />
 
           <div ref={copilotButtonRef}>
-            <HeaderIconButton
-              ariaLabel="Open Copilot"
-              tooltip="Copilot"
+            <button
+              type="button"
+              aria-label="Open Copilot"
+              aria-pressed={isCopilotViewPopunderOpen}
               onClick={() => isCopilotViewPopunderOpen ? setIsCopilotViewPopunderOpen(false) : openHeaderAppPanel("copilot")}
-              isActive={isCopilotViewPopunderOpen}
+              className={`flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors ${
+                isCopilotViewPopunderOpen
+                  ? "border-[#6E56CF]/30 bg-[#6E56CF] text-white hover:bg-[#5C46B8]"
+                  : "border-[#6E56CF]/25 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#E0DBF5]"
+              }`}
             >
-              <Bot className="h-4 w-4 stroke-[1.5]" />
-            </HeaderIconButton>
+              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+              Ask AI
+            </button>
           </div>
 
           <div
