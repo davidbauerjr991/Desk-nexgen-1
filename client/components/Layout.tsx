@@ -2066,6 +2066,11 @@ function DockedConversationPanel({
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [performAllActionsKey, setPerformAllActionsKey] = useState(0);
 
+  // Reset the summary tab to overview whenever the customer changes.
+  useEffect(() => {
+    setSummaryTab("overview");
+  }, [customerRecordId]);
+
   // When the panel is opened for a reviewed assignment, auto-expand the summary.
   useEffect(() => {
     if (initialSummaryOpen) {
@@ -2392,34 +2397,44 @@ function DockedConversationPanel({
                       </div>
                       </>) : (
                         /* Customer History timeline */
-                        <div className="pt-1">
-                          <div className="relative">
-                            {/* Vertical line */}
-                            <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
-                            <div className="space-y-5 pl-6">
-                              {customerRecord.customerHistory.map((item: CustomerHistoryItem) => (
-                                <div key={item.id} className="relative">
-                                  {/* Dot */}
-                                  <span className={cn(
-                                    "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
-                                    item.dot === "purple" ? "bg-[#6E56CF]" :
-                                    item.dot === "orange" ? "bg-[#F59E0B]" :
-                                    item.dot === "red"    ? "bg-[#E32926]" :
-                                    item.dot === "green"  ? "bg-[#208337]" :
-                                    "bg-[#D0D5DD]",
-                                  )} />
-                                  <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
-                                    <div className="flex items-start justify-between gap-2 mb-1">
-                                      <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
-                                      <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
-                                    </div>
-                                    <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
-                                  </div>
-                                </div>
-                              ))}
+                        (() => {
+                          const historyItems: CustomerHistoryItem[] = customerRecord?.customerHistory ?? [];
+                          return historyItems.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+                              <p className="text-[12px] font-medium text-[#344054] dark:text-[#CBD5E1]">No history yet</p>
+                              <p className="text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">Past interactions will appear here.</p>
                             </div>
-                          </div>
-                        </div>
+                          ) : (
+                            <div className="pt-1">
+                              <div className="relative">
+                                {/* Vertical line */}
+                                <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
+                                <div className="space-y-5 pl-6">
+                                  {historyItems.map((item: CustomerHistoryItem) => (
+                                    <div key={item.id} className="relative">
+                                      {/* Dot */}
+                                      <span className={cn(
+                                        "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
+                                        item.dot === "purple" ? "bg-[#6E56CF]" :
+                                        item.dot === "orange" ? "bg-[#F59E0B]" :
+                                        item.dot === "red"    ? "bg-[#E32926]" :
+                                        item.dot === "green"  ? "bg-[#208337]" :
+                                        "bg-[#D0D5DD]",
+                                      )} />
+                                      <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                          <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
+                                          <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
+                                        </div>
+                                        <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
@@ -2456,32 +2471,42 @@ function DockedConversationPanel({
                   <div className="overflow-y-auto flex-1 p-4 space-y-3">
                     {summaryTab === "history" ? (
                       /* Customer History timeline (wide) */
-                      <div className="pt-1">
-                        <div className="relative">
-                          <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
-                          <div className="space-y-5 pl-6">
-                            {customerRecord.customerHistory.map((item: CustomerHistoryItem) => (
-                              <div key={item.id} className="relative">
-                                <span className={cn(
-                                  "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
-                                  item.dot === "purple" ? "bg-[#6E56CF]" :
-                                  item.dot === "orange" ? "bg-[#F59E0B]" :
-                                  item.dot === "red"    ? "bg-[#E32926]" :
-                                  item.dot === "green"  ? "bg-[#208337]" :
-                                  "bg-[#D0D5DD]",
-                                )} />
-                                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
-                                  <div className="flex items-start justify-between gap-2 mb-1">
-                                    <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
-                                    <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
-                                  </div>
-                                  <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
-                                </div>
-                              </div>
-                            ))}
+                      (() => {
+                        const historyItems: CustomerHistoryItem[] = customerRecord?.customerHistory ?? [];
+                        return historyItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+                            <p className="text-[12px] font-medium text-[#344054] dark:text-[#CBD5E1]">No history yet</p>
+                            <p className="text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">Past interactions will appear here.</p>
                           </div>
-                        </div>
-                      </div>
+                        ) : (
+                          <div className="pt-1">
+                            <div className="relative">
+                              <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
+                              <div className="space-y-5 pl-6">
+                                {historyItems.map((item: CustomerHistoryItem) => (
+                                  <div key={item.id} className="relative">
+                                    <span className={cn(
+                                      "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
+                                      item.dot === "purple" ? "bg-[#6E56CF]" :
+                                      item.dot === "orange" ? "bg-[#F59E0B]" :
+                                      item.dot === "red"    ? "bg-[#E32926]" :
+                                      item.dot === "green"  ? "bg-[#208337]" :
+                                      "bg-[#D0D5DD]",
+                                    )} />
+                                    <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
+                                      <div className="flex items-start justify-between gap-2 mb-1">
+                                        <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
+                                        <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
+                                      </div>
+                                      <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()
                     ) : (<>
 
                     {/* Customer Profile — collapsible */}

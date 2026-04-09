@@ -801,6 +801,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "emily-h1", title: "Account opened — Retail Banking", timestamp: "Mar 2023", detail: "Emily opened a Retail Banking account with an initial deposit of $12,000. IVR authentication enrolled on first login.", dot: "green" },
+      { id: "emily-h2", title: "ATM deposit discrepancy reported", timestamp: "Jun 2023", detail: "Emily reported a $200 ATM deposit that did not post correctly. Case escalated to branch ops and resolved within 48 hours.", dot: "orange" },
+      { id: "emily-h3", title: "Overdraft fee waiver granted", timestamp: "Nov 2023", detail: "First-time overdraft of $34 reversed as a goodwill gesture. Emily updated her low-balance alert threshold to $100.", dot: "purple" },
+      { id: "emily-h4", title: "Contact information updated", timestamp: "Feb 2024", detail: "Emily updated her mailing address and mobile number following a move to New York. Identity verified via IVR.", dot: "gray" },
+      { id: "emily-h5", title: "Promotion code issue — checkout blocked", timestamp: "Jan 2025", detail: "A campaign validation rule incorrectly excluded one item in Emily's cart, causing the promo code to fail. Rule corrected by support.", dot: "orange" },
+      { id: "emily-h6", title: "Advisor relationship — Marcus Lee assigned", timestamp: "Mar 2026", detail: "Emily was paired with Marcus Lee as her dedicated Retail Banking Advisor following the bank's advisory tier restructure.", dot: "purple" },
+    ],
   },
   {
     id: "david",
@@ -1012,6 +1020,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "david-h1", title: "Business Banking account opened", timestamp: "Jan 2015", detail: "David opened a Business Banking account with an initial wire transfer of $500,000. Premier tier and Voice Biometrics enrolled.", dot: "green" },
+      { id: "david-h2", title: "Commercial line of credit — first draw", timestamp: "Apr 2017", detail: "David drew $250,000 against a $1M commercial credit line to fund a supply chain expansion. Repaid within 14 months.", dot: "purple" },
+      { id: "david-h3", title: "Dispute filed — vendor double-charge", timestamp: "Sep 2020", detail: "A $4,800 duplicate charge from a supplier was disputed. Merchant confirmed the error and a full reversal was posted.", dot: "orange" },
+      { id: "david-h4", title: "Plan upgrade — subscription change attempt", timestamp: "Feb 2025", detail: "David attempted a subscription tier upgrade but the system generated a duplicate authorization hold. Agent cleared the hold and completed the upgrade.", dot: "orange" },
+      { id: "david-h5", title: "High Net Worth Advisor assigned — Alex Bogush", timestamp: "Jul 2025", detail: "Following portfolio growth past $3M AUM, David was assigned to Alex Bogush for dedicated high net worth advisory services.", dot: "purple" },
+      { id: "david-h6", title: "Annual account review completed", timestamp: "Feb 2026", detail: "Year-end review confirmed all credit facilities in good standing and AUM at $3.19M. No flags or compliance issues noted.", dot: "green" },
+    ],
   },
   {
     id: "priya",
@@ -1478,6 +1494,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "miguel-h1", title: "Account opened — Retail Banking", timestamp: "Apr 2024", detail: "Miguel opened a Retail Banking account and enrolled in IVR authentication. Initial deposit of $8,500.", dot: "green" },
+      { id: "miguel-h2", title: "First chargeback filed — subscription service", timestamp: "Aug 2024", detail: "Miguel disputed a $29.99 charge from a streaming service he had cancelled. Chargeback approved and credit posted.", dot: "orange" },
+      { id: "miguel-h3", title: "Second dispute — gym membership", timestamp: "Nov 2024", detail: "Miguel filed a second chargeback for a gym membership that continued billing after cancellation. Resolved in his favour.", dot: "orange" },
+      { id: "miguel-h4", title: "Fraud risk flag raised", timestamp: "Jan 2025", detail: "Two consecutive chargebacks within 90 days triggered an elevated fraud risk score. Account flagged for manual review.", dot: "red" },
+      { id: "miguel-h5", title: "Refund dispute — third-party vendor", timestamp: "Feb 2026", detail: "Miguel reported a $149 charge from a vendor he claimed to have no relationship with. Investigation ongoing.", dot: "red" },
+      { id: "miguel-h6", title: "Manual review completed — account retained", timestamp: "Mar 2026", detail: "Compliance review confirmed no fraudulent account behaviour. Risk score recalculated and account status maintained.", dot: "gray" },
+    ],
   },
   {
     id: "olivia",
@@ -1689,6 +1713,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "olivia-h1", title: "Personal Investing account opened", timestamp: "Sep 2021", detail: "Olivia opened a Personal Investing account with an initial portfolio transfer of $45,000 from an external brokerage.", dot: "green" },
+      { id: "olivia-h2", title: "First trade placed — ETF portfolio", timestamp: "Oct 2021", detail: "Olivia placed her first order, building a diversified ETF portfolio. Financial readiness score assessed at 74.", dot: "purple" },
+      { id: "olivia-h3", title: "Address update — relocation", timestamp: "Mar 2023", detail: "Olivia updated her registered address following a move. Identity verified via IVR before changes were saved.", dot: "gray" },
+      { id: "olivia-h4", title: "Shipment delay — physical card", timestamp: "Nov 2024", detail: "Replacement debit card reported as delayed in transit. Agent confirmed the shipment was rerouted and redelivered.", dot: "orange" },
+      { id: "olivia-h5", title: "Portfolio rebalance — advisor review", timestamp: "Jan 2026", detail: "Olivia's portfolio was reviewed and rebalanced following a risk tolerance reassessment. Equity allocation reduced by 8%.", dot: "purple" },
+      { id: "olivia-h6", title: "Shipping issue — order fulfilment", timestamp: "Mar 2026", detail: "Olivia reported a delayed order with an address validation error flagged by the carrier. Support investigating redelivery options.", dot: "orange" },
+    ],
   },
   {
     id: "jamal",
@@ -1900,6 +1932,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "jamal-h1", title: "Business Banking account opened", timestamp: "Jun 2017", detail: "Jamal opened a Business Banking account. Premier tier activated and Voice Biometrics enrolled at account creation.", dot: "green" },
+      { id: "jamal-h2", title: "International payment alerts configured", timestamp: "Feb 2019", detail: "Jamal requested threshold-based alerts for all outbound wire transfers over $10,000. Configured and tested successfully.", dot: "purple" },
+      { id: "jamal-h3", title: "Business credit card limit increased", timestamp: "Oct 2021", detail: "Jamal’s business credit card limit was raised from $50,000 to $100,000 following a credit review. Approved same day.", dot: "green" },
+      { id: "jamal-h4", title: "Wire transfer delay — international beneficiary", timestamp: "Sep 2024", detail: "A $75,000 outbound wire to an overseas supplier was held for correspondent bank review. Released after 48 hours.", dot: "orange" },
+      { id: "jamal-h5", title: "Document sync conflict reported", timestamp: "Feb 2026", detail: "Jamal reported an edit conflict in a shared workspace document after a version rollback. Agent reviewing sync queue.", dot: "orange" },
+      { id: "jamal-h6", title: "Annual credit review — facilities renewed", timestamp: "Mar 2026", detail: "All credit lines and facilities reviewed. AUM at $2.74M. No compliance issues noted. Advisor relationship confirmed.", dot: "green" },
+    ],
   },
   {
     id: "hannah",
@@ -2111,6 +2151,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "hannah-h1", title: "Retail Banking account opened", timestamp: "Jan 2021", detail: "Hannah opened a Retail Banking account and enrolled in IVR authentication. Initial deposit of $22,000.", dot: "green" },
+      { id: "hannah-h2", title: "Savings goal configured", timestamp: "Apr 2021", detail: "Hannah set up an automated monthly savings goal of $500 toward an emergency fund. Target reached within 18 months.", dot: "purple" },
+      { id: "hannah-h3", title: "Advisor assigned — Jeff Comstock", timestamp: "Jun 2022", detail: "Hannah was paired with Jeff Comstock following a review of her growing portfolio. Advisor relationship confirmed.", dot: "purple" },
+      { id: "hannah-h4", title: "Fee waiver requested — annual maintenance", timestamp: "Sep 2023", detail: "Hannah requested a waiver for the annual account maintenance fee. Approved as a retention gesture for a 5-year customer.", dot: "gray" },
+      { id: "hannah-h5", title: "Invoice discrepancy reported", timestamp: "Jan 2026", detail: "Hannah flagged a billing mismatch on her account statement. Agent identified a duplicate line item and initiated a correction.", dot: "orange" },
+      { id: "hannah-h6", title: "Corrected invoice confirmed", timestamp: "Mar 2026", detail: "Corrected invoice was issued and Hannah confirmed receipt. Case closed with no outstanding balance discrepancy.", dot: "green" },
+    ],
   },
   {
     id: "noah",
@@ -2322,6 +2370,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "noah-h1", title: "Personal Investing account opened", timestamp: "Feb 2014", detail: "Noah opened a high net worth investing account. Portfolio seeded with $850,000. IVR authentication and voice biometrics enrolled.", dot: "green" },
+      { id: "noah-h2", title: "Portfolio milestone — $2M AUM", timestamp: "Jan 2017", detail: "Noah’s portfolio crossed $2M AUM. Upgraded to Premier tier with dedicated advisory access.", dot: "purple" },
+      { id: "noah-h3", title: "Tax document request — annual filing", timestamp: "Feb 2020", detail: "Noah requested consolidated tax statements for three account years. Delivered within the SLA window.", dot: "gray" },
+      { id: "noah-h4", title: "Report export failure — timeout", timestamp: "Nov 2025", detail: "Noah reported that a large portfolio export was timing out before completion. Queue configuration adjusted to increase limits.", dot: "orange" },
+      { id: "noah-h5", title: "Portfolio milestone — $5M AUM", timestamp: "Jan 2026", detail: "Portfolio reached $5.83M AUM. Advisor reviewed allocation and confirmed strategy alignment. No changes required.", dot: "green" },
+      { id: "noah-h6", title: "Export queue issue — recurring", timestamp: "Mar 2026", detail: "Noah opened a second report timeout case. Agent investigating whether a scoped export can be delivered sooner.", dot: "orange" },
+    ],
   },
   {
     id: "lauren",
@@ -2533,6 +2589,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "lauren-h1", title: "Business Banking account opened", timestamp: "Apr 2018", detail: "Lauren opened a Business Banking account for her advisory firm. Premier tier, IVR Auth, and Voice Biometrics enrolled.", dot: "green" },
+      { id: "lauren-h2", title: "AUM milestone — $1M", timestamp: "Nov 2019", detail: "Lauren's assets under management reached $1M. Relationship transferred to dedicated High Net Worth Advisor Priya Shah.", dot: "purple" },
+      { id: "lauren-h3", title: "Fee schedule renegotiated", timestamp: "Feb 2022", detail: "Following AUM growth past $3M, Lauren's advisory fee schedule was reviewed and reduced by 0.1% as a loyalty discount.", dot: "purple" },
+      { id: "lauren-h4", title: "AUM milestone — $4M", timestamp: "Aug 2023", detail: "Portfolio crossed $4M AUM. Annual strategy review confirmed allocation targets met. No changes to risk profile.", dot: "green" },
+      { id: "lauren-h5", title: "Workspace permission issue", timestamp: "Jan 2026", detail: "Lauren reported that a team member could not access a shared workspace. Role permission gap identified and resolved.", dot: "orange" },
+      { id: "lauren-h6", title: "Seat-purchase approval pending", timestamp: "Mar 2026", detail: "Lauren requested additional workspace seats for her growing team. Approval routing under review by account owner.", dot: "gray" },
+    ],
   },
   {
     id: "ethan",
@@ -2744,6 +2808,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
         ],
       },
     },
+    customerHistory: [
+      { id: "ethan-h1", title: "Business Banking account opened", timestamp: "Jul 2020", detail: "Ethan opened a Business Banking account for his tech startup. Premier tier and IVR Auth enrolled. Initial deposit $180,000.", dot: "green" },
+      { id: "ethan-h2", title: "First dispute filed — contractor charge", timestamp: "Mar 2022", detail: "Ethan disputed a $3,200 charge from a contractor who had not delivered agreed work. Resolved in Ethan's favour after review.", dot: "orange" },
+      { id: "ethan-h3", title: "AUM milestone — $1M", timestamp: "Sep 2022", detail: "Business portfolio crossed $1M AUM. Transferred to Alex Bogush as dedicated High Net Worth Advisor.", dot: "purple" },
+      { id: "ethan-h4", title: "API rate-limit incident", timestamp: "Jun 2024", detail: "Ethan's integration hit repeated rate-limit errors during a high-volume batch job. Queue retry cadence adjusted to resolve.", dot: "orange" },
+      { id: "ethan-h5", title: "Fraud risk score elevated", timestamp: "Oct 2024", detail: "Irregular API activity pattern triggered an elevated fraud risk score. Manual review confirmed legitimate automated traffic.", dot: "red" },
+      { id: "ethan-h6", title: "Integration backlog — rate-limit recurrence", timestamp: "Mar 2026", detail: "Ethan reported a repeat rate-limit backlog on his integration. Agent reviewing queued retries and proposing a permanent fix.", dot: "orange" },
+    ],
   },
   {
     id: "darius",
