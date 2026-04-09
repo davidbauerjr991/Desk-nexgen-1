@@ -210,7 +210,7 @@ export default function Index() {
             aria-label="Close right panel"
             onClick={closeRightPanel}
             className={cn(
-              "absolute inset-0 z-20 bg-black/20 transition-opacity duration-300 lg:hidden",
+              "absolute inset-0 z-20 bg-white/50 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden",
               isRightPanelOpen ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           />
@@ -268,7 +268,7 @@ export default function Index() {
             type="button"
             aria-label="Close customer details overlay"
             onClick={() => setIsMobileDetailsOpen(false)}
-            className="absolute inset-0 bg-black/20 animate-in fade-in-0 duration-200"
+            className="absolute inset-0 bg-white/50 backdrop-blur-[2px] animate-in fade-in-0 duration-200"
           />
           <div className="absolute inset-x-4 top-4 bottom-4 flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">

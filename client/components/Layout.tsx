@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
+  Activity,
   ArrowLeft,
   ArrowRightLeft,
   Bell,
@@ -35,6 +36,7 @@ import {
   Pin,
   Pause,
   TriangleAlert,
+  RefreshCw,
   User,
   Phone,
   PhoneOff,
@@ -79,9 +81,12 @@ import {
   defaultCustomerId,
   getCustomerRecord,
   type CustomerChannel,
+  type CustomerHistoryDot,
+  type CustomerHistoryItem,
   type CustomerQueueIcon,
 } from "@/lib/customer-database";
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
+import { staticAssignments } from "@/pages/ControlPanelPage";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -150,6 +155,7 @@ interface LayoutContextValue {
   activatedChannelIds: Set<string>;
   liveLastCustomerCommentByAssignmentId: Record<string, string>;
   setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
+  openCopilot: () => void;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
@@ -247,7 +253,16 @@ function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
 }
 
-type AssignmentChannel = Extract<CustomerChannel, "chat" | "sms" | "email" | "voice">;
+type AssignmentChannel = Extract<CustomerChannel, "chat" | "sms" | "email" | "voice" | "whatsapp">;
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M12 3.25C7.163 3.25 3.25 7.119 3.25 11.882C3.25 13.549 3.734 15.149 4.638 16.529L3.75 20.75L8.097 19.9C9.406 20.647 10.898 21.042 12.421 21.042C17.258 21.042 21.171 17.172 21.171 12.41C21.171 7.647 16.837 3.25 12 3.25Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.428 8.867C9.206 8.373 8.97 8.362 8.761 8.354C8.59 8.347 8.394 8.347 8.198 8.347C8.002 8.347 7.683 8.421 7.413 8.715C7.143 9.009 6.389 9.703 6.389 11.117C6.389 12.531 7.438 13.897 7.585 14.093C7.732 14.289 9.634 17.287 12.611 18.437C15.086 19.392 15.589 19.203 16.123 19.154C16.657 19.105 17.839 18.485 18.084 17.815C18.329 17.144 18.329 16.566 18.255 16.444C18.182 16.321 17.986 16.248 17.692 16.101C17.397 15.954 15.957 15.235 15.687 15.137C15.417 15.039 15.22 14.99 15.024 15.284C14.828 15.578 14.27 16.248 14.098 16.444C13.926 16.64 13.754 16.665 13.459 16.518C13.165 16.37 12.218 16.061 11.095 15.059C10.221 14.28 9.632 13.319 9.46 13.025C9.289 12.731 9.442 12.571 9.589 12.424C9.722 12.292 9.883 12.081 10.03 11.91C10.177 11.738 10.226 11.615 10.324 11.419C10.422 11.223 10.373 11.052 10.299 10.905C10.226 10.758 9.679 9.312 9.428 8.867Z" fill="currentColor" />
+    </svg>
+  );
+}
 
 function getConversationStateKey(assignmentId: string) {
   return assignmentId;
@@ -268,7 +283,7 @@ export type QueuePreviewItem = {
   priority: string;
   priorityClassName: string;
   badgeColor: string;
-  icon: typeof Phone;
+  icon: React.ElementType;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -292,19 +307,24 @@ const queueIconMap: Record<CustomerQueueIcon, typeof Phone> = {
   messageSquare: MessageSquare,
 };
 
-const launchedAssignmentIconMap: Record<AssignmentChannel, typeof Phone> = {
+const launchedAssignmentIconMap: Record<AssignmentChannel, React.ElementType> = {
   chat: MessageCircle,
   sms: MessageSquare,
   email: Mail,
   voice: Phone,
+  whatsapp: WhatsAppIcon,
 };
 
 const baseAssignmentChannelByCustomerRecordId: Partial<Record<string, AssignmentChannel>> = {
   olivia: "chat",
 };
 
-const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) => {
-  const assignmentChannel = baseAssignmentChannelByCustomerRecordId[customer.id] ?? "sms";
+const randomIncomingChannels: AssignmentChannel[] = ["sms", "email", "whatsapp", "chat", "whatsapp", "sms", "email", "whatsapp"];
+
+const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer, index) => {
+  const assignmentChannel =
+    baseAssignmentChannelByCustomerRecordId[customer.id] ??
+    randomIncomingChannels[index % randomIncomingChannels.length];
 
   return {
     id: customer.id,
@@ -319,7 +339,7 @@ const queuePreviewItems: QueuePreviewItem[] = customerDatabase.map((customer) =>
     priority: customer.queue.priority,
     priorityClassName: customer.queue.priorityClassName,
     badgeColor: customer.queue.badgeColor,
-    icon: assignmentChannel === "sms" ? queueIconMap[customer.queue.icon] : launchedAssignmentIconMap[assignmentChannel],
+    icon: launchedAssignmentIconMap[assignmentChannel],
     isActive: customer.queue.isActive,
     createdAt: customer.queue.createdAt,
     updatedAt: customer.queue.updatedAt,
@@ -1295,7 +1315,7 @@ function CustomerContactDropdown({
   isCallDisabled,
 }: {
   onOpenCall: (anchorRect?: DOMRect | null) => void;
-  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email" | "whatsapp">) => void;
   isCallDisabled: boolean;
 }) {
   return (
@@ -1338,6 +1358,13 @@ function CustomerContactDropdown({
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           SMS
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => onOpenChannel("whatsapp")}
+          className="rounded-xl px-3 py-2 text-sm text-[#111827]"
+        >
+          <WhatsAppIcon className="mr-2 h-4 w-4" />
+          WhatsApp
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1571,7 +1598,7 @@ function CallControlsPopunder({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Close call controls"
           >
             <X className="h-4 w-4" />
@@ -1857,7 +1884,7 @@ function AddNewPopoverContent({
           type="button"
           onMouseDown={(event) => event.stopPropagation()}
           onClick={onClose}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
           aria-label="Close Add New popunder"
         >
           <X className="h-4 w-4" />
@@ -1907,7 +1934,7 @@ function CustomerProfilePopover({
         aria-label="Open customer information"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onOpenCustomerInfo(e); }}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
       >
         <User className="h-3.5 w-3.5 stroke-[1.5]" />
       </button>
@@ -1916,7 +1943,7 @@ function CustomerProfilePopover({
         aria-label="Open notes"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onOpenNotes(e); }}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
       >
         <FileText className="h-3.5 w-3.5 stroke-[1.5]" />
       </button>
@@ -1935,12 +1962,12 @@ function TaskSummaryView({
       <div className="grid grid-cols-2 gap-4">
         {/* AI Actions Taken */}
         <div className="rounded-lg border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#6E56CF] dark:text-[#5C46B8]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#6E56CF] dark:text-[#AB99EA]">
             AI Actions Taken
           </p>
           <ul className="space-y-2">
             {overview.actions.map((action, i) => (
-              <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">
+              <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed dark:text-[#CBD5E1]">
                 <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6E56CF] dark:bg-[#244D68]" />
                 {action}
               </li>
@@ -1953,7 +1980,7 @@ function TaskSummaryView({
             <TriangleAlert className="h-3 w-3" />
             Why You're Needed
           </p>
-          <p className="text-[12px] text-[#344054] leading-relaxed dark:text-[#4E7D96]">{overview.whyNeeded}</p>
+          <p className="text-[12px] text-[#344054] leading-relaxed dark:text-[#CBD5E1]">{overview.whyNeeded}</p>
         </div>
       </div>
     </div>
@@ -2000,7 +2027,7 @@ function DockedConversationPanel({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
-  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email" | "whatsapp">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
@@ -2028,6 +2055,7 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
+  const [summaryTab, setSummaryTab] = useState<"overview" | "history">("overview");
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
@@ -2217,7 +2245,29 @@ function DockedConversationPanel({
                       isHandoffSummaryOpen ? "translate-x-0" : "translate-x-full",
                     )}
                   >
+                    {/* Tab bar */}
+                    <div className="px-4 pt-4 pb-0">
+                      <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 w-full">
+                        {(["overview", "history"] as const).map((tab) => (
+                          <button
+                            key={tab}
+                            type="button"
+                            onClick={() => setSummaryTab(tab)}
+                            className={cn(
+                              "flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
+                              summaryTab === tab
+                                ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                                : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+                            )}
+                          >
+                            {tab === "overview" ? "Overview" : "Customer History"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div className="p-4 space-y-3">
+                      {summaryTab === "overview" ? (<>
                         {/* Customer Profile — collapsible */}
                       <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
@@ -2225,10 +2275,10 @@ function DockedConversationPanel({
                           onClick={() => setIsCustomerProfileOpen((v) => !v)}
                           className="flex w-full items-center justify-between px-4 py-3 text-left"
                         >
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                             Customer Profile
                           </p>
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isCustomerProfileOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
@@ -2241,11 +2291,11 @@ function DockedConversationPanel({
                                   </div>
                                   <div>
                                     <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{conversation.customerName}</p>
-                                    <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                                    <p className="text-[11px] text-[#667085] dark:text-[#8BACC4] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
                                   </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                  <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                                  <p className="text-[10px] text-[#98A2B3] dark:text-[#6B8FAD]">Balance</p>
                                   <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
                                 </div>
                               </div>
@@ -2253,7 +2303,7 @@ function DockedConversationPanel({
                               <div className="grid grid-cols-2 gap-2">
                                 {/* Fraud Risk Score */}
                                 <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Fraud Risk Score</p>
                                   <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
                                     {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
                                   </p>
@@ -2266,9 +2316,9 @@ function DockedConversationPanel({
                                 </div>
                                 {/* Prior Disputes */}
                                 <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                                  <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Prior Disputes</p>
                                   <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
-                                  <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                                  <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#8BACC4]")}>
                                     Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
                                   </p>
                                 </div>
@@ -2297,10 +2347,10 @@ function DockedConversationPanel({
                       </div>
                     {/* Section 1: Customer Issue */}
                       <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                           Customer Issue
                         </p>
-                        <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                        <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
                           {casePreview ?? getCustomerIssueSummary(conversation)}
                         </p>
                       </div>
@@ -2311,10 +2361,10 @@ function DockedConversationPanel({
                           onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                           className="flex w-full items-center justify-between px-4 py-3 text-left"
                         >
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                             Attempted Resolution
                           </p>
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
@@ -2324,14 +2374,14 @@ function DockedConversationPanel({
                                 return actions ? (
                                   <ul className="space-y-2">
                                     {actions.map((action, i) => (
-                                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
                                         <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
                                         {action}
                                       </li>
                                     ))}
                                   </ul>
                                 ) : (
-                                  <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                                  <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
                                     {getInteractionOverview(conversation)}
                                   </p>
                                 );
@@ -2340,6 +2390,37 @@ function DockedConversationPanel({
                           </div>
                         </div>
                       </div>
+                      </>) : (
+                        /* Customer History timeline */
+                        <div className="pt-1">
+                          <div className="relative">
+                            {/* Vertical line */}
+                            <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
+                            <div className="space-y-5 pl-6">
+                              {customerRecord.customerHistory.map((item: CustomerHistoryItem) => (
+                                <div key={item.id} className="relative">
+                                  {/* Dot */}
+                                  <span className={cn(
+                                    "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
+                                    item.dot === "purple" ? "bg-[#6E56CF]" :
+                                    item.dot === "orange" ? "bg-[#F59E0B]" :
+                                    item.dot === "red"    ? "bg-[#E32926]" :
+                                    item.dot === "green"  ? "bg-[#208337]" :
+                                    "bg-[#D0D5DD]",
+                                  )} />
+                                  <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
+                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                      <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
+                                      <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
+                                    </div>
+                                    <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -2351,7 +2432,57 @@ function DockedConversationPanel({
                   className="w-[350px] flex-shrink-0 border-l border-border flex flex-col bg-card dark:bg-[#0C1A26]"
                   style={{ transition: "width 300ms ease" }}
                 >
+                  {/* Tab bar (wide mode) */}
+                  <div className="shrink-0 px-4 pt-4 pb-0">
+                    <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 w-full">
+                      {(["overview", "history"] as const).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => setSummaryTab(tab)}
+                          className={cn(
+                            "flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
+                            summaryTab === tab
+                              ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                              : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+                          )}
+                        >
+                          {tab === "overview" ? "Overview" : "Customer History"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="overflow-y-auto flex-1 p-4 space-y-3">
+                    {summaryTab === "history" ? (
+                      /* Customer History timeline (wide) */
+                      <div className="pt-1">
+                        <div className="relative">
+                          <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
+                          <div className="space-y-5 pl-6">
+                            {customerRecord.customerHistory.map((item: CustomerHistoryItem) => (
+                              <div key={item.id} className="relative">
+                                <span className={cn(
+                                  "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
+                                  item.dot === "purple" ? "bg-[#6E56CF]" :
+                                  item.dot === "orange" ? "bg-[#F59E0B]" :
+                                  item.dot === "red"    ? "bg-[#E32926]" :
+                                  item.dot === "green"  ? "bg-[#208337]" :
+                                  "bg-[#D0D5DD]",
+                                )} />
+                                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
+                                    <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
+                                  </div>
+                                  <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (<>
 
                     {/* Customer Profile — collapsible */}
                     <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
@@ -2360,10 +2491,10 @@ function DockedConversationPanel({
                         onClick={() => setIsCustomerProfileOpen((v) => !v)}
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                           Customer Profile
                         </p>
-                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isCustomerProfileOpen && "rotate-180")} />
                       </button>
                       <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                         <div className="overflow-hidden">
@@ -2376,11 +2507,11 @@ function DockedConversationPanel({
                                 </div>
                                 <div>
                                   <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{conversation.customerName}</p>
-                                  <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                                  <p className="text-[11px] text-[#667085] dark:text-[#8BACC4] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
                                 </div>
                               </div>
                               <div className="text-right shrink-0">
-                                <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
+                                <p className="text-[10px] text-[#98A2B3] dark:text-[#6B8FAD]">Balance</p>
                                 <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
                               </div>
                             </div>
@@ -2388,7 +2519,7 @@ function DockedConversationPanel({
                             <div className="grid grid-cols-2 gap-2">
                               {/* Fraud Risk Score */}
                               <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Fraud Risk Score</p>
                                 <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
                                   {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
                                 </p>
@@ -2401,9 +2532,9 @@ function DockedConversationPanel({
                               </div>
                               {/* Prior Disputes */}
                               <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
+                                <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Prior Disputes</p>
                                 <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
-                                <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                                <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#8BACC4]")}>
                                   Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
                                 </p>
                               </div>
@@ -2432,10 +2563,10 @@ function DockedConversationPanel({
                     </div>
                     {/* Section 1: Customer Issue */}
                     <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                         Customer Issue
                       </p>
-                      <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                      <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
                         {casePreview ?? getCustomerIssueSummary(conversation)}
                       </p>
                     </div>
@@ -2447,10 +2578,10 @@ function DockedConversationPanel({
                         onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
                           Attempted Resolution
                         </p>
-                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
                       </button>
                       <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                         <div className="overflow-hidden">
@@ -2460,14 +2591,14 @@ function DockedConversationPanel({
                               return actions ? (
                                 <ul className="space-y-2">
                                   {actions.map((action, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
+                                    <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
                                       <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
                                       {action}
                                     </li>
                                   ))}
                                 </ul>
                               ) : (
-                                <p className="text-[12px] leading-5 text-[#344054] dark:text-[#4E7D96]">
+                                <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
                                   {getInteractionOverview(conversation)}
                                 </p>
                               );
@@ -2477,6 +2608,7 @@ function DockedConversationPanel({
                       </div>
                     </div>
 
+                  </>)}
                   </div>
                 </div>
               )}
@@ -2578,7 +2710,7 @@ function CombinedInteractionPanel({
                   type="button"
                   aria-label="Close combined interaction panel"
                   onClick={onClose}
-                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -2849,7 +2981,7 @@ function DockedCustomerInfoPanel({
                   type="button"
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={onClose}
-                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
                   aria-label="Close customer information panel"
                 >
                   <X className="h-4 w-4" />
@@ -3007,7 +3139,7 @@ function CustomerInfoPopunder({
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Close customer information popunder"
           >
             <X className="h-4 w-4" />
@@ -3132,7 +3264,7 @@ function DockedCopilotPanel({
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Close docked NiCE Copilot"
           >
             <X className="h-4 w-4" />
@@ -3311,7 +3443,7 @@ function DeskCanvasPopunder({
               type="button"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={() => setInlineAddOpen(true)}
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
               aria-label="Add new"
             >
               <Plus className="h-4 w-4" />
@@ -3321,7 +3453,7 @@ function DeskCanvasPopunder({
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label={`Close ${panelLabel} popunder`}
           >
             <X className="h-4 w-4" />
@@ -3407,7 +3539,7 @@ function ConversationPopunder({
   onSelectChannel: (channel: CustomerChannel) => void;
   onOpenDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
   onOpenCall: (anchorRect?: DOMRect | null) => void;
-  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email">) => void;
+  onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email" | "whatsapp">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
   onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
   onConversationStatusChange: (status: ConversationStatus) => void;
@@ -3533,7 +3665,7 @@ function ConversationPopunder({
                   size="icon"
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={onDock}
-                  className="h-8 w-8 shrink-0 rounded-full border border-black/10 bg-white text-[#333333] hover:bg-[#F8F8F9] hover:text-[#333333]"
+                  className="h-8 w-8 shrink-0 rounded-full border border-black/10 dark:border-border bg-white dark:bg-[#1C2A3A] text-[#333333] dark:text-[#CBD5E1] hover:bg-[#F8F8F9] dark:hover:bg-[#243041] hover:text-[#333333]"
                   aria-label="Dock panel"
                 >
                   <Pin className="h-4 w-4" />
@@ -3694,7 +3826,7 @@ function NotesPopoverContent({
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => setAddNoteTrigger((current) => current + 1)}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Add note"
           >
             <FilePlus2 className="h-4 w-4" />
@@ -3703,7 +3835,7 @@ function NotesPopoverContent({
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333]"
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Close notes popunder"
           >
             <X className="h-4 w-4" />
@@ -3964,13 +4096,226 @@ const REJECT_REASONS = [
 // ─── Add New Assignment two-step flow popover ─────────────────────────────────
 
 type AddNewFlowStep = "channel" | "customer";
-type AddNewFlowChannel = "voice" | "email" | "sms";
+type AddNewFlowChannel = "voice" | "email" | "sms" | "whatsapp";
 
 const ADD_NEW_CHANNEL_OPTIONS: Array<{ channel: AddNewFlowChannel; label: string; icon: React.ElementType }> = [
-  { channel: "voice", label: "Call",  icon: Phone },
-  { channel: "email", label: "Email", icon: Mail },
-  { channel: "sms",   label: "SMS",   icon: MessageSquare },
+  { channel: "voice",    label: "Call",     icon: Phone },
+  { channel: "email",    label: "Email",    icon: Mail },
+  { channel: "sms",      label: "SMS",      icon: MessageSquare },
+  { channel: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon },
 ];
+
+// ─── Connected Applications popover ──────────────────────────────────────────
+
+type ConnectedApp = { name: string; latency: string; uptime: string; status: string };
+
+const initialConnectedApps: ConnectedApp[] = [
+  { name: "Salesforce",     latency: "42ms",  uptime: "99.9%", status: "healthy"  },
+  { name: "ADP Workforce",  latency: "88ms",  uptime: "99.7%", status: "healthy"  },
+  { name: "Outlook 365",    latency: "31ms",  uptime: "100%",  status: "healthy"  },
+  { name: "MS Teams",       latency: "29ms",  uptime: "100%",  status: "healthy"  },
+  { name: "Zendesk",        latency: "340ms", uptime: "97.2%", status: "degraded" },
+  { name: "Jira Cloud",     latency: "67ms",  uptime: "99.8%", status: "healthy"  },
+  { name: "Knowledge Base", latency: "12ms",  uptime: "100%",  status: "healthy"  },
+  { name: "Desktop CTI",    latency: "8ms",   uptime: "100%",  status: "healthy"  },
+];
+
+// Keep a module-level snapshot so the header badge can read it without the popover being open
+let connectedApps: ConnectedApp[] = initialConnectedApps;
+
+const connectedAppIconLetters: Record<string, string> = {
+  Salesforce: "S", "ADP Workforce": "A", "Outlook 365": "O",
+  "MS Teams": "T", Zendesk: "Z", "Jira Cloud": "J",
+  "Knowledge Base": "K", "Desktop CTI": "D",
+};
+
+// ── Inline toast ────────────────────────────────────────────────────────────
+
+type AppToast = { id: number; message: string };
+let _toastId = 0;
+
+function AppToastContainer({ toasts, onDismiss }: { toasts: AppToast[]; onDismiss: (id: number) => void }) {
+  // Newest toast sits on top of the rolodex stack (same physics as the notification card stack)
+  const reversed = [...toasts].reverse();
+  const STACK_PEEK   = 8;   // px each card peeks above the one in front
+  const SCALE_STEP   = 0.04;
+  const OPACITY_STEP = 0.28;
+
+  return createPortal(
+    <div
+      className="fixed bottom-5 right-5 z-[99999] pointer-events-none"
+      style={{ width: 400 }}
+    >
+      {reversed.map((t, i) => {
+        const isTop      = i === 0;
+        const translateY = isTop ? 0 : -(i * STACK_PEEK);
+        const scale      = isTop ? 1 : Math.max(0.88, 1 - i * SCALE_STEP);
+        const opacity    = isTop ? 1 : Math.max(0,    1 - i * OPACITY_STEP);
+        return (
+          <div
+            key={t.id}
+            className="absolute bottom-0 left-0 right-0"
+            style={{
+              transform: `translateY(${translateY}px) scale(${scale})`,
+              transformOrigin: "bottom center",
+              opacity,
+              zIndex: toasts.length - i,
+              transition: [
+                `transform 320ms cubic-bezier(0.34,1.12,0.64,1)`,
+                `opacity 200ms ease`,
+              ].join(", "),
+            }}
+          >
+            <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-border bg-white dark:bg-[#0F1629] px-4 py-3.5 shadow-[0_8px_32px_rgba(16,24,40,0.18)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.45)] animate-in slide-in-from-bottom-3 fade-in duration-300">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-[#208337]" />
+              <span className="text-[13px] font-medium text-[#1D2939] dark:text-[#E2E8F0] flex-1">{t.message}</span>
+              {isTop && (
+                <button
+                  onClick={() => onDismiss(t.id)}
+                  className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] dark:hover:bg-[#1C2536] hover:text-[#475467] dark:hover:text-[#CBD5E1] transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>,
+    document.body,
+  );
+}
+
+function ConnectedAppsPopover({
+  anchorRef,
+  onClose,
+  onDegradedCountChange,
+}: {
+  anchorRef: React.RefObject<HTMLDivElement>;
+  onClose: () => void;
+  onDegradedCountChange: (count: number) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const [apps, setApps] = useState<ConnectedApp[]>(initialConnectedApps);
+  const [hoveredApp, setHoveredApp] = useState<string | null>(null);
+  const [refreshingApp, setRefreshingApp] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<AppToast[]>([]);
+
+  useEffect(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    }
+  }, [anchorRef]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // Exclude the anchor button — its own onClick handles the toggle
+      if (
+        ref.current && !ref.current.contains(target) &&
+        anchorRef.current && !anchorRef.current.contains(target)
+      ) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose, anchorRef]);
+
+  const dismissToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
+
+  const handleRefresh = (appName: string) => {
+    if (refreshingApp) return;
+    setRefreshingApp(appName);
+    setTimeout(() => {
+      setApps((prev) => {
+        const next = prev.map((a) => a.name === appName ? { ...a, status: "healthy" } : a);
+        connectedApps = next; // sync module-level snapshot
+        onDegradedCountChange(next.filter((a) => a.status !== "healthy").length);
+        return next;
+      });
+      setRefreshingApp(null);
+      setHoveredApp(null);
+      const id = ++_toastId;
+      setToasts((prev) => [...prev, { id, message: `${appName} reconnected successfully` }]);
+      setTimeout(() => dismissToast(id), 4000);
+    }, 1800);
+  };
+
+  const healthyCount = apps.filter((a) => a.status === "healthy").length;
+
+  return (
+    <>
+      {createPortal(
+        <div
+          ref={ref}
+          className="fixed z-[9999] w-[272px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] overflow-hidden"
+          style={{ top: pos.top, right: pos.right }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border">
+            <div className="flex items-center justify-between">
+              <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Connected Applications</p>
+              <span className="text-[11px] text-[#98A2B3]">{healthyCount}/{apps.length} healthy</span>
+            </div>
+            <p className="text-[11px] text-[#98A2B3] mt-0.5">System health overview</p>
+          </div>
+          {/* App list */}
+          <div className="max-h-[320px] overflow-y-auto divide-y divide-border">
+            {apps.map((app) => {
+              const isHovered = hoveredApp === app.name;
+              const isRefreshing = refreshingApp === app.name;
+              const isDegraded = app.status !== "healthy";
+              return (
+                <div
+                  key={app.name}
+                  className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]"
+                  onMouseEnter={() => setHoveredApp(app.name)}
+                  onMouseLeave={() => setHoveredApp(null)}
+                >
+                  <div className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[10px] font-bold text-[#475467] dark:text-[#94A3B8]">
+                    {connectedAppIconLetters[app.name] ?? app.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-[#1D2939] dark:text-[#E2E8F0] truncate">{app.name}</p>
+                    <p className={cn("text-[10px]", isRefreshing ? "text-[#F59E0B]" : "text-[#98A2B3]")}>
+                      {isRefreshing ? "Reconnecting…" : `${app.latency} · ${app.uptime} uptime`}
+                    </p>
+                  </div>
+                  {/* Status indicator / refresh button */}
+                  <div className="shrink-0 flex h-6 w-6 items-center justify-center">
+                    {(isHovered || isRefreshing) && isDegraded ? (
+                      <button
+                        onClick={() => handleRefresh(app.name)}
+                        disabled={!!refreshingApp}
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-[#F59E0B] hover:bg-[#FEF3C7] dark:hover:bg-[#2A1E00] transition-colors disabled:cursor-not-allowed"
+                        title="Reconnect"
+                      >
+                        <RefreshCw
+                          className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")}
+                        />
+                      </button>
+                    ) : (
+                      <div className={cn(
+                        "h-2 w-2 rounded-full",
+                        app.status === "healthy" ? "bg-[#208337]" : "bg-[#F59E0B]",
+                      )} />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>,
+        document.body,
+      )}
+      <AppToastContainer toasts={toasts} onDismiss={dismissToast} />
+    </>
+  );
+}
 
 function AddNewAssignmentFlowPopover({
   anchorRect,
@@ -3980,7 +4325,7 @@ function AddNewAssignmentFlowPopover({
 }: {
   anchorRect: DOMRect;
   onClose: () => void;
-  onOpenCustomerConversation: (customerRecordId: string, channel: "email" | "sms") => void;
+  onOpenCustomerConversation: (customerRecordId: string, channel: "email" | "sms" | "whatsapp") => void;
   onOpenCall: (customerRecordId: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -4610,12 +4955,12 @@ function IncomingTransferPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[10000] w-[280px] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      className="fixed z-[10000] w-[280px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
       style={{ bottom: `calc(100vh - ${pos.top}px)`, right: pos.right }}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <p className="text-[12px] font-semibold text-[#333333]">Transfer to</p>
+        <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Transfer to</p>
         <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
           <X className="h-3.5 w-3.5" />
         </button>
@@ -4645,18 +4990,18 @@ function IncomingTransferPopover({
               disabled={isDisabled}
               onClick={() => handleAssign(agent)}
               className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isAssigned ? "bg-[#F2F0FA] dark:bg-[#2A1F4A]" : "hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]",
                 isDisabled && "opacity-40 cursor-not-allowed")}
             >
               <div className="relative shrink-0">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[10px] font-bold text-[#475467] dark:text-[#94A3B8]">
                   {agent.initials}
                 </div>
-                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", notifAvailabilityDot[agent.availability])} />
+                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white dark:border-[#0F1629]", notifAvailabilityDot[agent.availability])} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
+                  <p className="text-[12px] font-semibold text-[#1D2939] dark:text-[#E2E8F0] truncate">{agent.name}</p>
                   {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
@@ -4688,28 +5033,23 @@ function IncomingAssignmentCard({
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
 
-  const channelIconMap: Record<string, React.ElementType> = {
-    voice: Phone,
-    email: Mail,
-    sms: MessageCircle,
-  };
-  const ChannelIcon = channelIconMap[item.channel] ?? MessageCircle;
-  const channelLabel = item.channel === "voice" ? "Voice" : item.channel === "email" ? "Email" : "SMS";
+  const ChannelIcon = launchedAssignmentIconMap[item.channel] ?? MessageSquare;
+  const channelLabel = conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
 
   const aiOverview = getTaskAiOverview(item.customerRecordId, item.name, item.channel);
   const assignmentEntry = getCustomerAssignmentEntry(item.name);
 
   return (
-    <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
+    <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
       {/* Header */}
       <div className="flex items-start justify-between px-4 pt-4 pb-2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F4F7] text-[13px] font-semibold text-[#344054]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[13px] font-semibold text-[#344054] dark:text-[#94A3B8]">
             {item.initials}
           </div>
           <div>
-            <p className="text-[14px] font-semibold leading-tight text-[#101828]">{item.name}</p>
-            <p className="text-[12px] text-[#667085] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
+            <p className="text-[14px] font-semibold leading-tight text-[#101828] dark:text-[#E2E8F0]">{item.name}</p>
+            <p className="text-[12px] text-[#667085] dark:text-[#8898AB] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
           </div>
         </div>
         <span className="shrink-0 ml-2 rounded-full border border-[#24943E] bg-[#EFFBF1] px-2.5 py-0.5 text-[11px] font-medium text-[#208337]">
@@ -5062,6 +5402,7 @@ function LeftQueueRail({
   onToggle,
   completedTodayCount,
   onAddNewAssignment,
+  totalQueueCount,
 }: {
   visibleAssignments: QueuePreviewItem[];
   queueStatuses: Record<string, QueueAssignmentStatus>;
@@ -5071,6 +5412,7 @@ function LeftQueueRail({
   onToggle: () => void;
   completedTodayCount: number;
   onAddNewAssignment: (rect: DOMRect) => void;
+  totalQueueCount: number;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -5299,24 +5641,38 @@ function LeftQueueRail({
                   { icon: Settings,      path: "/settings",      label: "Settings" },
                 ] as const).map(({ icon: Icon, path, label }) => {
                   const isActive = location.pathname === path;
+                  const showDot = label === "Desk" && totalQueueCount > 0;
                   return (
                     <Tooltip key={label}>
                       <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label={label}
-                          onClick={() => navigate(path)}
-                          className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-                            isActive
-                              ? "bg-[#6E56CF] text-white"
-                              : "text-[#667085] hover:bg-[#EBEBEC] hover:text-[#1D2939]",
+                        {/* Outer wrapper holds `relative` so the badge escapes the button's own stacking context */}
+                        <div className="relative">
+                          <button
+                            type="button"
+                            aria-label={label}
+                            onClick={() => navigate(path)}
+                            className={cn(
+                              "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
+                              isActive
+                                ? "bg-[#6E56CF] text-white"
+                                : "text-[#667085] dark:text-[#8898AB] hover:bg-[#EBEBEC] dark:hover:bg-[#1C2536] hover:text-[#1D2939] dark:hover:text-[#CBD5E1]",
+                            )}
+                          >
+                            <Icon className="h-4 w-4 stroke-[1.5]" />
+                          </button>
+                          {showDot && (
+                            <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#E32926]" />
                           )}
-                        >
-                          <Icon className="h-4 w-4 stroke-[1.5]" />
-                        </button>
+                        </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right">{label}</TooltipContent>
+                      <TooltipContent side="right">
+                        <span className="font-medium">{label}</span>
+                        {label === "Desk" && totalQueueCount > 0 && (
+                          <span className="mt-0.5 block text-[11px] font-normal opacity-75">
+                            {totalQueueCount} in queue
+                          </span>
+                        )}
+                      </TooltipContent>
                     </Tooltip>
                   );
                 })}
@@ -5350,12 +5706,12 @@ function LeftQueueRail({
           >
             {/* Assignments section */}
             <div className="shrink-0 px-3 pb-2 pt-3">
-              <h3 className="text-[13px] font-semibold tracking-tight text-[#333333]">Cases</h3>
-              <p className="mt-0.5 text-[11px] text-[#7A7A7A]">{completedTodayCount} completed today</p>
+              <h3 className="text-[13px] font-semibold tracking-tight text-[#333333] dark:text-[#E2E8F0]">Cases</h3>
+              <p className="mt-0.5 text-[11px] text-[#7A7A7A] dark:text-[#8898AB]">{completedTodayCount} completed today</p>
               <button
                 type="button"
                 onClick={(e) => onAddNewAssignment(e.currentTarget.getBoundingClientRect())}
-                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/[0.14] bg-white px-3 py-1.5 text-[13px] font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+                className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg border border-black/[0.14] dark:border-border bg-white dark:bg-[#1C2A3A] px-3 py-1.5 text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1] transition-colors hover:bg-[#F9FAFB] dark:hover:bg-[#243041]"
               >
                 <Plus className="h-4 w-4 stroke-[1.5]" />
                 New Case
@@ -5387,6 +5743,7 @@ function LeftQueueRail({
                   { label: "Settings", icon: Settings,      path: "/settings"      },
                 ].map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path;
+                  const caseCount = label === "Desk" ? totalQueueCount : 0;
                   return (
                     <button
                       key={label}
@@ -5396,11 +5753,21 @@ function LeftQueueRail({
                         "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                         isActive
                           ? "bg-[#6E56CF] text-white"
-                          : "text-[#444444] hover:bg-[#EBEBEC] hover:text-[#1D2939]",
+                          : "text-[#444444] dark:text-[#CBD5E1] hover:bg-[#EBEBEC] dark:hover:bg-[#1C2536] hover:text-[#1D2939] dark:hover:text-white",
                       )}
                     >
-                      <Icon className={cn("h-4 w-4 shrink-0 stroke-[1.5]", isActive ? "text-white" : "text-[#667085]")} />
-                      {label}
+                      <Icon className={cn("h-4 w-4 shrink-0 stroke-[1.5]", isActive ? "text-white" : "text-[#667085] dark:text-[#8898AB]")} />
+                      <span className="flex-1 text-left">{label}</span>
+                      {caseCount > 0 && (
+                        <span className={cn(
+                          "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-bold leading-none",
+                          isActive
+                            ? "bg-white/25 text-white"
+                            : "bg-[#E32926] text-white",
+                        )}>
+                          {caseCount > 99 ? "99+" : caseCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -5784,6 +6151,11 @@ export default function Layout({ children }: LayoutProps) {
   const chatButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
   const copilotButtonRef = useRef<HTMLDivElement | null>(null);
+  const connectedAppsButtonRef = useRef<HTMLDivElement | null>(null);
+  const [isConnectedAppsOpen, setIsConnectedAppsOpen] = useState(false);
+  const [degradedAppCount, setDegradedAppCount] = useState(
+    () => initialConnectedApps.filter((a) => a.status !== "healthy").length,
+  );
 
   useEffect(() => {
     setElapsedSeconds(0);
@@ -7748,6 +8120,13 @@ export default function Layout({ children }: LayoutProps) {
       liveLastCustomerCommentByAssignmentId,
       setAssignmentStatus: (assignmentId: string, newStatus: QueueAssignmentStatus) =>
         setAssignmentStatusesById((prev) => ({ ...prev, [assignmentId]: newStatus })),
+      openCopilot: () => {
+        if (isCopilotViewPopunderOpen) {
+          bringFloatingPanelToFront("deskCanvas");
+        } else {
+          openHeaderAppPanel("copilot");
+        }
+      },
     }),
     [
       activeRightPanel,
@@ -7799,6 +8178,8 @@ export default function Layout({ children }: LayoutProps) {
       activatedChannelIds,
       liveLastCustomerCommentByAssignmentId,
       setAssignmentStatusesById,
+      isCopilotViewPopunderOpen,
+      openHeaderAppPanel,
     ],
   );
 
@@ -7990,6 +8371,25 @@ export default function Layout({ children }: LayoutProps) {
 
           <div ref={addNewButtonRef} className="hidden" aria-hidden="true" />
 
+          {/* Connected Apps */}
+          <div ref={connectedAppsButtonRef}>
+            <HeaderIconButton
+              ariaLabel="Connected Applications"
+              tooltip="Connected Applications"
+              onClick={() => setIsConnectedAppsOpen((v) => !v)}
+              isActive={isConnectedAppsOpen}
+            >
+              <div className="relative">
+                <Activity className="h-4 w-4 stroke-[1.5]" />
+                {degradedAppCount > 0 && !isConnectedAppsOpen && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-[#F59E0B] px-0.5 text-[9px] font-bold leading-none text-white">
+                    {degradedAppCount}
+                  </span>
+                )}
+              </div>
+            </HeaderIconButton>
+          </div>
+
           <div ref={copilotButtonRef}>
             <button
               type="button"
@@ -8063,17 +8463,17 @@ export default function Layout({ children }: LayoutProps) {
                     </button>
                   ))}
                 </div>
-                <div className="mt-1 border-t border-[#F2F4F7] pt-1">
+                <div className="mt-1 border-t border-[#F2F4F7] dark:border-border pt-1">
                   {/* Dark mode toggle */}
                   <button
                     type="button"
                     onClick={() => setIsDarkMode((v) => !v)}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] hover:bg-[#F2F4F7] transition-colors duration-150"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-normal text-[#333333] dark:text-[#CBD5E1] hover:bg-[#F2F4F7] dark:hover:bg-[#1C2536] transition-colors duration-150"
                   >
                     {isDarkMode ? (
-                      <Sun className="h-3.5 w-3.5 text-[#667085]" />
+                      <Sun className="h-3.5 w-3.5 text-[#667085] dark:text-[#94A3B8]" />
                     ) : (
-                      <Moon className="h-3.5 w-3.5 text-[#667085]" />
+                      <Moon className="h-3.5 w-3.5 text-[#667085] dark:text-[#94A3B8]" />
                     )}
                     <span>{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
                   </button>
@@ -8111,6 +8511,7 @@ export default function Layout({ children }: LayoutProps) {
             setAddNewFlowAnchorRect(rect);
             setIsAddNewFlowOpen((v) => !v);
           }}
+          totalQueueCount={staticAssignments.filter((a) => a.channel !== "voice").length}
         />
         {isActivityRoute && visibleAssignments.length === 0 && (
           <div className={cn(
@@ -8645,6 +9046,14 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
+      {isConnectedAppsOpen && (
+        <ConnectedAppsPopover
+          anchorRef={connectedAppsButtonRef}
+          onClose={() => setIsConnectedAppsOpen(false)}
+          onDegradedCountChange={setDegradedAppCount}
+        />
+      )}
+
       {isNotificationsPopoverOpen && (
         <NotificationsPopoverContent
           position={notificationsPopunderPosition}
@@ -8727,25 +9136,25 @@ export default function Layout({ children }: LayoutProps) {
       {/* ── Login Briefing Modal ─────────────────────────────────────────── */}
       {showLoginBriefing && (
         <div className={cn(
-          "fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-[2px] transition-opacity duration-280",
+          "fixed inset-0 z-[9999] flex items-center justify-center bg-white/60 dark:bg-black/60 backdrop-blur-[3px] transition-opacity duration-280",
           briefingClosing ? "opacity-0" : "animate-in fade-in duration-200",
         )}>
           <div className={cn(
-            "w-[400px] rounded-2xl border border-black/[0.08] bg-white shadow-[0_32px_80px_rgba(0,0,0,0.55),0_8px_24px_rgba(0,0,0,0.35)] transition-all duration-280",
+            "w-[400px] rounded-2xl border border-black/[0.08] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.10),0_2px_8px_rgba(0,0,0,0.06)] transition-all duration-280",
             briefingClosing
               ? "opacity-0 scale-95 translate-y-2"
               : "animate-in fade-in zoom-in-95 slide-in-from-bottom-3 duration-300",
           )}>
 
             {/* Header */}
-            <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F7]">
+            <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F7] dark:border-border">
               <div className="flex items-center gap-3">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M23.7188 5.89062C23.8757 5.89077 24.0015 6.01655 24 6.17188C23.8494 15.8941 15.9182 23.7747 6.13379 23.9238C5.97839 23.9255 5.85077 23.7999 5.85059 23.6445V19.3848C5.85059 19.2325 5.97502 19.1097 6.12891 19.1064C13.2448 18.9606 19.0048 13.236 19.1523 6.16602C19.1556 6.01217 19.2788 5.88872 19.4326 5.88867L23.7188 5.89062ZM12.2559 0.0771484C13.8714 0.0772122 15.1804 1.37836 15.1807 2.98242C15.1807 4.58668 13.8716 5.88861 12.2559 5.88867C10.6401 5.88867 9.33008 4.58672 9.33008 2.98242C9.33031 1.37832 10.6402 0.0771484 12.2559 0.0771484ZM2.92578 0.0761719C4.5412 0.0763851 5.85033 1.3775 5.85059 2.98145C5.85059 4.58561 4.54135 5.88748 2.92578 5.8877C1.31003 5.8877 0 4.58574 0 2.98145C0.000253194 1.37736 1.31018 0.0761719 2.92578 0.0761719Z" fill="#2196F3"/>
                 </svg>
                 <div>
-                  <p className="text-[15px] font-semibold text-[#101828]">Good morning, Jeff</p>
-                  <p className="text-[12px] text-[#667085]">Here's what's waiting for you today</p>
+                  <p className="text-[15px] font-semibold text-[#101828] dark:text-[#E2E8F0]">Good morning, Jeff</p>
+                  <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Here's what's waiting for you today</p>
                 </div>
               </div>
             </div>
@@ -8753,40 +9162,40 @@ export default function Layout({ children }: LayoutProps) {
             {/* Stats */}
             <div className="px-6 py-4 space-y-3">
               {/* Cases in queue */}
-              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F0FA]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F0FA] dark:bg-[#2A1F4A]">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054]">Cases in queue</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Cases in queue</span>
                 </div>
                 <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
               </div>
 
               {/* Chats to review */}
-              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFFBF1]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFFBF1] dark:bg-[#102A18]">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#208337" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054]">Chats from agents to review</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Chats from agents to review</span>
                 </div>
                 <span className="rounded-full bg-[#208337] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
               </div>
 
               {/* Applications to upgrade */}
-              <div className="flex items-center justify-between rounded-xl border border-[#FFF6E0] bg-[#FFF6E0] px-4 py-3">
+              <div className="flex items-center justify-between rounded-xl border border-[#D9A800]/40 dark:border-[#7A5C00]/60 bg-[#FFF6E0] dark:bg-[#2A1E00] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF6E0]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF6E0] dark:bg-[#3A2A00]">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A37A00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054]">Applications needing upgrade</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Applications needing upgrade</span>
                 </div>
                 <span className="rounded-full bg-[#A37A00] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
               </div>
@@ -8807,7 +9216,7 @@ export default function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 onClick={() => closeBriefing()}
-                className="flex-1 rounded-xl border border-[#D0D5DD] bg-white py-2.5 text-[14px] font-semibold text-[#344054] hover:bg-[#F9FAFB] active:bg-[#F2F4F7] transition-colors"
+                className="flex-1 rounded-xl border border-[#D0D5DD] dark:border-[#2A3448] bg-white dark:bg-[#1C2A3A] py-2.5 text-[14px] font-semibold text-[#344054] dark:text-[#CBD5E1] hover:bg-[#F9FAFB] dark:hover:bg-[#243041] active:bg-[#F2F4F7] transition-colors"
               >
                 Start Offline
               </button>

@@ -202,12 +202,12 @@ function ConversationRow({ conv, onSelect }: { conv: Conversation; onSelect: (id
     <button
       type="button"
       onClick={() => onSelect(conv.id)}
-      className="flex w-full items-center gap-3 border-b border-black/[0.06] px-4 py-3.5 text-left transition-colors hover:bg-[#F8F8F9]"
+      className="flex w-full items-center gap-3 border-b border-black/[0.06] dark:border-border px-4 py-3.5 text-left transition-colors hover:bg-[#F8F8F9] dark:hover:bg-[#1C2536]"
     >
       <Avatar initials={conv.initials} color={conv.avatarColor} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-[#111827]">{conv.name}</span>
+          <span className="text-sm font-semibold text-[#111827] dark:text-[#E2E8F0]">{conv.name}</span>
           <span className="shrink-0 text-[11px] text-[#98A2B3]">{conv.timestamp}</span>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
@@ -228,19 +228,19 @@ function AgentRow({ agent, onNewMessage }: { agent: Agent; onNewMessage: (agent:
     <button
       type="button"
       onClick={() => onNewMessage(agent)}
-      className="flex w-full items-center gap-3 border-b border-black/[0.06] px-4 py-3 text-left transition-colors hover:bg-[#F8F8F9]"
+      className="flex w-full items-center gap-3 border-b border-black/[0.06] dark:border-border px-4 py-3 text-left transition-colors hover:bg-[#F8F8F9] dark:hover:bg-[#1C2536]"
     >
       <div className="relative shrink-0">
         <Avatar initials={agent.initials} color={agent.avatarColor} />
         <span
           className={cn(
-            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#0D1525]",
             STATUS_DOT[agent.status],
           )}
         />
       </div>
       <div className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold text-[#111827]">{agent.name}</span>
+        <span className="block text-sm font-semibold text-[#111827] dark:text-[#E2E8F0]">{agent.name}</span>
         <span className="block truncate text-xs text-[#667085]">{agent.role}</span>
       </div>
     </button>
@@ -265,7 +265,7 @@ function ConversationList({
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       {/* Tabs */}
-      <div className="flex shrink-0 border-b border-black/10 bg-white">
+      <div className="flex shrink-0 border-b border-black/10 dark:border-border bg-white dark:bg-[#0D1525]">
         {(["Recents", "Agents", "Teams"] as const).map((tab) => (
           <button
             key={tab}
@@ -273,7 +273,7 @@ function ConversationList({
             onClick={() => setActiveTab(tab)}
             className={cn(
               "relative px-4 py-3 text-[13px] font-medium transition-colors",
-              activeTab === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
+              activeTab === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
             )}
           >
             {tab}
@@ -373,7 +373,7 @@ function ThreadView({ conversation }: { conversation: Conversation }) {
                         "rounded-2xl px-3 py-2 text-sm leading-relaxed",
                         msg.isMe
                           ? "rounded-br-sm bg-[#6E56CF] text-white"
-                          : "rounded-bl-sm bg-[#F2F4F7] text-[#111827]",
+                          : "rounded-bl-sm bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[#111827] dark:text-[#E2E8F0]",
                       )}
                     >
                       {msg.text}
@@ -389,8 +389,8 @@ function ThreadView({ conversation }: { conversation: Conversation }) {
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-black/10 bg-white p-3">
-        <div className="flex items-end gap-2 rounded-2xl border border-black/10 bg-[#F8F8F9] px-3 py-2">
+      <div className="shrink-0 border-t border-black/10 dark:border-border bg-white dark:bg-[#0D1525] p-3">
+        <div className="flex items-end gap-2 rounded-2xl border border-black/10 dark:border-border bg-[#F8F8F9] dark:bg-[#1C2A3A] px-3 py-2">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -398,7 +398,7 @@ function ThreadView({ conversation }: { conversation: Conversation }) {
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
-            className="max-h-32 min-h-[20px] flex-1 resize-none bg-transparent text-sm text-[#111827] placeholder:text-[#98A2B3] focus:outline-none"
+            className="max-h-32 min-h-[20px] flex-1 resize-none bg-transparent text-sm text-[#111827] dark:text-[#E2E8F0] placeholder:text-[#98A2B3] focus:outline-none"
           />
           <button
             type="button"
@@ -527,7 +527,7 @@ export default function ChatPopoverContent({
 
   return (
     <div
-      className="fixed flex flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed flex flex-col overflow-hidden rounded-xl border border-black/10 dark:border-border bg-white dark:bg-[#0D1525] shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{ left: position.x, top: position.y, width: size.width, height: size.height, zIndex, maxWidth: "calc(100vw - 2rem)", maxHeight: "calc(100vh - 2rem)" }}
       onMouseDown={onInteractStart}
     >
@@ -565,7 +565,7 @@ export default function ChatPopoverContent({
           type="button"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={onClose}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F2F4F7] hover:text-[#333333]"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] dark:text-[#94A3B8] transition-colors hover:bg-[#F2F4F7] dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#E2E8F0]"
           aria-label="Close messages"
         >
           <X className="h-4 w-4" />

@@ -49,11 +49,11 @@ export const seedNotifications: AppNotification[] = [
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<NotificationType, { label: string; Icon: typeof Bell; iconClass: string }> = {
-  new_assignment: { label: "New Case",        Icon: UserPlus,     iconClass: "text-[#6E56CF] bg-[#E0DBF5]" },
-  new_chat:       { label: "New Chat",        Icon: MessageSquare,iconClass: "text-[#059669] bg-[#ECFDF5]" },
-  escalation:     { label: "Escalation",      Icon: AlertTriangle,iconClass: "text-[#A37A00] bg-[#FFF6E0]" },
-  call_missed:    { label: "Missed Call",     Icon: Phone,        iconClass: "text-[#E32926] bg-[#FDEAEA]" },
-  resolved:       { label: "Resolved",        Icon: CheckCircle2, iconClass: "text-[#7A7A7A] bg-[#F2F4F7]" },
+  new_assignment: { label: "New Case",        Icon: UserPlus,     iconClass: "text-[#6E56CF] bg-[#E0DBF5] dark:bg-[#2D1F5E]" },
+  new_chat:       { label: "New Chat",        Icon: MessageSquare,iconClass: "text-[#059669] bg-[#ECFDF5] dark:bg-[#0A2E1A]" },
+  escalation:     { label: "Escalation",      Icon: AlertTriangle,iconClass: "text-[#A37A00] bg-[#FFF6E0] dark:bg-[#2A2000]" },
+  call_missed:    { label: "Missed Call",     Icon: Phone,        iconClass: "text-[#E32926] bg-[#FDEAEA] dark:bg-[#2E0D0D]" },
+  resolved:       { label: "Resolved",        Icon: CheckCircle2, iconClass: "text-[#7A7A7A] bg-[#F2F4F7] dark:bg-[#1C2A3A]" },
 };
 
 function formatTime(date: Date): string {
@@ -110,7 +110,7 @@ function NotificationRow({
             type="button"
             onClick={() => onDismiss(notification.id)}
             aria-label={`Dismiss notification for ${notification.customerName}`}
-            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#98A2B3] opacity-0 transition-all hover:bg-[#F2F4F7] hover:text-[#475467] group-hover:opacity-100"
+            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#98A2B3] opacity-0 transition-all hover:bg-[#F2F4F7] dark:hover:bg-[#1C2A3A] hover:text-[#475467] dark:hover:text-[#8898AB] group-hover:opacity-100"
           >
             <X className="h-3 w-3" />
           </button>
@@ -253,7 +253,7 @@ export default function NotificationsPopoverContent({
               type="button"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={handleClearAll}
-              className="rounded-md px-2 py-1 text-[11px] font-medium text-[#667085] transition-colors hover:bg-[#F2F4F7] hover:text-[#333333]"
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-[#667085] dark:text-[#8898AB] transition-colors hover:bg-[#F2F4F7] dark:hover:bg-[#1C2A3A] hover:text-[#333333] dark:hover:text-[#E2E8F0]"
             >
               Clear all
             </button>
@@ -262,7 +262,7 @@ export default function NotificationsPopoverContent({
             type="button"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={onClose}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F2F4F7] hover:text-[#333333]"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] dark:text-[#8898AB] transition-colors hover:bg-[#F2F4F7] dark:hover:bg-[#1C2A3A] hover:text-[#333333] dark:hover:text-[#E2E8F0]"
             aria-label="Close notifications"
           >
             <X className="h-4 w-4" />
@@ -274,11 +274,11 @@ export default function NotificationsPopoverContent({
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {notifications.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 py-12 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F2F4F7]">
-              <Bell className="h-5 w-5 text-[#98A2B3]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A]">
+              <Bell className="h-5 w-5 text-[#98A2B3] dark:text-[#4E6A85]" />
             </div>
-            <p className="text-sm font-medium text-[#344054]">All caught up</p>
-            <p className="text-xs text-[#98A2B3]">No notifications right now</p>
+            <p className="text-sm font-medium text-[#344054] dark:text-[#CBD5E1]">All caught up</p>
+            <p className="text-xs text-[#98A2B3] dark:text-[#4E6A85]">No notifications right now</p>
           </div>
         ) : (
           notifications.map((n) => (

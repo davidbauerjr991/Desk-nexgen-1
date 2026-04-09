@@ -488,37 +488,37 @@ export default function DirectoryPanel({
               filteredAgents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="rounded-xl border border-black/10 bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
+                  className="rounded-xl border border-black/10 dark:border-white/8 bg-white dark:bg-[#0F1629] p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex items-start gap-3">
                     <div className="relative shrink-0">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F2F4F7] text-[11px] font-bold text-[#475467]">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[11px] font-bold text-[#475467] dark:text-[#8898AB]">
                         {agent.initials}
                       </div>
-                      <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white", AVAILABILITY_DOT[agent.availability])} />
+                      <span className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white dark:border-[#0F1629]", AVAILABILITY_DOT[agent.availability])} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-[13px] font-semibold text-[#1D2939]">{agent.name}</p>
+                        <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">{agent.name}</p>
                         <span className={cn("text-[11px] font-medium", AVAILABILITY_LABEL_COLOR[agent.availability])}>
                           · {AVAILABILITY_LABEL[agent.availability]}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[11px] text-[#667085]">
+                      <p className="mt-0.5 text-[11px] text-[#667085] dark:text-[#6B7FA0]">
                         {agent.role} · {agent.team}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1">
                         {agent.skills.map((skill) => (
                           <span
                             key={skill}
-                            className="rounded-full bg-[#F2F4F7] px-2 py-0.5 text-[10px] font-medium text-[#475467]"
+                            className="rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] px-2 py-0.5 text-[10px] font-medium text-[#475467] dark:text-[#8898AB]"
                           >
                             {skill}
                           </span>
                         ))}
                       </div>
                     </div>
-                    <span className="shrink-0 text-[11px] text-[#98A2B3]">{agent.activeCount} active</span>
+                    <span className="shrink-0 text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">{agent.activeCount} active</span>
                   </div>
                 </div>
               ))
@@ -532,15 +532,15 @@ export default function DirectoryPanel({
                 return (
                   <div
                     key={team.id}
-                    className="rounded-xl border border-black/10 bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
+                    className="rounded-xl border border-black/10 dark:border-white/8 bg-white dark:bg-[#0F1629] p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA]">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] dark:bg-[#1C1A2E]">
                         <Users className="h-4 w-4 text-[#6E56CF]" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-semibold text-[#1D2939]">{team.name}</p>
-                        <p className="mt-0.5 text-[11px] text-[#667085] leading-relaxed">{team.focus}</p>
+                        <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">{team.name}</p>
+                        <p className="mt-0.5 text-[11px] text-[#667085] dark:text-[#6B7FA0] leading-relaxed">{team.focus}</p>
                         {/* Member avatars */}
                         <div className="mt-2.5 flex items-center gap-1.5">
                           <div className="flex -space-x-1.5">
@@ -549,15 +549,15 @@ export default function DirectoryPanel({
                                 key={m.id}
                                 title={m.name}
                                 className={cn(
-                                  "flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold",
-                                  "bg-[#F2F4F7] text-[#475467]",
+                                  "flex h-6 w-6 items-center justify-center rounded-full border-2 border-white dark:border-[#0F1629] text-[9px] font-bold",
+                                  "bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[#475467] dark:text-[#8898AB]",
                                 )}
                               >
                                 {m.initials}
                               </div>
                             ))}
                           </div>
-                          <span className="text-[11px] text-[#98A2B3]">
+                          <span className="text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">
                             {members.length} member{members.length !== 1 ? "s" : ""}
                           </span>
                         </div>
@@ -574,12 +574,12 @@ export default function DirectoryPanel({
               filteredSkills.map(({ skill, agents }) => (
                 <div
                   key={skill}
-                  className="rounded-xl border border-black/10 bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
+                  className="rounded-xl border border-black/10 dark:border-white/8 bg-white dark:bg-[#0F1629] p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-[#1D2939]">{skill}</p>
-                      <p className="mt-0.5 text-[11px] text-[#667085]">
+                      <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">{skill}</p>
+                      <p className="mt-0.5 text-[11px] text-[#667085] dark:text-[#6B7FA0]">
                         {agents.length} agent{agents.length !== 1 ? "s" : ""}
                       </p>
                       {/* Agent name pills */}
@@ -587,7 +587,7 @@ export default function DirectoryPanel({
                         {agents.map((a) => (
                           <span
                             key={a.id}
-                            className="inline-flex items-center gap-1 rounded-full bg-[#F2F4F7] px-2 py-0.5 text-[10px] font-medium text-[#475467]"
+                            className="inline-flex items-center gap-1 rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] border border-transparent dark:border-white/8 px-2 py-0.5 text-[10px] font-medium text-[#475467] dark:text-[#8898AB]"
                           >
                             <span className={cn("h-1.5 w-1.5 rounded-full", AVAILABILITY_DOT[a.availability])} />
                             {a.name}

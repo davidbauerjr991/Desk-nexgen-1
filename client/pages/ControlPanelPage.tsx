@@ -2,14 +2,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle,
+  CalendarCheck,
   Check,
   CheckCircle,
   ChevronDown,
+  Clock,
   Loader2,
   Mail,
   MessageCircle,
   MessageSquare,
   Phone,
+  Sparkles,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
@@ -22,7 +26,7 @@ type DeskPageTab = "queue" | "customers" | "tickets" | "accounts" | "contact-his
 type IssueTab = "open" | "pending" | "resolved" | "escalated";
 
 const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
-  { id: "queue",           label: "Dashboard"       },
+  { id: "queue",           label: "Queue"            },
   { id: "customers",       label: "Customers"       },
   { id: "tickets",         label: "Tickets"         },
   { id: "accounts",        label: "Accounts"        },
@@ -31,7 +35,7 @@ const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Channel = "chat" | "sms" | "email" | "voice";
+type Channel = "chat" | "sms" | "email" | "voice" | "whatsapp";
 type Priority = "Critical" | "High" | "Medium" | "Low";
 
 interface AiOverview {
@@ -65,12 +69,23 @@ const priorityStyles: Record<Priority, string> = {
 
 const priorityRank: Record<Priority, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 
-const channelIconMap = {
-  chat:  MessageCircle,
-  sms:   MessageSquare,
-  email: Mail,
-  voice: Phone,
-} as const;
+function WhatsAppIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
+      <path d="M12 3.25C7.163 3.25 3.25 7.119 3.25 11.882C3.25 13.549 3.734 15.149 4.638 16.529L3.75 20.75L8.097 19.9C9.406 20.647 10.898 21.042 12.421 21.042C17.258 21.042 21.171 17.172 21.171 12.41C21.171 7.647 16.837 3.25 12 3.25Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.428 8.867C9.206 8.373 8.97 8.362 8.761 8.354C8.59 8.347 8.394 8.347 8.198 8.347C8.002 8.347 7.683 8.421 7.413 8.715C7.143 9.009 6.389 9.703 6.389 11.117C6.389 12.531 7.438 13.897 7.585 14.093C7.732 14.289 9.634 17.287 12.611 18.437C15.086 19.392 15.589 19.203 16.123 19.154C16.657 19.105 17.839 18.485 18.084 17.815C18.329 17.144 18.329 16.566 18.255 16.444C18.182 16.321 17.986 16.248 17.692 16.101C17.397 15.954 15.957 15.235 15.687 15.137C15.417 15.039 15.22 14.99 15.024 15.284C14.828 15.578 14.27 16.248 14.098 16.444C13.926 16.64 13.754 16.665 13.459 16.518C13.165 16.37 12.218 16.061 11.095 15.059C10.221 14.28 9.632 13.319 9.46 13.025C9.289 12.731 9.442 12.571 9.589 12.424C9.722 12.292 9.883 12.081 10.03 11.91C10.177 11.738 10.226 11.615 10.324 11.419C10.422 11.223 10.373 11.052 10.299 10.905C10.226 10.758 9.679 9.312 9.428 8.867Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const channelIconMap: Record<Channel, any> = {
+  chat:     MessageCircle,
+  sms:      MessageSquare,
+  email:    Mail,
+  voice:    Phone,
+  whatsapp: WhatsAppIcon,
+};
 
 const companyByCustomerId: Record<string, string> = {
   alex:      "Apex Financial Group",
@@ -137,7 +152,7 @@ const liveAiOverview: Record<string, AiOverview> = {
 
 // ─── Static assignments (16) ──────────────────────────────────────────────────
 
-const staticAssignments: StaticAssignment[] = [
+export const staticAssignments: StaticAssignment[] = [
   {
     id: "static-1",
     name: "Maria Chen",
@@ -629,6 +644,16 @@ const priorityFilterOptions: { value: PriorityFilter; label: string }[] = [
   { value: "Low",      label: "Low" },
 ];
 
+type ChannelFilter = "all" | "chat" | "email" | "sms" | "whatsapp";
+
+const channelFilterOptions: { value: ChannelFilter; label: string }[] = [
+  { value: "all",      label: "All Channels" },
+  { value: "chat",     label: "Chat"         },
+  { value: "email",    label: "Email"        },
+  { value: "sms",      label: "SMS"          },
+  { value: "whatsapp", label: "WhatsApp"     },
+];
+
 // Module-level store so the accepted-task map survives component remounts
 // (ControlCenterPage unmounts on every navigate("/activity") call).
 const acceptedStaticsStore = new Map<string, string>(); // staticId → assignmentId
@@ -1026,10 +1051,10 @@ function IssueRow({
             </span>
             <span className={cn(
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-              status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
-              status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
-              status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
-              status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+              status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E] dark:border-[#1E4A1E] dark:bg-[#0A2010] dark:text-[#4CAF50]",
+              status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085] dark:border-[#2A3448] dark:bg-[#151F30] dark:text-[#8898AB]",
+              status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF] dark:border-[#2D1F5E] dark:bg-[#1C1A2E] dark:text-[#C8BFF0]",
+              status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A] dark:border-[#6B1A1A] dark:bg-[#2E0D0D] dark:text-[#F87171]",
             )}>
               {status}
             </span>
@@ -1495,12 +1520,14 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("open");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [isChannelFilterOpen, setIsChannelFilterOpen] = useState(false);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
@@ -1603,14 +1630,16 @@ export default function ControlCenterPage() {
 
   const baseRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
-    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter);
+    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter)
+    .filter((a) => channelFilter === "all" || a.channel === channelFilter);
 
   const allRows = baseRows
     .filter((a) => a.status === issueTab)
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
-    (r) => priorityFilter === "all" || r.priority === priorityFilter,
+    (r) => (priorityFilter === "all" || r.priority === priorityFilter) &&
+            (channelFilter === "all" || r.channel === channelFilter),
   );
 
   // Number of items parked from a toast — used for the red Queue tab badge
@@ -1704,42 +1733,84 @@ export default function ControlCenterPage() {
             <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <h2 className="text-[14px] font-semibold text-[#333333]">Queue</h2>
+                  <h2 className="text-[14px] font-semibold text-[#333333]">Active Cases</h2>
                   <p className="text-xs text-[#7A7A7A] mt-0.5">
                     {totalTasks} Total Case{totalTasks !== 1 ? "s" : ""}
                   </p>
                 </div>
-                {/* Priority filter */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsFilterOpen((v) => !v)}
-                    className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1.5 text-[12px] font-medium text-[#333333] hover:bg-[#F9FAFB] transition-colors"
-                  >
-                    {priorityFilterOptions.find((o) => o.value === priorityFilter)?.label ?? "All Priorities"}
-                    <ChevronDown className={cn("h-3.5 w-3.5 text-[#7A7A7A] transition-transform duration-150", isFilterOpen && "rotate-180")} />
-                  </button>
-                  {isFilterOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-border bg-white shadow-lg py-1">
-                      {priorityFilterOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => { setPriorityFilter(option.value); setIsFilterOpen(false); }}
-                          className={cn(
-                            "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
-                            priorityFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                {/* Filters */}
+                <div className="flex items-center gap-2">
+                  {/* Channel filter */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsChannelFilterOpen((v) => !v); setIsFilterOpen(false); }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        channelFilter !== "all"
+                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
+                          : "border-border bg-white text-[#333333] hover:bg-[#F9FAFB]",
+                      )}
+                    >
+                      {channelFilterOptions.find((o) => o.value === channelFilter)?.label ?? "All Channels"}
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-150", isChannelFilterOpen && "rotate-180", channelFilter !== "all" ? "text-[#6E56CF]" : "text-[#7A7A7A]")} />
+                    </button>
+                    {isChannelFilterOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-border bg-white shadow-lg py-1">
+                        {channelFilterOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => { setChannelFilter(option.value); setIsChannelFilterOpen(false); }}
+                            className={cn(
+                              "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
+                              channelFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Priority filter */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => { setIsFilterOpen((v) => !v); setIsChannelFilterOpen(false); }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors",
+                        priorityFilter !== "all"
+                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
+                          : "border-border bg-white text-[#333333] hover:bg-[#F9FAFB]",
+                      )}
+                    >
+                      {priorityFilterOptions.find((o) => o.value === priorityFilter)?.label ?? "All Priorities"}
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-150", isFilterOpen && "rotate-180", priorityFilter !== "all" ? "text-[#6E56CF]" : "text-[#7A7A7A]")} />
+                    </button>
+                    {isFilterOpen && (
+                      <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-border bg-white shadow-lg py-1">
+                        {priorityFilterOptions.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => { setPriorityFilter(option.value); setIsFilterOpen(false); }}
+                            className={cn(
+                              "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
+                              priorityFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               {/* Status tabs */}
-              <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] p-1 gap-0.5 mb-4">
+              <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 mb-4">
                 {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
                   <button
                     key={tab}
@@ -1748,8 +1819,8 @@ export default function ControlCenterPage() {
                     className={cn(
                       "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
                       issueTab === tab
-                        ? "bg-white text-[#101828] shadow-sm"
-                        : "text-[#667085] hover:text-[#333333]",
+                        ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                        : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
                     )}
                   >
                     {tab}
@@ -1757,7 +1828,7 @@ export default function ControlCenterPage() {
                       "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
                       issueTab === tab
                         ? "bg-[#6E56CF] text-white"
-                        : "bg-[#E4E7EC] text-[#667085]",
+                        : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
                     )}>
                       {tabCounts[tab]}
                     </span>
@@ -1815,29 +1886,135 @@ export default function ControlCenterPage() {
             </div>
           </div>
 
-          {/* Connected Applications card */}
-          <div className="flex flex-col w-[320px] shrink-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-            <div className="shrink-0 px-5 py-4 border-b border-border">
-              <h2 className="text-[14px] font-semibold text-[#333333]">Connected Applications</h2>
-              <p className="text-xs text-[#7A7A7A] mt-0.5">System health overview</p>
-            </div>
-            <div className="flex-1 overflow-y-auto divide-y divide-border">
-              {connectedApps.map((app) => (
-                <div key={app.name} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F4F7] text-[11px] font-bold text-[#475467]">
-                    {appIconLetters[app.name] ?? app.name[0]}
+          {/* ── Right sidebar: My Day / Schedule / Performance / Messages ── */}
+          <div className="flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+
+            {/* AI Day Summary card */}
+            {(() => {
+              const criticalCount  = baseRows.filter((a) => a.priority === "Critical").length;
+              const highCount      = baseRows.filter((a) => a.priority === "High").length;
+              const openCount      = tabCounts.open;
+              const resolvedCount  = tabCounts.resolved;
+              const pendingCount   = tabCounts.pending;
+
+              const urgencyPhrase =
+                criticalCount > 0
+                  ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need${criticalCount === 1 ? "s" : ""} immediate attention`
+                  : highCount > 0
+                  ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} to address early`
+                  : `Your queue is manageable today`;
+
+              const progressPhrase =
+                resolvedCount > 0
+                  ? `You've already resolved ${resolvedCount} case${resolvedCount > 1 ? "s" : ""}, which is a strong start.`
+                  : `No cases have been resolved yet — focus on closing out your open items first.`;
+
+              const pipelinePhrase =
+                openCount + pendingCount > 0
+                  ? `With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback.`
+                  : `Your pipeline is clear — a good opportunity to get ahead on documentation and follow-ups.`;
+
+              const summary = `${urgencyPhrase}. ${progressPhrase} ${pipelinePhrase} Keep an eye on handle time and aim to wrap responses within SLA windows.`;
+
+              return (
+                <div className="rounded-xl border border-[#C8BFF0]/60 bg-[#F5F3FF] dark:bg-[#18143A] dark:border-[#3D2F7A]/60 shadow-sm p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] shadow-sm">
+                      <Clock className="h-3.5 w-3.5 text-white stroke-[1.75]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[#4C3898] dark:text-[#C8BFF0] leading-none">My Day</p>
+                      <p className="text-[10px] text-[#7C5CBF] dark:text-[#8B78D0] mt-0.5">Your day at a glance</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openCopilot()}
+                      className="shrink-0 flex items-center gap-1 rounded-full border border-[#6E56CF]/30 bg-[#6E56CF]/10 hover:bg-[#6E56CF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] dark:text-[#C8BFF0] transition-colors"
+                    >
+                      <Sparkles className="h-2.5 w-2.5" />
+                      AI Help
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-[#1D2939]">{app.name}</p>
-                    <p className="text-[11px] text-[#98A2B3] mt-0.5">{app.latency} • {app.uptime} uptime</p>
-                  </div>
-                  <div className={cn(
-                    "shrink-0 h-2.5 w-2.5 rounded-full",
-                    app.status === "healthy" ? "bg-[#208337]" : "bg-[#FFB800]",
-                  )} />
+                  <p className="text-[12px] leading-[1.65] text-[#4C3898] dark:text-[#B4A8E8]">
+                    {summary}
+                  </p>
                 </div>
-              ))}
+              );
+            })()}
+
+            {/* Schedule card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
+                  <CalendarCheck className="h-3.5 w-3.5 text-[#6E56CF]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Schedule</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Events</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">6</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Callbacks</span>
+                  <span className="text-[12px] font-semibold text-[#E32926]">3</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Next up:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Customer Callback</p>
+                <p className="text-[11px] text-[#667085] dark:text-[#8898AB]">09:00 AM</p>
+              </div>
             </div>
+
+            {/* Performance card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#0A2318]">
+                  <TrendingUp className="h-3.5 w-3.5 text-[#208337]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Performance</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Cases Resolved</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">
+                    {tabCounts.resolved}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">CSAT Score</span>
+                  <span className="text-[12px] font-semibold text-[#208337]">4.8</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Handle Time:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">8m 32s</p>
+                <p className="text-[11px] font-medium text-[#208337]">↑ 15% improvement</p>
+              </div>
+            </div>
+
+            {/* Messages card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F5F3FF] dark:bg-[#1C2036]">
+                  <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Messages</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Unread</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">3</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Latest from:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Emma Larsen</p>
+                <p className="text-[11px] text-[#667085] dark:text-[#8898AB] truncate">CSAT scores look great this week</p>
+              </div>
+            </div>
+
           </div>
 
         </div>

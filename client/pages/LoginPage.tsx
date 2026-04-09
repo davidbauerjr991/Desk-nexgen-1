@@ -111,7 +111,7 @@ export default function LoginPage() {
         {/* Welcome card */}
         <div className={cn(
           "mx-5 mb-4 rounded-xl px-4 py-3.5",
-          darkMode ? "bg-[#0F172A]" : "bg-[#F9FAFB]",
+          darkMode ? "bg-[#0F172A]" : "bg-[#F7F7F7]",
         )}>
           <p className={cn("text-[15px] font-bold", darkMode ? "text-white" : "text-[#101828]")}>
             Welcome Back, Jeff
@@ -224,7 +224,7 @@ export default function LoginPage() {
                 : "bg-[#6E56CF] text-white shadow-[0_1px_3px_rgba(110,86,207,0.20)] hover:bg-[#5C46B8] active:bg-[#4A369F]",
             )}
           >
-            Launch Agent Workspace
+            {phase === "loading" ? "Launching Agent Workspace" : "Launch Agent Workspace"}
           </button>
         </div>
 

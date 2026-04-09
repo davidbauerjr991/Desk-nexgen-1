@@ -13,6 +13,16 @@ export type CustomerOverviewTimelineItem = {
   sortOrder: number;
 };
 
+export type CustomerHistoryDot = "purple" | "orange" | "gray" | "red" | "green";
+
+export type CustomerHistoryItem = {
+  id: string;
+  title: string;
+  timestamp: string;
+  detail: string;
+  dot: CustomerHistoryDot;
+};
+
 type SeedConversationChannel = Exclude<CustomerChannel, "voice">;
 
 export type CustomerProfile = {
@@ -44,6 +54,7 @@ export type CustomerSeedRecord = {
     address: string;
   };
   interactionTimeline: CustomerOverviewTimelineItem[];
+  customerHistory: CustomerHistoryItem[];
   queue: {
     time: string;
     preview: string;
@@ -145,6 +156,50 @@ export const customerDatabase: CustomerSeedRecord[] = [
         detail: "The failed transaction details were attached to the customer record so support could clear the payment hold.",
         tone: "default",
         sortOrder: 6,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "alex-h1",
+        title: "Billing dispute opened",
+        timestamp: "Today · 10:24 AM",
+        detail: "Alex reported a blocked Pro upgrade and a Costco charge discrepancy. Case escalated to billing team.",
+        dot: "orange",
+      },
+      {
+        id: "alex-h2",
+        title: "Payment method updated",
+        timestamp: "Feb 3, 2026 · 2:11 PM",
+        detail: "Alex replaced the Visa ending in 4092 with a new card after the old card expired. Identity verified via IVR.",
+        dot: "gray",
+      },
+      {
+        id: "alex-h3",
+        title: "Billing dispute resolved",
+        timestamp: "Nov 14, 2025 · 11:45 AM",
+        detail: "A $142 disputed charge was credited back to Alex's account after the merchant confirmed the error.",
+        dot: "green",
+      },
+      {
+        id: "alex-h4",
+        title: "Account limit increased",
+        timestamp: "Sep 2, 2025 · 9:30 AM",
+        detail: "Monthly transfer limit raised from $25,000 to $50,000 following a credit review and advisor recommendation.",
+        dot: "purple",
+      },
+      {
+        id: "alex-h5",
+        title: "Upgraded to Premier tier",
+        timestamp: "Mar 18, 2024 · 3:00 PM",
+        detail: "Account upgraded from Standard to Premier after AUM crossed the $1M threshold. New advisor assigned.",
+        dot: "purple",
+      },
+      {
+        id: "alex-h6",
+        title: "Account opened",
+        timestamp: "Feb 10, 2021 · 10:00 AM",
+        detail: "Business Banking account opened for Alex Kowalski. Initial deposit of $85,000 via wire transfer.",
+        dot: "gray",
       },
     ],
     queue: {
@@ -359,6 +414,50 @@ export const customerDatabase: CustomerSeedRecord[] = [
         detail: "A same-day Seattle seat was temporarily held while pricing and bag transfer eligibility were confirmed.",
         tone: "critical",
         sortOrder: 6,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "sarah-h1",
+        title: "Flight rebooking support",
+        timestamp: "Today · 9:18 AM",
+        detail: "Sarah missed her connection due to an airline delay and contacted support for a same-day rebooking to Seattle.",
+        dot: "orange",
+      },
+      {
+        id: "sarah-h2",
+        title: "Quarterly advisor review completed",
+        timestamp: "Mar 14, 2026 · 11:00 AM",
+        detail: "Annual review meeting completed with Priya Shah. Portfolio allocation adjusted to increase bond exposure.",
+        dot: "purple",
+      },
+      {
+        id: "sarah-h3",
+        title: "Tax-loss harvesting strategy implemented",
+        timestamp: "Jan 8, 2026 · 2:30 PM",
+        detail: "Priya initiated a tax-loss harvesting position on three underperforming holdings totaling $62,000.",
+        dot: "green",
+      },
+      {
+        id: "sarah-h4",
+        title: "IRA contribution maxed for the year",
+        timestamp: "Sep 25, 2025 · 10:15 AM",
+        detail: "Sarah completed her annual IRA contribution of $7,000, reaching the federal limit for the 2025 tax year.",
+        dot: "purple",
+      },
+      {
+        id: "sarah-h5",
+        title: "Referral bonus credited",
+        timestamp: "May 3, 2025 · 3:45 PM",
+        detail: "$500 referral credit applied after a referred contact opened an investing account and met the deposit threshold.",
+        dot: "green",
+      },
+      {
+        id: "sarah-h6",
+        title: "Account opened",
+        timestamp: "Mar 1, 2020 · 9:00 AM",
+        detail: "Personal Investing account opened. Initial deposit of $120,000 transferred from an external brokerage.",
+        dot: "gray",
       },
     ],
     queue: {
@@ -992,6 +1091,50 @@ export const customerDatabase: CustomerSeedRecord[] = [
         detail: "The case was updated to restore dashboard access as soon as Priya completed the verification prompt.",
         tone: "default",
         sortOrder: 6,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "priya-h1",
+        title: "Account lockout — login support",
+        timestamp: "Today · 8:40 AM",
+        detail: "Priya was locked out after repeated failed login attempts from a new device. Identity verification initiated.",
+        dot: "orange",
+      },
+      {
+        id: "priya-h2",
+        title: "Annual financial plan review",
+        timestamp: "Feb 21, 2026 · 10:00 AM",
+        detail: "Completed annual plan review with Jeff Comstock. Roth IRA conversion strategy flagged for follow-up in Q2.",
+        dot: "purple",
+      },
+      {
+        id: "priya-h3",
+        title: "Beneficiary designations updated",
+        timestamp: "Nov 10, 2025 · 1:15 PM",
+        detail: "Priya updated primary and contingent beneficiary designations across her IRA and brokerage accounts.",
+        dot: "gray",
+      },
+      {
+        id: "priya-h4",
+        title: "401k rollover processed",
+        timestamp: "Jun 3, 2025 · 11:30 AM",
+        detail: "Direct rollover of $148,000 from a prior employer 401k completed into Priya's traditional IRA.",
+        dot: "green",
+      },
+      {
+        id: "priya-h5",
+        title: "Financial wellness assessment completed",
+        timestamp: "Apr 14, 2024 · 2:00 PM",
+        detail: "Priya completed the platform's financial wellness assessment, scoring 91/100. Personalized recommendations issued.",
+        dot: "purple",
+      },
+      {
+        id: "priya-h6",
+        title: "Account opened",
+        timestamp: "Jan 15, 2022 · 9:00 AM",
+        detail: "Personal Investing account opened. Initial deposit of $50,000 transferred from an external savings account.",
+        dot: "gray",
       },
     ],
     queue: {
@@ -2664,6 +2807,50 @@ export const customerDatabase: CustomerSeedRecord[] = [
         detail: "The payments team was alerted and a reversal brief was prepared for the assigned human agent.",
         tone: "info",
         sortOrder: 4,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "darius-h1",
+        title: "Misdirected wire transfer — recall initiated",
+        timestamp: "Today · 10:08 AM",
+        detail: "Darius sent $47,500 to an incorrect beneficiary. Recall request submitted through the payments network.",
+        dot: "red",
+      },
+      {
+        id: "darius-h2",
+        title: "Dispute #2 resolved — advisory fee refunded",
+        timestamp: "Dec 5, 2025 · 3:20 PM",
+        detail: "An unauthorized $1,200 advisory fee was disputed and refunded after the advisor confirmed the billing error.",
+        dot: "green",
+      },
+      {
+        id: "darius-h3",
+        title: "Large transfer flagged and cleared",
+        timestamp: "Jun 18, 2025 · 2:45 PM",
+        detail: "A $95,000 international wire was temporarily held by fraud systems. Darius verified the transaction and it was released.",
+        dot: "orange",
+      },
+      {
+        id: "darius-h4",
+        title: "Dispute #1 resolved — international wire fee waived",
+        timestamp: "Mar 2, 2025 · 11:00 AM",
+        detail: "Darius disputed a $150 wire transfer fee citing advisor guidance. Fee was waived as a goodwill gesture.",
+        dot: "green",
+      },
+      {
+        id: "darius-h5",
+        title: "Upgraded to High-Value tier",
+        timestamp: "Sep 10, 2024 · 10:30 AM",
+        detail: "Account reclassified to High-Value after AUM exceeded $2.5M. Priority support and dedicated advisor access unlocked.",
+        dot: "purple",
+      },
+      {
+        id: "darius-h6",
+        title: "Account opened",
+        timestamp: "Jan 22, 2023 · 9:00 AM",
+        detail: "Wealth Management account opened. Initial portfolio of $1.8M transferred from a previous private bank.",
+        dot: "gray",
       },
     ],
     queue: {

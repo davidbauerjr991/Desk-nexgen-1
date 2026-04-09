@@ -1021,7 +1021,7 @@ export default function NotesPanel({
                     </Button>
                     <Button
                       type="button"
-                      className="h-8 rounded-lg bg-[#6E56CF] px-3 hover:bg-[#0A5E92] disabled:bg-[#C8BFF0]"
+                      className="h-8 rounded-lg bg-[#6E56CF] px-3 hover:bg-[#5C46B8] disabled:bg-[#C8BFF0] dark:disabled:bg-[#2D1F5E] dark:disabled:text-[#7A6BAD]"
                       onClick={handleSaveNote}
                       disabled={!noteDraft.trim()}
                     >
