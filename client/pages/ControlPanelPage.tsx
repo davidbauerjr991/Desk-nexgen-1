@@ -1809,76 +1809,61 @@ function IssueRow({
       )}>
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-2 space-y-3">
-            {/* Customer Profile — collapsible */}
+            {/* Customer Profile */}
             <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setIsCustomerProfileOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-3 text-left"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
-                  Customer Profile
-                </p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isCustomerProfileOpen && "rotate-180")} />
-              </button>
+              <div className="flex w-full items-center justify-between px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Profile</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 cursor-pointer", isCustomerProfileOpen && "rotate-180")} onClick={() => setIsCustomerProfileOpen((v) => !v)} />
+              </div>
               <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
                   <div className="px-4 pb-4 space-y-3">
                     {customerRecord ? (
                       <>
-                        {/* Identity row */}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8] dark:bg-[#1B3A52] dark:text-[#4BADD6]">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8]">
                               {name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-[13px] font-semibold text-[#111827] dark:text-white leading-tight">{name}</p>
-                              <p className="text-[11px] text-[#667085] dark:text-[#4E7D96] leading-snug">
+                              <p className="text-[13px] font-semibold text-[#111827] leading-tight">{name}</p>
+                              <p className="text-[11px] text-[#667085] leading-snug">
                                 {customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure
                               </p>
                             </div>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-[10px] text-[#98A2B3] dark:text-[#5C46B8]">Balance</p>
-                            <p className="text-[13px] font-semibold text-[#111827] dark:text-white">{customerRecord.profile.totalAUM}</p>
+                            <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                            <p className="text-[13px] font-semibold text-[#111827]">{customerRecord.profile.totalAUM}</p>
                           </div>
                         </div>
-                        {/* Stats row */}
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Fraud Risk Score</p>
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5">
+                            <p className="mb-1 text-[10px] text-[#667085]">Fraud Risk Score</p>
                             <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
                               {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
                             </p>
-                            <div className="h-1.5 rounded-full bg-[#E4E7EC] dark:bg-[#1B3A52] overflow-hidden">
-                              <div
-                                className={cn("h-full rounded-full transition-all", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
-                                style={{ width: `${customerRecord.profile.fraudRiskScore}%` }}
-                              />
+                            <div className="h-1.5 rounded-full bg-[#E4E7EC] overflow-hidden">
+                              <div className={cn("h-full rounded-full", customerRecord.profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")} style={{ width: `${customerRecord.profile.fraudRiskScore}%` }} />
                             </div>
                           </div>
-                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
-                            <p className="mb-1 text-[10px] text-[#667085] dark:text-[#4E7D96]">Prior Disputes</p>
-                            <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
-                            <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#4E7D96]")}>
+                          <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5">
+                            <p className="mb-1 text-[10px] text-[#667085]">Prior Disputes</p>
+                            <p className="text-[15px] font-bold leading-none text-[#111827]">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
+                            <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085]")}>
                               Card: {customerRecord.profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
                             </p>
                           </div>
                         </div>
-                        {/* Tags */}
                         {customerRecord.profile.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {customerRecord.profile.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className={cn(
-                                  "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                                  tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
-                                  tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
-                                  "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
-                                )}
-                              >
+                              <span key={tag} className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+                                tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0]" :
+                                tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E]" :
+                                "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE]",
+                              )}>
                                 {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
                               </span>
                             ))}
@@ -1886,7 +1871,6 @@ function IssueRow({
                         )}
                       </>
                     ) : (
-                      /* Fallback for static assignments without a DB record */
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2.5">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D5E8F3] text-[13px] font-bold text-[#5C46B8]">
@@ -1908,25 +1892,29 @@ function IssueRow({
               </div>
             </div>
 
+            {/* Customer Issue */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-2">Customer Issue</p>
+              <p className="text-[13px] text-[#344054] leading-relaxed">{preview}</p>
+            </div>
+
             {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-4 py-3 text-left"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">
-                  Attempted Resolution
-                </p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
                   <div className="px-4 pb-4">
                     <ul className="space-y-2">
                       {aiOverview.actions.map((action, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
                           {action}
                         </li>
                       ))}
