@@ -1933,7 +1933,17 @@ function IssueRow({
                 </div>
               </div>
             </div>
-            {/* Ask Copilot — sits below the Attempted Resolution accordion */}
+            {/* Copilot response card — appears above the Ask input after submission */}
+            {copilotPhase !== "idle" && (
+              <CopilotResponseCard
+                query={submittedQuery}
+                phase={copilotPhase}
+                reasoningVisible={copilotReasoningVisible}
+                isOpen={isCopilotOpen}
+                onToggle={() => setIsCopilotOpen((v) => !v)}
+              />
+            )}
+            {/* Ask Copilot input */}
             <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
               <input
@@ -1948,16 +1958,6 @@ function IssueRow({
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
-            {/* Copilot response card — appears after submission */}
-            {copilotPhase !== "idle" && (
-              <CopilotResponseCard
-                query={submittedQuery}
-                phase={copilotPhase}
-                reasoningVisible={copilotReasoningVisible}
-                isOpen={isCopilotOpen}
-                onToggle={() => setIsCopilotOpen((v) => !v)}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -2076,6 +2076,17 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
               </div>
             </div>
             {/* Ask Copilot — sits below the Attempted Resolution accordion */}
+            {/* Copilot response card — appears above the Ask input after submission */}
+            {copilotPhase !== "idle" && (
+              <CopilotResponseCard
+                query={submittedQuery}
+                phase={copilotPhase}
+                reasoningVisible={copilotReasoningVisible}
+                isOpen={isCopilotOpen}
+                onToggle={() => setIsCopilotOpen((v) => !v)}
+              />
+            )}
+            {/* Ask Copilot input */}
             <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white dark:bg-[#0C1A26] dark:border-[#1B3A52] px-3 py-2">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
               <input
@@ -2090,16 +2101,6 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
-            {/* Copilot response card — appears after submission */}
-            {copilotPhase !== "idle" && (
-              <CopilotResponseCard
-                query={submittedQuery}
-                phase={copilotPhase}
-                reasoningVisible={copilotReasoningVisible}
-                isOpen={isCopilotOpen}
-                onToggle={() => setIsCopilotOpen((v) => !v)}
-              />
-            )}
 
             {/* Transfer / Open actions */}
             <div className="flex items-center justify-end gap-2 pt-1">
