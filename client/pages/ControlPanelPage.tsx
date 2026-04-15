@@ -1632,6 +1632,7 @@ export default function ControlCenterPage() {
 
   const baseRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
+    .filter((a) => a.channel !== "email")
     .filter((a) => priorityFilter === "all" || a.priority === priorityFilter)
     .filter((a) => channelFilter === "all" || a.channel === channelFilter);
 
@@ -1640,7 +1641,8 @@ export default function ControlCenterPage() {
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
-    (r) => (priorityFilter === "all" || r.priority === priorityFilter) &&
+    (r) => r.channel !== "email" &&
+            (priorityFilter === "all" || r.priority === priorityFilter) &&
             (channelFilter === "all" || r.channel === channelFilter),
   );
 
