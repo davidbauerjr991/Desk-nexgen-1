@@ -5106,6 +5106,38 @@ function IncomingAssignmentCard({
   const [showTransfer, setShowTransfer] = useState(false);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [isReasoningOpen, setIsReasoningOpen] = useState(false);
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const REASONING_STEPS = [
+    "Reviewing case history and prior customer interactions...",
+    "Analyzing attempted resolutions and their outcomes...",
+    "Cross-referencing similar resolved cases in the knowledge base...",
+    "Synthesizing recommended next steps and action items...",
+  ];
+
+  function handleCopilotSubmit() {
+    if (!copilotQuery.trim()) return;
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setSubmittedQuery(copilotQuery);
+    setCopilotQuery("");
+    setCopilotPhase("thinking");
+    setCopilotReasoningVisible(0);
+    setIsCopilotOpen(true);
+    setIsReasoningOpen(false);
+    REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      copilotTimersRef.current.push(t);
+    });
+    const doneTimer = setTimeout(() => setCopilotPhase("done"), 1000 + REASONING_STEPS.length * 600 + 600);
+    copilotTimersRef.current.push(doneTimer);
+  }
 
   const ChannelIcon = launchedAssignmentIconMap[item.channel] ?? MessageSquare;
   const channelLabel = conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
@@ -5171,34 +5203,25 @@ function IncomingAssignmentCard({
           style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
         >
           <div className="px-4 pb-3 flex flex-col gap-3">
-            {/* Customer Issue */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
-              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#4A7FA5]">
-                Customer Issue
-              </p>
-              <p className="text-[12px] leading-snug text-[#1D3A52]">
-                {getIncomingCustomerIssue(item.customerRecordId, item.name, item.channel)}
-              </p>
-            </div>
-            {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden">
+            {/* Attempted Resolution — collapsible, white bg matching activity accordion */}
+            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#4A7FA5]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
                   Attempted Resolution
                 </p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#4A7FA5] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
                   <div className="px-3 pb-3">
                     <ul className="space-y-1.5">
                       {aiOverview.actions.map((action, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] leading-snug text-[#1D3A52]">
-                          <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#4A7FA5]" />
+                        <li key={i} className="flex items-start gap-2 text-[12px] leading-snug text-[#344054]">
+                          <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#5C46B8]" />
                           {action}
                         </li>
                       ))}
@@ -5206,6 +5229,81 @@ function IncomingAssignmentCard({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Copilot response card — appears after submission */}
+            {copilotPhase !== "idle" && (
+              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsCopilotOpen((v) => !v)}
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                    {copilotPhase === "thinking" && (
+                      <span className="flex items-center gap-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                      </span>
+                    )}
+                  </div>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+                </button>
+                <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                  <div className="overflow-hidden">
+                    <div className="px-3 pb-3 space-y-2">
+                      <p className="text-[11px] text-[#98A2B3] italic">"{submittedQuery}"</p>
+                      {copilotReasoningVisible > 0 && (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => setIsReasoningOpen((v) => !v)}
+                            className="flex items-center gap-1 text-[11px] text-[#98A2B3] hover:text-[#667085] transition-colors"
+                          >
+                            <span>{copilotPhase === "thinking" ? "Thinking…" : "Thought process"}</span>
+                            <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isReasoningOpen && "rotate-180")} />
+                          </button>
+                          <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                            <div className="overflow-hidden">
+                              <div className="pt-1.5 space-y-1 border-l-2 border-[#E4DAFF] ml-1 pl-2.5">
+                                {REASONING_STEPS.slice(0, copilotReasoningVisible).map((step, i) => (
+                                  <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {copilotPhase === "done" && (
+                        <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                          <p className="text-[12px] text-[#344054] leading-relaxed">
+                            Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Ask Copilot input */}
+            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+              <input
+                type="text"
+                value={copilotQuery}
+                onChange={(e) => setCopilotQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
+                placeholder="Ask Copilot about this Case"
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+              />
+              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
             </div>
           </div>
         </div>
