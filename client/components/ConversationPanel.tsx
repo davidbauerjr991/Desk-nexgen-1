@@ -1065,17 +1065,19 @@ export default function ConversationPanel({
     isAgent: boolean;
     appliedTags: string[];
     isLatest: boolean;
-    onToggleTag: (messageId: string, tagId: string) => void;
+    onToggleTag: (messageId: number, tagId: string) => void;
   }) => {
     const msgName = isAgent ? agentFullName : conversation.customerName;
     const initials = msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
     return (
-      <div className={cn("group/msg flex items-end gap-2.5 py-1", isAgent && "justify-end")}>
+      <div className={cn("group/msg flex items-start gap-2.5 py-1", isAgent && "justify-end")}>
+        {/* Customer avatar — fixed at top-left, never shifts */}
         {!isAgent && (
-          <div className="shrink-0 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
             {initials}
           </div>
         )}
+        {/* Bubble + meta — expands downward without moving the avatar */}
         <div className={cn("max-w-[75%]", isAgent && "flex flex-col items-end")}>
           <div
             className={cn(
@@ -1089,15 +1091,18 @@ export default function ConversationPanel({
               {message.content}
             </p>
           </div>
+          {/* Timestamp */}
           <p className={cn("mt-1 text-[10px] text-[#98A2B3]", isAgent ? "mr-1" : "ml-1")}>
             {formatConversationMessageTimestamp(message.time)} · {getConversationChannelLabel(message.channel ?? activeChannel)}
           </p>
+          {/* Sentiment */}
           {message.sentiment === "frustrated" && (
             <div className={cn("mt-1 flex items-center gap-1 text-xs font-medium text-[#A37A00]", isAgent && "justify-end")}>
               <AlertTriangle className="h-3.5 w-3.5" />
               Frustrated sentiment detected
             </div>
           )}
+          {/* Applied tag chips — always visible */}
           {appliedTags.length > 0 && (
             <div className={cn("mt-1.5 flex flex-wrap gap-1", isAgent && "justify-end")}>
               {appliedTags.map((tagId) => {
@@ -1110,9 +1115,10 @@ export default function ConversationPanel({
               })}
             </div>
           )}
-          <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-all duration-200 ease-out">
+          {/* Tag picker — slides in below bubble on hover, stays while hovering group */}
+          <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-200 ease-out">
             <div className="overflow-hidden">
-              <div className={cn("flex items-center gap-1 pt-1.5 pb-0.5", isAgent && "justify-end")}>
+              <div className={cn("flex flex-wrap items-center gap-1 pt-2 pb-0.5", isAgent && "justify-end")}>
                 <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
                 {MESSAGE_TAG_DEFS.map((tag) => {
                   const isApplied = appliedTags.includes(tag.id);
@@ -1134,8 +1140,9 @@ export default function ConversationPanel({
             </div>
           </div>
         </div>
+        {/* Agent avatar — fixed at top-right, never shifts */}
         {isAgent && (
-          <div className="shrink-0 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
+          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
             {initials}
           </div>
         )}
