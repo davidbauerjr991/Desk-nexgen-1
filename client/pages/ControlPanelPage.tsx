@@ -1619,6 +1619,211 @@ function RejectPopover({
   );
 }
 
+// ─── Escalation toast card ────────────────────────────────────────────────────
+
+type EscalationDept = { id: string; name: string; icon: string; queue: number; description: string };
+const escalationDepts: EscalationDept[] = [
+  { id: "dept-1", name: "Billing & Payments",    icon: "💳", queue: 8,  description: "Invoices, refunds, payment issues" },
+  { id: "dept-2", name: "Technical Support",     icon: "🛠️", queue: 12, description: "API, integrations, system errors" },
+  { id: "dept-3", name: "Security & Compliance", icon: "🔒", queue: 5,  description: "Data breaches, access management" },
+  { id: "dept-4", name: "Enterprise Accounts",   icon: "🏢", queue: 3,  description: "Licensing, contracts, renewals" },
+  { id: "dept-5", name: "Fraud & Risk",          icon: "⚠️", queue: 6,  description: "Suspicious activity, wire transfers" },
+];
+type EscalationAgent = { id: string; name: string; initials: string; availability: "Available" | "In a Call" | "Away" | "Offline"; skills: string[]; count: number };
+const escalationAgents: EscalationAgent[] = [
+  { id: "a1", name: "Jeff Comstock",  initials: "JC", availability: "Available",  skills: ["Billing", "Escalations"],        count: 2 },
+  { id: "a2", name: "Priya Mehra",    initials: "PM", availability: "Available",  skills: ["Security", "API Integration"],   count: 1 },
+  { id: "a3", name: "Sam Torres",     initials: "ST", availability: "Available",  skills: ["Compliance", "Data Exports"],    count: 3 },
+  { id: "a4", name: "Kenji Watanabe", initials: "KW", availability: "In a Call", skills: ["Payments", "Fraud"],             count: 4 },
+  { id: "a5", name: "Amara Osei",     initials: "AO", availability: "Away",       skills: ["Enterprise", "Escalations"],    count: 2 },
+];
+const escalationSupervisors: EscalationAgent[] = [
+  { id: "s1", name: "Rachel Kim",    initials: "RK", availability: "Available",  skills: ["Escalations", "Compliance"],     count: 3 },
+  { id: "s2", name: "David Okafor", initials: "DO", availability: "Available",  skills: ["Fraud", "Risk Management"],      count: 2 },
+  { id: "s3", name: "Sandra Howell",initials: "SH", availability: "In a Call", skills: ["Billing", "Licensing"],           count: 4 },
+  { id: "s4", name: "Tom Ellison",  initials: "TE", availability: "Away",       skills: ["Security", "Identity"],          count: 1 },
+];
+const availDot: Record<EscalationAgent["availability"], string> = {
+  Available: "bg-[#208337]", "In a Call": "bg-[#FFB800]", Away: "bg-[#D0D5DD]", Offline: "bg-[#98A2B3]",
+};
+const availOrder: Record<EscalationAgent["availability"], number> = { Available: 0, "In a Call": 1, Away: 2, Offline: 3 };
+
+function EscalationTransferPopover({
+  anchor,
+  onClose,
+  onDone,
+}: {
+  anchor: DOMRect;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"Department" | "Agent" | "Supervisor">("Department");
+  const [assigned, setAssigned] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const handlePick = (id: string) => {
+    setAssigned(id);
+    setTimeout(() => { onDone(); onClose(); }, 800);
+  };
+
+  const agents = (tab === "Agent" ? escalationAgents : escalationSupervisors)
+    .slice().sort((a, b) => availOrder[a.availability] - availOrder[b.availability]);
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[10001] w-[300px] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.16)] overflow-hidden"
+      style={{ bottom: window.innerHeight - anchor.top + 8, right: window.innerWidth - anchor.right }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <p className="text-[12px] font-semibold text-[#333333]">Transfer to</p>
+        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="flex border-b border-border">
+        {(["Department", "Agent", "Supervisor"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => { setTab(t); setAssigned(null); }}
+            className={cn("relative flex-1 py-2.5 text-[11px] font-medium transition-colors",
+              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
+          >
+            {t}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+          </button>
+        ))}
+      </div>
+      <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
+        {tab === "Department" ? (
+          escalationDepts.map((dept) => {
+            const isAssigned = assigned === dept.id;
+            return (
+              <button key={dept.id} type="button" onClick={() => handlePick(dept.id)}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                  isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]")}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[15px]">{dept.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[12px] font-semibold text-[#1D2939] truncate">{dept.name}</p>
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  </div>
+                  <p className="text-[10px] text-[#98A2B3] truncate">{dept.description}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-[#F2F4F7] px-1.5 py-0.5 text-[10px] font-semibold text-[#667085]">{dept.queue}</span>
+              </button>
+            );
+          })
+        ) : (
+          agents.map((agent) => {
+            const isAssigned = assigned === agent.id;
+            const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
+            return (
+              <button key={agent.id} type="button" disabled={isDisabled} onClick={() => handlePick(agent.id)}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                  isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                  isDisabled && "opacity-40 cursor-not-allowed")}
+              >
+                <div className="relative shrink-0">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">{agent.initials}</div>
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", availDot[agent.availability])} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  </div>
+                  <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
+                </div>
+                <span className="shrink-0 text-[10px] text-[#667085]">{agent.count}</span>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function EscalationToastCard({
+  toastId,
+  onMonitor,
+  onDismiss,
+}: {
+  toastId: string | number;
+  onMonitor: () => void;
+  onDismiss: () => void;
+}) {
+  const transferBtnRef = useRef<HTMLButtonElement>(null);
+  const [transferAnchor, setTransferAnchor] = useState<DOMRect | null>(null);
+
+  return (
+    <div className="pointer-events-auto w-[360px] rounded-2xl border border-[#E32926]/20 bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-300">
+      {/* Header */}
+      <div className="flex items-start justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FDEAEA] text-[13px] font-semibold text-[#C71D1A]">FA</div>
+          <div>
+            <p className="text-[14px] font-semibold leading-tight text-[#101828]">Fatima Al-Rashid</p>
+            <p className="text-[12px] text-[#667085] mt-0.5 leading-snug line-clamp-1">Data breach concern — suspicious export activity flagged</p>
+          </div>
+        </div>
+        <span className="shrink-0 ml-2 rounded-full border border-[#E53935] bg-[#FDEAEA] px-2.5 py-0.5 text-[11px] font-medium text-[#C71D1A]">Escalated</span>
+      </div>
+      {/* Channel + time */}
+      <div className="flex items-center gap-3 px-4 pb-3">
+        <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.08] px-2 py-0.5 text-[11px] font-medium text-[#344054]">
+          <MessageCircle className="h-3 w-3" />Chat
+        </span>
+        <span className="flex items-center gap-1 text-[11px] text-[#667085]">
+          <Clock className="h-3 w-3" />Just now
+        </span>
+      </div>
+      {/* Actions */}
+      <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
+        <button
+          type="button"
+          onClick={() => { onMonitor(); onDismiss(); }}
+          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+        >Monitor</button>
+        <button
+          ref={transferBtnRef}
+          type="button"
+          onClick={() => {
+            const rect = transferBtnRef.current?.getBoundingClientRect();
+            setTransferAnchor(rect ? { ...rect.toJSON() } : null);
+          }}
+          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+        >Transfer</button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
+        >Takeover</button>
+      </div>
+      {transferAnchor && (
+        <EscalationTransferPopover
+          anchor={transferAnchor}
+          onClose={() => setTransferAnchor(null)}
+          onDone={() => { setTransferAnchor(null); toast.dismiss(toastId); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Row component ────────────────────────────────────────────────────────────
 
 function IssueRow({
@@ -2177,50 +2382,14 @@ export default function ControlCenterPage() {
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
       toast.custom((id) => (
-        <div className="pointer-events-auto w-[360px] rounded-2xl border border-[#E32926]/20 bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-300">
-          {/* Header */}
-          <div className="flex items-start justify-between px-4 pt-4 pb-2">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FDEAEA] text-[13px] font-semibold text-[#C71D1A]">FA</div>
-              <div>
-                <p className="text-[14px] font-semibold leading-tight text-[#101828]">Fatima Al-Rashid</p>
-                <p className="text-[12px] text-[#667085] mt-0.5 leading-snug line-clamp-1">Data breach concern — suspicious export activity flagged</p>
-              </div>
-            </div>
-            <span className="shrink-0 ml-2 rounded-full border border-[#E53935] bg-[#FDEAEA] px-2.5 py-0.5 text-[11px] font-medium text-[#C71D1A]">Escalated</span>
-          </div>
-          {/* Channel + time */}
-          <div className="flex items-center gap-3 px-4 pb-3">
-            <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.08] px-2 py-0.5 text-[11px] font-medium text-[#344054]">
-              <MessageCircle className="h-3 w-3" />Chat
-            </span>
-            <span className="flex items-center gap-1 text-[11px] text-[#667085]">
-              <Clock className="h-3 w-3" />Just now
-            </span>
-          </div>
-          {/* Actions */}
-          <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
-            <button
-              type="button"
-              onClick={() => {
-                const row = staticNormalisedRef.current.find((r) => r.id === "static-11");
-                if (row) setMonitoredCase(row);
-                toast.dismiss(id);
-              }}
-              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
-            >Monitor</button>
-            <button
-              type="button"
-              onClick={() => toast.dismiss(id)}
-              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
-            >Transfer</button>
-            <button
-              type="button"
-              onClick={() => toast.dismiss(id)}
-              className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
-            >Takeover</button>
-          </div>
-        </div>
+        <EscalationToastCard
+          toastId={id}
+          onMonitor={() => {
+            const row = staticNormalisedRef.current.find((r) => r.id === "static-11");
+            if (row) setMonitoredCase(row);
+          }}
+          onDismiss={() => toast.dismiss(id)}
+        />
       ), { duration: 12000 });
     }, 5_000);
     return () => clearTimeout(timer);

@@ -4939,6 +4939,15 @@ const notifAvailabilityDot: Record<NotifAgentAvailability, string> = {
   Available: "bg-[#208337]", "In a Call": "bg-[#FFB800]", Away: "bg-[#D0D5DD]", Offline: "bg-[#98A2B3]",
 };
 
+type NotifDepartment = { id: string; name: string; icon: string; queue: number; description: string };
+const notifDepartmentRoster: NotifDepartment[] = [
+  { id: "dept-1", name: "Billing & Payments",    icon: "💳", queue: 8,  description: "Invoices, refunds, payment issues" },
+  { id: "dept-2", name: "Technical Support",     icon: "🛠️", queue: 12, description: "API, integrations, system errors" },
+  { id: "dept-3", name: "Security & Compliance", icon: "🔒", queue: 5,  description: "Data breaches, access management" },
+  { id: "dept-4", name: "Enterprise Accounts",   icon: "🏢", queue: 3,  description: "Licensing, contracts, renewals" },
+  { id: "dept-5", name: "Fraud & Risk",          icon: "⚠️", queue: 6,  description: "Suspicious activity, wire transfers" },
+];
+
 // ── Transfer popover for incoming notification ────────────────────────────────
 function IncomingTransferPopover({
   triggerRef,
@@ -4950,7 +4959,7 @@ function IncomingTransferPopover({
   onTransferred: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<"Agents" | "Supervisors">("Agents");
+  const [tab, setTab] = useState<"Department" | "Agent" | "Supervisor">("Department");
   const [assigned, setAssigned] = useState<string | null>(null);
   const [pos, setPos] = useState({ top: 0, right: 0 });
 
@@ -4969,18 +4978,22 @@ function IncomingTransferPopover({
     return () => document.removeEventListener("mousedown", handler);
   }, [onClose]);
 
-  const roster = tab === "Agents" ? notifAgentRoster : notifSupervisorRoster;
-  const sorted = [...roster].sort((a, b) => notifAvailabilityOrder[a.availability] - notifAvailabilityOrder[b.availability]);
-
-  const handleAssign = (agent: NotifAgent) => {
+  const handleAssignAgent = (agent: NotifAgent) => {
     setAssigned(agent.id);
     setTimeout(() => { onTransferred(); onClose(); }, 800);
   };
+  const handleAssignDept = (dept: NotifDepartment) => {
+    setAssigned(dept.id);
+    setTimeout(() => { onTransferred(); onClose(); }, 800);
+  };
+
+  const agentRoster = tab === "Agent" ? notifAgentRoster : notifSupervisorRoster;
+  const sortedAgents = [...agentRoster].sort((a, b) => notifAvailabilityOrder[a.availability] - notifAvailabilityOrder[b.availability]);
 
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[10000] w-[280px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      className="fixed z-[10000] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
       style={{ bottom: `calc(100vh - ${pos.top}px)`, right: pos.right }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -4990,13 +5003,14 @@ function IncomingTransferPopover({
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
+      {/* Tabs */}
       <div className="flex border-b border-border">
-        {(["Agents", "Supervisors"] as const).map((t) => (
+        {(["Department", "Agent", "Supervisor"] as const).map((t) => (
           <button
             key={t}
             type="button"
-            onClick={() => setTab(t)}
-            className={cn("relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
+            onClick={() => { setTab(t); setAssigned(null); }}
+            className={cn("relative flex-1 py-2.5 text-[11px] font-medium transition-colors",
               tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
           >
             {t}
@@ -5004,37 +5018,64 @@ function IncomingTransferPopover({
           </button>
         ))}
       </div>
-      <div className="max-h-[220px] overflow-y-auto divide-y divide-border">
-        {sorted.map((agent) => {
-          const isAssigned = assigned === agent.id;
-          const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
-          return (
-            <button
-              key={agent.id}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => handleAssign(agent)}
-              className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA] dark:bg-[#2A1F4A]" : "hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]",
-                isDisabled && "opacity-40 cursor-not-allowed")}
-            >
-              <div className="relative shrink-0">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[10px] font-bold text-[#475467] dark:text-[#94A3B8]">
-                  {agent.initials}
+      <div className="max-h-[240px] overflow-y-auto divide-y divide-border">
+        {tab === "Department" ? (
+          notifDepartmentRoster.map((dept) => {
+            const isAssigned = assigned === dept.id;
+            return (
+              <button
+                key={dept.id}
+                type="button"
+                onClick={() => handleAssignDept(dept)}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                  isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]")}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[15px]">
+                  {dept.icon}
                 </div>
-                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white dark:border-[#0F1629]", notifAvailabilityDot[agent.availability])} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-[12px] font-semibold text-[#1D2939] dark:text-[#E2E8F0] truncate">{agent.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[12px] font-semibold text-[#1D2939] truncate">{dept.name}</p>
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  </div>
+                  <p className="text-[10px] text-[#98A2B3] truncate">{dept.description}</p>
                 </div>
-                <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
-              </div>
-              <span className="shrink-0 text-[10px] text-[#667085]">{agent.activeCount}</span>
-            </button>
-          );
-        })}
+                <span className="shrink-0 rounded-full bg-[#F2F4F7] px-1.5 py-0.5 text-[10px] font-semibold text-[#667085]">{dept.queue}</span>
+              </button>
+            );
+          })
+        ) : (
+          sortedAgents.map((agent) => {
+            const isAssigned = assigned === agent.id;
+            const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
+            return (
+              <button
+                key={agent.id}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => handleAssignAgent(agent)}
+                className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                  isAssigned ? "bg-[#F2F0FA] dark:bg-[#2A1F4A]" : "hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]",
+                  isDisabled && "opacity-40 cursor-not-allowed")}
+              >
+                <div className="relative shrink-0">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[10px] font-bold text-[#475467] dark:text-[#94A3B8]">
+                    {agent.initials}
+                  </div>
+                  <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white dark:border-[#0F1629]", notifAvailabilityDot[agent.availability])} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[12px] font-semibold text-[#1D2939] dark:text-[#E2E8F0] truncate">{agent.name}</p>
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  </div>
+                  <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
+                </div>
+                <span className="shrink-0 text-[10px] text-[#667085]">{agent.activeCount}</span>
+              </button>
+            );
+          })
+        )}
       </div>
     </div>,
     document.body,
