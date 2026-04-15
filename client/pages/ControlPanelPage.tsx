@@ -2403,7 +2403,7 @@ export default function ControlCenterPage() {
           }}
           onDismiss={() => toast.dismiss(id)}
         />
-      ), { duration: 12000 });
+      ), { duration: Infinity });
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
