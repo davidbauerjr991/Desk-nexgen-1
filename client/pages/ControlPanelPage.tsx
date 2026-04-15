@@ -2169,8 +2169,10 @@ export default function ControlCenterPage() {
   const [, forceUpdate] = useState(0);
   const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
   const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
+  // Ref so the toast callback (created once) always reads the latest rows
+  const staticNormalisedRef = useRef<RowData[]>([]);
 
-  // After 35 s, escalate Kevin Tran's case and surface a toast
+  // After 5 s, escalate Fatima's case and surface a toast
   useEffect(() => {
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
@@ -2200,7 +2202,11 @@ export default function ControlCenterPage() {
           <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
             <button
               type="button"
-              onClick={() => toast.dismiss(id)}
+              onClick={() => {
+                const row = staticNormalisedRef.current.find((r) => r.id === "static-11");
+                if (row) setMonitoredCase(row);
+                toast.dismiss(id);
+              }}
               className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
             >Monitor</button>
             <button
@@ -2278,6 +2284,7 @@ export default function ControlCenterPage() {
     };
     return row;
   });
+  staticNormalisedRef.current = staticNormalised;
 
   // Live assignments currently open in the left rail. Exclude dynamically-created
   // assignments (from acceptIssue → "issue-" prefix, or openCustomerConversation →
