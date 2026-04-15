@@ -1681,7 +1681,7 @@ function IssueRow({
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
 
   return (
-    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored && "bg-[#F2F0FA] dark:bg-[#1B1040]")}>
+    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F9FAFB]")}>
       {isMonitored && <div className="absolute left-0 inset-y-0 w-[3px] bg-[#6E56CF] rounded-r-full" />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
