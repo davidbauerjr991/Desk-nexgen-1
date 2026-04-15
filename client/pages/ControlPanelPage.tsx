@@ -2135,7 +2135,7 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pushToIncomingNotifications } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
@@ -2163,33 +2163,15 @@ export default function ControlCenterPage() {
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
-  // After 5 s from when the agent dismisses the briefing, escalate Fatima's case
+  // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
+  // When the escalated notification is pushed, also mark static-11 as escalated locally.
   useEffect(() => {
     if (!isBriefingDismissed) return;
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
-      pushToIncomingNotifications({
-        id: "escalation-static-11",
-        customerRecordId: "david",
-        channel: "chat",
-        initials: "FA",
-        name: "Fatima Al-Rashid",
-        customerId: "CST-11621",
-        lastUpdated: "Just now",
-        time: "Just now",
-        preview: "Data breach concern — suspicious export activity flagged",
-        statusLabel: "Escalated",
-        priority: "Critical",
-        priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
-        badgeColor: "#E32926",
-        icon: MessageCircle,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
     }, 5_000);
     return () => clearTimeout(timer);
-  }, [isBriefingDismissed, pushToIncomingNotifications]);
+  }, [isBriefingDismissed]);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 

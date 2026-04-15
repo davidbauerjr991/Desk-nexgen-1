@@ -6011,6 +6011,40 @@ export default function Layout({ children }: LayoutProps) {
   };
   const [isLeftRailOpen, setIsLeftRailOpen] = useState(false);
   const [incomingNotifications, setIncomingNotifications] = useState<QueuePreviewItem[]>([]);
+
+  // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
+  // This lives in Layout so it fires regardless of which page the agent is currently on.
+  useEffect(() => {
+    if (!isBriefingDismissed) return;
+    const timer = setTimeout(() => {
+      setIncomingNotifications((prev) => {
+        if (prev.some((n) => n.id === "escalation-static-11")) return prev; // already pushed
+        return [
+          ...prev,
+          {
+            id: "escalation-static-11",
+            customerRecordId: "david",
+            channel: "chat" as const,
+            initials: "FA",
+            name: "Fatima Al-Rashid",
+            customerId: "CST-11621",
+            lastUpdated: "Just now",
+            time: "Just now",
+            preview: "Data breach concern — suspicious export activity flagged",
+            statusLabel: "Escalated",
+            priority: "Critical",
+            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+            badgeColor: "#E32926",
+            icon: MessageCircle,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+      });
+    }, 5_000);
+    return () => clearTimeout(timer);
+  }, [isBriefingDismissed]);
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
