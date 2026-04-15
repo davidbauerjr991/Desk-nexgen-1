@@ -105,7 +105,7 @@ export default function Index() {
   }, [isRightPanelOpen]);
 
   return (
-    <div className="relative flex h-full w-full overflow-hidden flex-row-reverse">
+    <div className="relative flex h-full w-full overflow-hidden">
       {/* Main Interaction Area */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card">
         
@@ -170,7 +170,7 @@ export default function Index() {
         {/* Content row: summary + conversation on desktop, conversation on mobile */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
           {/* Desktop: Summary on left, Conversation on right */}
-          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
+          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden flex-row-reverse">
             {/* Summary column (left) - using NotesPanel */}
             <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
               <NotesPanel customerId={selectedAssignment.customerRecordId} />
