@@ -8203,7 +8203,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <LayoutContext.Provider value={layoutContextValue}>
       <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
-      <header className="grid min-h-[60px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 px-4 py-2">
+      <header className="flex min-h-[60px] shrink-0 items-center justify-between gap-2 px-4 py-2">
         <div className="flex flex-none items-center lg:min-w-0 lg:gap-3">
           <div className="group relative flex-shrink-0">
             <button
