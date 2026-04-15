@@ -157,6 +157,7 @@ interface LayoutContextValue {
   setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
   openCopilot: () => void;
   isBriefingDismissed: boolean;
+  pushToIncomingNotifications: (item: QueuePreviewItem) => void;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
@@ -281,6 +282,8 @@ export type QueuePreviewItem = {
   lastUpdated: string;
   time: string;
   preview: string;
+  label?: string;
+  statusLabel?: string;  // e.g. "Escalated" — defaults to "Open"
   priority: string;
   priorityClassName: string;
   badgeColor: string;
@@ -5119,8 +5122,13 @@ function IncomingAssignmentCard({
             <p className="text-[12px] text-[#667085] dark:text-[#8898AB] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
           </div>
         </div>
-        <span className="shrink-0 ml-2 rounded-full border border-[#24943E] bg-[#EFFBF1] px-2.5 py-0.5 text-[11px] font-medium text-[#208337]">
-          Open
+        <span className={cn(
+          "shrink-0 ml-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+          item.statusLabel === "Escalated"
+            ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+            : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+        )}>
+          {item.statusLabel ?? "Open"}
         </span>
       </div>
 
@@ -8030,6 +8038,7 @@ export default function Layout({ children }: LayoutProps) {
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
       isBriefingDismissed,
+      pushToIncomingNotifications: (item: QueuePreviewItem) => setIncomingNotifications((prev) => [...prev, item]),
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
