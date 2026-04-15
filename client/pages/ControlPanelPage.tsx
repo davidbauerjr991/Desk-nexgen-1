@@ -1599,6 +1599,99 @@ function RejectPopover({
   );
 }
 
+// ─── Copilot reasoning constants ─────────────────────────────────────────────
+
+const COPILOT_REASONING_STEPS = [
+  "Reviewing case history and prior customer interactions...",
+  "Analyzing attempted resolutions and their outcomes...",
+  "Cross-referencing similar resolved cases in the knowledge base...",
+  "Synthesizing recommended next steps and action items...",
+];
+
+// ─── CopilotResponseCard ──────────────────────────────────────────────────────
+
+function CopilotResponseCard({
+  query,
+  phase,
+  reasoningVisible,
+  isOpen,
+  onToggle,
+}: {
+  query: string;
+  phase: "thinking" | "done";
+  reasoningVisible: number;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+      {/* Header */}
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
+            Copilot Response
+          </p>
+          {phase === "thinking" && (
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+            </span>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200",
+            isOpen && "rotate-180",
+          )}
+        />
+      </button>
+
+      {/* Body */}
+      <div
+        className={cn(
+          "grid transition-all duration-200 ease-out",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4 space-y-3">
+            {/* Query echo */}
+            <p className="text-[11px] text-[#98A2B3] italic">"{query}"</p>
+
+            {/* Reasoning steps */}
+            <div className="space-y-1.5">
+              {COPILOT_REASONING_STEPS.slice(0, reasoningVisible).map((step, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-2 text-[11px] text-[#667085] animate-in fade-in slide-in-from-bottom-1 duration-300"
+                >
+                  <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#C8BFF0]" />
+                  {step}
+                </div>
+              ))}
+            </div>
+
+            {/* Final response */}
+            {phase === "done" && (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                <p className="text-[12px] text-[#344054] leading-relaxed">
+                  Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Row component ────────────────────────────────────────────────────────────
 
 function IssueRow({
@@ -1659,7 +1752,32 @@ function IssueRow({
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const customerRecord = customerRecordId ? getCustomerRecord(customerRecordId) : null;
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function handleCopilotSubmit() {
+    if (!copilotQuery.trim()) return;
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setSubmittedQuery(copilotQuery);
+    setCopilotQuery("");
+    setCopilotPhase("thinking");
+    setCopilotReasoningVisible(0);
+    setIsCopilotOpen(true);
+    COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      copilotTimersRef.current.push(t);
+    });
+    const doneTimer = setTimeout(() => setCopilotPhase("done"), 1000 + COPILOT_REASONING_STEPS.length * 600 + 600);
+    copilotTimersRef.current.push(doneTimer);
+  }
+
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
+  useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
 
   return (
     <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F2F4F7]")}>
@@ -1820,13 +1938,26 @@ function IssueRow({
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
               <input
                 type="text"
+                value={copilotQuery}
+                onChange={(e) => setCopilotQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
                 placeholder="Ask Copilot about this Case"
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
               />
-              <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
+            {/* Copilot response card — appears after submission */}
+            {copilotPhase !== "idle" && (
+              <CopilotResponseCard
+                query={submittedQuery}
+                phase={copilotPhase}
+                reasoningVisible={copilotReasoningVisible}
+                isOpen={isCopilotOpen}
+                onToggle={() => setIsCopilotOpen((v) => !v)}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1855,6 +1986,31 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
   const priorityKey = item.priority as Priority;
   const aiOverview = getLiveAiOverview(item.customerRecordId, item.name, item.preview, item.channel);
   const customerRecord = item.customerRecordId ? getCustomerRecord(item.customerRecordId) : null;
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function handleCopilotSubmit() {
+    if (!copilotQuery.trim()) return;
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setSubmittedQuery(copilotQuery);
+    setCopilotQuery("");
+    setCopilotPhase("thinking");
+    setCopilotReasoningVisible(0);
+    setIsCopilotOpen(true);
+    COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      copilotTimersRef.current.push(t);
+    });
+    const doneTimer = setTimeout(() => setCopilotPhase("done"), 1000 + COPILOT_REASONING_STEPS.length * 600 + 600);
+    copilotTimersRef.current.push(doneTimer);
+  }
+
+  useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
 
   return (
     <div className="border-b border-border last:border-b-0">
@@ -1924,13 +2080,26 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
               <input
                 type="text"
+                value={copilotQuery}
+                onChange={(e) => setCopilotQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
                 placeholder="Ask Copilot about this Case"
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] dark:text-[#94A3B8] placeholder:text-[#98A2B3] outline-none"
               />
-              <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
+            {/* Copilot response card — appears after submission */}
+            {copilotPhase !== "idle" && (
+              <CopilotResponseCard
+                query={submittedQuery}
+                phase={copilotPhase}
+                reasoningVisible={copilotReasoningVisible}
+                isOpen={isCopilotOpen}
+                onToggle={() => setIsCopilotOpen((v) => !v)}
+              />
+            )}
 
             {/* Transfer / Open actions */}
             <div className="flex items-center justify-end gap-2 pt-1">
