@@ -1822,9 +1822,9 @@ export default function ControlCenterPage() {
           </div>
 
           {/* Tasks card */}
-          <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
+          <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
             {/* Header: title + tabs + filters */}
-            <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
+            <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
                 {/* Status tabs */}
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
