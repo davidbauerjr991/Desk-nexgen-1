@@ -1823,7 +1823,7 @@ function IssueRow({
             <span className="relative inline-flex h-2 w-2 rounded-full bg-[#208337]" />
           </div>
         )}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold text-[#1D2939]">{name}</span>
             <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priority])}>
@@ -1849,10 +1849,10 @@ function IssueRow({
           </div>
         </div>
 
-        {/* Action buttons — "In Progress" always visible; others revealed on hover or when open */}
+        {/* Action buttons — absolutely positioned so they overlay content without squishing it */}
         <div
           className={cn(
-            "flex shrink-0 items-center gap-1.5 transition-opacity duration-150",
+            "absolute right-11 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-opacity duration-150 z-10",
             isInProgress
               ? "opacity-100"
               : isOpen
