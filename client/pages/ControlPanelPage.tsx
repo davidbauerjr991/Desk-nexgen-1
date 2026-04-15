@@ -2636,7 +2636,7 @@ export default function ControlCenterPage() {
               </div>
 
               {/* Conversation feed — real data from customer database */}
-              <div className="flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 {(() => {
                   const channel = (monitoredCase.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
                   const conversation = monitoredCase.customerRecordId
