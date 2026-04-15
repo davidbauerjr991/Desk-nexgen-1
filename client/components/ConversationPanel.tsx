@@ -2004,52 +2004,52 @@ export default function ConversationPanel({
                           </div>
                         )}
                         <div className={cn("max-w-[75%]", isMsgAgent && "flex flex-col items-end")}>
-                          <div className={cn(
-                            "px-4 pt-2.5 pb-2",
-                            isMsgAgent
-                              ? "rounded-2xl rounded-tr-sm bg-[#6E56CF]"
-                              : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isMsgLatest && "ring-2 ring-[#6E56CF]/30"),
-                          )}>
-                            <p className={cn("text-[13px] leading-relaxed", isMsgAgent ? "text-white" : "text-[#344054]")}>
-                              {message.content}
-                            </p>
-                            {appliedTags.length > 0 && (
-                              <div className={cn("mt-2 flex flex-wrap gap-1", isMsgAgent && "justify-end")}>
-                                {appliedTags.map((tagId) => {
-                                  const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
-                                  return tag ? (
-                                    <span key={tagId} className={cn(
-                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-                                      isMsgAgent ? "border-white/30 bg-white/20 text-white" : tag.activeClass,
-                                    )}>{tag.label}</span>
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
-                            <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-150 ease-out">
-                              <div className="overflow-hidden">
-                                <div className={cn(
-                                  "flex flex-wrap items-center gap-1 mt-2 pt-2",
-                                  isMsgAgent ? "border-t border-white/20 justify-end" : "border-t border-black/10",
-                                )}>
-                                  <span className={cn("text-[10px] mr-0.5", isMsgAgent ? "text-white/50" : "text-[#C4C9D4]")}>Tag:</span>
-                                  {MESSAGE_TAG_DEFS.map((tag) => {
-                                    const isApplied = appliedTags.includes(tag.id);
-                                    return (
-                                      <button
-                                        key={tag.id}
-                                        type="button"
-                                        onClick={() => handleToggleTag(message.id, tag.id)}
-                                        className={cn(
-                                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                                          isMsgAgent
-                                            ? isApplied ? "border-white/40 bg-white/25 text-white" : "border-white/25 bg-transparent text-white/70 hover:bg-white/20"
-                                            : isApplied ? tag.activeClass : tag.ghostClass,
-                                        )}
-                                      >{tag.label}</button>
-                                    );
+                          {/* Bubble + absolutely-positioned tag strip so hover never shifts layout */}
+                          <div className="relative">
+                            <div className={cn(
+                              "px-4 pt-2.5 pb-2",
+                              isMsgAgent
+                                ? "rounded-2xl rounded-tr-sm bg-[#6E56CF]"
+                                : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isMsgLatest && "ring-2 ring-[#6E56CF]/30"),
+                            )}>
+                              <p className={cn("text-[13px] leading-relaxed", isMsgAgent ? "text-white" : "text-[#344054]")}>
+                                {message.content}
+                              </p>
+                              {appliedTags.length > 0 && (
+                                <div className={cn("mt-2 flex flex-wrap gap-1", isMsgAgent && "justify-end")}>
+                                  {appliedTags.map((tagId) => {
+                                    const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
+                                    return tag ? (
+                                      <span key={tagId} className={cn(
+                                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                        isMsgAgent ? "border-white/30 bg-white/20 text-white" : tag.activeClass,
+                                      )}>{tag.label}</span>
+                                    ) : null;
                                   })}
                                 </div>
+                              )}
+                            </div>
+                            {/* Tag options — absolute, below the bubble, no layout shift */}
+                            <div className={cn(
+                              "absolute top-full mt-1 z-10 opacity-0 pointer-events-none group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto transition-opacity duration-150",
+                              isMsgAgent ? "right-0" : "left-0",
+                            )}>
+                              <div className="flex flex-wrap items-center gap-1 rounded-xl border border-black/10 bg-white shadow-sm px-3 py-1.5">
+                                <span className="text-[10px] mr-0.5 text-[#C4C9D4]">Tag:</span>
+                                {MESSAGE_TAG_DEFS.map((tag) => {
+                                  const isApplied = appliedTags.includes(tag.id);
+                                  return (
+                                    <button
+                                      key={tag.id}
+                                      type="button"
+                                      onClick={() => handleToggleTag(message.id, tag.id)}
+                                      className={cn(
+                                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                                        isApplied ? tag.activeClass : tag.ghostClass,
+                                      )}
+                                    >{tag.label}</button>
+                                  );
+                                })}
                               </div>
                             </div>
                           </div>
