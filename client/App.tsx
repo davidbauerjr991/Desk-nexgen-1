@@ -55,7 +55,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner position="bottom-right" />
+      <Sonner position="bottom-right" style={{ "--z-index": "9000" } as React.CSSProperties} />
       <BrowserRouter>
         <Routes>
           {/* Default → login */}
