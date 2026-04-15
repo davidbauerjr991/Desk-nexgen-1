@@ -2299,7 +2299,7 @@ export default function ControlCenterPage() {
     <div className="flex h-full flex-col">
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">
-        <div className="flex gap-5 h-full">
+        <div className="flex gap-0 h-full">
 
           {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
           <div className="hidden flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -2596,7 +2596,7 @@ export default function ControlCenterPage() {
 
           {/* Monitor panel — slides in from the right */}
           {monitoredCase && (
-            <div className="w-[480px] flex-shrink-0 h-full flex flex-col border-l border-border bg-white rounded-lg overflow-hidden">
+            <div className="w-[480px] flex-shrink-0 h-full flex flex-col border-l border-border bg-white rounded-r-lg overflow-hidden">
               {/* Panel header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
                 <div className="flex items-center gap-2.5">
