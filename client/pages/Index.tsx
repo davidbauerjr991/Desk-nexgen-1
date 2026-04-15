@@ -167,7 +167,7 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Content row: conversation on mobile, notes in the main container */}
+        {/* Content row: conversation on mobile, notes + conversation on desktop */}
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
           {/* Conversation column on mobile */}
           <div
@@ -193,15 +193,27 @@ export default function Index() {
             )}
           </div>
 
-          {/* Customer Data tabs */}
-          <div
-            className={cn(
-              "min-h-0 flex-1 min-w-0 flex-col overflow-hidden min-[800px]:min-w-[500px]",
-              isConversationPanelOpen ? "hidden min-[800px]:flex" : "flex",
-            )}
-          >
-            <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Desktop layout: Summary on left, Conversation on right */}
+          <div className="hidden min-[800px]:flex min-h-0 flex-1 min-w-0 gap-4 overflow-hidden">
+            {/* Summary column (left) */}
+            <div className="min-h-0 min-w-[300px] flex-shrink-0 overflow-hidden">
               <NotesPanel customerId={selectedAssignment.customerRecordId} />
+            </div>
+
+            {/* Conversation column (right) */}
+            <div className="min-h-0 flex-1 min-w-0 overflow-hidden">
+              {isConversationContentVisible && (
+                <ConversationPanel
+                  conversation={conversationState}
+                  openChannels={activeConversationTabs}
+                  activeChannel={activeConversationChannel}
+                  customerId={selectedAssignment.customerRecordId}
+                  draftKey={`desktop-${activeConversationChannel}`}
+                  onConversationChange={setConversationState}
+                  onSelectChannel={setActiveConversationChannel}
+                  onOpenDeskPanel={openDeskPanel}
+                />
+              )}
             </div>
           </div>
 
