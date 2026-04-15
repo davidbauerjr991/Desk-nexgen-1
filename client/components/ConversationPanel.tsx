@@ -1054,101 +1054,6 @@ export default function ConversationPanel({
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
   const agentFullName = customerRecord?.overview.assignedAgent ?? "Agent";
 
-  const BubbleMessage = ({
-    message,
-    isAgent,
-    appliedTags,
-    isLatest,
-    onToggleTag,
-  }: {
-    message: ConversationMessage;
-    isAgent: boolean;
-    appliedTags: string[];
-    isLatest: boolean;
-    onToggleTag: (messageId: number, tagId: string) => void;
-  }) => {
-    const msgName = isAgent ? agentFullName : conversation.customerName;
-    const initials = msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-    return (
-      <div className={cn("group/msg flex items-start gap-2.5 py-1", isAgent && "justify-end")}>
-        {/* Customer avatar — fixed at top-left, never shifts */}
-        {!isAgent && (
-          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
-            {initials}
-          </div>
-        )}
-        {/* Bubble + meta — expands downward without moving the avatar */}
-        <div className={cn("max-w-[75%]", isAgent && "flex flex-col items-end")}>
-          <div
-            className={cn(
-              "px-4 py-2.5",
-              isAgent
-                ? "rounded-2xl rounded-tr-sm bg-[#6E56CF]"
-                : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isLatest && "ring-2 ring-[#6E56CF]/30"),
-            )}
-          >
-            <p className={cn("text-[13px] leading-relaxed", isAgent ? "text-white" : "text-[#344054]")}>
-              {message.content}
-            </p>
-          </div>
-          {/* Timestamp */}
-          <p className={cn("mt-1 text-[10px] text-[#98A2B3]", isAgent ? "mr-1" : "ml-1")}>
-            {formatConversationMessageTimestamp(message.time)} · {getConversationChannelLabel(message.channel ?? activeChannel)}
-          </p>
-          {/* Sentiment */}
-          {message.sentiment === "frustrated" && (
-            <div className={cn("mt-1 flex items-center gap-1 text-xs font-medium text-[#A37A00]", isAgent && "justify-end")}>
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Frustrated sentiment detected
-            </div>
-          )}
-          {/* Applied tag chips — always visible */}
-          {appliedTags.length > 0 && (
-            <div className={cn("mt-1.5 flex flex-wrap gap-1", isAgent && "justify-end")}>
-              {appliedTags.map((tagId) => {
-                const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
-                return tag ? (
-                  <span key={tagId} className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", tag.activeClass)}>
-                    {tag.label}
-                  </span>
-                ) : null;
-              })}
-            </div>
-          )}
-          {/* Tag picker — slides in below bubble on hover, stays while hovering group */}
-          <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-200 ease-out">
-            <div className="overflow-hidden">
-              <div className={cn("flex flex-wrap items-center gap-1 pt-2 pb-0.5", isAgent && "justify-end")}>
-                <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
-                {MESSAGE_TAG_DEFS.map((tag) => {
-                  const isApplied = appliedTags.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => onToggleTag(message.id, tag.id)}
-                      className={cn(
-                        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                        isApplied ? tag.activeClass : tag.ghostClass,
-                      )}
-                    >
-                      {tag.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-        {/* Agent avatar — fixed at top-right, never shifts */}
-        {isAgent && (
-          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
-            {initials}
-          </div>
-        )}
-      </div>
-    );
-  };
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -2032,6 +1937,10 @@ export default function ConversationPanel({
                   const isNewMessage = !seenMessageIdsRef.current.has(message.id);
                   if (isNewMessage) seenMessageIdsRef.current.add(message.id);
                   const appliedTags = messageTags[message.id] ?? [];
+                  const isMsgAgent = message.role === "agent";
+                  const isMsgLatest = message.id === latestNonInternalMessage?.id;
+                  const msgName = isMsgAgent ? agentFullName : conversation.customerName;
+                  const msgInitials = msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                   return (
                   <div
                     key={message.id}
@@ -2040,8 +1949,8 @@ export default function ConversationPanel({
                       isNewMessage && "animate-in fade-in slide-in-from-bottom-3",
                     )}
                   >
-                    {message.isInternal ? (
-                      /* Internal note — not visible to the customer */
+                    {/* Internal note */}
+                    {message.isInternal && (
                       <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] overflow-hidden">
                         <button
                           type="button"
@@ -2073,34 +1982,91 @@ export default function ConversationPanel({
                           )}
                         </button>
                         {message.ticket && (
-                          <div
-                            className={cn(
-                              "grid transition-all duration-200 ease-out",
-                              expandedNoteIds.has(message.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-                            )}
-                          >
+                          <div className={cn("grid transition-all duration-200 ease-out", expandedNoteIds.has(message.id) ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                             <div className="overflow-hidden">
                               <div className="border-t border-dashed border-[#D0D5DD] p-2">
-                                <InlineTicketRecord
-                                  ticket={message.ticket}
-                                  isOpen
-                                  onToggle={() => {}}
-                                />
+                                <InlineTicketRecord ticket={message.ticket} isOpen onToggle={() => {}} />
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <BubbleMessage
-                        message={message}
-                        isAgent={message.role === "agent"}
-                        isLatest={message.id === latestNonInternalMessage?.id}
-                        appliedTags={appliedTags}
-                        onToggleTag={handleToggleTag}
-                      />
                     )}
-
+                    {/* Chat bubble — tag options live inside bubble so hover never breaks */}
+                    {!message.isInternal && (
+                      <div className={cn("group/msg flex items-start gap-2.5 py-1", isMsgAgent && "justify-end")}>
+                        {!isMsgAgent && (
+                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+                            {msgInitials}
+                          </div>
+                        )}
+                        <div className={cn("max-w-[75%]", isMsgAgent && "flex flex-col items-end")}>
+                          <div className={cn(
+                            "px-4 pt-2.5 pb-2",
+                            isMsgAgent
+                              ? "rounded-2xl rounded-tr-sm bg-[#6E56CF]"
+                              : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isMsgLatest && "ring-2 ring-[#6E56CF]/30"),
+                          )}>
+                            <p className={cn("text-[13px] leading-relaxed", isMsgAgent ? "text-white" : "text-[#344054]")}>
+                              {message.content}
+                            </p>
+                            {appliedTags.length > 0 && (
+                              <div className={cn("mt-2 flex flex-wrap gap-1", isMsgAgent && "justify-end")}>
+                                {appliedTags.map((tagId) => {
+                                  const tag = MESSAGE_TAG_DEFS.find((t) => t.id === tagId);
+                                  return tag ? (
+                                    <span key={tagId} className={cn(
+                                      "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                                      isMsgAgent ? "border-white/30 bg-white/20 text-white" : tag.activeClass,
+                                    )}>{tag.label}</span>
+                                  ) : null;
+                                })}
+                              </div>
+                            )}
+                            <div className="grid grid-rows-[0fr] group-hover/msg:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-150 ease-out">
+                              <div className="overflow-hidden">
+                                <div className={cn(
+                                  "flex flex-wrap items-center gap-1 mt-2 pt-2",
+                                  isMsgAgent ? "border-t border-white/20 justify-end" : "border-t border-black/10",
+                                )}>
+                                  <span className={cn("text-[10px] mr-0.5", isMsgAgent ? "text-white/50" : "text-[#C4C9D4]")}>Tag:</span>
+                                  {MESSAGE_TAG_DEFS.map((tag) => {
+                                    const isApplied = appliedTags.includes(tag.id);
+                                    return (
+                                      <button
+                                        key={tag.id}
+                                        type="button"
+                                        onClick={() => handleToggleTag(message.id, tag.id)}
+                                        className={cn(
+                                          "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
+                                          isMsgAgent
+                                            ? isApplied ? "border-white/40 bg-white/25 text-white" : "border-white/25 bg-transparent text-white/70 hover:bg-white/20"
+                                            : isApplied ? tag.activeClass : tag.ghostClass,
+                                        )}
+                                      >{tag.label}</button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <p className={cn("mt-1 text-[10px] text-[#98A2B3]", isMsgAgent ? "mr-1" : "ml-1")}>
+                            {formatConversationMessageTimestamp(message.time)} · {getConversationChannelLabel(message.channel ?? activeChannel)}
+                          </p>
+                          {message.sentiment === "frustrated" && (
+                            <div className={cn("mt-0.5 flex items-center gap-1 text-xs font-medium text-[#A37A00]", isMsgAgent && "justify-end")}>
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              Frustrated sentiment detected
+                            </div>
+                          )}
+                        </div>
+                        {isMsgAgent && (
+                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
+                            {msgInitials}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   );
                 })}
