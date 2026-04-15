@@ -1815,7 +1815,7 @@ function IssueRow({
         tabIndex={0}
         onClick={() => setIsOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsOpen((v) => !v); } }}
-        className={cn("w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
+        className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
           <div className="shrink-0 relative flex h-2 w-2">
