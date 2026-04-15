@@ -167,8 +167,32 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Content row: conversation on mobile, summary + conversation on desktop */}
+        {/* Content row: summary + conversation on desktop, conversation on mobile */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Desktop: Summary on left, Conversation on right */}
+          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
+            {/* Summary column (left) - using NotesPanel */}
+            <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
+              <NotesPanel customerId={selectedAssignment.customerRecordId} />
+            </div>
+
+            {/* Conversation column (right) */}
+            <div className="flex-1 h-full overflow-hidden">
+              {isConversationContentVisible && (
+                <ConversationPanel
+                  conversation={conversationState}
+                  openChannels={activeConversationTabs}
+                  activeChannel={activeConversationChannel}
+                  customerId={selectedAssignment.customerRecordId}
+                  draftKey={`desktop-${activeConversationChannel}`}
+                  onConversationChange={setConversationState}
+                  onSelectChannel={setActiveConversationChannel}
+                  onOpenDeskPanel={openDeskPanel}
+                />
+              )}
+            </div>
+          </div>
+
           {/* Mobile: Conversation only */}
           <div
             aria-hidden={!isConversationPanelOpen}
@@ -245,30 +269,6 @@ export default function Index() {
                     <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.customerRecordId} selection={deskPanelSelection} />
                   ) : null}
                 </>
-              )}
-            </div>
-          </div>
-
-          {/* Desktop: Summary on left, Conversation on right */}
-          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
-            {/* Summary column (left) - using NotesPanel */}
-            <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
-              <NotesPanel customerId={selectedAssignment.customerRecordId} />
-            </div>
-
-            {/* Conversation column (right) */}
-            <div className="flex-1 h-full overflow-hidden">
-              {isConversationContentVisible && (
-                <ConversationPanel
-                  conversation={conversationState}
-                  openChannels={activeConversationTabs}
-                  activeChannel={activeConversationChannel}
-                  customerId={selectedAssignment.customerRecordId}
-                  draftKey={`desktop-${activeConversationChannel}`}
-                  onConversationChange={setConversationState}
-                  onSelectChannel={setActiveConversationChannel}
-                  onOpenDeskPanel={openDeskPanel}
-                />
               )}
             </div>
           </div>
