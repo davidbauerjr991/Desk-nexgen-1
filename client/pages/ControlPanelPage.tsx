@@ -2217,20 +2217,187 @@ type RowData = StaticAssignment & {
   onMonitor: () => void;
 };
 
+// ─── BulkResponseModal ────────────────────────────────────────────────────────
+
+const BULK_AI_RESPONSES: Record<string, string> = {
+  "Login & Authentication":  "We're aware of an issue affecting login access and are actively working to resolve it. Our engineering team expects a fix within the next 30 minutes. We apologize for the inconvenience and appreciate your patience.",
+  "Payment & Billing":       "We've identified an issue affecting payment processing. Our team is investigating urgently to restore normal service. We'll ensure no incorrect charges are applied and will notify you once resolved.",
+  "System & Technical":      "We're currently experiencing a technical issue that may be impacting your experience. Our engineering team is aware and actively working on a resolution. We appreciate your patience.",
+  "Account Management":      "We're aware of an issue affecting account management features and are working to resolve it quickly. Your account data is safe. We'll notify you once full functionality is restored.",
+  "Security & Fraud":        "Our security team has been alerted and is investigating immediately. As a precaution, please review your recent account activity and contact us directly if you notice anything suspicious.",
+  "Service & Support":       "We sincerely apologize for the delay. We're aware this doesn't meet our standards and are prioritising your case. A dedicated agent will be in touch shortly.",
+};
+
+function BulkResponseModal({
+  label,
+  count,
+  onClose,
+  onSent,
+}: {
+  label: string;
+  count: number;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const aiResponse = BULK_AI_RESPONSES[label] ?? "We're aware of the issue affecting your account and our team is actively working to resolve it. We appreciate your patience and will be in touch shortly.";
+  const [response, setResponse] = useState(aiResponse);
+  const [channels, setChannels] = useState({ email: true, sms: true, inApp: false });
+  const [sent, setSent] = useState(false);
+
+  function toggleChannel(key: keyof typeof channels) {
+    setChannels((c) => ({ ...c, [key]: !c[key] }));
+  }
+
+  function handleSend() {
+    setSent(true);
+    onSent();
+    setTimeout(onClose, 1200);
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] px-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#F2F4F7]">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2F0FA]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <p className="text-[15px] font-semibold text-[#101828]">Bulk Response</p>
+              <p className="text-[12px] text-[#667085]">{count} customers affected</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto max-h-[calc(100vh-200px)]">
+          {/* Issue */}
+          <div className="px-6 pt-4 pb-3">
+            <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1">Issue</p>
+              <p className="text-[13px] font-semibold text-[#101828]">{label}</p>
+              <p className="text-[12px] text-[#667085] mt-0.5">{label} cases affecting multiple customers</p>
+            </div>
+          </div>
+
+          {/* AI Suggested Response */}
+          <div className="px-6 pb-3">
+            <div className="rounded-xl border border-[#C8BFF0] bg-[#F5F3FF] px-4 py-3">
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF]">
+                  <Sparkles className="h-3.5 w-3.5 text-white" />
+                </div>
+                <p className="text-[13px] font-semibold text-[#5C46B8]">AI Suggested Response</p>
+              </div>
+              <div className="rounded-lg bg-white border border-[#C8BFF0] px-3 py-2.5">
+                <p className="text-[12px] text-[#344054] leading-relaxed">{aiResponse}</p>
+              </div>
+              <button type="button" onClick={() => setResponse(aiResponse)} className="mt-2 text-[11px] font-medium text-[#6E56CF] hover:underline">
+                Use this response →
+              </button>
+            </div>
+          </div>
+
+          {/* Your Response */}
+          <div className="px-6 pb-3">
+            <div className="flex items-baseline gap-2 mb-1.5">
+              <p className="text-[13px] font-semibold text-[#101828]">Your Response</p>
+              <p className="text-[11px] text-[#98A2B3]">(or use voice command)</p>
+            </div>
+            <div className="rounded-xl border border-[#D0D5DD] bg-white overflow-hidden">
+              <textarea
+                value={response}
+                onChange={(e) => setResponse(e.target.value)}
+                rows={5}
+                className="w-full resize-none px-4 pt-3 pb-2 text-[12px] text-[#344054] leading-relaxed outline-none"
+                placeholder="Type your response here..."
+              />
+              <div className="flex items-center justify-between px-4 pb-3">
+                <div className="flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  Click mic or type
+                </div>
+                <p className="text-[11px] text-[#98A2B3]">{count} recipients</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Delivery Channels */}
+          <div className="px-6 pb-5">
+            <p className="text-[13px] font-semibold text-[#101828] mb-2">Delivery Channels</p>
+            <div className="flex items-center gap-4">
+              {([
+                { key: "email", label: "Email" },
+                { key: "sms",   label: "SMS"   },
+                { key: "inApp", label: "In-App Notification" },
+              ] as const).map(({ key, label: lbl }) => (
+                <label key={key} className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input type="checkbox" checked={channels[key]} onChange={() => toggleChannel(key)} className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#6E56CF] cursor-pointer" />
+                  <span className="text-[12px] text-[#344054]">{lbl}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-3 px-6 py-4 border-t border-[#F2F4F7]">
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sent || !response.trim()}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-colors",
+              sent ? "bg-[#12B76A]" : "bg-[#6E56CF] hover:bg-[#5C46B8] disabled:opacity-50 disabled:cursor-not-allowed",
+            )}
+          >
+            {sent ? (
+              <><Check className="h-4 w-4" /> Sent!</>
+            ) : (
+              <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send to All {count} Customers</>
+            )}
+          </button>
+          <button type="button" onClick={onClose} className="rounded-xl border border-[#D0D5DD] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── IssueGroup — grouped accordion wrapper ────────────────────────────────────
 
 function IssueGroup({
   label,
   items,
   monitoredCaseId,
+  onResolveAll,
 }: {
   label: string;
   items: RowData[];
   monitoredCaseId: string | null;
+  onResolveAll: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   return (
     <div className="border-b border-border last:border-b-0">
+      {showBulkModal && (
+        <BulkResponseModal
+          label={label}
+          count={items.length}
+          onClose={() => setShowBulkModal(false)}
+          onSent={onResolveAll}
+        />
+      )}
       {/* Group header */}
       <div className="flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors">
         <button
@@ -2246,29 +2413,21 @@ function IssueGroup({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); setShowBulkModal(true); }}
             className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
             Respond to all
           </button>
           <ChevronDown
-            className={cn(
-              "h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200",
-              isOpen && "rotate-180",
-            )}
+            className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200", isOpen && "rotate-180")}
             onClick={() => setIsOpen((v) => !v)}
           />
         </div>
       </div>
 
       {/* Group body */}
-      <div
-        className={cn(
-          "grid transition-all duration-200 ease-out",
-          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-      >
+      <div className={cn("grid transition-all duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
         <div className="overflow-hidden">
           {items.map((a) => (
             <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} />
@@ -2312,6 +2471,7 @@ export default function ControlCenterPage() {
   const [, forceUpdate] = useState(0);
   const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
   const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
+  const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
@@ -2383,7 +2543,7 @@ export default function ControlCenterPage() {
     const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
     const row: RowData = {
       ...a,
-      status: escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
+      status: bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
       isClosed,
@@ -2800,6 +2960,7 @@ export default function ControlCenterPage() {
                   return [...groupMap.entries()].map(([label, items]) => (
                     <IssueGroup
                       key={label}
+                      onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
                       label={label}
                       items={items}
                       monitoredCaseId={monitoredCase?.id ?? null}
@@ -2894,6 +3055,7 @@ export default function ControlCenterPage() {
                   return (
                     <ConversationPanel
                       key={monitoredCase.id}
+                      draftKey={`monitor-${monitoredCase.id}`}
                       conversation={conversation}
                       activeChannel={channel}
                       openChannels={[channel]}

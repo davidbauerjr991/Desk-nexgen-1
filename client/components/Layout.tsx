@@ -9396,7 +9396,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <span className="text-[13px] font-medium text-[#991B1B] dark:text-[#FCA5A5]">Escalated Cases</span>
                 </div>
-                <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.status === "escalated").length}</span>
+                <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.statusLabel === "Escalated").length}</span>
               </div>
 
               {/* Active Virtual Agents */}
@@ -9422,7 +9422,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
                 </div>
-                <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.status === "pending").length}</span>
+                <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.statusLabel === "Pending").length}</span>
               </div>
             </div>
 
