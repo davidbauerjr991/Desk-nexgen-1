@@ -2135,7 +2135,7 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
@@ -2204,6 +2204,19 @@ export default function ControlCenterPage() {
     };
     acceptIssue(data);
   };
+
+  // When Takeover is clicked on an incoming toast, accept that case and highlight it.
+  // This effect runs after handleAcceptStatic is defined.
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (!pendingTakeoverCaseId) return;
+    const match = staticNormalisedRef.current.find(
+      (r) => r.customerRecordId === pendingTakeoverCaseId || r.id === pendingTakeoverCaseId,
+    );
+    if (match) handleAcceptStatic(match);
+    clearPendingTakeoverCaseId();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingTakeoverCaseId]);
 
   type RowData = StaticAssignment & {
     isLive: boolean;

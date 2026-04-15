@@ -160,6 +160,8 @@ interface LayoutContextValue {
   pushToIncomingNotifications: (item: QueuePreviewItem) => void;
   pendingMonitorCaseId: string | null;
   clearPendingMonitorCaseId: () => void;
+  pendingTakeoverCaseId: string | null;
+  clearPendingTakeoverCaseId: () => void;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
@@ -5092,12 +5094,12 @@ function IncomingTransferPopover({
 function IncomingAssignmentCard({
   item,
   onMonitor,
-  onAccept,
+  onTakeover,
   onTransfer,
 }: {
   item: QueuePreviewItem;
   onMonitor: (item: QueuePreviewItem) => void;
-  onAccept: (item: QueuePreviewItem) => void;
+  onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
 }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -5228,7 +5230,7 @@ function IncomingAssignmentCard({
         </button>
         <button
           type="button"
-          onClick={() => onAccept(item)}
+          onClick={() => onTakeover(item)}
           className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
         >
           Takeover
@@ -5336,7 +5338,7 @@ function NotificationStack({
   assignmentItems,
   chatItems,
   onMonitor,
-  onAccept,
+  onTakeover,
   onTransfer,
   onChatOpen,
   onChatDismiss,
@@ -5344,7 +5346,7 @@ function NotificationStack({
   assignmentItems: QueuePreviewItem[];
   chatItems: AgentChatNotification[];
   onMonitor: (item: QueuePreviewItem) => void;
-  onAccept: (item: QueuePreviewItem) => void;
+  onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
   onChatOpen: (notif: AgentChatNotification) => void;
   onChatDismiss: (notif: AgentChatNotification) => void;
@@ -5394,7 +5396,7 @@ function NotificationStack({
       <IncomingAssignmentCard
         item={item.assignmentData}
         onMonitor={onMonitor}
-        onAccept={onAccept}
+        onTakeover={onTakeover}
         onTransfer={onTransfer}
       />
     ) : (
@@ -6017,6 +6019,9 @@ export default function Layout({ children }: LayoutProps) {
   const [pendingMonitorCaseId, setPendingMonitorCaseId] = useState<string | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const clearPendingMonitorCaseId = useMemo(() => () => setPendingMonitorCaseId(null), []);
+  const [pendingTakeoverCaseId, setPendingTakeoverCaseId] = useState<string | null>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const clearPendingTakeoverCaseId = useMemo(() => () => setPendingTakeoverCaseId(null), []);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
@@ -7427,9 +7432,14 @@ export default function Layout({ children }: LayoutProps) {
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
     removeIncoming(item.id);
-    // Store the customerRecordId so ControlCenterPage can open the monitor panel.
     setPendingMonitorCaseId(item.customerRecordId);
-    navigate("/");
+    navigate("/control-panel");
+  };
+
+  const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
+    setPendingTakeoverCaseId(item.customerRecordId);
+    navigate("/control-panel");
   };
 
   const transferIncomingAssignment = (item: QueuePreviewItem) => {
@@ -8088,6 +8098,8 @@ export default function Layout({ children }: LayoutProps) {
       pushToIncomingNotifications: (item: QueuePreviewItem) => setIncomingNotifications((prev) => [...prev, item]),
       pendingMonitorCaseId,
       clearPendingMonitorCaseId,
+      pendingTakeoverCaseId,
+      clearPendingTakeoverCaseId,
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -8303,6 +8315,7 @@ export default function Layout({ children }: LayoutProps) {
       isBriefingDismissed,
       setIncomingNotifications,
       pendingMonitorCaseId,
+      pendingTakeoverCaseId,
     ],
   );
 
@@ -9186,7 +9199,7 @@ export default function Layout({ children }: LayoutProps) {
         assignmentItems={incomingNotifications}
         chatItems={incomingChatNotifications}
         onMonitor={monitorIncomingAssignment}
-        onAccept={acceptIncomingAssignment}
+        onTakeover={takeoverIncomingAssignment}
         onTransfer={transferIncomingAssignment}
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
