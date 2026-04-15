@@ -1681,7 +1681,7 @@ function EscalationTransferPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[99999] w-[300px] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.16)] overflow-hidden"
+      className="fixed z-[999999] w-[300px] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.16)] overflow-hidden"
       style={{ bottom: window.innerHeight - anchor.top + 8, right: window.innerWidth - anchor.right }}
       onClick={(e) => e.stopPropagation()}
     >

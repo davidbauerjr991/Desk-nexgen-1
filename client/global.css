@@ -136,10 +136,10 @@
     @apply border-border;
   }
 
-  /* Keep Sonner toasts below our transfer/popover overlays */
+  /* Sonner toasts sit above app overlays, transfer popover sits above toasts */
   [data-sonner-toaster] {
-    --z-index: 9000 !important;
-    z-index: 9000 !important;
+    --z-index: 99000 !important;
+    z-index: 99000 !important;
   }
 
   body {
