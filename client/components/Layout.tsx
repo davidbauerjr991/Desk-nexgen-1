@@ -9194,7 +9194,7 @@ export default function Layout({ children }: LayoutProps) {
                       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Cases in queue</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Escalated Cases</span>
                 </div>
                 <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
               </div>
@@ -9207,7 +9207,7 @@ export default function Layout({ children }: LayoutProps) {
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Chats from agents to review</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
                 </div>
                 <span className="rounded-full bg-[#208337] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
               </div>
@@ -9220,7 +9220,7 @@ export default function Layout({ children }: LayoutProps) {
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Applications needing upgrade</span>
+                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Active Virtual Agents</span>
                 </div>
                 <span className="rounded-full bg-[#A37A00] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
               </div>
