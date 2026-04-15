@@ -1855,9 +1855,7 @@ function IssueRow({
             "absolute right-11 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-opacity duration-150 z-10",
             isInProgress
               ? "opacity-100"
-              : isOpen
-                ? "opacity-100"
-                : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
+              : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
           )}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
