@@ -2361,7 +2361,7 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
@@ -2389,8 +2389,9 @@ export default function ControlCenterPage() {
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
-  // After 5 s, escalate Fatima's case and surface a toast
+  // After 5 s from when the agent dismisses the briefing, escalate Fatima's case
   useEffect(() => {
+    if (!isBriefingDismissed) return;
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
       toast.custom((id) => (
@@ -2405,7 +2406,7 @@ export default function ControlCenterPage() {
       ), { duration: 12000 });
     }, 5_000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isBriefingDismissed]);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 

@@ -156,6 +156,7 @@ interface LayoutContextValue {
   liveLastCustomerCommentByAssignmentId: Record<string, string>;
   setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
   openCopilot: () => void;
+  isBriefingDismissed: boolean;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
@@ -5989,6 +5990,7 @@ export default function Layout({ children }: LayoutProps) {
   const [status, setStatus] = useState<AgentStatus>("Offline");
   const [showLoginBriefing, setShowLoginBriefing] = useState(true);
   const [briefingClosing, setBriefingClosing] = useState(false);
+  const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
 
   const closeBriefing = (callback?: () => void) => {
     setBriefingClosing(true);
@@ -5996,6 +5998,7 @@ export default function Layout({ children }: LayoutProps) {
       callback?.();
       setShowLoginBriefing(false);
       setBriefingClosing(false);
+      setIsBriefingDismissed(true);
     }, 280);
   };
   const [isLeftRailOpen, setIsLeftRailOpen] = useState(false);
@@ -8026,6 +8029,7 @@ export default function Layout({ children }: LayoutProps) {
       isAddNewOpen: isAddNewPopoverOpen,
       isAgentInCall: status === "In a Call",
       isAgentAvailable: status === "Available",
+      isBriefingDismissed,
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
