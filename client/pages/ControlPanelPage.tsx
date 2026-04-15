@@ -1790,12 +1790,6 @@ function IssueRow({
       )}>
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-2 space-y-3">
-            {/* Customer Issue */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-2">Customer Issue</p>
-              <p className="text-[13px] text-[#344054] leading-relaxed">{preview}</p>
-            </div>
-
             {/* Attempted Resolution — collapsible */}
             <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden">
               <button
