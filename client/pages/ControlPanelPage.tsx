@@ -1798,29 +1798,37 @@ export default function ControlCenterPage() {
               <div className="flex items-center justify-between gap-3 mb-3">
                 {/* Status tabs */}
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
-                  {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setIssueTab(tab)}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150 whitespace-nowrap",
-                        issueTab === tab
-                          ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
-                          : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
-                      )}
-                    >
-                      {tab}
-                      <span className={cn(
-                        "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
-                        issueTab === tab
-                          ? "bg-[#6E56CF] text-white"
-                          : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
-                      )}>
-                        {tabCounts[tab]}
-                      </span>
-                    </button>
-                  ))}
+                  {(["escalated", "open", "pending", "resolved"] as const).map((tab) => {
+                    const tabLabels: Record<typeof tab, string> = {
+                      escalated: "Escalated Cases",
+                      open: "Active Virtual Agents",
+                      pending: "Pending Cases",
+                      resolved: "Resolved Cases",
+                    };
+                    return (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setIssueTab(tab)}
+                        className={cn(
+                          "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150 whitespace-nowrap",
+                          issueTab === tab
+                            ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                            : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+                        )}
+                      >
+                        {tabLabels[tab]}
+                        <span className={cn(
+                          "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
+                          issueTab === tab
+                            ? "bg-[#6E56CF] text-white"
+                            : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
+                        )}>
+                          {tabCounts[tab]}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Filters */}
