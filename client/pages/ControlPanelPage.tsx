@@ -1681,7 +1681,7 @@ function IssueRow({
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
 
   return (
-    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F9FAFB]")}>
+    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F2F4F7]")}>
       {isMonitored && <div className="absolute left-0 inset-y-0 w-[3px] bg-[#6E56CF] rounded-r-full" />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
@@ -2438,7 +2438,7 @@ export default function ControlCenterPage() {
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
                 {/* Status tabs */}
-                <div className="inline-flex items-center rounded-xl bg-[#F9FAFB] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
+                <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
                   {(["escalated", "open", "pending", "resolved"] as const).map((tab) => {
                     const tabLabels: Record<typeof tab, string> = {
                       escalated: "Escalated",
