@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -6015,7 +6015,8 @@ export default function Layout({ children }: LayoutProps) {
   const [incomingNotifications, setIncomingNotifications] = useState<QueuePreviewItem[]>([]);
 
   const [pendingMonitorCaseId, setPendingMonitorCaseId] = useState<string | null>(null);
-  const clearPendingMonitorCaseId = useCallback(() => setPendingMonitorCaseId(null), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const clearPendingMonitorCaseId = useMemo(() => () => setPendingMonitorCaseId(null), []);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
