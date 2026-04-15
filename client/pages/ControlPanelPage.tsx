@@ -1264,25 +1264,40 @@ function getLiveAiOverview(customerRecordId: string, name: string, preview: stri
   };
 }
 
-type PriorityFilter = "all" | "Critical" | "High" | "Medium" | "Low";
-
-const priorityFilterOptions: { value: PriorityFilter; label: string }[] = [
-  { value: "all",      label: "All Priorities" },
+const priorityFilterOptions: { value: Priority; label: string }[] = [
   { value: "Critical", label: "Critical" },
   { value: "High",     label: "High" },
   { value: "Medium",   label: "Medium" },
   { value: "Low",      label: "Low" },
 ];
 
-type ChannelFilter = "all" | "chat" | "email" | "sms" | "whatsapp";
+type ChannelFilterValue = "chat" | "email" | "sms" | "whatsapp" | "voice";
 
-const channelFilterOptions: { value: ChannelFilter; label: string }[] = [
-  { value: "all",      label: "All Channels" },
-  { value: "chat",     label: "Chat"         },
-  { value: "email",    label: "Email"        },
-  { value: "sms",      label: "SMS"          },
-  { value: "whatsapp", label: "WhatsApp"     },
+const channelFilterOptions: { value: ChannelFilterValue; label: string }[] = [
+  { value: "chat",     label: "Chat"     },
+  { value: "email",    label: "Email"    },
+  { value: "sms",      label: "SMS"      },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "voice",    label: "Voice"    },
 ];
+
+// ─── Issue grouping ───────────────────────────────────────────────────────────
+const ISSUE_GROUPS: { label: string; keywords: string[] }[] = [
+  { label: "Login & Authentication",  keywords: ["login", "password", "auth", "sign in", "access", "locked out"] },
+  { label: "Payment & Billing",       keywords: ["payment", "charge", "billing", "invoice", "refund", "transfer", "transaction", "wire", "funds"] },
+  { label: "System & Technical",      keywords: ["system", "error", "outage", "down", "crash", "bug", "technical", "ai ", "virtual agent", "incorrect", "compliance"] },
+  { label: "Account Management",      keywords: ["account", "profile", "settings", "update", "plan", "subscription"] },
+  { label: "Security & Fraud",        keywords: ["security", "breach", "fraud", "suspicious", "unauthori", "data", "export"] },
+  { label: "Service & Support",       keywords: ["delay", "sla", "service", "support", "escalat", "complaint"] },
+];
+
+function getIssueGroup(preview: string, name: string): string {
+  const text = (preview + " " + name).toLowerCase();
+  for (const g of ISSUE_GROUPS) {
+    if (g.keywords.some((kw) => text.includes(kw))) return g.label;
+  }
+  return "Other Issues";
+}
 
 // Module-level store so the accepted-task map survives component remounts
 // (ControlCenterPage unmounts on every navigate("/activity") call).
@@ -2189,6 +2204,70 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
   );
 }
 
+// ─── Shared row data type ─────────────────────────────────────────────────────
+type RowData = StaticAssignment & {
+  isLive: boolean;
+  isAccepted: boolean;
+  isClosed: boolean;
+  isParkedFromToast: boolean;
+  liveAssignmentId: string | null;
+  onAccept: () => void;
+  onReject: () => void;
+  onReopen: () => void;
+  onMonitor: () => void;
+};
+
+// ─── IssueGroup — grouped accordion wrapper ────────────────────────────────────
+
+function IssueGroup({
+  label,
+  items,
+  monitoredCaseId,
+}: {
+  label: string;
+  items: RowData[];
+  monitoredCaseId: string | null;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  return (
+    <div className="border-b border-border last:border-b-0">
+      {/* Group header */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-[#344054]">{label}</span>
+          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
+            {items.length}
+          </span>
+        </div>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200",
+            isOpen && "rotate-180",
+          )}
+        />
+      </button>
+
+      {/* Group body */}
+      <div
+        className={cn(
+          "grid transition-all duration-200 ease-out",
+          isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <div className="overflow-hidden">
+          {items.map((a) => (
+            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CURRENT_AGENT_NAME = "Jeff Comstock";
@@ -2200,9 +2279,10 @@ export default function ControlCenterPage() {
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
-  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
+  const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(new Set());
+  const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(new Set());
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [groupIssues, setGroupIssues] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2279,17 +2359,7 @@ export default function ControlCenterPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingTakeoverCaseId]);
 
-  type RowData = StaticAssignment & {
-    isLive: boolean;
-    isAccepted: boolean;
-    isClosed: boolean;
-    isParkedFromToast: boolean;
-    liveAssignmentId: string | null;
-    onAccept: () => void;
-    onReject: () => void;
-    onReopen: () => void;
-    onMonitor: () => void;
-  };
+  // RowData is defined at module level below
 
   // Static tasks — status syncs with the live assignment when accepted.
   // isClosed = the task was accepted but the assignment has since been removed from the left rail.
@@ -2360,8 +2430,8 @@ export default function ControlCenterPage() {
   const baseRows = [...liveNormalised, ...staticNormalised]
     .filter((a) => !rejectedIds.has(a.id))
     .filter((a) => a.channel !== "email")
-    .filter((a) => priorityFilter === "all" || a.priority === priorityFilter)
-    .filter((a) => channelFilter === "all" || a.channel === channelFilter);
+    .filter((a) => priorityFilters.size === 0 || priorityFilters.has(a.priority as Priority))
+    .filter((a) => channelFilters.size === 0 || channelFilters.has(a.channel as ChannelFilterValue));
 
   const allRows = baseRows
     .filter((a) => issueTab === "all" || a.status === issueTab)
@@ -2369,8 +2439,8 @@ export default function ControlCenterPage() {
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => r.channel !== "email" &&
-            (priorityFilter === "all" || r.priority === priorityFilter) &&
-            (channelFilter === "all" || r.channel === channelFilter),
+            (priorityFilters.size === 0 || priorityFilters.has(r.priority as Priority)) &&
+            (channelFilters.size === 0 || channelFilters.has(r.channel as ChannelFilterValue)),
   );
 
   // Number of items parked from a toast — used for the red Queue tab badge
@@ -2571,34 +2641,38 @@ export default function ControlCenterPage() {
                     onClick={() => setIsFilterPanelOpen((v) => !v)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                      (channelFilter !== "all" || priorityFilter !== "all")
+                      (channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues)
                         ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
                         : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
-                    {(channelFilter !== "all" || priorityFilter !== "all") && (
+                    {(channelFilters.size + priorityFilters.size) > 0 && (
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[9px] font-bold text-white">
-                        {(channelFilter !== "all" ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0)}
+                        {channelFilters.size + priorityFilters.size}
                       </span>
                     )}
                   </button>
 
                   {/* Combined filter panel */}
                   {isFilterPanelOpen && (
-                    <div className="absolute right-0 top-full mt-1 z-20 w-52 rounded-xl border border-border bg-white shadow-lg overflow-hidden">
+                    <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-xl border border-border bg-white shadow-lg overflow-hidden">
                       {/* Channel section */}
                       <div className="px-3 pt-3 pb-1">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Channel</p>
                         <div className="flex flex-wrap gap-1">
-                          {channelFilterOptions.filter(o => o.value !== "all").map((option) => (
+                          {channelFilterOptions.map((option) => (
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => setChannelFilter(channelFilter === option.value ? "all" : option.value)}
+                              onClick={() => {
+                                const next = new Set(channelFilters);
+                                next.has(option.value) ? next.delete(option.value) : next.add(option.value);
+                                setChannelFilters(next);
+                              }}
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-                                channelFilter === option.value
+                                channelFilters.has(option.value)
                                   ? "border-[#6E56CF] bg-[#6E56CF] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
@@ -2611,14 +2685,18 @@ export default function ControlCenterPage() {
                       <div className="px-3 pb-1">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Priority</p>
                         <div className="flex flex-wrap gap-1">
-                          {priorityFilterOptions.filter(o => o.value !== "all").map((option) => (
+                          {priorityFilterOptions.map((option) => (
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => setPriorityFilter(priorityFilter === option.value ? "all" : option.value as PriorityFilter)}
+                              onClick={() => {
+                                const next = new Set(priorityFilters);
+                                next.has(option.value) ? next.delete(option.value) : next.add(option.value);
+                                setPriorityFilters(next);
+                              }}
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
-                                priorityFilter === option.value
+                                priorityFilters.has(option.value)
                                   ? "border-[#6E56CF] bg-[#6E56CF] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
@@ -2626,14 +2704,41 @@ export default function ControlCenterPage() {
                           ))}
                         </div>
                       </div>
+                      <div className="mx-3 my-2 border-t border-border" />
+                      {/* Group Issues toggle */}
+                      <div className="px-3 pb-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-[12px] font-medium text-[#344054]">Group Issues</p>
+                            <p className="text-[10px] text-[#98A2B3]">Cluster related cases together</p>
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={groupIssues}
+                            onClick={() => setGroupIssues((v) => !v)}
+                            className={cn(
+                              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
+                              groupIssues ? "bg-[#6E56CF]" : "bg-[#D0D5DD]",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200",
+                                groupIssues ? "translate-x-4" : "translate-x-0",
+                              )}
+                            />
+                          </button>
+                        </div>
+                      </div>
                       {/* Clear all */}
-                      {(channelFilter !== "all" || priorityFilter !== "all") && (
+                      {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues) && (
                         <div className="border-t border-border px-3 py-2">
                           <button
                             type="button"
-                            onClick={() => { setChannelFilter("all"); setPriorityFilter("all"); setIsFilterPanelOpen(false); }}
+                            onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setGroupIssues(false); setIsFilterPanelOpen(false); }}
                             className="text-[11px] font-medium text-[#6E56CF] hover:underline"
-                          >Clear all filters</button>
+                          >Clear all</button>
                         </div>
                       )}
                     </div>
@@ -2641,23 +2746,25 @@ export default function ControlCenterPage() {
                 </div>
               </div>
 
-              {/* Active filter chips */}
-              {(channelFilter !== "all" || priorityFilter !== "all") && (
+              {/* Active filter chips + Group Issues indicator */}
+              {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues) && (
                 <div className="flex flex-wrap gap-1.5 pb-3">
-                  {channelFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
-                      {channelFilterOptions.find(o => o.value === channelFilter)?.label}
-                      <button type="button" onClick={() => setChannelFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors">
-                        <X className="h-2.5 w-2.5" />
-                      </button>
+                  {[...channelFilters].map((ch) => (
+                    <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                      {channelFilterOptions.find(o => o.value === ch)?.label}
+                      <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
-                  )}
-                  {priorityFilter !== "all" && (
+                  ))}
+                  {[...priorityFilters].map((p) => (
+                    <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                      {p}
+                      <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  ))}
+                  {groupIssues && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
-                      {priorityFilter}
-                      <button type="button" onClick={() => setPriorityFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors">
-                        <X className="h-2.5 w-2.5" />
-                      </button>
+                      Grouped
+                      <button type="button" onClick={() => setGroupIssues(false)} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
                 </div>
@@ -2665,51 +2772,75 @@ export default function ControlCenterPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {issueTab === "resolved" || (issueTab === "all" && filteredResolvedAssignments.length > 0) ? (
-                allRows.length === 0 && filteredResolvedAssignments.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-                    <p className="text-sm font-medium text-[#7A7A7A]">No resolved tasks</p>
-                    <p className="text-xs text-[#B0B7C3] mt-1">Cases you resolve today will appear here.</p>
-                  </div>
-                ) : (
-                  <>
-                    {filteredResolvedAssignments.map((item) => (
-                      <ResolvedIssueRow
-                        key={item.id}
-                        item={item}
-                        onTransfer={() => {}}
-                        onOpen={() => acceptIssue({
-                          id: item.id,
-                          name: item.name,
-                          customerId: item.customerRecordId,
-                          channel: item.channel,
-                          priority: item.priority,
-                          preview: item.preview,
-                          status: "open",
-                          waitTime: "",
-                          isOutbound: true,
-                        })}
-                      />
-                    ))}
-                    {allRows.map((a) => (
+              {(() => {
+                const renderRows = (rows: typeof allRows) => {
+                  if (!groupIssues) {
+                    return rows.map((a) => (
                       <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
-                    ))}
-                  </>
-                )
-              ) : (
-                allRows.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-                    <p className="text-sm font-medium text-[#7A7A7A] capitalize">No {issueTab === "all" ? "" : issueTab} tasks</p>
-                    <p className="text-xs text-[#B0B7C3] mt-1">No tasks match the selected filter.</p>
-                  </div>
-                ) : (
-                  allRows.map((a) => (
-                    <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
-                  ))
-                )
-              )}
+                    ));
+                  }
+                  // Build groups
+                  const groupMap = new Map<string, typeof allRows>();
+                  rows.forEach((a) => {
+                    const label = getIssueGroup(a.preview, a.name);
+                    if (!groupMap.has(label)) groupMap.set(label, []);
+                    groupMap.get(label)!.push(a);
+                  });
+                  return [...groupMap.entries()].map(([label, items]) => (
+                    <IssueGroup
+                      key={label}
+                      label={label}
+                      items={items}
+                      monitoredCaseId={monitoredCase?.id ?? null}
+                    />
+                  ));
+                };
+
+                if (issueTab === "resolved" || (issueTab === "all" && filteredResolvedAssignments.length > 0)) {
+                  if (allRows.length === 0 && filteredResolvedAssignments.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+                        <p className="text-sm font-medium text-[#7A7A7A]">No resolved tasks</p>
+                        <p className="text-xs text-[#B0B7C3] mt-1">Cases you resolve today will appear here.</p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <>
+                      {filteredResolvedAssignments.map((item) => (
+                        <ResolvedIssueRow
+                          key={item.id}
+                          item={item}
+                          onTransfer={() => {}}
+                          onOpen={() => acceptIssue({
+                            id: item.id,
+                            name: item.name,
+                            customerId: item.customerRecordId,
+                            channel: item.channel,
+                            priority: item.priority,
+                            preview: item.preview,
+                            status: "open",
+                            waitTime: "",
+                            isOutbound: true,
+                          })}
+                        />
+                      ))}
+                      {renderRows(allRows)}
+                    </>
+                  );
+                }
+                if (allRows.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+                      <p className="text-sm font-medium text-[#7A7A7A] capitalize">No {issueTab === "all" ? "" : issueTab} tasks</p>
+                      <p className="text-xs text-[#B0B7C3] mt-1">No tasks match the selected filter.</p>
+                    </div>
+                  );
+                }
+                return renderRows(allRows);
+              })()}
             </div>
           </div>
 
