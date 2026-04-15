@@ -1657,7 +1657,7 @@ export default function ControlCenterPage() {
   return (
     <div className="flex h-full flex-col">
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-hidden p-6">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex gap-5 h-full">
 
           {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
