@@ -992,6 +992,7 @@ function IssueRow({
   onReject,
   onReopen,
   onMonitor,
+  isMonitored = false,
 }: {
   id: string;
   name: string;
@@ -1013,6 +1014,7 @@ function IssueRow({
   onReject: () => void;
   onReopen: () => void;
   onMonitor: () => void;
+  isMonitored?: boolean;
 }) {
   const { selectAssignment } = useLayoutContext();
   const navigate = useNavigate();
@@ -1030,14 +1032,15 @@ function IssueRow({
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
 
   return (
-    <div className="group/row border-b border-border last:border-b-0">
+    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored && "bg-[#F2F0FA] dark:bg-[#1B1040]")}>
+      {isMonitored && <div className="absolute left-0 inset-y-0 w-[3px] bg-[#6E56CF] rounded-r-full" />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
         role="button"
         tabIndex={0}
         onClick={() => setIsOpen((v) => !v)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsOpen((v) => !v); } }}
-        className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-[#F9FAFB] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30"
+        className={cn("w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
           <div className="shrink-0 relative flex h-2 w-2">
@@ -1932,7 +1935,7 @@ export default function ControlCenterPage() {
                       />
                     ))}
                     {allRows.map((a) => (
-                      <IssueRow key={a.id} {...a} />
+                      <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
                     ))}
                   </>
                 )
@@ -1945,7 +1948,7 @@ export default function ControlCenterPage() {
                   </div>
                 ) : (
                   allRows.map((a) => (
-                    <IssueRow key={a.id} {...a} />
+                    <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
                   ))
                 )
               )}
