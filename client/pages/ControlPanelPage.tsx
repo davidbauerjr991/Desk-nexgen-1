@@ -2173,9 +2173,9 @@ export default function ControlCenterPage() {
   // After 35 s, escalate Kevin Tran's case and surface a toast
   useEffect(() => {
     const timer = setTimeout(() => {
-      setEscalatedOverrides((prev) => new Set([...prev, "static-6"]));
-      toast.error("Case Escalated — Kevin Tran", {
-        description: "Billing system discrepancy causing double invoices. Immediate attention required.",
+      setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
+      toast.error("Case Escalated — Fatima Al-Rashid", {
+        description: "Data breach concern — suspicious export activity flagged. Immediate attention required.",
         duration: 8000,
       });
     }, 35_000);
