@@ -1666,20 +1666,18 @@ function CopilotResponseCard({
             {/* Query echo */}
             <p className="text-[11px] text-[#98A2B3] italic">"{query}"</p>
 
-            {/* Reasoning — collapsible toggle */}
+            {/* Reasoning — inline Claude-style toggle */}
             {reasoningVisible > 0 && (
-              <div className="rounded-lg border border-[#E4DAFF] bg-[#F9F7FF] overflow-hidden">
+              <div>
                 <button
                   type="button"
                   onClick={() => setIsReasoningOpen((v) => !v)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left"
+                  className="flex items-center gap-1 text-[11px] text-[#98A2B3] hover:text-[#667085] transition-colors"
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[#7C63D4]">
-                    {phase === "thinking" ? "Reasoning…" : "Reasoning"}
-                  </span>
+                  <span>{phase === "thinking" ? "Thinking…" : "Thought process"}</span>
                   <ChevronDown
                     className={cn(
-                      "h-3 w-3 text-[#7C63D4] transition-transform duration-200",
+                      "h-3 w-3 transition-transform duration-200",
                       isReasoningOpen && "rotate-180",
                     )}
                   />
@@ -1691,13 +1689,12 @@ function CopilotResponseCard({
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="px-3 pb-3 space-y-1.5">
+                    <div className="pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
                       {COPILOT_REASONING_STEPS.slice(0, reasoningVisible).map((step, i) => (
                         <div
                           key={i}
-                          className="flex items-start gap-2 text-[11px] text-[#667085] animate-in fade-in slide-in-from-bottom-1 duration-300"
+                          className="text-[11px] text-[#98A2B3] animate-in fade-in slide-in-from-bottom-1 duration-300"
                         >
-                          <span className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#C8BFF0]" />
                           {step}
                         </div>
                       ))}
