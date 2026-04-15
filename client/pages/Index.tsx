@@ -167,9 +167,9 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Content row: conversation on mobile, notes + conversation on desktop */}
-        <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          {/* Conversation column on mobile */}
+        {/* Content row: conversation on mobile, summary + conversation on desktop */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Mobile: Conversation only */}
           <div
             aria-hidden={!isConversationPanelOpen}
             className={cn(
@@ -193,7 +193,7 @@ export default function Index() {
             )}
           </div>
 
-          {/* Right panel (appears before conversation in HTML, positioned left on desktop) */}
+          {/* Mobile: Right panel overlay */}
           <button
             type="button"
             aria-label="Close right panel"
@@ -206,14 +206,14 @@ export default function Index() {
 
           <div
             className={cn(
-              "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:relative lg:inset-y-auto lg:right-auto lg:flex lg:w-[380px] lg:flex-shrink-0 lg:bg-muted/20 lg:shadow-none lg:transition-[max-width,opacity,border-color]",
+              "absolute inset-y-0 right-0 z-30 overflow-hidden bg-white shadow-[-16px_0_32px_rgba(0,0,0,0.12)] transition-[width,opacity,transform,border-color] duration-300 ease-out lg:hidden",
               isRightPanelOpen
-                ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100 lg:max-w-[380px]"
-                : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none lg:max-w-0 lg:translate-x-0",
+                ? "w-full max-w-[380px] translate-x-0 border-l border-border opacity-100"
+                : "w-full max-w-[380px] translate-x-full border-l-0 opacity-0 pointer-events-none",
             )}
             aria-hidden={!isRightPanelOpen}
           >
-            <div className="relative flex h-full min-w-full flex-col lg:min-w-[380px]">
+            <div className="relative flex h-full min-w-full flex-col">
               {isRightPanelContentVisible && (
                 <>
                   {isDeskOpen && (
@@ -249,11 +249,33 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Desktop layout: Summary on left, Conversation on right */}
+          {/* Desktop: Summary on left, Conversation on right */}
           <div className="hidden min-[800px]:flex min-h-0 flex-1 min-w-0 gap-4 overflow-hidden">
             {/* Summary column (left) */}
-            <div className="min-h-0 min-w-[300px] flex-shrink-0 overflow-hidden">
-              <NotesPanel customerId={selectedAssignment.customerRecordId} />
+            <div className="min-h-0 min-w-[380px] flex-shrink-0 overflow-hidden border-r border-border">
+              {isRightPanelContentVisible && (
+                <>
+                  {isDeskOpen && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Add note"
+                      onClick={() => setAddNoteTrigger((current) => current + 1)}
+                      className="absolute right-12 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
+                    >
+                      <FilePlus2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <div className="h-full overflow-hidden">
+                    {isDeskOpen ? (
+                      <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.customerRecordId} selection={deskPanelSelection} />
+                    ) : (
+                      <RecentInteractionsPanel injectedInteractions={recentInteractions} />
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Conversation column (right) */}
