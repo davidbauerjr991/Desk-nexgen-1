@@ -50,6 +50,8 @@ interface ConversationPanelProps {
   onResolveAssignment?: () => void;
   showAiPanel?: boolean;
   hideTranscript?: boolean;
+  /** When true, hides the reply input footer and suggested next steps (e.g. monitor mode). */
+  hideInput?: boolean;
   performAllActionsKey?: number;
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
@@ -1044,6 +1046,7 @@ export default function ConversationPanel({
   onResolveAssignment,
   showAiPanel = true,
   hideTranscript = false,
+  hideInput = false,
   performAllActionsKey = 0,
   isPendingAcceptance = false,
   onAcceptAssignment,
@@ -2072,7 +2075,7 @@ export default function ConversationPanel({
                 })}
 
                 {/* Suggested Next Steps — always inline */}
-                {agentTasks.length > 0 && (() => {
+                {!hideInput && agentTasks.length > 0 && (() => {
                   const assignmentEntry = getCustomerAssignmentEntry(conversation.customerName);
                   const taskSummary = assignmentEntry?.summary ?? "I've reviewed the conversation and identified the key actions needed to resolve this case. Here are my suggested next steps, or feel free to ask for more assistance.";
                   const nextStepsContent = (
@@ -2519,7 +2522,7 @@ export default function ConversationPanel({
           </div>
         )}
 
-      {!isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
+      {!hideInput && !isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <>
           {/* Live response input — relative so suggestion cards can overlay above it */}
           <div ref={footerRef} className="relative z-[60] shrink-0 border-t border-border bg-background px-4 py-3">

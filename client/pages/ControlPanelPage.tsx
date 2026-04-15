@@ -2651,6 +2651,7 @@ export default function ControlCenterPage() {
                       customerId={monitoredCase.customerRecordId}
                       showAiPanel={false}
                       hideTranscript={false}
+                      hideInput={true}
                       isPendingAcceptance={false}
                       onSelectChannel={() => {}}
                       onConversationChange={() => {}}
