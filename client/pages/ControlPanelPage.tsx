@@ -2637,17 +2637,43 @@ export default function ControlCenterPage() {
               {/* Conversation feed */}
               <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                 <p className="text-[11px] font-medium text-[#98A2B3] text-center">Conversation started · {monitoredCase.waitTime || "now"}</p>
-                <div className="flex gap-2.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] text-[10px] font-bold text-[#6E56CF]">AI</div>
-                  <div className="rounded-2xl rounded-tl-sm bg-[#F2F4F7] px-4 py-2.5 max-w-[80%]">
+                {/* Customer / AI bubble */}
+                <div className="group/bubble-l flex items-start gap-2.5">
+                  <div className="flex h-7 w-7 mt-0.5 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] text-[10px] font-bold text-[#6E56CF]">AI</div>
+                  <div className="rounded-2xl rounded-tl-sm bg-[#F2F4F7] px-4 pt-2.5 pb-2 max-w-[80%]">
                     <p className="text-[13px] text-[#344054] leading-relaxed">{monitoredCase.preview}</p>
+                    <div className="grid grid-rows-[0fr] group-hover/bubble-l:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-150 ease-out">
+                      <div className="overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-black/10">
+                          <span className="text-[10px] text-[#C4C9D4] mr-0.5">Tag:</span>
+                          {(["Complaint", "Help", "Praise", "Share"] as const).map((label) => (
+                            <button key={label} type="button" className="inline-flex items-center rounded-full border border-[#E4E7EC] bg-white px-2 py-0.5 text-[10px] font-medium text-[#98A2B3] hover:bg-[#F9FAFB] transition-colors">
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex gap-2.5 justify-end">
-                  <div className="rounded-2xl rounded-tr-sm bg-[#6E56CF] px-4 py-2.5 max-w-[80%]">
+                {/* Agent / Virtual agent bubble */}
+                <div className="group/bubble-r flex items-start gap-2.5 justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-[#6E56CF] px-4 pt-2.5 pb-2 max-w-[80%]">
                     <p className="text-[13px] text-white leading-relaxed">{monitoredCase.aiOverview?.summary ?? "Customer is waiting for assistance."}</p>
+                    <div className="grid grid-rows-[0fr] group-hover/bubble-r:grid-rows-[1fr] overflow-hidden transition-[grid-template-rows] duration-150 ease-out">
+                      <div className="overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-white/20 justify-end">
+                          <span className="text-[10px] text-white/50 mr-0.5">Tag:</span>
+                          {(["Complaint", "Help", "Praise", "Share"] as const).map((label) => (
+                            <button key={label} type="button" className="inline-flex items-center rounded-full border border-white/25 bg-transparent px-2 py-0.5 text-[10px] font-medium text-white/70 hover:bg-white/20 transition-colors">
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[10px] font-bold text-[#5C46B8]">
+                  <div className="flex h-7 w-7 mt-0.5 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[10px] font-bold text-[#5C46B8]">
                     {monitoredCase.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                 </div>
