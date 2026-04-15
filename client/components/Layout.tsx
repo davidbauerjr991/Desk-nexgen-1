@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -158,6 +158,8 @@ interface LayoutContextValue {
   openCopilot: () => void;
   isBriefingDismissed: boolean;
   pushToIncomingNotifications: (item: QueuePreviewItem) => void;
+  pendingMonitorCaseId: string | null;
+  clearPendingMonitorCaseId: () => void;
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
@@ -5089,12 +5091,12 @@ function IncomingTransferPopover({
 // ── Persistent incoming-assignment notification (bottom-right) ───────────────
 function IncomingAssignmentCard({
   item,
-  onPark,
+  onMonitor,
   onAccept,
   onTransfer,
 }: {
   item: QueuePreviewItem;
-  onPark: (item: QueuePreviewItem) => void;
+  onMonitor: (item: QueuePreviewItem) => void;
   onAccept: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
 }) {
@@ -5211,7 +5213,7 @@ function IncomingAssignmentCard({
       <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
         <button
           type="button"
-          onClick={() => onPark(item)}
+          onClick={() => onMonitor(item)}
           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
         >
           Monitor
@@ -5333,7 +5335,7 @@ const NOTIF_CARD_HEIGHT: Record<string, number> = {
 function NotificationStack({
   assignmentItems,
   chatItems,
-  onPark,
+  onMonitor,
   onAccept,
   onTransfer,
   onChatOpen,
@@ -5341,7 +5343,7 @@ function NotificationStack({
 }: {
   assignmentItems: QueuePreviewItem[];
   chatItems: AgentChatNotification[];
-  onPark: (item: QueuePreviewItem) => void;
+  onMonitor: (item: QueuePreviewItem) => void;
   onAccept: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
   onChatOpen: (notif: AgentChatNotification) => void;
@@ -5391,7 +5393,7 @@ function NotificationStack({
     item.type === "assignment" ? (
       <IncomingAssignmentCard
         item={item.assignmentData}
-        onPark={onPark}
+        onMonitor={onMonitor}
         onAccept={onAccept}
         onTransfer={onTransfer}
       />
@@ -6011,6 +6013,9 @@ export default function Layout({ children }: LayoutProps) {
   };
   const [isLeftRailOpen, setIsLeftRailOpen] = useState(false);
   const [incomingNotifications, setIncomingNotifications] = useState<QueuePreviewItem[]>([]);
+
+  const [pendingMonitorCaseId, setPendingMonitorCaseId] = useState<string | null>(null);
+  const clearPendingMonitorCaseId = useCallback(() => setPendingMonitorCaseId(null), []);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
@@ -7419,6 +7424,13 @@ export default function Layout({ children }: LayoutProps) {
   const removeIncoming = (assignmentId: string) =>
     setIncomingNotifications((prev) => prev.filter((n) => n.id !== assignmentId));
 
+  const monitorIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
+    // Store the customerRecordId so ControlCenterPage can open the monitor panel.
+    setPendingMonitorCaseId(item.customerRecordId);
+    navigate("/");
+  };
+
   const transferIncomingAssignment = (item: QueuePreviewItem) => {
     // Simply dismiss — no need to add to any queue; transfer is handled inside the popover.
     removeIncoming(item.id);
@@ -8073,6 +8085,8 @@ export default function Layout({ children }: LayoutProps) {
       isAgentAvailable: status === "Available",
       isBriefingDismissed,
       pushToIncomingNotifications: (item: QueuePreviewItem) => setIncomingNotifications((prev) => [...prev, item]),
+      pendingMonitorCaseId,
+      clearPendingMonitorCaseId,
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -8287,6 +8301,7 @@ export default function Layout({ children }: LayoutProps) {
       openHeaderAppPanel,
       isBriefingDismissed,
       setIncomingNotifications,
+      pendingMonitorCaseId,
     ],
   );
 
@@ -9169,7 +9184,7 @@ export default function Layout({ children }: LayoutProps) {
       <NotificationStack
         assignmentItems={incomingNotifications}
         chatItems={incomingChatNotifications}
-        onPark={parkIncomingAssignment}
+        onMonitor={monitorIncomingAssignment}
         onAccept={acceptIncomingAssignment}
         onTransfer={transferIncomingAssignment}
         onChatOpen={openChatNotification}

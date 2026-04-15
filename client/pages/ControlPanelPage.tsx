@@ -2135,7 +2135,7 @@ const CURRENT_AGENT_NAME = "Jeff Comstock";
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
@@ -2172,6 +2172,16 @@ export default function ControlCenterPage() {
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
+
+  // When Monitor is clicked on an incoming toast, open that case's monitor panel.
+  useEffect(() => {
+    if (!pendingMonitorCaseId) return;
+    const match = staticNormalisedRef.current.find(
+      (r) => r.customerRecordId === pendingMonitorCaseId || r.id === pendingMonitorCaseId,
+    );
+    if (match) setMonitoredCase(match);
+    clearPendingMonitorCaseId();
+  }, [pendingMonitorCaseId, clearPendingMonitorCaseId]);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
