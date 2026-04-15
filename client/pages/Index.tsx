@@ -250,14 +250,14 @@ export default function Index() {
           </div>
 
           {/* Desktop: Summary on left, Conversation on right */}
-          <div className="hidden min-[800px]:flex min-h-0 flex-1 min-w-0 gap-4 overflow-hidden">
+          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
             {/* Summary column (left) - using NotesPanel */}
-            <div className="min-h-0 min-w-[380px] flex-shrink-0 overflow-hidden">
+            <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
               <NotesPanel customerId={selectedAssignment.customerRecordId} />
             </div>
 
             {/* Conversation column (right) */}
-            <div className="min-h-0 flex-1 min-w-0 overflow-hidden">
+            <div className="flex-1 h-full overflow-hidden">
               {isConversationContentVisible && (
                 <ConversationPanel
                   conversation={conversationState}
