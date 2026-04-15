@@ -1661,7 +1661,7 @@ export default function ControlCenterPage() {
         <div className="flex gap-5 h-full">
 
           {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
-          <div className="flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="hidden flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
             {/* AI Day Summary card */}
             {(() => {

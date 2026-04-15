@@ -8205,7 +8205,7 @@ export default function Layout({ children }: LayoutProps) {
       <div className="flex h-screen w-full flex-col overflow-hidden bg-[#F8F8F9]">
       <header className="flex min-h-[60px] shrink-0 items-center justify-between gap-2 px-4 py-2">
         <div className="flex flex-none items-center lg:min-w-0 lg:gap-3">
-          <div className="group relative flex-shrink-0">
+          <div className="hidden group relative flex-shrink-0">
             <button
               type="button"
               onClick={() => setIsLeftRailOpen((v) => !v)}
