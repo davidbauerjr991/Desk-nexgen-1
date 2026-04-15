@@ -991,6 +991,7 @@ function IssueRow({
   onAccept,
   onReject,
   onReopen,
+  onMonitor,
 }: {
   id: string;
   name: string;
@@ -1011,6 +1012,7 @@ function IssueRow({
   onAccept: () => void;
   onReject: () => void;
   onReopen: () => void;
+  onMonitor: () => void;
 }) {
   const { selectAssignment } = useLayoutContext();
   const navigate = useNavigate();
@@ -1108,12 +1110,8 @@ function IssueRow({
           ) : !isAccepted && status === "open" ? (
             <>
               <button
-                ref={rejectButtonRef}
                 type="button"
-                onClick={() => {
-                  setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
-                  setShowReject((v) => !v);
-                }}
+                onClick={() => onMonitor()}
                 className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
                 Monitor
@@ -1129,12 +1127,8 @@ function IssueRow({
           ) : (
             <>
               <button
-                ref={rejectButtonRef}
                 type="button"
-                onClick={() => {
-                  setRejectTriggerRect(rejectButtonRef.current?.getBoundingClientRect() ?? null);
-                  setShowReject((v) => !v);
-                }}
+                onClick={() => onMonitor()}
                 className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
                 Monitor
@@ -1532,6 +1526,7 @@ export default function ControlCenterPage() {
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
+  const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
@@ -1564,6 +1559,7 @@ export default function ControlCenterPage() {
     onAccept: () => void;
     onReject: () => void;
     onReopen: () => void;
+    onMonitor: () => void;
   };
 
   // Static tasks — status syncs with the live assignment when accepted.
@@ -1575,7 +1571,7 @@ export default function ControlCenterPage() {
     const liveStatus = assignmentId ? (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) : undefined;
     const isAccepted = acceptedStaticsStore.has(a.id);
     const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
-    return {
+    const row: RowData = {
       ...a,
       status: liveStatus ?? a.status,
       isLive: false,
@@ -1586,7 +1582,9 @@ export default function ControlCenterPage() {
       onAccept: () => handleAcceptStatic(a),
       onReject: () => rejectIssue(a.id),
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
+      onMonitor: () => setMonitoredCase(row),
     };
+    return row;
   });
 
   // Live assignments currently open in the left rail. Exclude dynamically-created
@@ -1625,6 +1623,7 @@ export default function ControlCenterPage() {
           : () => {},
         onReject: () => {},
         onReopen: () => {},
+        onMonitor: () => {},
       };
     });
 
@@ -1952,6 +1951,68 @@ export default function ControlCenterPage() {
               )}
             </div>
           </div>
+
+          {/* Monitor panel — slides in from the right */}
+          {monitoredCase && (
+            <div className="w-[480px] flex-shrink-0 h-full flex flex-col border-l border-border bg-white rounded-lg overflow-hidden">
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0DBF5] text-[12px] font-bold text-[#5C46B8]">
+                    {monitoredCase.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-[#111827]">{monitoredCase.name}</p>
+                    <p className="text-[11px] text-[#667085]">Customer ID {monitoredCase.customerId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-2.5 py-1 text-[11px] font-medium text-[#027A48]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#12B76A] animate-pulse" />
+                    Monitoring
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setMonitoredCase(null)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Conversation feed */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                <p className="text-[11px] font-medium text-[#98A2B3] text-center">Conversation started · {monitoredCase.waitTime || "now"}</p>
+                <div className="flex gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] text-[10px] font-bold text-[#6E56CF]">AI</div>
+                  <div className="rounded-2xl rounded-tl-sm bg-[#F2F4F7] px-4 py-2.5 max-w-[80%]">
+                    <p className="text-[13px] text-[#344054] leading-relaxed">{monitoredCase.preview}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2.5 justify-end">
+                  <div className="rounded-2xl rounded-tr-sm bg-[#6E56CF] px-4 py-2.5 max-w-[80%]">
+                    <p className="text-[13px] text-white leading-relaxed">{monitoredCase.aiOverview?.summary ?? "Customer is waiting for assistance."}</p>
+                  </div>
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[10px] font-bold text-[#5C46B8]">
+                    {monitoredCase.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Takeover footer */}
+              <div className="shrink-0 border-t border-border px-5 py-3 flex items-center justify-between gap-3 bg-white">
+                <p className="text-[12px] text-[#667085]">You are monitoring this conversation</p>
+                <button
+                  type="button"
+                  onClick={() => { handleAcceptStatic(monitoredCase as any); setMonitoredCase(null); }}
+                  className="rounded-lg bg-[#6E56CF] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                >
+                  Takeover
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
