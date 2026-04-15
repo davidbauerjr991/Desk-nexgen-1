@@ -1815,7 +1815,7 @@ function IssueRow({
                       <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
                       <input
                         type="text"
-                        placeholder="Ask Copilot to perform another action"
+                        placeholder="Ask Copilot about this Case"
                         className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
                       />
                       <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
@@ -1918,7 +1918,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                       <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
                       <input
                         type="text"
-                        placeholder="Ask Copilot to perform another action"
+                        placeholder="Ask Copilot about this Case"
                         className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] dark:text-[#94A3B8] placeholder:text-[#98A2B3] outline-none"
                       />
                       <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
