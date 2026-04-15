@@ -251,31 +251,9 @@ export default function Index() {
 
           {/* Desktop: Summary on left, Conversation on right */}
           <div className="hidden min-[800px]:flex min-h-0 flex-1 min-w-0 gap-4 overflow-hidden">
-            {/* Summary column (left) */}
-            <div className="min-h-0 min-w-[380px] flex-shrink-0 overflow-hidden border-r border-border">
-              {isRightPanelContentVisible && (
-                <>
-                  {isDeskOpen && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Add note"
-                      onClick={() => setAddNoteTrigger((current) => current + 1)}
-                      className="absolute right-12 top-3 z-10 h-8 w-8 rounded-full border border-black/10 bg-white/95 text-[#7A7A7A] shadow-sm backdrop-blur hover:bg-white hover:text-[#333333]"
-                    >
-                      <FilePlus2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <div className="h-full overflow-hidden">
-                    {isDeskOpen ? (
-                      <DeskPanel addNoteTrigger={addNoteTrigger} customerId={selectedAssignment.customerRecordId} selection={deskPanelSelection} />
-                    ) : (
-                      <RecentInteractionsPanel injectedInteractions={recentInteractions} />
-                    )}
-                  </div>
-                </>
-              )}
+            {/* Summary column (left) - using NotesPanel */}
+            <div className="min-h-0 min-w-[380px] flex-shrink-0 overflow-hidden">
+              <NotesPanel customerId={selectedAssignment.customerRecordId} />
             </div>
 
             {/* Conversation column (right) */}
