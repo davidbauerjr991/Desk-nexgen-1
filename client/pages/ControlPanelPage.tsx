@@ -13,6 +13,7 @@ import {
   MessageCircle,
   MessageSquare,
   Phone,
+  SlidersHorizontal,
   Sparkles,
   TrendingUp,
   X,
@@ -2365,9 +2366,20 @@ export default function ControlCenterPage() {
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [issueTab, setIssueTab] = useState<IssueTab>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
-  const [isChannelFilterOpen, setIsChannelFilterOpen] = useState(false);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isFilterPanelOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target as Node)) {
+        setIsFilterPanelOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isFilterPanelOpen]);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
@@ -2702,77 +2714,104 @@ export default function ControlCenterPage() {
                   })}
                 </div>
 
-                {/* Filters */}
-                <div className="flex items-center gap-2 ml-auto">
-                  {/* Channel filter */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => { setIsChannelFilterOpen((v) => !v); setIsFilterOpen(false); }}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors",
-                        channelFilter !== "all"
-                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
-                          : "border-border bg-white text-[#333333] hover:bg-[#F9FAFB]",
-                      )}
-                    >
-                      {channelFilterOptions.find((o) => o.value === channelFilter)?.label ?? "All Channels"}
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-150", isChannelFilterOpen && "rotate-180", channelFilter !== "all" ? "text-[#6E56CF]" : "text-[#7A7A7A]")} />
-                    </button>
-                    {isChannelFilterOpen && (
-                      <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-lg border border-border bg-white shadow-lg py-1">
-                        {channelFilterOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => { setChannelFilter(option.value); setIsChannelFilterOpen(false); }}
-                            className={cn(
-                              "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
-                              channelFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
-                            )}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
+                {/* Filter icon button */}
+                <div className="relative ml-auto" ref={filterPanelRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsFilterPanelOpen((v) => !v)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+                      (channelFilter !== "all" || priorityFilter !== "all")
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
+                        : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
-                  </div>
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    {(channelFilter !== "all" || priorityFilter !== "all") && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[9px] font-bold text-white">
+                        {(channelFilter !== "all" ? 1 : 0) + (priorityFilter !== "all" ? 1 : 0)}
+                      </span>
+                    )}
+                  </button>
 
-                  {/* Priority filter */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => { setIsFilterOpen((v) => !v); setIsChannelFilterOpen(false); }}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-[12px] font-medium transition-colors",
-                        priorityFilter !== "all"
-                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
-                          : "border-border bg-white text-[#333333] hover:bg-[#F9FAFB]",
-                      )}
-                    >
-                      {priorityFilterOptions.find((o) => o.value === priorityFilter)?.label ?? "All Priorities"}
-                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-150", isFilterOpen && "rotate-180", priorityFilter !== "all" ? "text-[#6E56CF]" : "text-[#7A7A7A]")} />
-                    </button>
-                    {isFilterOpen && (
-                      <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-border bg-white shadow-lg py-1">
-                        {priorityFilterOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => { setPriorityFilter(option.value); setIsFilterOpen(false); }}
-                            className={cn(
-                              "w-full text-left px-3 py-2 text-[12px] hover:bg-[#F9FAFB] transition-colors",
-                              priorityFilter === option.value ? "font-semibold text-[#6E56CF]" : "text-[#333333]",
-                            )}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
+                  {/* Combined filter panel */}
+                  {isFilterPanelOpen && (
+                    <div className="absolute right-0 top-full mt-1 z-20 w-52 rounded-xl border border-border bg-white shadow-lg overflow-hidden">
+                      {/* Channel section */}
+                      <div className="px-3 pt-3 pb-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Channel</p>
+                        <div className="flex flex-wrap gap-1">
+                          {channelFilterOptions.filter(o => o.value !== "all").map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setChannelFilter(channelFilter === option.value ? "all" : option.value)}
+                              className={cn(
+                                "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                                channelFilter === option.value
+                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                              )}
+                            >{option.label}</button>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
+                      <div className="mx-3 my-2 border-t border-border" />
+                      {/* Priority section */}
+                      <div className="px-3 pb-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Priority</p>
+                        <div className="flex flex-wrap gap-1">
+                          {priorityFilterOptions.filter(o => o.value !== "all").map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setPriorityFilter(priorityFilter === option.value ? "all" : option.value as PriorityFilter)}
+                              className={cn(
+                                "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                                priorityFilter === option.value
+                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                              )}
+                            >{option.label}</button>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Clear all */}
+                      {(channelFilter !== "all" || priorityFilter !== "all") && (
+                        <div className="border-t border-border px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => { setChannelFilter("all"); setPriorityFilter("all"); setIsFilterPanelOpen(false); }}
+                            className="text-[11px] font-medium text-[#6E56CF] hover:underline"
+                          >Clear all filters</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Active filter chips */}
+              {(channelFilter !== "all" || priorityFilter !== "all") && (
+                <div className="flex flex-wrap gap-1.5 pb-3">
+                  {channelFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                      {channelFilterOptions.find(o => o.value === channelFilter)?.label}
+                      <button type="button" onClick={() => setChannelFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  )}
+                  {priorityFilter !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                      {priorityFilter}
+                      <button type="button" onClick={() => setPriorityFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors">
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto">
