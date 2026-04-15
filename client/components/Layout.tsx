@@ -4993,7 +4993,7 @@ function IncomingTransferPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[10000] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      className="fixed z-[99999] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
       style={{ bottom: `calc(100vh - ${pos.top}px)`, right: pos.right }}
       onClick={(e) => e.stopPropagation()}
     >
