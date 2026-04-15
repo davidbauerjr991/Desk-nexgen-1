@@ -1656,37 +1656,7 @@ export default function ControlCenterPage() {
 
   return (
     <div className="flex h-full flex-col">
-      {/* Top-level page tabs */}
-      <div className="shrink-0 border-b border-border bg-white px-6">
-        <div className="flex gap-0">
-          {DESK_PAGE_TABS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActivePageTab(id)}
-              className={cn(
-                "relative flex items-center gap-1.5 px-4 py-3 text-[13px] font-medium whitespace-nowrap transition-colors",
-                activePageTab === id
-                  ? "text-[#6E56CF]"
-                  : "text-[#7A7A7A] hover:text-[#333333]",
-              )}
-            >
-              {label}
-              {id === "queue" && totalTasks > 0 && (
-                <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#E32926] px-1.5 text-[10px] font-semibold text-white">
-                  {totalTasks}
-                </span>
-              )}
-              {activePageTab === id && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
-      {activePageTab === "queue" && (
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <div className="flex gap-5 h-full">
 
@@ -1977,30 +1947,22 @@ export default function ControlCenterPage() {
 
         </div>
       </div>
-      )} {/* end queue tab */}
-
-      {/* ── Customers tab ─────────────────────────────────────────────────────── */}
+      {/* Other tabs hidden but code preserved for future use
       {activePageTab === "customers" && (
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
           <DeskDataTable defaultTab="Customers" hideTabs />
         </div>
       )}
-
-      {/* ── Tickets tab ───────────────────────────────────────────────────────── */}
       {activePageTab === "tickets" && (
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
           <DeskDataTable defaultTab="Tickets" hideTabs />
         </div>
       )}
-
-      {/* ── Accounts tab ──────────────────────────────────────────────────────── */}
       {activePageTab === "accounts" && (
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
           <DeskDataTable defaultTab="Accounts" hideTabs />
         </div>
       )}
-
-      {/* ── Contact History tab ───────────────────────────────────────────────── */}
       {activePageTab === "contact-history" && (
         <div className="min-h-0 flex-1 overflow-hidden flex flex-col items-center justify-center gap-3 text-center p-8">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#F2F4F7]">
@@ -2010,6 +1972,7 @@ export default function ControlCenterPage() {
           <p className="text-[13px] text-[#98A2B3] max-w-xs">A full log of all customer contact interactions will appear here. Coming soon.</p>
         </div>
       )}
+      */}
 
     </div>
   );
