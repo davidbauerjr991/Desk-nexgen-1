@@ -2232,24 +2232,35 @@ function IssueGroup({
   return (
     <div className="border-b border-border last:border-b-0">
       {/* Group header */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors text-left"
-      >
-        <div className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="flex flex-1 items-center gap-2 text-left min-w-0"
+        >
           <span className="text-[11px] font-semibold text-[#344054]">{label}</span>
           <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
             {items.length}
           </span>
+        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+            Respond to all
+          </button>
+          <ChevronDown
+            className={cn(
+              "h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200",
+              isOpen && "rotate-180",
+            )}
+            onClick={() => setIsOpen((v) => !v)}
+          />
         </div>
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200",
-            isOpen && "rotate-180",
-          )}
-        />
-      </button>
+      </div>
 
       {/* Group body */}
       <div
