@@ -1116,7 +1116,7 @@ function IssueRow({
                 }}
                 className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Transfer
+                Monitor
               </button>
               <button
                 type="button"
@@ -1137,14 +1137,14 @@ function IssueRow({
                 }}
                 className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Transfer
+                Monitor
               </button>
               <button
                 type="button"
                 onClick={() => onReopen()}
                 className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
               >
-                Open
+                Takeover
               </button>
             </>
           )}
@@ -1496,14 +1496,14 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                 }}
                 className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Transfer
+                Monitor
               </button>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onOpen(); }}
                 className="rounded-md bg-[#6E56CF] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
               >
-                Open
+                Takeover
               </button>
             </div>
           </div>
