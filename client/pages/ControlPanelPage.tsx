@@ -1690,6 +1690,135 @@ export default function ControlCenterPage() {
       <div className="min-h-0 flex-1 overflow-hidden p-6">
         <div className="flex gap-5 h-full">
 
+          {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
+          <div className="flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+
+            {/* AI Day Summary card */}
+            {(() => {
+              const criticalCount  = baseRows.filter((a) => a.priority === "Critical").length;
+              const highCount      = baseRows.filter((a) => a.priority === "High").length;
+              const openCount      = tabCounts.open;
+              const resolvedCount  = tabCounts.resolved;
+              const pendingCount   = tabCounts.pending;
+
+              const urgencyPhrase =
+                criticalCount > 0
+                  ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need${criticalCount === 1 ? "s" : ""} immediate attention`
+                  : highCount > 0
+                  ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} to address early`
+                  : `Your queue is manageable today`;
+
+              const progressPhrase =
+                resolvedCount > 0
+                  ? `You've already resolved ${resolvedCount} case${resolvedCount > 1 ? "s" : ""}, which is a strong start.`
+                  : `No cases have been resolved yet — focus on closing out your open items first.`;
+
+              const pipelinePhrase =
+                openCount + pendingCount > 0
+                  ? `With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback.`
+                  : `Your pipeline is clear — a good opportunity to get ahead on documentation and follow-ups.`;
+
+              const summary = `${urgencyPhrase}. ${progressPhrase} ${pipelinePhrase} Keep an eye on handle time and aim to wrap responses within SLA windows.`;
+
+              return (
+                <div className="rounded-xl border border-[#C8BFF0]/60 bg-[#F5F3FF] dark:bg-[#18143A] dark:border-[#3D2F7A]/60 shadow-sm p-4">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] shadow-sm">
+                      <Clock className="h-3.5 w-3.5 text-white stroke-[1.75]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[#4C3898] dark:text-[#C8BFF0] leading-none">My Day</p>
+                      <p className="text-[10px] text-[#7C5CBF] dark:text-[#8B78D0] mt-0.5">Your day at a glance</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openCopilot()}
+                      className="shrink-0 flex items-center gap-1 rounded-full border border-[#6E56CF]/30 bg-[#6E56CF]/10 hover:bg-[#6E56CF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] dark:text-[#C8BFF0] transition-colors"
+                    >
+                      <Sparkles className="h-2.5 w-2.5" />
+                      AI Help
+                    </button>
+                  </div>
+                  <p className="text-[12px] leading-[1.65] text-[#4C3898] dark:text-[#B4A8E8]">
+                    {summary}
+                  </p>
+                </div>
+              );
+            })()}
+
+            {/* Schedule card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
+                  <CalendarCheck className="h-3.5 w-3.5 text-[#6E56CF]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Schedule</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Events</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">6</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Callbacks</span>
+                  <span className="text-[12px] font-semibold text-[#E32926]">3</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Next up:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Customer Callback</p>
+                <p className="text-[11px] text-[#667085] dark:text-[#8898AB]">09:00 AM</p>
+              </div>
+            </div>
+
+            {/* Performance card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#0A2318]">
+                  <TrendingUp className="h-3.5 w-3.5 text-[#208337]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Performance</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Cases Resolved</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">
+                    {tabCounts.resolved}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">CSAT Score</span>
+                  <span className="text-[12px] font-semibold text-[#208337]">4.8</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Handle Time:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">8m 32s</p>
+                <p className="text-[11px] font-medium text-[#208337]">↑ 15% improvement</p>
+              </div>
+            </div>
+
+            {/* Messages card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F5F3FF] dark:bg-[#1C2036]">
+                  <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
+                </div>
+                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Messages</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Unread</span>
+                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">3</span>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-border">
+                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Latest from:</p>
+                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Emma Larsen</p>
+                <p className="text-[11px] text-[#667085] dark:text-[#8898AB] truncate">CSAT scores look great this week</p>
+              </div>
+            </div>
+
           {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
             {/* Header: title + tabs */}
@@ -1849,136 +1978,7 @@ export default function ControlCenterPage() {
             </div>
           </div>
 
-          {/* ── Right sidebar: My Day / Schedule / Performance / Messages ── */}
-          <div className="flex w-[280px] shrink-0 flex-col gap-3 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-
-            {/* AI Day Summary card */}
-            {(() => {
-              const criticalCount  = baseRows.filter((a) => a.priority === "Critical").length;
-              const highCount      = baseRows.filter((a) => a.priority === "High").length;
-              const openCount      = tabCounts.open;
-              const resolvedCount  = tabCounts.resolved;
-              const pendingCount   = tabCounts.pending;
-
-              const urgencyPhrase =
-                criticalCount > 0
-                  ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need${criticalCount === 1 ? "s" : ""} immediate attention`
-                  : highCount > 0
-                  ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} to address early`
-                  : `Your queue is manageable today`;
-
-              const progressPhrase =
-                resolvedCount > 0
-                  ? `You've already resolved ${resolvedCount} case${resolvedCount > 1 ? "s" : ""}, which is a strong start.`
-                  : `No cases have been resolved yet — focus on closing out your open items first.`;
-
-              const pipelinePhrase =
-                openCount + pendingCount > 0
-                  ? `With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback.`
-                  : `Your pipeline is clear — a good opportunity to get ahead on documentation and follow-ups.`;
-
-              const summary = `${urgencyPhrase}. ${progressPhrase} ${pipelinePhrase} Keep an eye on handle time and aim to wrap responses within SLA windows.`;
-
-              return (
-                <div className="rounded-xl border border-[#C8BFF0]/60 bg-[#F5F3FF] dark:bg-[#18143A] dark:border-[#3D2F7A]/60 shadow-sm p-4">
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] shadow-sm">
-                      <Clock className="h-3.5 w-3.5 text-white stroke-[1.75]" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#4C3898] dark:text-[#C8BFF0] leading-none">My Day</p>
-                      <p className="text-[10px] text-[#7C5CBF] dark:text-[#8B78D0] mt-0.5">Your day at a glance</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openCopilot()}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-[#6E56CF]/30 bg-[#6E56CF]/10 hover:bg-[#6E56CF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] dark:text-[#C8BFF0] transition-colors"
-                    >
-                      <Sparkles className="h-2.5 w-2.5" />
-                      AI Help
-                    </button>
-                  </div>
-                  <p className="text-[12px] leading-[1.65] text-[#4C3898] dark:text-[#B4A8E8]">
-                    {summary}
-                  </p>
-                </div>
-              );
-            })()}
-
-            {/* Schedule card */}
-            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
-                  <CalendarCheck className="h-3.5 w-3.5 text-[#6E56CF]" />
-                </div>
-                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Schedule</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Events</span>
-                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">6</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Callbacks</span>
-                  <span className="text-[12px] font-semibold text-[#E32926]">3</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Next up:</p>
-                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Customer Callback</p>
-                <p className="text-[11px] text-[#667085] dark:text-[#8898AB]">09:00 AM</p>
-              </div>
-            </div>
-
-            {/* Performance card */}
-            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#0A2318]">
-                  <TrendingUp className="h-3.5 w-3.5 text-[#208337]" />
-                </div>
-                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Performance</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Cases Resolved</span>
-                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">
-                    {tabCounts.resolved}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">CSAT Score</span>
-                  <span className="text-[12px] font-semibold text-[#208337]">4.8</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Handle Time:</p>
-                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">8m 32s</p>
-                <p className="text-[11px] font-medium text-[#208337]">↑ 15% improvement</p>
-              </div>
-            </div>
-
-            {/* Messages card */}
-            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F5F3FF] dark:bg-[#1C2036]">
-                  <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
-                </div>
-                <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Messages</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Unread</span>
-                  <span className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">3</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-[11px] text-[#98A2B3] dark:text-[#64748B] mb-0.5">Latest from:</p>
-                <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Emma Larsen</p>
-                <p className="text-[11px] text-[#667085] dark:text-[#8898AB] truncate">CSAT scores look great this week</p>
-              </div>
-            </div>
-
-          </div>
+        </div>
 
         </div>
       </div>
