@@ -1123,7 +1123,7 @@ function IssueRow({
                 onClick={() => onAccept()}
                 className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
               >
-                Accept
+                Takeover
               </button>
             </>
           ) : (
