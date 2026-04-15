@@ -2216,7 +2216,7 @@ export default function ControlCenterPage() {
           </div>
         </div>
       ), { duration: 12000 });
-    }, 35_000);
+    }, 5_000);
     return () => clearTimeout(timer);
   }, []);
 
