@@ -9186,43 +9186,43 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Stats */}
             <div className="px-6 py-4 space-y-3">
-              {/* Cases in queue */}
-              <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
+              {/* Escalated Cases */}
+              <div className="flex items-center justify-between rounded-xl border border-[#FECACA]/60 dark:border-[#7F1D1D]/60 bg-[#FEF2F2] dark:bg-[#2A0A0A] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F0FA] dark:bg-[#2A1F4A]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEE2E2] dark:bg-[#450A0A]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
                   </div>
-                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Escalated Cases</span>
+                  <span className="text-[13px] font-medium text-[#991B1B] dark:text-[#FCA5A5]">Escalated Cases</span>
                 </div>
-                <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.length}</span>
+                <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.status === "escalated").length}</span>
               </div>
 
-              {/* Chats to review */}
+              {/* Active Virtual Agents */}
+              <div className="flex items-center justify-between rounded-xl border border-[#C4B5FD]/40 dark:border-[#3D2F7A]/60 bg-[#F5F3FF] dark:bg-[#1A1035] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EDE9FE] dark:bg-[#2A1F4A]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-medium text-[#5B21B6] dark:text-[#C4B5FD]">Active Virtual Agents</span>
+                </div>
+                <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
+              </div>
+
+              {/* Pending Cases */}
               <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFFBF1] dark:bg-[#102A18]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#208337" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F4F7] dark:bg-[#1C2A3A]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#667085" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
                   </div>
                   <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
                 </div>
-                <span className="rounded-full bg-[#208337] px-2.5 py-0.5 text-[12px] font-semibold text-white">2</span>
-              </div>
-
-              {/* Applications to upgrade */}
-              <div className="flex items-center justify-between rounded-xl border border-[#D9A800]/40 dark:border-[#7A5C00]/60 bg-[#FFF6E0] dark:bg-[#2A1E00] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FFF6E0] dark:bg-[#3A2A00]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#A37A00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Active Virtual Agents</span>
-                </div>
-                <span className="rounded-full bg-[#A37A00] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
+                <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.status === "pending").length}</span>
               </div>
             </div>
 

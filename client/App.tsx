@@ -72,4 +72,11 @@ const App = () => (
   </QueryClientProvider>
 );
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Reuse existing root on HMR full reloads to prevent duplicate-root errors
+// caused by Layout.tsx's mixed component+hook exports disabling Fast Refresh.
+const rootElement = document.getElementById("root")!;
+declare global { interface Window { __reactRoot?: ReturnType<typeof createRoot> } }
+if (!window.__reactRoot) {
+  window.__reactRoot = createRoot(rootElement);
+}
+window.__reactRoot.render(<App />);
