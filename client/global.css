@@ -136,6 +136,12 @@
     @apply border-border;
   }
 
+  /* Keep Sonner toasts below our transfer/popover overlays */
+  [data-sonner-toaster] {
+    --z-index: 9000 !important;
+    z-index: 9000 !important;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Noto Sans', -apple-system, Roboto, Helvetica, sans-serif;
