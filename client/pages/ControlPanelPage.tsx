@@ -1819,6 +1819,8 @@ export default function ControlCenterPage() {
               </div>
             </div>
 
+          </div>
+
           {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
             {/* Header: title + tabs */}
@@ -1977,8 +1979,6 @@ export default function ControlCenterPage() {
               )}
             </div>
           </div>
-
-        </div>
 
         </div>
       </div>
