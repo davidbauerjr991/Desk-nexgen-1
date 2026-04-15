@@ -1811,20 +1811,21 @@ function IssueRow({
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-                      <input
-                        type="text"
-                        placeholder="Ask Copilot about this Case"
-                        className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
-                      />
-                      <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+            {/* Ask Copilot — sits below the Attempted Resolution accordion */}
+            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+              <input
+                type="text"
+                placeholder="Ask Copilot about this Case"
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+              />
+              <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1914,20 +1915,21 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                         </li>
                       ))}
                     </ul>
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white dark:bg-[#0C1A26] dark:border-[#1B3A52] px-3 py-2">
-                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-                      <input
-                        type="text"
-                        placeholder="Ask Copilot about this Case"
-                        className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] dark:text-[#94A3B8] placeholder:text-[#98A2B3] outline-none"
-                      />
-                      <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+            {/* Ask Copilot — sits below the Attempted Resolution accordion */}
+            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white dark:bg-[#0C1A26] dark:border-[#1B3A52] px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+              <input
+                type="text"
+                placeholder="Ask Copilot about this Case"
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] dark:text-[#94A3B8] placeholder:text-[#98A2B3] outline-none"
+              />
+              <button type="button" className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
             </div>
 
             {/* Transfer / Open actions */}
