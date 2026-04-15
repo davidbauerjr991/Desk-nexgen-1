@@ -1791,7 +1791,7 @@ function IssueRow({
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-2 space-y-3">
             {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] overflow-hidden">
+            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
@@ -1894,7 +1894,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-2 space-y-3">
             {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+            <div className="rounded-xl border border-[#C8BFF0] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
