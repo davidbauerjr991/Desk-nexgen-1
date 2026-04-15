@@ -170,7 +170,7 @@ export default function Index() {
         {/* Content row: summary + conversation on desktop, conversation on mobile */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
           {/* Desktop: Summary on left, Conversation on right */}
-          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden flex-row-reverse">
+          <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
             {/* Summary column (left) - using NotesPanel */}
             <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
               <NotesPanel customerId={selectedAssignment.customerRecordId} />
