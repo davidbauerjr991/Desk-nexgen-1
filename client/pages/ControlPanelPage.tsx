@@ -1826,8 +1826,6 @@ export default function ControlCenterPage() {
             {/* Header: title + tabs + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
               <div className="flex items-center justify-between gap-3 mb-3">
-                <h2 className="text-[14px] font-semibold text-[#333333] shrink-0">Active Cases</h2>
-
                 {/* Status tabs */}
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
                   {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
