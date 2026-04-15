@@ -1887,10 +1887,22 @@ function IssueRow({
             <>
               <button
                 type="button"
-                onClick={() => onMonitor()}
-                className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                onClick={() => !isMonitored && onMonitor()}
+                disabled={isMonitored}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
+                  isMonitored
+                    ? "border-[#B9E0B4] bg-white text-[#344054] cursor-default opacity-100"
+                    : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                )}
               >
-                Monitor
+                {isMonitored && (
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#22C55E]" />
+                  </span>
+                )}
+                {isMonitored ? "Monitoring" : "Monitor"}
               </button>
               <button
                 type="button"
@@ -1904,10 +1916,22 @@ function IssueRow({
             <>
               <button
                 type="button"
-                onClick={() => onMonitor()}
-                className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                onClick={() => !isMonitored && onMonitor()}
+                disabled={isMonitored}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
+                  isMonitored
+                    ? "border-[#B9E0B4] bg-white text-[#344054] cursor-default opacity-100"
+                    : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                )}
               >
-                Monitor
+                {isMonitored && (
+                  <span className="relative flex h-2 w-2 shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#22C55E]" />
+                  </span>
+                )}
+                {isMonitored ? "Monitoring" : "Monitor"}
               </button>
               <button
                 type="button"
