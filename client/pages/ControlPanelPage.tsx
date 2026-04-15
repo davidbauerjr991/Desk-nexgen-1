@@ -24,7 +24,7 @@ import { getCustomerRecord, createConversationState } from "@/lib/customer-datab
 import ConversationPanel from "@/components/ConversationPanel";
 
 type DeskPageTab = "queue" | "customers" | "tickets" | "accounts" | "contact-history";
-type IssueTab = "open" | "pending" | "resolved" | "escalated";
+type IssueTab = "all" | "open" | "pending" | "resolved" | "escalated";
 
 const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
   { id: "queue",           label: "Queue"            },
@@ -2157,7 +2157,7 @@ export default function ControlCenterPage() {
   const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
-  const [issueTab, setIssueTab] = useState<IssueTab>("open");
+  const [issueTab, setIssueTab] = useState<IssueTab>("all");
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
@@ -2274,7 +2274,7 @@ export default function ControlCenterPage() {
     .filter((a) => channelFilter === "all" || a.channel === channelFilter);
 
   const allRows = baseRows
-    .filter((a) => a.status === issueTab)
+    .filter((a) => issueTab === "all" || a.status === issueTab)
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
@@ -2288,6 +2288,7 @@ export default function ControlCenterPage() {
 
   // Per-tab counts for badges
   const tabCounts: Record<IssueTab, number> = {
+    all: baseRows.length + filteredResolvedAssignments.length,
     open: baseRows.filter((a) => a.status === "open").length,
     pending: baseRows.filter((a) => a.status === "pending").length,
     resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.length,
@@ -2439,8 +2440,9 @@ export default function ControlCenterPage() {
               <div className="flex items-center justify-between gap-3 mb-3">
                 {/* Status tabs */}
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
-                  {(["escalated", "open", "pending", "resolved"] as const).map((tab) => {
+                  {(["all", "escalated", "open", "pending", "resolved"] as const).map((tab) => {
                     const tabLabels: Record<typeof tab, string> = {
+                      all: "All",
                       escalated: "Escalated",
                       open: "Active Virtual Agents",
                       pending: "Pending",
@@ -2546,7 +2548,7 @@ export default function ControlCenterPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {issueTab === "resolved" ? (
+              {issueTab === "resolved" || (issueTab === "all" && filteredResolvedAssignments.length > 0) ? (
                 allRows.length === 0 && filteredResolvedAssignments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
@@ -2582,7 +2584,7 @@ export default function ControlCenterPage() {
                 allRows.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-                    <p className="text-sm font-medium text-[#7A7A7A] capitalize">No {issueTab} tasks</p>
+                    <p className="text-sm font-medium text-[#7A7A7A] capitalize">No {issueTab === "all" ? "" : issueTab} tasks</p>
                     <p className="text-xs text-[#B0B7C3] mt-1">No tasks match the selected filter.</p>
                   </div>
                 ) : (
