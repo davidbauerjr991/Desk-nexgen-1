@@ -1654,45 +1654,8 @@ export default function ControlCenterPage() {
   };
   const totalTasks = tabCounts.open + tabCounts.pending + tabCounts.resolved + tabCounts.escalated;
 
-  const agentFirstName = CURRENT_AGENT_NAME.split(" ")[0] ?? CURRENT_AGENT_NAME;
-
-  // Live clock — ticks every second
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1_000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  // Simulated last-login: fixed at ~8 h before the page first mounted
-  const lastLogin = useMemo(() => {
-    const d = new Date();
-    d.setHours(d.getHours() - 8, d.getMinutes() - 14, 0, 0);
-    return d;
-  }, []);
-
-  const formatDateTime = (d: Date) =>
-    d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) +
-    " · " +
-    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-
   return (
     <div className="flex h-full flex-col">
-      {/* Welcome header */}
-      <div className="shrink-0 border-b border-border bg-background/50 px-6 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-sm font-semibold tracking-tight text-[#333333]">
-              Welcome back, {agentFirstName}
-            </h1>
-            <p className="mt-0.5 text-xs text-[#7A7A7A]">
-              {formatDateTime(now)}
-              <span className="mx-1.5 text-[#D0D5DD]">·</span>
-              Last login: {formatDateTime(lastLogin)}
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Top-level page tabs */}
       <div className="shrink-0 border-b border-border bg-white px-6">
         <div className="flex gap-0">
