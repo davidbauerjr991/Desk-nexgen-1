@@ -2206,7 +2206,7 @@ function DockedConversationPanel({
             </div>
 
             {/* Content area — flex-row when wide (>=1280px) to show persistent sidebar */}
-            <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row" : "flex-col")}>
+            <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row-reverse" : "flex-col")}>
 
               {/* Main conversation / task summary */}
               <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
@@ -2240,14 +2240,14 @@ function DockedConversationPanel({
                 )}
               </div>
 
-              {/* Narrow/medium-mode summary drawer — slides in from the right as an overlay */}
+              {/* Narrow/medium-mode summary drawer — slides in from the LEFT as an overlay */}
               {!isWidePanel && (
                 <>
                   {/* Drawer panel */}
                   <div
                     className={cn(
-                      "absolute inset-y-0 right-0 z-50 w-[350px] flex flex-col overflow-y-auto bg-card dark:bg-[#0C1A26] border-l border-border shadow-[-8px_0_24px_rgba(16,24,40,0.12)] transition-transform duration-300 ease-out",
-                      isHandoffSummaryOpen ? "translate-x-0" : "translate-x-full",
+                      "absolute inset-y-0 left-0 z-50 w-[350px] flex flex-col overflow-y-auto bg-card dark:bg-[#0C1A26] border-r border-border shadow-[8px_0_24px_rgba(16,24,40,0.12)] transition-transform duration-300 ease-out",
+                      isHandoffSummaryOpen ? "translate-x-0" : "-translate-x-full",
                     )}
                   >
                     {/* Tab bar */}
@@ -2441,10 +2441,10 @@ function DockedConversationPanel({
                 </>
               )}
 
-              {/* Wide-mode sidebar — persistent Case Overview + Suggested Next Steps */}
+              {/* Wide-mode sidebar — persistent Case Overview + Suggested Next Steps (LEFT) */}
               {isWidePanel && isHandoffSummaryOpen && (
                 <div
-                  className="w-[350px] flex-shrink-0 border-l border-border flex flex-col bg-card dark:bg-[#0C1A26]"
+                  className="w-[350px] flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26]"
                   style={{ transition: "width 300ms ease" }}
                 >
                   {/* Tab bar (wide mode) */}

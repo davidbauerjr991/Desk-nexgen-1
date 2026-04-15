@@ -1801,7 +1801,7 @@ export default function ConversationPanel({
   };
 
   return (
-    <div ref={containerRef} className={cn("relative flex min-h-0 flex-1 flex-row-reverse", className)}>
+    <div ref={containerRef} className={cn("relative flex min-h-0 flex-1 flex-row", className)}>
       <div className={cn("relative flex min-h-0 flex-col overflow-hidden", hideTranscript ? "w-0 pointer-events-none overflow-hidden" : "flex-1")}>
 
         {/* Narrow-mode tabs — shown below the header when width < 640 and AI panel is active */}
