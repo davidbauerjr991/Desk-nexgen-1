@@ -1823,17 +1823,40 @@ export default function ControlCenterPage() {
 
           {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full rounded-xl border border-border bg-white shadow-sm overflow-hidden">
-            {/* Header: title + tabs */}
+            {/* Header: title + tabs + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0 border-b border-border">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h2 className="text-[14px] font-semibold text-[#333333]">Active Cases</h2>
-                  <p className="text-xs text-[#7A7A7A] mt-0.5">
-                    {totalTasks} Total Case{totalTasks !== 1 ? "s" : ""}
-                  </p>
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h2 className="text-[14px] font-semibold text-[#333333] shrink-0">Active Cases</h2>
+
+                {/* Status tabs */}
+                <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
+                  {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setIssueTab(tab)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150 whitespace-nowrap",
+                        issueTab === tab
+                          ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                          : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+                      )}
+                    >
+                      {tab}
+                      <span className={cn(
+                        "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
+                        issueTab === tab
+                          ? "bg-[#6E56CF] text-white"
+                          : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
+                      )}>
+                        {tabCounts[tab]}
+                      </span>
+                    </button>
+                  ))}
                 </div>
+
                 {/* Filters */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-auto">
                   {/* Channel filter */}
                   <div className="relative">
                     <button
@@ -1902,32 +1925,6 @@ export default function ControlCenterPage() {
                     )}
                   </div>
                 </div>
-              </div>
-              {/* Status tabs */}
-              <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 mb-4">
-                {(["open", "pending", "resolved", "escalated"] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setIssueTab(tab)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
-                      issueTab === tab
-                        ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
-                        : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
-                    )}
-                  >
-                    {tab}
-                    <span className={cn(
-                      "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
-                      issueTab === tab
-                        ? "bg-[#6E56CF] text-white"
-                        : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
-                    )}>
-                      {tabCounts[tab]}
-                    </span>
-                  </button>
-                ))}
               </div>
             </div>
 
