@@ -5995,7 +5995,6 @@ export default function Layout({ children }: LayoutProps) {
     width: getDeskCanvasPopunderDefaultWidth("copilot"),
     height: typeof window === "undefined" ? 720 : Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
   }));
-  const [isHeaderSearchOpen, setIsHeaderSearchOpen] = useState(false);
   const [isPageEntered, setIsPageEntered] = useState(false);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
@@ -6170,7 +6169,6 @@ export default function Layout({ children }: LayoutProps) {
   // Persists conversation state when a channel is trashed so it can be restored on reopen.
   // Key: `${customerRecordId}::${channel}`
   const channelStateArchiveRef = useRef<Map<string, SharedConversationData>>(new Map());
-  const headerSearchInputRef = useRef<HTMLInputElement>(null);
   const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const bellButtonRef = useRef<HTMLDivElement | null>(null);
   const chatButtonRef = useRef<HTMLDivElement | null>(null);
@@ -6744,12 +6742,6 @@ export default function Layout({ children }: LayoutProps) {
       ),
     };
   };
-
-  useEffect(() => {
-    if (isHeaderSearchOpen) {
-      headerSearchInputRef.current?.focus();
-    }
-  }, [isHeaderSearchOpen]);
 
   useEffect(() => {
     if (!copilotDragActivation) return;
@@ -8313,21 +8305,6 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
           )}
-          </div>
-        </div>
-
-        {/* Center: Search */}
-        <div className="flex items-center justify-center">
-          <div className="relative w-full min-w-[450px]">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#98A2B3]" />
-            <Input
-              ref={headerSearchInputRef}
-              id="header-search-input"
-              type="search"
-              placeholder="Search workspace"
-              aria-label="Search workspace"
-              className="h-9 w-full rounded-full border-black/10 bg-white pl-9 pr-4 text-sm text-[#333333] placeholder:text-[#7A7A7A] focus-visible:border-[#C8BFF0] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#C8BFF0]"
-            />
           </div>
         </div>
 
