@@ -8251,6 +8251,8 @@ export default function Layout({ children }: LayoutProps) {
       setAssignmentStatusesById,
       isCopilotViewPopunderOpen,
       openHeaderAppPanel,
+      isBriefingDismissed,
+      setIncomingNotifications,
     ],
   );
 
