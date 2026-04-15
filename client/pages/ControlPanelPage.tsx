@@ -1800,10 +1800,10 @@ export default function ControlCenterPage() {
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
                   {(["escalated", "open", "pending", "resolved"] as const).map((tab) => {
                     const tabLabels: Record<typeof tab, string> = {
-                      escalated: "Escalated Cases",
+                      escalated: "Escalated",
                       open: "Active Virtual Agents",
-                      pending: "Pending Cases",
-                      resolved: "Resolved Cases",
+                      pending: "Pending",
+                      resolved: "Resolved",
                     };
                     return (
                       <button
