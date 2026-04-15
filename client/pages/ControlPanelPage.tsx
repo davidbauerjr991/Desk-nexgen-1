@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import {
   AlertTriangle,
   CalendarCheck,
@@ -302,7 +303,7 @@ export const staticAssignments: StaticAssignment[] = [
     company: "Orion Pharma Group",
     channel: "voice",
     priority: "Critical",
-    status: "escalated",
+    status: "pending",
     preview: "Billing system discrepancy causing double invoices",
     waitTime: "7m",
     aiOverview: {
@@ -450,7 +451,7 @@ export const staticAssignments: StaticAssignment[] = [
     company: "Crescent Media Group",
     channel: "chat",
     priority: "Critical",
-    status: "escalated",
+    status: "pending",
     preview: "Data breach concern — suspicious export activity flagged",
     waitTime: "11m",
     aiOverview: {
@@ -2167,6 +2168,19 @@ export default function ControlCenterPage() {
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
   const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
+  const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
+
+  // After 35 s, escalate Kevin Tran's case and surface a toast
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setEscalatedOverrides((prev) => new Set([...prev, "static-6"]));
+      toast.error("Case Escalated — Kevin Tran", {
+        description: "Billing system discrepancy causing double invoices. Immediate attention required.",
+        duration: 8000,
+      });
+    }, 35_000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
@@ -2213,7 +2227,7 @@ export default function ControlCenterPage() {
     const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
     const row: RowData = {
       ...a,
-      status: liveStatus ?? a.status,
+      status: escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
       isClosed,
