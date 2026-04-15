@@ -2174,10 +2174,48 @@ export default function ControlCenterPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
-      toast.error("Case Escalated — Fatima Al-Rashid", {
-        description: "Data breach concern — suspicious export activity flagged. Immediate attention required.",
-        duration: 8000,
-      });
+      toast.custom((id) => (
+        <div className="pointer-events-auto w-[360px] rounded-2xl border border-[#E32926]/20 bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-300">
+          {/* Header */}
+          <div className="flex items-start justify-between px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FDEAEA] text-[13px] font-semibold text-[#C71D1A]">FA</div>
+              <div>
+                <p className="text-[14px] font-semibold leading-tight text-[#101828]">Fatima Al-Rashid</p>
+                <p className="text-[12px] text-[#667085] mt-0.5 leading-snug line-clamp-1">Data breach concern — suspicious export activity flagged</p>
+              </div>
+            </div>
+            <span className="shrink-0 ml-2 rounded-full border border-[#E53935] bg-[#FDEAEA] px-2.5 py-0.5 text-[11px] font-medium text-[#C71D1A]">Escalated</span>
+          </div>
+          {/* Channel + time */}
+          <div className="flex items-center gap-3 px-4 pb-3">
+            <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.08] px-2 py-0.5 text-[11px] font-medium text-[#344054]">
+              <MessageCircle className="h-3 w-3" />Chat
+            </span>
+            <span className="flex items-center gap-1 text-[11px] text-[#667085]">
+              <Clock className="h-3 w-3" />Just now
+            </span>
+          </div>
+          {/* Actions */}
+          <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
+            <button
+              type="button"
+              onClick={() => toast.dismiss(id)}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+            >Monitor</button>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(id)}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+            >Transfer</button>
+            <button
+              type="button"
+              onClick={() => toast.dismiss(id)}
+              className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
+            >Takeover</button>
+          </div>
+        </div>
+      ), { duration: 12000 });
     }, 35_000);
     return () => clearTimeout(timer);
   }, []);

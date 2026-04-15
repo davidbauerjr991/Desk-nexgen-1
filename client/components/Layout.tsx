@@ -5164,7 +5164,7 @@ function IncomingAssignmentCard({
           onClick={() => onPark(item)}
           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
         >
-          Park
+          Monitor
         </button>
         <button
           ref={transferBtnRef}
@@ -5179,7 +5179,7 @@ function IncomingAssignmentCard({
           onClick={() => onAccept(item)}
           className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
         >
-          Accept
+          Takeover
         </button>
       </div>
 
