@@ -86,7 +86,7 @@ import {
   type CustomerQueueIcon,
 } from "@/lib/customer-database";
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
-import { staticAssignments } from "@/pages/ControlPanelPage";
+import { staticAssignments } from "@/lib/static-assignments";
 import { toast } from "sonner";
 
 interface LayoutProps {

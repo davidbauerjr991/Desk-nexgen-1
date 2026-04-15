@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
+import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -34,31 +35,6 @@ const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
   { id: "accounts",        label: "Accounts"        },
   { id: "contact-history", label: "Contact History" },
 ];
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Channel = "chat" | "sms" | "email" | "voice" | "whatsapp";
-type Priority = "Critical" | "High" | "Medium" | "Low";
-
-interface AiOverview {
-  actions: string[];
-  whyNeeded: string;
-  nextSteps: string[];
-}
-
-interface StaticAssignment {
-  id: string;
-  name: string;
-  customerId: string;
-  customerRecordId?: string;
-  company: string;
-  channel: Channel;
-  priority: Priority;
-  status: QueueAssignmentStatus;
-  preview: string;
-  waitTime: string;
-  aiOverview: AiOverview;
-}
 
 // ─── Lookups ──────────────────────────────────────────────────────────────────
 
@@ -152,12 +128,14 @@ const liveAiOverview: Record<string, AiOverview> = {
   },
 };
 
-// ─── Static assignments (16) ──────────────────────────────────────────────────
+// staticAssignments is now imported from @/lib/static-assignments
+// keeping a re-export for any consumers that still reference this module
+export { staticAssignments } from "@/lib/static-assignments";
 
-export const staticAssignments: StaticAssignment[] = [
+const _removedData = [
   {
-    id: "static-1",
-    name: "Maria Chen",
+    id: "static-1-placeholder",
+    name: "placeholder",
     customerId: "CST-10482",
     customerRecordId: "emily",
     company: "Apex Financial Group",
@@ -1260,6 +1238,8 @@ export const staticAssignments: StaticAssignment[] = [
     },
   },
 ];
+
+// (end of moved data)
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
