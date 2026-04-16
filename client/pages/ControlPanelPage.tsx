@@ -2673,6 +2673,15 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
   const dragStartX = useRef<number | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [containerW, setContainerW] = useState(0);
+
+  // Measure container width — must be above any early returns
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(([e]) => setContainerW(e.contentRect.width));
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   if (rows.length === 0) {
     return (
@@ -2739,15 +2748,6 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
   const CARD_MAX_W = 960;
   const PEEK = 48; // px of adjacent card visible on each side
   const GAP = 16;
-  const [containerW, setContainerW] = useState(0);
-
-  // Measure container width
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(([e]) => setContainerW(e.contentRect.width));
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
   // Card width = min(CARD_MAX_W, containerW - 2*PEEK)
   const cardW = containerW > 0 ? Math.min(CARD_MAX_W, containerW - PEEK * 2) : CARD_MAX_W;
