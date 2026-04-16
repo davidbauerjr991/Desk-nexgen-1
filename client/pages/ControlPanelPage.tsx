@@ -3152,6 +3152,8 @@ const persistedState = {
   agentTypeFilter: "all" as "all" | "virtual" | "human",
   groupMode: "customer" as "customer" | "case",
   monitoredCaseId: null as string | null,
+  viewMode: "list" as "list" | "card" | "carousel",
+  carouselIndex: 0,
 };
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -3165,8 +3167,8 @@ export default function ControlCenterPage() {
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
   const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">(() => persistedState.agentTypeFilter);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "card" | "carousel">("list");
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<"list" | "card" | "carousel">(() => persistedState.viewMode);
+  const [carouselIndex, setCarouselIndex] = useState(() => persistedState.carouselIndex);
   const [carouselDir, setCarouselDir] = useState<"next" | "prev">("next");
   const [groupMode, setGroupMode] = useState<"customer" | "case">(() => persistedState.groupMode);
   const filterPanelRef = useRef<HTMLDivElement>(null);
@@ -3213,6 +3215,8 @@ export default function ControlCenterPage() {
   useEffect(() => { persistedState.channelFilters = channelFilters; }, [channelFilters]);
   useEffect(() => { persistedState.agentTypeFilter = agentTypeFilter; }, [agentTypeFilter]);
   useEffect(() => { persistedState.groupMode = groupMode; }, [groupMode]);
+  useEffect(() => { persistedState.viewMode = viewMode; }, [viewMode]);
+  useEffect(() => { persistedState.carouselIndex = carouselIndex; }, [carouselIndex]);
 
   // Reset carousel to first item whenever any filter changes in carousel mode
   // eslint-disable-next-line react-hooks/exhaustive-deps
