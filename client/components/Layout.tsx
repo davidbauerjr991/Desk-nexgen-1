@@ -2240,23 +2240,25 @@ function DockedConversationPanel({
                   >
                     <GripHorizontal className="h-4 w-4" />
                   </button>
-                  {/* Show Summary toggle — icon only with tooltip */}
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
-                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
-                          aria-label={isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
-                        >
-                          <PanelLeft className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">{isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  {/* Show Summary toggle — hidden in narrow mode (summary always fills viewport) */}
+                  {!isNarrowPanel && (
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
+                            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+                            aria-label={isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
+                          >
+                            <PanelLeft className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">{isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <div className="min-w-0">
                     <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
                   </div>
@@ -2293,7 +2295,7 @@ function DockedConversationPanel({
             <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row-reverse" : "flex-col")}>
 
               {/* Main conversation / task summary — hidden when conversation is the active sidebar tab */}
-              <div className={cn("min-h-0 flex-1 overflow-hidden flex flex-col", isNarrowPanel && summaryTab === "conversation" && "hidden")}>
+              <div className={cn("min-h-0 flex-1 overflow-hidden flex flex-col", isNarrowPanel && "hidden")}>
                 {showTaskSummary ? (
                   <TaskSummaryView
                     assignment={{
@@ -2595,7 +2597,7 @@ function DockedConversationPanel({
                 <div
                   className={cn(
                     "flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26] transition-[width] duration-300",
-                    isNarrowPanel && summaryTab === "conversation" ? "w-full" : "w-[350px]",
+                    isNarrowPanel ? "w-full" : "w-[350px]",
                   )}
                 >
                   {/* Tab bar */}
