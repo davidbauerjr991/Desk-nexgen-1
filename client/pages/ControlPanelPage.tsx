@@ -2737,17 +2737,6 @@ function EscalatedCaseModal({
             })()}
           </div>
 
-          {/* Monitoring footer */}
-          <div className="shrink-0 border-t border-border px-5 py-3 bg-white flex items-center justify-between gap-3">
-            <p className="text-[12px] text-[#667085]">You are monitoring this conversation</p>
-            <button
-              type="button"
-              onClick={onTakeover}
-              className="rounded-lg bg-[#6E56CF] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-            >
-              Takeover
-            </button>
-          </div>
         </div>
 
       </div>
