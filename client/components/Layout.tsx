@@ -2291,7 +2291,7 @@ function DockedConversationPanel({
                   {/* Drawer panel */}
                   <div
                     className={cn(
-                      "absolute inset-y-0 left-0 z-50 w-[350px] flex flex-col overflow-y-auto bg-card dark:bg-[#0C1A26] border-r border-border shadow-[8px_0_24px_rgba(16,24,40,0.12)] transition-transform duration-300 ease-out",
+                      "absolute inset-y-0 left-0 z-50 w-[350px] flex flex-col bg-card dark:bg-[#0C1A26] border-r border-border shadow-[8px_0_24px_rgba(16,24,40,0.12)] transition-transform duration-300 ease-out",
                       isHandoffSummaryOpen ? "translate-x-0" : "-translate-x-full",
                     )}
                   >
@@ -2316,7 +2316,7 @@ function DockedConversationPanel({
                       </div>
                     </div>
 
-                    <div className="p-4 space-y-3">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {summaryTab === "overview" ? (<>
                         {/* Customer Profile — collapsible */}
                       <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
@@ -2487,22 +2487,6 @@ function DockedConversationPanel({
                         </div>
                       )}
 
-                      {/* Ask Copilot input */}
-                      <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-                        <input
-                          type="text"
-                          value={summaryCopilotQuery}
-                          onChange={(e) => setSummaryCopilotQuery(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
-                          placeholder="Ask Copilot about this Case"
-                          className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
-                        />
-                        <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                        </button>
-                      </div>
-
                       </>) : (
                         /* Customer History timeline */
                         (() => {
@@ -2545,6 +2529,24 @@ function DockedConversationPanel({
                         })()
                       )}
                     </div>
+                    {summaryTab === "overview" && (
+                      <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
+                        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+                          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                          <input
+                            type="text"
+                            value={summaryCopilotQuery}
+                            onChange={(e) => setSummaryCopilotQuery(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
+                            placeholder="Ask Copilot about this Case"
+                            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                          />
+                          <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -2787,24 +2789,26 @@ function DockedConversationPanel({
                       </div>
                     )}
 
-                    {/* Ask Copilot input */}
-                    <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-                      <input
-                        type="text"
-                        value={summaryCopilotQuery}
-                        onChange={(e) => setSummaryCopilotQuery(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
-                        placeholder="Ask Copilot about this Case"
-                        className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
-                      />
-                      <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                      </button>
-                    </div>
-
                   </>)}
                   </div>
+                  {summaryTab === "overview" && (
+                    <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
+                      <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                        <input
+                          type="text"
+                          value={summaryCopilotQuery}
+                          onChange={(e) => setSummaryCopilotQuery(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
+                          placeholder="Ask Copilot about this Case"
+                          className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                        />
+                        <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
