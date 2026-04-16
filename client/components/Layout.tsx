@@ -2233,16 +2233,23 @@ function DockedConversationPanel({
                   >
                     <GripHorizontal className="h-4 w-4" />
                   </button>
-                  {/* Show Summary toggle — next to drag icon */}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
-                    className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#6E56CF] hover:opacity-75 transition-opacity shrink-0"
-                  >
-                    {isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
-                    <PanelRight className="h-3.5 w-3.5 text-[#6E56CF]" />
-                  </button>
+                  {/* Show Summary toggle — icon only with tooltip */}
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+                          aria-label={isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
+                        >
+                          <PanelLeft className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">{isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <div className="min-w-0">
                     <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
                   </div>
