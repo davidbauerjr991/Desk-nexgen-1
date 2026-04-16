@@ -2889,7 +2889,7 @@ export default function ControlCenterPage() {
                     const tabLabels: Record<typeof tab, string> = {
                       all: "All",
                       escalated: "Escalated",
-                      open: "Active Virtual Agents",
+                      open: "Active",
                       pending: "Pending",
                       resolved: "Resolved",
                     };
