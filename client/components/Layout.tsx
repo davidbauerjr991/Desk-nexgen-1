@@ -9425,9 +9425,8 @@ export default function Layout({ children }: LayoutProps) {
               ];
               return (
                 <div className="mx-6 mb-4 rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-white dark:bg-[#0F1629] p-4">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="mb-2">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
-                    <button type="button" className="text-[11px] font-medium text-[#6E56CF] hover:underline">View All</button>
                   </div>
                   <p className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] min-h-[72px]">
                     {trendSlides[trendSlide]}
