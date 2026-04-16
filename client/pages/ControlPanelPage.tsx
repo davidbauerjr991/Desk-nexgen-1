@@ -2796,6 +2796,7 @@ export default function ControlCenterPage() {
         customerRecordId: a.customerRecordId,
         company: companyByCustomerId[a.customerRecordId] ?? a.name,
         botType: "Service Bot",
+        caseType: "General Inquiry" as const,
         agentType: "virtual" as const,
         channel: a.channel as Channel,
         priority,
@@ -3132,7 +3133,7 @@ export default function ControlCenterPage() {
                     onClick={() => setIsFilterPanelOpen((v) => !v)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                      (channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all" || groupMode !== "customer")
+                      (channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all")
                         ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
                         : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
@@ -3241,32 +3242,21 @@ export default function ControlCenterPage() {
                       <div className="mx-3 my-2 border-t border-border" />
                       {/* Group mode */}
                       <div className="px-3 pb-3">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Group By</p>
-                        <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setGroupMode("customer")}
-                            className={cn(
-                              "flex-1 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors",
-                              groupMode === "customer"
-                                ? "border-[#6E56CF] bg-[#F2F0FA] text-[#6E56CF]"
-                                : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#6E56CF]/40 hover:bg-[#F9FAFB]",
-                            )}
-                          >
-                            Customer
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setGroupMode("case")}
-                            className={cn(
-                              "flex-1 rounded-md border px-2 py-1.5 text-[11px] font-medium transition-colors",
-                              groupMode === "case"
-                                ? "border-[#6E56CF] bg-[#F2F0FA] text-[#6E56CF]"
-                                : "border-[#E4E7EC] bg-white text-[#667085] hover:border-[#6E56CF]/40 hover:bg-[#F9FAFB]",
-                            )}
-                          >
-                            Case Type
-                          </button>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Group By</p>
+                        <div className="flex flex-wrap gap-1">
+                          {(["customer", "case"] as const).map((mode) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => setGroupMode(mode)}
+                              className={cn(
+                                "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                                groupMode === mode
+                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                              )}
+                            >{mode === "customer" ? "Customer" : "Case Type"}</button>
+                          ))}
                         </div>
                       </div>
                       {/* Clear all */}
@@ -3285,7 +3275,7 @@ export default function ControlCenterPage() {
               </div>
 
               {/* Active filter chips */}
-              {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all" || groupMode !== "customer") && (
+              {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                 <div className="flex flex-wrap gap-1.5 pb-3">
                   {[...channelFilters].map((ch) => (
                     <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
@@ -3311,12 +3301,6 @@ export default function ControlCenterPage() {
                       <button type="button" onClick={() => setAgentTypeFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
-                  {groupMode === "case" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
-                      By Case Type
-                      <button type="button" onClick={() => setGroupMode("customer")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -3325,10 +3309,10 @@ export default function ControlCenterPage() {
               {(() => {
                 const renderRows = (rows: typeof allRows) => {
                   if (groupMode === "case") {
-                    // Group by bot/case type with accordion + Respond to all
+                    // Group by case type (semantic category) with accordion + Respond to all
                     const caseTypeMap = new Map<string, typeof allRows>();
                     rows.forEach((a) => {
-                      const key = a.botType ?? "Other";
+                      const key = a.caseType ?? "General Inquiry";
                       if (!caseTypeMap.has(key)) caseTypeMap.set(key, []);
                       caseTypeMap.get(key)!.push(a);
                     });
