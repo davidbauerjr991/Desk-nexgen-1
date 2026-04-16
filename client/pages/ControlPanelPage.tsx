@@ -2500,6 +2500,8 @@ export default function ControlCenterPage() {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [groupIssues, setGroupIssues] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
+  const [escalatedFlashing, setEscalatedFlashing] = useState(false);
+  const prevEscalatedCountRef = useRef(0);
 
   useEffect(() => {
     if (!isFilterPanelOpen) return;
@@ -2512,6 +2514,7 @@ export default function ControlCenterPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, [isFilterPanelOpen]);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
+
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
@@ -2530,6 +2533,18 @@ export default function ControlCenterPage() {
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
+
+  // Flash the overview escalated row whenever a new escalated case arrives.
+  useEffect(() => {
+    const current = escalatedOverrides.size;
+    if (current > prevEscalatedCountRef.current) {
+      setEscalatedFlashing(true);
+      const t = setTimeout(() => setEscalatedFlashing(false), 1700);
+      prevEscalatedCountRef.current = current;
+      return () => clearTimeout(t);
+    }
+    prevEscalatedCountRef.current = current;
+  }, [escalatedOverrides]);
 
   // When Monitor is clicked on an incoming toast, open that case's monitor panel.
   useEffect(() => {
@@ -2705,9 +2720,17 @@ export default function ControlCenterPage() {
               <div className="space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => setIssueTab("escalated")}
+                  onClick={() => {
+                    setIssueTab("escalated");
+                    // Open the first escalated case in monitor mode
+                    const escalatedCase = staticNormalisedRef.current.find(
+                      (r) => r.status === "escalated" || escalatedOverrides.has(r.id),
+                    );
+                    if (escalatedCase) setMonitoredCase(escalatedCase);
+                  }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg px-1 -mx-1 py-0.5 transition-colors text-left",
+                    escalatedFlashing && "animate-escalated-flash",
                     tabCounts.escalated > 0
                       ? "hover:bg-[#FEF2F2] cursor-pointer"
                       : "hover:bg-[#F9FAFB] cursor-pointer",
@@ -2732,7 +2755,7 @@ export default function ControlCenterPage() {
                   )}>
                     {tabCounts.escalated}
                   </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  <ChevronDown className="ml-auto h-3.5 w-3.5 text-[#98A2B3] -rotate-90 shrink-0" />
                 </button>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
