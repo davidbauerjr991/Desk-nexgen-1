@@ -4671,7 +4671,7 @@ function GroupedQueueCard({
   // Changing it syncs ALL channels so the task always has one status.
   const primaryChannelId = group.lastActiveChannel.id;
   const primaryStatus = queueStatuses[primaryChannelId] ?? "open";
-  const canRemoveTask = primaryStatus !== "open";
+  const canRemoveTask = primaryStatus !== "open" && primaryStatus !== "escalated";
   const handleGroupStatusChange = (newStatus: QueueAssignmentStatus) => {
     group.channels.forEach((ch) => onStatusChange(ch.id, newStatus));
   };
