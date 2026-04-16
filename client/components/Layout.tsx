@@ -2034,6 +2034,9 @@ function DockedConversationPanel({
   isPendingAcceptance = false,
   onAcceptAssignment,
   casePreview,
+  assignmentStatus,
+  onAssignmentStatusChange,
+  onRemoveAssignment,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -2064,6 +2067,9 @@ function DockedConversationPanel({
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
   casePreview?: string;
+  assignmentStatus?: QueueAssignmentStatus;
+  onAssignmentStatusChange?: (status: QueueAssignmentStatus) => void;
+  onRemoveAssignment?: () => void;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -2213,12 +2219,12 @@ function DockedConversationPanel({
               data-conversation-panel-header
               className="relative flex flex-col border-b border-border px-5 py-4 gap-0"
             >
-              {/* Top row: drag handle · name · actions */}
+              {/* Top row: drag handle · summary toggle · name · actions · status chip · close */}
               <div className={cn(
                 "flex",
                 shouldStackHeaderActions ? "flex-col items-stretch gap-3" : "items-center justify-between gap-3",
               )}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 min-w-0">
                   <button
                     type="button"
                     aria-label="Undock conversation panel"
@@ -2226,6 +2232,16 @@ function DockedConversationPanel({
                     className="flex h-6 w-6 flex-shrink-0 cursor-grab items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white hover:text-[#333333] active:cursor-grabbing"
                   >
                     <GripHorizontal className="h-4 w-4" />
+                  </button>
+                  {/* Show Summary toggle — next to drag icon */}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
+                    className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#6E56CF] hover:opacity-75 transition-opacity shrink-0"
+                  >
+                    {isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
+                    <PanelRight className="h-3.5 w-3.5 text-[#6E56CF]" />
                   </button>
                   <div className="min-w-0">
                     <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
@@ -2236,16 +2252,25 @@ function DockedConversationPanel({
                     isCallDisabled={isCallDisabled}
                   />
                 </div>
-                {/* Show Summary toggle — always visible, works in both wide and narrow modes */}
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
-                  className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-[#6E56CF] hover:opacity-75 transition-opacity shrink-0"
-                >
-                  {isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
-                  <PanelRight className="h-3.5 w-3.5 text-[#6E56CF]" />
-                </button>
+                {/* Right side: status chip + close */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {assignmentStatus && onAssignmentStatusChange && (
+                    <div onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                      <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
+                    </div>
+                  )}
+                  {onRemoveAssignment && assignmentStatus && assignmentStatus !== "open" && assignmentStatus !== "escalated" && (
+                    <button
+                      type="button"
+                      aria-label="Remove case"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); onRemoveAssignment(); }}
+                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
 
             </div>
@@ -4222,31 +4247,8 @@ function QueueAssignmentCard({
               <span className="inline-flex items-center rounded-full bg-[#F1F3F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#5B5B5B]">
                 {channelLabel}
               </span>
-              <div
-                className="shrink-0"
-                onClick={(event) => event.stopPropagation()}
-                onMouseDown={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                <ConversationStatusDropdown status={status} onStatusChange={onStatusChange} />
-              </div>
             </div>
           </div>
-          {canRemove ? (
-            <button
-              type="button"
-              aria-label={`Remove ${item.name} from left rail`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onRemove();
-              }}
-              onMouseDown={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-              className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-[#6B6B6B]">
@@ -9049,6 +9051,9 @@ export default function Layout({ children }: LayoutProps) {
                 isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
                 onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
                 casePreview={selectedAssignment.preview}
+                assignmentStatus={assignmentStatusesById[selectedAssignment.id] ?? "open"}
+                onAssignmentStatusChange={(s) => handleAssignmentStatusChange(selectedAssignment.id, s)}
+                onRemoveAssignment={() => handleRemoveVisibleAssignment(selectedAssignment.id)}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -9175,6 +9180,9 @@ export default function Layout({ children }: LayoutProps) {
               isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
               onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
               casePreview={selectedAssignment.preview}
+              assignmentStatus={assignmentStatusesById[selectedAssignment.id] ?? "open"}
+              onAssignmentStatusChange={(s) => handleAssignmentStatusChange(selectedAssignment.id, s)}
+              onRemoveAssignment={() => handleRemoveVisibleAssignment(selectedAssignment.id)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
