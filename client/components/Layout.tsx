@@ -5912,9 +5912,14 @@ function LeftQueueRail({
             >
               <div className="flex w-full flex-col items-center gap-2 transition-opacity duration-200 ease-out">
                 {groupedQueueItems.map((group) => {
-                  // Collapsed rail shows one icon per customer using the last active channel
+                  // Collapsed rail shows one chip per customer using their initials
                   const lastChannel = group.lastActiveChannel;
-                  const ItemIcon = lastChannel.icon;
+                  const customerInitials = group.name
+                    .split(" ")
+                    .map((w: string) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase();
                   const priorityKey = group.priority.toLowerCase();
                   const priorityDotClassName = priorityDotClassNameMap[priorityKey] ?? "bg-[#98A2B3]";
                   const priorityIconClassName = priorityIconClassNameMap[priorityKey] ?? "text-[#98A2B3]";
@@ -5978,7 +5983,15 @@ function LeftQueueRail({
                                   {group.channels.length}
                                 </span>
                               )}
-                              <ItemIcon className={cn("h-5 w-5", priorityIconClassName)} />
+                              <span
+                                className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: `${pcCollapsed.accent}20`,
+                                  color: pcCollapsed.accent,
+                                }}
+                              >
+                                {customerInitials}
+                              </span>
                               <span
                                 className="text-[9px] font-semibold leading-none tabular-nums tracking-[-0.02em]"
                                 style={{ color: isActiveInRail ? pcCollapsed.accent : "#667085" }}
