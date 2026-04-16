@@ -2550,31 +2550,27 @@ function EscalatedCaseModal({
 
         {/* ── Full-width header ── */}
         <div className="shrink-0 border-b border-border px-5 pt-3 pb-3">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <div className="flex items-center gap-1.5">
+          {/* Row 1: name + priority + escalated badge, with escalated label floated right */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
+              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
+                {caseData.priority}
+              </span>
+              <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+                escalated
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
                 <AlertTriangle className="h-3 w-3 text-[#E53935]" />
               </div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">Escalated — Immediate Action Required</p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
-              {caseData.priority}
-            </span>
-            <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-              escalated
-            </span>
-          </div>
+          {/* Row 2: preview */}
           <p className="mt-0.5 text-[12px] text-[#475467] leading-snug">{caseData.preview}</p>
+          {/* Row 3: meta */}
           <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
             <span>{caseData.botType}</span>
             <span>·</span>
