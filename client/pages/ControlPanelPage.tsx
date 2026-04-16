@@ -2539,204 +2539,190 @@ function EscalatedCaseModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop — white, fades in */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+        className="absolute inset-0 animate-backdrop-fade-in bg-white/80 backdrop-blur-[3px]"
         onClick={onClose}
       />
 
-      {/* Modal — two columns */}
-      <div className="relative z-10 flex w-full max-w-[960px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.24)] overflow-hidden">
+      {/* Modal — full flex column, two-column body */}
+      <div className="animate-modal-fade-in relative z-10 flex flex-col w-full max-w-[960px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
 
-        {/* ── Left column: case details + AI analysis ── */}
-        <div className="flex flex-col w-[420px] shrink-0 border-r border-border">
-          {/* Header */}
-          <div className="shrink-0 border-b border-border px-5 py-4">
-            <div className="flex items-center justify-between gap-2 mb-2.5">
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FEE2E2]">
-                  <AlertTriangle className="h-3.5 w-3.5 text-[#E53935]" />
-                </div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">Escalated — Immediate Action Required</p>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[15px] font-bold text-[#101828]">{caseData.name}</span>
-              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
-                {caseData.priority}
-              </span>
-              <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-                escalated
-              </span>
-            </div>
-            <p className="mt-1 text-[12px] text-[#475467] leading-relaxed">{caseData.preview}</p>
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
-              <span>{caseData.botType}</span>
-              <span>·</span>
-              <span className="capitalize">{caseData.channel}</span>
-              <span>·</span>
-              <span>⏱ {caseData.waitTime}</span>
-              <span>·</span>
-              <span>{caseData.customerId}</span>
-            </div>
-          </div>
-
-          {/* Scrollable body */}
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
-            {/* Attempted Resolution */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
-              <div className="px-4 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
-              </div>
-              <div className="px-4 pb-4 space-y-3">
-                {caseData.customerContext && (
-                  <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                    <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
-                      <p className="text-[12px] text-[#344054] leading-relaxed">{caseData.customerContext}</p>
-                    </div>
-                  </div>
-                )}
-                <ul className="space-y-2">
-                  {caseData.aiOverview.actions.map((action, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
-                      {action}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {copilotPhase !== "idle" && (
-              <CopilotResponseCard
-                query={submittedQuery}
-                phase={copilotPhase}
-                reasoningVisible={copilotReasoningVisible}
-                isOpen={isCopilotOpen}
-                onToggle={() => setIsCopilotOpen((v) => !v)}
-              />
-            )}
-
-            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-              <input
-                type="text"
-                value={copilotQuery}
-                onChange={(e) => setCopilotQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
-                placeholder="Ask Copilot about this Case"
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
-              />
-              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </div>
-
-            {showQuickActions && (
-              <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-3 space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
-                {QUICK_ACTION_OPTIONS.map((action) => (
-                  <button
-                    key={action}
-                    type="button"
-                    onClick={() => { setShowQuickActions(false); onClose(); }}
-                    className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2 text-left text-[12px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
-                  >
-                    <Check className="h-3 w-3 shrink-0 text-[#6E56CF]" />
-                    {action}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer actions */}
-          <div className="shrink-0 border-t border-border bg-[#F9FAFB] px-5 py-3 flex items-center justify-between gap-2">
+        {/* ── Full-width header ── */}
+        <div className="shrink-0 border-b border-border px-5 py-4">
+          <div className="flex items-center justify-between gap-2 mb-2.5">
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onTransfer}
-                className="rounded-lg border border-border bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#344054] hover:bg-[#F2F4F7] transition-colors"
-              >
-                Transfer
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowQuickActions((v) => !v)}
-                className={cn(
-                  "rounded-lg border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
-                  showQuickActions
-                    ? "border-[#6E56CF] bg-[#F2F0FA] text-[#5C46B8]"
-                    : "border-border bg-white text-[#344054] hover:bg-[#F2F4F7]",
-                )}
-              >
-                Quick Action
-              </button>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FEE2E2]">
+                <AlertTriangle className="h-3.5 w-3.5 text-[#E53935]" />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">Escalated — Immediate Action Required</p>
             </div>
             <button
               type="button"
-              onClick={onTakeover}
-              className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
+              onClick={onClose}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
             >
-              Takeover
+              <X className="h-3.5 w-3.5" />
             </button>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[15px] font-bold text-[#101828]">{caseData.name}</span>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
+              {caseData.priority}
+            </span>
+            <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+              escalated
+            </span>
+          </div>
+          <p className="mt-1 text-[12px] text-[#475467] leading-relaxed">{caseData.preview}</p>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
+            <span>{caseData.botType}</span>
+            <span>·</span>
+            <span className="capitalize">{caseData.channel}</span>
+            <span>·</span>
+            <span>⏱ {caseData.waitTime}</span>
+            <span>·</span>
+            <span>{caseData.customerId}</span>
           </div>
         </div>
 
-        {/* ── Right column: live conversation ── */}
-        <div className="flex flex-col flex-1 min-w-0">
-          {/* Conversation header */}
-          <div className="shrink-0 flex items-center justify-between border-b border-border px-5 py-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0DBF5] text-[12px] font-bold text-[#5C46B8]">
-                {caseData.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-[13px] font-semibold text-[#111827]">{caseData.name}</p>
-                <p className="text-[11px] text-[#667085]">Customer ID {caseData.customerId}</p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-2.5 py-1 text-[11px] font-medium text-[#027A48]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#12B76A] animate-pulse" />
-              Monitoring
-            </span>
-          </div>
+        {/* ── Two-column body ── */}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {/* Conversation feed */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {(() => {
-              const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-              const conversation = caseData.customerRecordId
-                ? createConversationState(caseData.customerRecordId, channel)
-                : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }], isCustomerTyping: false };
-              return (
-                <ConversationPanel
-                  key={caseData.id}
-                  draftKey={`escalated-modal-${caseData.id}`}
-                  conversation={conversation}
-                  activeChannel={channel}
-                  openChannels={[channel]}
-                  customerId={caseData.customerRecordId}
-                  showAiPanel={false}
-                  hideTranscript={false}
-                  hideInput={true}
-                  isPendingAcceptance={false}
-                  onSelectChannel={() => {}}
-                  onConversationChange={() => {}}
+          {/* Left column: AI analysis */}
+          <div className="flex flex-col w-[420px] shrink-0 border-r border-border">
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
+              {/* Attempted Resolution */}
+              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                <div className="px-4 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+                </div>
+                <div className="px-4 pb-4 space-y-3">
+                  {caseData.customerContext && (
+                    <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                      <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                        <p className="text-[12px] text-[#344054] leading-relaxed">{caseData.customerContext}</p>
+                      </div>
+                    </div>
+                  )}
+                  <ul className="space-y-2">
+                    {caseData.aiOverview.actions.map((action, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                        {action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {copilotPhase !== "idle" && (
+                <CopilotResponseCard
+                  query={submittedQuery}
+                  phase={copilotPhase}
+                  reasoningVisible={copilotReasoningVisible}
+                  isOpen={isCopilotOpen}
+                  onToggle={() => setIsCopilotOpen((v) => !v)}
                 />
-              );
-            })()}
+              )}
+
+              <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                <input
+                  type="text"
+                  value={copilotQuery}
+                  onChange={(e) => setCopilotQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
+                  placeholder="Ask Copilot about this Case"
+                  className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                />
+                <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </div>
+
+              {showQuickActions && (
+                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
+                  {QUICK_ACTION_OPTIONS.map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => { setShowQuickActions(false); onClose(); }}
+                      className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2 text-left text-[12px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
+                    >
+                      <Check className="h-3 w-3 shrink-0 text-[#6E56CF]" />
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
+          {/* Right column: live conversation (no header) */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {(() => {
+                const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+                const conversation = caseData.customerRecordId
+                  ? createConversationState(caseData.customerRecordId, channel)
+                  : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }], isCustomerTyping: false };
+                return (
+                  <ConversationPanel
+                    key={caseData.id}
+                    draftKey={`escalated-modal-${caseData.id}`}
+                    conversation={conversation}
+                    activeChannel={channel}
+                    openChannels={[channel]}
+                    customerId={caseData.customerRecordId}
+                    showAiPanel={false}
+                    hideTranscript={false}
+                    hideInput={true}
+                    isPendingAcceptance={false}
+                    onSelectChannel={() => {}}
+                    onConversationChange={() => {}}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Full-width footer ── */}
+        <div className="shrink-0 border-t border-border bg-[#F9FAFB] px-5 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onTransfer}
+              className="rounded-lg border border-border bg-white px-3.5 py-1.5 text-[12px] font-medium text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Transfer
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowQuickActions((v) => !v)}
+              className={cn(
+                "rounded-lg border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
+                showQuickActions
+                  ? "border-[#6E56CF] bg-[#F2F0FA] text-[#5C46B8]"
+                  : "border-border bg-white text-[#344054] hover:bg-[#F2F4F7]",
+              )}
+            >
+              Quick Action
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onTakeover}
+            className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
+          >
+            Takeover
+          </button>
         </div>
 
       </div>
