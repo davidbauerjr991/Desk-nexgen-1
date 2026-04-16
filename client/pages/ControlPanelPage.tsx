@@ -1851,7 +1851,7 @@ function IssueRow({
 
   return (
     <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isSelected && "bg-[#F2F4F7]")}>
-      {(isMonitored || isSelected) && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full", isMonitored ? "bg-[#6E56CF]" : "bg-[#6E56CF]/50")} />}
+      {(isMonitored || isSelected) && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full z-[1]", isMonitored ? "bg-[#6E56CF]" : "bg-[#6E56CF]/50")} />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
         role="button"
@@ -2453,7 +2453,7 @@ function IssueGroup({
         />
       )}
       {/* Group header */}
-      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50" />}
+      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50 z-[1]" />}
         <button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
@@ -2539,7 +2539,7 @@ function CustomerGroup({
       )}
 
       {/* Customer group header */}
-      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50" />}
+      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50 z-[1]" />}
         <button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
