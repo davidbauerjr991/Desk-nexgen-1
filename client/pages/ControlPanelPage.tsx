@@ -2701,48 +2701,55 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
   }
 
   const CARD_MAX_W = 960;
-  const CARD_PEEK = 40; // px visible from adjacent card on each side
-  const GAP = 16; // px gap between cards
+  const PEEK = 48; // px of adjacent card visible on each side
+  const GAP = 16;
+  const [containerW, setContainerW] = useState(0);
+
+  // Measure container width
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(([e]) => setContainerW(e.contentRect.width));
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Card width = min(CARD_MAX_W, containerW - 2*PEEK)
+  const cardW = containerW > 0 ? Math.min(CARD_MAX_W, containerW - PEEK * 2) : CARD_MAX_W;
+  const trackOffset = containerW > 0
+    ? (containerW - cardW) / 2 - index * (cardW + GAP) + dragOffset
+    : 0;
 
   return (
     <div ref={containerRef} className="flex flex-col flex-1 min-h-0 overflow-hidden py-3">
       {/* Track */}
       <div
-        className="flex-1 min-h-0 overflow-hidden relative"
+        className="flex-1 min-h-0 overflow-hidden relative select-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        {/* Centering wrapper so cards are max 960px and centred with peek on sides */}
-        <div className="flex h-full items-stretch justify-center">
+        {containerW > 0 && (
           <div
-            className="relative h-full"
-            style={{ width: `min(${CARD_MAX_W}px, calc(100% - ${CARD_PEEK * 2}px))` }}
+            className="flex h-full items-stretch absolute top-0 left-0"
+            style={{
+              transform: `translateX(${trackOffset}px)`,
+              transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1)",
+              gap: `${GAP}px`,
+            }}
           >
-            <div
-              className="flex h-full items-stretch absolute inset-y-0"
-              style={{
-                left: 0,
-                width: `${rows.length * 100}%`,
-                transform: `translateX(calc(-${index * (100 / rows.length)}% + ${dragOffset}px))`,
-                transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1)",
-                gap: `${GAP}px`,
-              }}
-            >
-              {rows.map((row, i) => (
-                <div
-                  key={row.id}
-                  style={{ width: `calc(${100 / rows.length}% - ${GAP * (rows.length - 1) / rows.length}px)`, flexShrink: 0 }}
-                  className="h-full"
-                >
-                  <MonitorCard caseData={row} isActive={i === index} />
-                </div>
-              ))}
-            </div>
+            {rows.map((row, i) => (
+              <div
+                key={row.id}
+                style={{ width: cardW, flexShrink: 0 }}
+                className="h-full"
+              >
+                <MonitorCard caseData={row} isActive={i === index} />
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Dot indicators */}
