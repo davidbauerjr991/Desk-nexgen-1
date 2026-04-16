@@ -13,6 +13,8 @@ import {
   MessageCircle,
   MessageSquare,
   Phone,
+  LayoutGrid,
+  LayoutList,
   SlidersHorizontal,
   Sparkles,
   TrendingUp,
@@ -2308,6 +2310,207 @@ function BulkResponseModal({
   );
 }
 
+// ─── QueueCardView — full-detail card grid for card view mode ────────────────
+
+const CARD_COPILOT_STEPS = [
+  "Reviewing case history and prior customer interactions...",
+  "Analyzing attempted resolutions and their outcomes...",
+  "Cross-referencing similar resolved cases in the knowledge base...",
+  "Synthesizing recommended next steps and action items...",
+];
+
+function QueueCard({ caseData }: { caseData: RowData }) {
+  const [isResolutionOpen, setIsResolutionOpen] = useState(true);
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [reasoningVisible, setReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [isReasoningOpen, setIsReasoningOpen] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
+
+  function handleSubmit() {
+    if (!copilotQuery.trim()) return;
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    setSubmittedQuery(copilotQuery); setCopilotQuery("");
+    setCopilotPhase("thinking"); setReasoningVisible(0); setIsCopilotOpen(true);
+    CARD_COPILOT_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setReasoningVisible(i + 1), 1000 + i * 600);
+      timersRef.current.push(t);
+    });
+    timersRef.current.push(setTimeout(() => setCopilotPhase("done"), 1000 + CARD_COPILOT_STEPS.length * 600 + 600));
+  }
+
+  const statusBg = caseData.status === "escalated" ? "border-[#E53935] bg-[#FEF2F2]" : "border-border bg-white";
+
+  return (
+    <div className={cn("flex flex-col rounded-2xl border shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md", statusBg)}>
+      {/* Card header */}
+      <div className="px-5 pt-4 pb-3 border-b border-border">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="text-[14px] font-semibold text-[#1D2939] leading-snug">{caseData.name}</span>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
+              {caseData.priority}
+            </span>
+            <span className={cn(
+              "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+              caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+              caseData.status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
+              caseData.status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
+              caseData.status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+            )}>
+              {caseData.status}
+            </span>
+          </div>
+        </div>
+        <p className="text-[12px] text-[#475467] leading-snug mb-1">{caseData.preview}</p>
+        <p className="text-[11px] text-[#98A2B3]">{caseData.botType} · ⏱ {caseData.waitTime}</p>
+
+        {/* Actions */}
+        {caseData.status !== "resolved" && (
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={() => caseData.onMonitor()}
+              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+            >
+              Monitor
+            </button>
+            <button
+              type="button"
+              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
+              className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+            >
+              Takeover
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Card body */}
+      <div className="flex-1 px-4 py-4 space-y-3 overflow-hidden">
+        {/* Customer Context */}
+        {caseData.customerContext && (
+          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+            <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
+          </div>
+        )}
+
+        {/* Attempted Resolution */}
+        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsResolutionOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
+          </button>
+          <div className={cn("grid transition-all duration-200 ease-out", isResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+            <div className="overflow-hidden">
+              <ul className="px-4 pb-4 space-y-2">
+                {caseData.aiOverview.actions.map((action, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                    {action}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Copilot response */}
+        {copilotPhase !== "idle" && (
+          <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+            <button type="button" onClick={() => setIsCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                {copilotPhase === "thinking" && (
+                  <span className="flex items-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                  </span>
+                )}
+              </div>
+              <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+            </button>
+            <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+              <div className="overflow-hidden px-4 pb-4 space-y-2">
+                <p className="text-[11px] text-[#98A2B3] italic">"{submittedQuery}"</p>
+                {reasoningVisible > 0 && (
+                  <div>
+                    <button type="button" onClick={() => setIsReasoningOpen((v) => !v)} className="flex items-center gap-1 text-[11px] text-[#98A2B3] hover:text-[#667085] transition-colors">
+                      <span>{copilotPhase === "thinking" ? "Thinking…" : "Thought process"}</span>
+                      <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isReasoningOpen && "rotate-180")} />
+                    </button>
+                    <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                        {CARD_COPILOT_STEPS.slice(0, reasoningVisible).map((step, i) => (
+                          <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {copilotPhase === "done" && (
+                  <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                    <p className="text-[12px] text-[#344054] leading-relaxed">Based on the case analysis, I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Ask Copilot — pinned to bottom of card */}
+      <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
+        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+          <input
+            type="text"
+            value={copilotQuery}
+            onChange={(e) => setCopilotQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+            placeholder="Ask Copilot about this Case"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+          />
+          <button type="button" onClick={handleSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QueueCardView({ rows }: { rows: RowData[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+        <p className="text-sm font-medium text-[#7A7A7A]">No cases</p>
+        <p className="text-xs text-[#B0B7C3] mt-1">No tasks match the selected filter.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 p-4">
+      {rows.map((row) => (
+        <QueueCard key={row.id} caseData={row} />
+      ))}
+    </div>
+  );
+}
+
 // ─── CaseDetailPanel — right-side panel that opens when a row is clicked ────────
 
 function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: () => void }) {
@@ -2647,6 +2850,7 @@ export default function ControlCenterPage() {
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
   const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">(() => persistedState.agentTypeFilter);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const [groupMode, setGroupMode] = useState<"customer" | "case">(() => persistedState.groupMode);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
@@ -3194,8 +3398,38 @@ export default function ControlCenterPage() {
                 {/* Queue header */}
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Queue</p>
 
+                {/* View toggle */}
+                <div className="flex items-center gap-1 ml-auto">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "list"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="List view"
+                  >
+                    <LayoutList className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("card")}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "card"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="Card view"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
                 {/* Filter icon button */}
-                <div className="relative ml-auto" ref={filterPanelRef}>
+                <div className="relative" ref={filterPanelRef}>
                   <button
                     type="button"
                     onClick={() => setIsFilterPanelOpen((v) => !v)}
@@ -3374,7 +3608,8 @@ export default function ControlCenterPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              {(() => {
+              {viewMode === "card" && <QueueCardView rows={allRows} />}
+              {viewMode === "list" && (() => {
                 const renderRows = (rows: typeof allRows) => {
                   if (groupMode === "case") {
                     // Group by case type (semantic category) with accordion + Respond to all
@@ -3452,8 +3687,8 @@ export default function ControlCenterPage() {
 
             </div>{/* end queue list flex-col */}
 
-            {/* Case detail panel — slides in from the right */}
-            {selectedCaseId && (() => {
+            {/* Case detail panel — slides in from the right (list view only) */}
+            {viewMode === "list" && selectedCaseId && (() => {
               const selectedCase = allRows.find((r) => r.id === selectedCaseId);
               return selectedCase ? (
                 <CaseDetailPanel
