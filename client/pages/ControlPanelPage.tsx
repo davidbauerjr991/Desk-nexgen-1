@@ -2720,7 +2720,7 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
     : 0;
 
   return (
-    <div ref={containerRef} className="flex flex-col flex-1 min-h-0 overflow-hidden py-3">
+    <div ref={containerRef} className="flex flex-col h-full overflow-hidden py-3">
       {/* Track */}
       <div
         className="flex-1 min-h-0 overflow-hidden relative select-none"
@@ -3928,7 +3928,7 @@ export default function ControlCenterPage() {
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className={cn("flex-1 min-h-0", viewMode === "carousel" ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
               {viewMode === "card" && <QueueCardView rows={allRows} />}
               {viewMode === "carousel" && <QueueCarouselView rows={allRows} index={carouselIndex} onIndexChange={(i) => { setCarouselDir(i > carouselIndex ? "next" : "prev"); setCarouselIndex(i); }} />}
               {viewMode === "list" && (() => {
