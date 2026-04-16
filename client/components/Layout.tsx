@@ -6101,6 +6101,7 @@ export default function Layout({ children }: LayoutProps) {
   const [showLoginBriefing, setShowLoginBriefing] = useState(true);
   const [briefingClosing, setBriefingClosing] = useState(false);
   const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
+  const [trendSlide, setTrendSlide] = useState(0);
 
   const closeBriefing = (callback?: () => void) => {
     setBriefingClosing(true);
@@ -9385,7 +9386,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Stats */}
-            <div className="px-6 py-4 space-y-3">
+            <div className="px-6 pt-4 pb-3 space-y-3">
               {/* Escalated Cases */}
               <div className="flex items-center justify-between rounded-xl border border-[#FECACA]/60 dark:border-[#7F1D1D]/60 bg-[#FEF2F2] dark:bg-[#2A0A0A] px-4 py-3">
                 <div className="flex items-center gap-3">
@@ -9397,32 +9398,6 @@ export default function Layout({ children }: LayoutProps) {
                   <span className="text-[13px] font-medium text-[#991B1B] dark:text-[#FCA5A5]">Escalated Cases</span>
                 </div>
                 <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.statusLabel === "Escalated").length}</span>
-              </div>
-
-              {/* Active Virtual Agents */}
-              <div className="flex items-center justify-between rounded-xl border border-[#C4B5FD]/40 dark:border-[#3D2F7A]/60 bg-[#F5F3FF] dark:bg-[#1A1035] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EDE9FE] dark:bg-[#2A1F4A]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>
-                    </svg>
-                  </div>
-                  <span className="text-[13px] font-medium text-[#5B21B6] dark:text-[#C4B5FD]">Active Virtual Agents</span>
-                </div>
-                <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
-              </div>
-
-              {/* Active Human Agents */}
-              <div className="flex items-center justify-between rounded-xl border border-[#BAE6FD]/60 dark:border-[#0C4A6E]/60 bg-[#F0F9FF] dark:bg-[#082032] px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E0F2FE] dark:bg-[#0C4A6E]">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
-                  </div>
-                  <span className="text-[13px] font-medium text-[#0369A1] dark:text-[#7DD3FC]">Active Human Agents</span>
-                </div>
-                <span className="rounded-full bg-[#0284C7] px-2.5 py-0.5 text-[12px] font-semibold text-white">4</span>
               </div>
 
               {/* Pending Cases */}
@@ -9438,6 +9413,42 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.statusLabel === "Pending").length}</span>
               </div>
             </div>
+
+            {/* Trend Detection carousel */}
+            {(() => {
+              const trendSlides = [
+                "Login failure rates are up 18% compared to yesterday. Most failures are occurring between 08:00–10:00. Consider pre-emptively routing authentication cases to your fastest agents during this window.",
+                "Average handle time for billing cases has dropped by 22 seconds this week. Your team is resolving payment disputes faster — keep reinforcing the current approach.",
+                "3 cases have been waiting over 45 minutes without agent contact. Prioritise these immediately to avoid SLA breaches and escalation risk.",
+                "Customer satisfaction scores for chat interactions are trending 8% higher than voice this month. Consider channel-routing lower-complexity cases to chat where possible.",
+                "Peak case volume typically hits between 11:00–13:00. Ensure full agent coverage during this window to prevent queue build-up.",
+              ];
+              return (
+                <div className="mx-6 mb-4 rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-white dark:bg-[#0F1629] p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
+                    <button type="button" className="text-[11px] font-medium text-[#6E56CF] hover:underline">View All</button>
+                  </div>
+                  <p className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] min-h-[72px]">
+                    {trendSlides[trendSlide]}
+                  </p>
+                  {/* Pagination dots */}
+                  <div className="flex items-center gap-1.5 mt-3">
+                    {trendSlides.map((_, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setTrendSlide(i)}
+                        className={cn(
+                          "rounded-full transition-all duration-200",
+                          i === trendSlide ? "h-1.5 w-5 bg-[#6E56CF]" : "h-1.5 w-1.5 bg-[#D0D5DD] dark:bg-[#2A3448] hover:bg-[#C8BFF0]"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Actions */}
             <div className="flex gap-2.5 px-6 pb-6">
