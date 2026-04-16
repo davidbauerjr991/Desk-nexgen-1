@@ -1892,28 +1892,22 @@ function IssueRow({
           </div>
         </div>
 
-        {/* Action buttons — absolutely positioned so they overlay content without squishing it */}
-        <div
-          className={cn(
-            "absolute right-11 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-opacity duration-150 z-10",
-            isInProgress
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
-          )}
-          onClick={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          {showReject && rejectTriggerRect && (
-            <RejectPopover
-              priority={priority}
-              preview={preview}
-              triggerRect={rejectTriggerRect}
-              onClose={() => setShowReject(false)}
-              onAssign={() => { setShowReject(false); onReject(); }}
-            />
-          )}
-          {isInProgress ? (
+        {/* In Progress button — shown only when the case is actively in progress */}
+        {isInProgress && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            {showReject && rejectTriggerRect && (
+              <RejectPopover
+                priority={priority}
+                preview={preview}
+                triggerRect={rejectTriggerRect}
+                onClose={() => setShowReject(false)}
+                onAssign={() => { setShowReject(false); onReject(); }}
+              />
+            )}
             <button
               type="button"
               onClick={() => {
@@ -1926,66 +1920,8 @@ function IssueRow({
             >
               In Progress
             </button>
-          ) : !isAccepted && status === "open" ? (
-            <>
-              <button
-                type="button"
-                onClick={() => !isMonitored && onMonitor()}
-                disabled={isMonitored}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
-                  isMonitored
-                    ? "border-[#B9E0B4] bg-white text-[#344054] cursor-default opacity-100"
-                    : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
-                )}
-              >
-                {isMonitored && (
-                  <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-60" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#22C55E]" />
-                  </span>
-                )}
-                {isMonitored ? "Monitoring" : "Monitor"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onAccept()}
-                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-              >
-                Takeover
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => !isMonitored && onMonitor()}
-                disabled={isMonitored}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
-                  isMonitored
-                    ? "border-[#B9E0B4] bg-white text-[#344054] cursor-default opacity-100"
-                    : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
-                )}
-              >
-                {isMonitored && (
-                  <span className="relative flex h-2 w-2 shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-60" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#22C55E]" />
-                  </span>
-                )}
-                {isMonitored ? "Monitoring" : "Monitor"}
-              </button>
-              <button
-                type="button"
-                onClick={() => onReopen()}
-                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-              >
-                Takeover
-              </button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
 
         <ChevronRight className={cn(
           "h-4 w-4 shrink-0 text-[#98A2B3] transition-colors duration-200",
