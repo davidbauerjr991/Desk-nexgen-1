@@ -2703,16 +2703,37 @@ export default function ControlCenterPage() {
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Overview</p>
               <div className="space-y-2.5">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
-                    <TrendingUp className="h-3.5 w-3.5 text-[#6E56CF]" />
+                <button
+                  type="button"
+                  onClick={() => setIssueTab("escalated")}
+                  className={cn(
+                    "flex w-full items-center gap-2.5 rounded-lg px-1 -mx-1 py-0.5 transition-colors text-left",
+                    tabCounts.escalated > 0
+                      ? "hover:bg-[#FEF2F2] cursor-pointer"
+                      : "hover:bg-[#F9FAFB] cursor-pointer",
+                  )}
+                >
+                  <div className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
+                    tabCounts.escalated > 0 ? "bg-[#FEE2E2]" : "bg-[#F2F4F7] dark:bg-[#1C2A3A]",
+                  )}>
+                    <AlertTriangle className={cn(
+                      "h-3.5 w-3.5",
+                      tabCounts.escalated > 0 ? "text-[#E53935] animate-pulse" : "text-[#98A2B3]",
+                    )} />
                   </div>
-                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Active AI Agents</span>
-                  <span className="inline-flex items-center justify-center rounded-full bg-[#6E56CF] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                    {Math.max(openCount, 1)}
+                  <span className={cn(
+                    "flex-1 text-[13px]",
+                    tabCounts.escalated > 0 ? "text-[#C71D1A] font-medium" : "text-[#344054] dark:text-[#CBD5E1]",
+                  )}>Escalated Cases</span>
+                  <span className={cn(
+                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]",
+                    tabCounts.escalated > 0 ? "bg-[#E53935]" : "bg-[#D0D5DD] text-[#667085]",
+                  )}>
+                    {tabCounts.escalated}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
-                </div>
+                </button>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
                     <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
