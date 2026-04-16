@@ -2392,15 +2392,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
       <div className="shrink-0 px-5 py-4 border-b border-border">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap mb-1">
-              <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold", priorityStyles[caseData.priority])}>
-                {caseData.priority}
-              </span>
-              <span className="inline-flex items-center rounded border border-[#D0D5DD] bg-[#F9FAFB] px-1.5 py-0.5 text-[10px] font-medium text-[#344054] capitalize">
-                {caseData.status}
-              </span>
-            </div>
-            <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug">{caseData.name}</p>
+            <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug mb-0.5">{caseData.name}</p>
             <p className="text-[11px] text-[#667085] mt-0.5 truncate">{caseData.preview}</p>
             <p className="text-[10px] text-[#98A2B3] mt-0.5">{caseData.botType} · Wait: {caseData.waitTime}</p>
           </div>
