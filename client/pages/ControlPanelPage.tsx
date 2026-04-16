@@ -2868,6 +2868,18 @@ export default function ControlCenterPage() {
     .filter((a) => issueTab === "all" || a.status === issueTab)
     .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
+  // If the currently-selected case is no longer visible after a filter change,
+  // fall back to the first row in the filtered list.
+  const allRowIds = allRows.map((r) => r.id).join(",");
+  useEffect(() => {
+    if (!selectedCaseId) return;
+    const stillVisible = allRows.some((r) => r.id === selectedCaseId);
+    if (!stillVisible) {
+      setSelectedCaseId(allRows[0]?.id ?? null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allRowIds]);
+
   // Number of items parked from a toast — used for the red Queue tab badge
   const parkedCount = liveNormalised.filter((a) => a.isParkedFromToast).length;
 
