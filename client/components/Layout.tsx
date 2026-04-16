@@ -5812,13 +5812,13 @@ function LeftQueueRail({
             <TooltipProvider delayDuration={300}>
               <div className="flex w-full flex-col items-center gap-1 pt-2 pb-2">
                 {([
-                  { icon: Monitor,       path: "/control-panel", label: "Desk"     },
-                  { icon: Inbox,         path: "/inbox",         label: "Inbox"    },
-                  { icon: CalendarCheck, path: "/schedule",      label: "Schedule" },
-                  { icon: Settings,      path: "/settings",      label: "Settings" },
+                  { icon: Monitor,       path: "/control-panel", label: "Control Center" },
+                  { icon: Inbox,         path: "/inbox",         label: "Inbox"          },
+                  { icon: CalendarCheck, path: "/schedule",      label: "Schedule"       },
+                  { icon: Settings,      path: "/settings",      label: "Settings"       },
                 ] as const).map(({ icon: Icon, path, label }) => {
                   const isActive = location.pathname === path;
-                  const showDot = label === "Desk" && totalQueueCount > 0;
+                  const showDot = label === "Control Center" && totalQueueCount > 0;
                   return (
                     <Tooltip key={label}>
                       <TooltipTrigger asChild>
@@ -5844,7 +5844,7 @@ function LeftQueueRail({
                       </TooltipTrigger>
                       <TooltipContent side="right">
                         <span className="font-medium">{label}</span>
-                        {label === "Desk" && totalQueueCount > 0 && (
+                        {label === "Control Center" && totalQueueCount > 0 && (
                           <span className="mt-0.5 block text-[11px] font-normal opacity-75">
                             {totalQueueCount} in queue
                           </span>
@@ -5914,13 +5914,13 @@ function LeftQueueRail({
             <div className="shrink-0 px-3 pb-3 pt-2">
               <nav className="space-y-0.5">
                 {[
-                  { label: "Desk",     icon: Monitor,       path: "/control-panel" },
+                  { label: "Control Center", icon: Monitor, path: "/control-panel" },
                   { label: "Inbox",    icon: Inbox,         path: "/inbox"         },
                   { label: "Schedule", icon: CalendarCheck, path: "/schedule"      },
                   { label: "Settings", icon: Settings,      path: "/settings"      },
                 ].map(({ label, icon: Icon, path }) => {
                   const isActive = location.pathname === path;
-                  const caseCount = label === "Desk" ? totalQueueCount : 0;
+                  const caseCount = label === "Control Center" ? totalQueueCount : 0;
                   return (
                     <button
                       key={label}
@@ -8744,7 +8744,7 @@ export default function Layout({ children }: LayoutProps) {
             setAddNewFlowAnchorRect(rect);
             setIsAddNewFlowOpen((v) => !v);
           }}
-          totalQueueCount={staticAssignments.filter((a) => a.channel !== "voice").length}
+          totalQueueCount={staticAssignments.filter((a) => a.channel !== "voice" && a.channel !== "email").length}
         />
         {isActivityRoute && visibleAssignments.length === 0 && (
           <div className={cn(
