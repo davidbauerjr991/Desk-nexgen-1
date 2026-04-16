@@ -3027,7 +3027,14 @@ export default function ControlCenterPage() {
                   </div>
                 </button>
 
-                <div className="flex w-full items-center gap-2.5 py-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIssueTab("pending");
+                    setActivePageTab("queue");
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#FFFAEB]"
+                >
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
                     <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
                   </div>
@@ -3038,7 +3045,7 @@ export default function ControlCenterPage() {
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
                   </div>
-                </div>
+                </button>
 
                 <div className="flex w-full items-center gap-2.5 py-1.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
