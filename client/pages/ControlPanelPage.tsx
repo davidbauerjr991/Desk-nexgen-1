@@ -3380,6 +3380,10 @@ export default function ControlCenterPage() {
                     const sortedItems = [...items].sort(
                       (a, b) => (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99)
                     );
+                    // Only wrap in accordion when there are 2+ cases for this customer
+                    if (sortedItems.length === 1) {
+                      return <IssueRow key={key} {...sortedItems[0]} isMonitored={monitoredCase?.id === sortedItems[0].id} />;
+                    }
                     const customerRecord = sortedItems[0]?.customerRecordId
                       ? getCustomerRecord(sortedItems[0].customerRecordId)
                       : null;
