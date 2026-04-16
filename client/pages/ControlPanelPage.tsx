@@ -2500,8 +2500,6 @@ export default function ControlCenterPage() {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [groupIssues, setGroupIssues] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
-  const [escalatedFlashing, setEscalatedFlashing] = useState(false);
-  const prevEscalatedCountRef = useRef(0);
 
   useEffect(() => {
     if (!isFilterPanelOpen) return;
@@ -2534,17 +2532,6 @@ export default function ControlCenterPage() {
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
 
-  // Flash the overview escalated row whenever a new escalated case arrives.
-  useEffect(() => {
-    const current = escalatedOverrides.size;
-    if (current > prevEscalatedCountRef.current) {
-      setEscalatedFlashing(true);
-      const t = setTimeout(() => setEscalatedFlashing(false), 1700);
-      prevEscalatedCountRef.current = current;
-      return () => clearTimeout(t);
-    }
-    prevEscalatedCountRef.current = current;
-  }, [escalatedOverrides]);
 
   // When Monitor is clicked on an incoming toast, open that case's monitor panel.
   useEffect(() => {
@@ -2730,10 +2717,7 @@ export default function ControlCenterPage() {
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg px-1 -mx-1 py-0.5 transition-colors text-left",
-                    escalatedFlashing && "animate-escalated-flash",
-                    tabCounts.escalated > 0
-                      ? "hover:bg-[#FEF2F2] cursor-pointer"
-                      : "hover:bg-[#F9FAFB] cursor-pointer",
+                    tabCounts.escalated > 0 ? "animate-escalated-flash hover:bg-[#FEF2F2]" : "hover:bg-[#F9FAFB]",
                   )}
                 >
                   <div className={cn(
@@ -2749,33 +2733,39 @@ export default function ControlCenterPage() {
                     "flex-1 text-[13px]",
                     tabCounts.escalated > 0 ? "text-[#C71D1A] font-medium" : "text-[#344054] dark:text-[#CBD5E1]",
                   )}>Escalated Cases</span>
-                  <span className={cn(
-                    "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]",
-                    tabCounts.escalated > 0 ? "bg-[#E53935]" : "bg-[#D0D5DD] text-[#667085]",
-                  )}>
-                    {tabCounts.escalated}
-                  </span>
-                  <ChevronDown className="ml-auto h-3.5 w-3.5 text-[#98A2B3] -rotate-90 shrink-0" />
+                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                    <span className={cn(
+                      "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]",
+                      tabCounts.escalated > 0 ? "bg-[#E53935]" : "bg-[#D0D5DD] text-[#667085]",
+                    )}>
+                      {tabCounts.escalated}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  </div>
                 </button>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
                     <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
                   </div>
                   <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
-                  <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                    {pendingCount}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                      {pendingCount}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  </div>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
                     <MessageCircle className="h-3.5 w-3.5 text-[#10B981]" />
                   </div>
                   <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
-                  <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                    {newChats || 1}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                      {newChats || 1}
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                  </div>
                 </div>
               </div>
             </div>

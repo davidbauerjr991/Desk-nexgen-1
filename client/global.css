@@ -353,16 +353,11 @@
 
 /* ── Escalated case flash animation ── */
 @keyframes escalated-flash {
-  0%   { background-color: transparent; }
-  15%  { background-color: #FEE2E2; }
-  35%  { background-color: transparent; }
-  50%  { background-color: #FEE2E2; }
-  70%  { background-color: transparent; }
-  85%  { background-color: #FEE2E2; }
-  100% { background-color: transparent; }
+  0%, 100% { background-color: transparent; }
+  40%      { background-color: #FEE2E2; }
 }
 .animate-escalated-flash {
-  animation: escalated-flash 1.6s ease-in-out;
+  animation: escalated-flash 2s ease-in-out infinite;
 }
 
 /* ── Suggestion panel animations ── */
