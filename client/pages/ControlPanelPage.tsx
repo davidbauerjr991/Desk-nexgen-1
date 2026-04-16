@@ -2684,6 +2684,8 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    // Don't start drag if the user pressed a button or other interactive element
+    if ((e.target as HTMLElement).closest("button, input, textarea, a, select")) return;
     dragStartX.current = e.clientX;
     setIsDragging(true);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
