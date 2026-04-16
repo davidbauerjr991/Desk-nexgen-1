@@ -339,6 +339,22 @@
 /* Active / data-[state=open] backgrounds */
 .dark [data-state="open"] .hover\:bg-white\/70 { background-color: hsl(222 20% 22% / 0.7) !important; }
 
+/* ── Carousel / MonitorCard / QueueCard missing overrides ── */
+/* Escalated header bg (#FEF2F2 variant — slightly different from #FEF3F2) */
+.dark .bg-\[\#FEF2F2\]        { background-color: hsl(0 35% 10%) !important; }
+/* "Open" status badge */
+.dark .bg-\[\#F0FAF0\]        { background-color: hsl(134 40% 10%) !important; }
+.dark .border-\[\#B9E0B4\]   { border-color: hsl(134 35% 24%) !important; }
+.dark .text-\[\#1E7B1E\]      { color: hsl(134 55% 52%) !important; }
+/* Copilot reasoning thought-process left border */
+.dark .border-\[\#E4DAFF\]   { border-color: hsl(252 40% 28%) !important; }
+/* Ask-Copilot divider border used in MonitorCard / QueueCard */
+.dark .border-\[\#E4E7EC\]   { border-color: hsl(222 18% 22%) !important; }
+/* Queue section header bg */
+.dark .bg-\[\#F2F4F7\]        { background-color: hsl(222 20% 13%) !important; }
+/* Hover for filter/toggle buttons in queue header */
+.dark .hover\:bg-\[\#EAE7F8\]:hover { background-color: hsl(252 35% 18%) !important; }
+
 /* ── Elevated floating panels in dark mode ── */
 .dark [class*="shadow-[0_20px"],
 .dark [class*="shadow-[0_18px"],
