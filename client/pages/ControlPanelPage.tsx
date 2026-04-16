@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Loader2,
@@ -13,6 +14,7 @@ import {
   MessageCircle,
   MessageSquare,
   Phone,
+  GalleryVertical,
   LayoutGrid,
   LayoutList,
   SlidersHorizontal,
@@ -2492,6 +2494,74 @@ function QueueCard({ caseData }: { caseData: RowData }) {
   );
 }
 
+// ─── QueueCarouselView — one-at-a-time card with slide animation ─────────────
+
+function QueueCarouselView({ rows, index, direction }: { rows: RowData[]; index: number; direction: "next" | "prev" }) {
+  const [displayIndex, setDisplayIndex] = useState(index);
+  const [animKey, setAnimKey] = useState(0);
+  const [slideClass, setSlideClass] = useState("");
+
+  useEffect(() => {
+    if (index === displayIndex) return;
+    const entering = index > displayIndex ? "carousel-enter-next" : "carousel-enter-prev";
+    setSlideClass(entering);
+    setAnimKey((k) => k + 1);
+    setDisplayIndex(index);
+  }, [index]);
+
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
+        <p className="text-sm font-medium text-[#7A7A7A]">No cases</p>
+      </div>
+    );
+  }
+
+  const row = rows[Math.min(displayIndex, rows.length - 1)];
+
+  return (
+    <>
+      <style>{`
+        @keyframes slideInFromRight {
+          from { opacity: 0; transform: translateX(48px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInFromLeft {
+          from { opacity: 0; transform: translateX(-48px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        .carousel-enter-next { animation: slideInFromRight 0.32s cubic-bezier(0.22,0.61,0.36,1) both; }
+        .carousel-enter-prev { animation: slideInFromLeft  0.32s cubic-bezier(0.22,0.61,0.36,1) both; }
+      `}</style>
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div
+          key={animKey}
+          className={cn("h-full", slideClass)}
+          onAnimationEnd={() => setSlideClass("")}
+        >
+          <QueueCard caseData={row} />
+        </div>
+
+        {/* Dot indicators */}
+        <div className="flex justify-center gap-1.5 mt-4">
+          {rows.map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "rounded-full transition-all duration-300",
+                i === displayIndex
+                  ? "w-4 h-1.5 bg-[#6E56CF]"
+                  : "w-1.5 h-1.5 bg-[#D0D5DD]",
+              )}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function QueueCardView({ rows }: { rows: RowData[] }) {
   if (rows.length === 0) {
     return (
@@ -2850,7 +2920,9 @@ export default function ControlCenterPage() {
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
   const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">(() => persistedState.agentTypeFilter);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "card">("list");
+  const [viewMode, setViewMode] = useState<"list" | "card" | "carousel">("list");
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselDir, setCarouselDir] = useState<"next" | "prev">("next");
   const [groupMode, setGroupMode] = useState<"customer" | "case">(() => persistedState.groupMode);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
@@ -3395,8 +3467,35 @@ export default function ControlCenterPage() {
             {/* Header: title + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
-                {/* Queue header */}
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Queue</p>
+                {/* Queue header + carousel nav */}
+                <div className="flex items-center gap-2">
+                  {viewMode === "carousel" && allRows.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setCarouselDir("prev"); setCarouselIndex((i) => Math.max(0, i - 1)); }}
+                        disabled={carouselIndex === 0}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="Previous case"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-[10px] font-medium text-[#98A2B3] tabular-nums min-w-[32px] text-center">
+                        {carouselIndex + 1}/{allRows.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setCarouselDir("next"); setCarouselIndex((i) => Math.min(allRows.length - 1, i + 1)); }}
+                        disabled={carouselIndex >= allRows.length - 1}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="Next case"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Queue</p>
+                </div>
 
                 {/* View toggle */}
                 <div className="flex items-center gap-1 ml-auto">
@@ -3425,6 +3524,19 @@ export default function ControlCenterPage() {
                     aria-label="Card view"
                   >
                     <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setViewMode("carousel"); setCarouselIndex(0); }}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "carousel"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="Carousel view"
+                  >
+                    <GalleryVertical className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
@@ -3609,6 +3721,7 @@ export default function ControlCenterPage() {
 
             <div className="flex-1 overflow-y-auto">
               {viewMode === "card" && <QueueCardView rows={allRows} />}
+              {viewMode === "carousel" && <QueueCarouselView rows={allRows} index={carouselIndex} direction={carouselDir} />}
               {viewMode === "list" && (() => {
                 const renderRows = (rows: typeof allRows) => {
                   if (groupMode === "case") {
