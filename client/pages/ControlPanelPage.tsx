@@ -2643,7 +2643,6 @@ export default function ControlCenterPage() {
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
-  const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
   const [escalatedModalCase, setEscalatedModalCase] = useState<EscalatedCaseModalData | null>(null);
   const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
   const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
@@ -2657,16 +2656,6 @@ export default function ControlCenterPage() {
   useEffect(() => { persistedState.channelFilters = channelFilters; }, [channelFilters]);
   useEffect(() => { persistedState.agentTypeFilter = agentTypeFilter; }, [agentTypeFilter]);
   useEffect(() => { persistedState.groupMode = groupMode; }, [groupMode]);
-  useEffect(() => { persistedState.monitoredCaseId = monitoredCase?.id ?? null; }, [monitoredCase]);
-
-  // After staticNormalisedRef is populated on first render, restore the monitored case if
-  // the agent was in monitor mode before navigating away.
-  const didRestoreMonitor = useRef(false);
-  useEffect(() => {
-    if (didRestoreMonitor.current || !persistedState.monitoredCaseId) return;
-    const match = staticNormalisedRef.current.find((r) => r.id === persistedState.monitoredCaseId);
-    if (match) { setMonitoredCase(match); didRestoreMonitor.current = true; }
-  });
 
   // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
   // When the escalated notification is pushed, also mark static-11 as escalated locally
@@ -2680,20 +2669,15 @@ export default function ControlCenterPage() {
   }, [isBriefingDismissed]);
 
 
-  // When Monitor is clicked on an incoming toast, open the modal for escalated cases
-  // or the monitor panel for regular cases.
+  // When Monitor is clicked on an incoming toast, always open the modal.
   useEffect(() => {
     if (!pendingMonitorCaseId) return;
     const match = staticNormalisedRef.current.find(
       (r) => r.customerRecordId === pendingMonitorCaseId || r.id === pendingMonitorCaseId,
     );
     if (match) {
-      const isEscalated = escalatedOverrides.has(match.id) || match.status === "escalated";
-      if (isEscalated) {
-        setEscalatedModalCase({ ...match, status: "escalated" });
-      } else {
-        setMonitoredCase(match);
-      }
+      const effectiveStatus = escalatedOverrides.has(match.id) ? "escalated" : match.status;
+      setEscalatedModalCase({ ...match, status: effectiveStatus });
     }
     clearPendingMonitorCaseId();
   }, [pendingMonitorCaseId, clearPendingMonitorCaseId, escalatedOverrides]);
@@ -2756,9 +2740,8 @@ export default function ControlCenterPage() {
       onReject: () => rejectIssue(a.id),
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
       onMonitor: () => {
-        const isEscalated = bulkResolvedIds.has(a.id) ? false : escalatedOverrides.has(a.id) || a.status === "escalated";
-        if (isEscalated) setEscalatedModalCase(row);
-        else setMonitoredCase(row);
+        const effectiveStatus = bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (row.status);
+        setEscalatedModalCase({ ...row, status: effectiveStatus });
       },
     };
     return row;
@@ -3357,7 +3340,7 @@ export default function ControlCenterPage() {
                         key={label}
                         label={label}
                         items={items}
-                        monitoredCaseId={monitoredCase?.id ?? null}
+                        monitoredCaseId={null}
                         onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
                       />
                     ));
@@ -3382,7 +3365,7 @@ export default function ControlCenterPage() {
                     );
                     // Only wrap in accordion when there are 2+ cases for this customer
                     if (sortedItems.length === 1) {
-                      return <IssueRow key={key} {...sortedItems[0]} isMonitored={monitoredCase?.id === sortedItems[0].id} />;
+                      return <IssueRow key={key} {...sortedItems[0]} isMonitored={false} />;
                     }
                     const customerRecord = sortedItems[0]?.customerRecordId
                       ? getCustomerRecord(sortedItems[0].customerRecordId)
@@ -3394,7 +3377,7 @@ export default function ControlCenterPage() {
                         caseCustomerName={sortedItems[0]?.name}
                         caseCustomerId={sortedItems[0]?.customerId}
                         items={sortedItems}
-                        monitoredCaseId={monitoredCase?.id ?? null}
+                        monitoredCaseId={null}
                         onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...sortedItems.map((i) => i.id)]))}
                       />
                     );
@@ -3415,82 +3398,14 @@ export default function ControlCenterPage() {
             </div>
           </div>
 
-          {/* Monitor panel — slides in from the right */}
-          {monitoredCase && (
-            <div className="w-[480px] flex-shrink-0 h-full flex flex-col border-l border-border bg-white rounded-r-lg overflow-hidden">
-              {/* Panel header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#E0DBF5] text-[12px] font-bold text-[#5C46B8]">
-                    {monitoredCase.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-[13px] font-semibold text-[#111827]">{monitoredCase.name}</p>
-                    <p className="text-[11px] text-[#667085]">Customer ID {monitoredCase.customerId}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#ECFDF3] px-2.5 py-1 text-[11px] font-medium text-[#027A48]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#12B76A] animate-pulse" />
-                    Monitoring
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setMonitoredCase(null)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-                  </button>
-                </div>
-              </div>
-
-              {/* Conversation feed — real data from customer database */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {(() => {
-                  const channel = (monitoredCase.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-                  const conversation = monitoredCase.customerRecordId
-                    ? createConversationState(monitoredCase.customerRecordId, channel)
-                    : { customerName: monitoredCase.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [{ id: 1, role: "customer" as const, content: monitoredCase.preview, time: monitoredCase.waitTime || "now" }], isCustomerTyping: false };
-                  return (
-                    <ConversationPanel
-                      key={monitoredCase.id}
-                      draftKey={`monitor-${monitoredCase.id}`}
-                      conversation={conversation}
-                      activeChannel={channel}
-                      openChannels={[channel]}
-                      customerId={monitoredCase.customerRecordId}
-                      showAiPanel={false}
-                      hideTranscript={false}
-                      hideInput={true}
-                      isPendingAcceptance={false}
-                      onSelectChannel={() => {}}
-                      onConversationChange={() => {}}
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Takeover footer */}
-              <div className="shrink-0 border-t border-border px-5 py-3 flex items-center justify-between gap-3 bg-white">
-                <p className="text-[12px] text-[#667085]">You are monitoring this conversation</p>
-                <button
-                  type="button"
-                  onClick={() => { handleAcceptStatic(monitoredCase as any); setMonitoredCase(null); }}
-                  className="rounded-lg bg-[#6E56CF] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-                >
-                  Takeover
-                </button>
-              </div>
-            </div>
-          )}
 
         </div>
       </div>
 
-      {/* Escalated Case Modal */}
+      {/* Case Monitor Modal */}
       {escalatedModalCase && (
         <EscalatedCaseModal
-          caseData={{ ...escalatedModalCase, status: "escalated" }}
+          caseData={escalatedModalCase}
           onTakeover={() => {
             handleAcceptStatic(escalatedModalCase as any);
             rejectIssue(escalatedModalCase.id); // remove from queue

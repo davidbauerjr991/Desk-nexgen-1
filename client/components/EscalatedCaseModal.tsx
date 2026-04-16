@@ -398,17 +398,31 @@ export function EscalatedCaseModal({
               <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
                 {caseData.priority}
               </span>
-              <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-                escalated
-              </span>
+              {caseData.status === "escalated" ? (
+                <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+                  escalated
+                </span>
+              ) : (
+                <span className="rounded border border-[#C8BFF0] bg-[#F2F0FA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#6E56CF] capitalize">
+                  {caseData.status}
+                </span>
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
-                <AlertTriangle className="h-3 w-3 text-[#E53935]" />
-              </div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">
-                Escalated — Immediate Action Required
-              </p>
+              {caseData.status === "escalated" ? (
+                <>
+                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
+                    <AlertTriangle className="h-3 w-3 text-[#E53935]" />
+                  </div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">
+                    Escalated — Immediate Action Required
+                  </p>
+                </>
+              ) : (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#667085]">
+                  Monitoring
+                </p>
+              )}
             </div>
           </div>
           <p className="mt-0.5 text-[12px] text-[#475467] leading-snug">{caseData.preview}</p>

@@ -7707,30 +7707,25 @@ export default function Layout({ children }: LayoutProps) {
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
     removeIncoming(item.id);
-    if (item.statusLabel === "Escalated") {
-      // Find the matching static assignment for full case data
-      const sa = staticAssignments.find(
-        (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
-      );
-      setEscalatedToastModal({
-        id: sa?.id ?? item.id,
-        name: item.name,
-        customerId: item.customerId,
-        customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
-        channel: item.channel,
-        priority: item.priority,
-        botType: sa?.botType ?? "Security Bot",
-        waitTime: item.time,
-        preview: item.preview,
-        customerContext: sa?.customerContext,
-        aiOverview: sa?.aiOverview ?? { actions: [] },
-        status: "escalated",
-      });
-      // No navigation — modal renders on whatever page the agent is currently on
-    } else {
-      setPendingMonitorCaseId(item.customerRecordId);
-      navigate("/control-panel");
-    }
+    // Always open the monitor modal on the current page — no navigation required
+    const sa = staticAssignments.find(
+      (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+    );
+    const effectiveStatus = item.statusLabel === "Escalated" ? "escalated" : (sa?.status ?? "open");
+    setEscalatedToastModal({
+      id: sa?.id ?? item.id,
+      name: item.name,
+      customerId: item.customerId,
+      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
+      channel: item.channel,
+      priority: item.priority,
+      botType: sa?.botType ?? "Service Bot",
+      waitTime: item.time,
+      preview: item.preview,
+      customerContext: sa?.customerContext,
+      aiOverview: sa?.aiOverview ?? { actions: [] },
+      status: effectiveStatus,
+    });
   };
 
   const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
