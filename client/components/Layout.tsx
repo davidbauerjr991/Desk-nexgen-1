@@ -1209,6 +1209,13 @@ function getOverviewActions(conversation: SharedConversationData): string[] | nu
   return overviewActionsByCustomerName[key] ?? null;
 }
 
+const SUMMARY_COPILOT_REASONING_STEPS = [
+  "Reviewing case history and prior customer interactions...",
+  "Analyzing attempted resolutions and their outcomes...",
+  "Cross-referencing similar resolved cases in the knowledge base...",
+  "Synthesizing recommended next steps and action items...",
+];
+
 function getInteractionOverview(conversation: SharedConversationData): string {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const latestCustomerMessage = [...conversation.messages].reverse().find((m) => m.role === "customer");
@@ -2076,6 +2083,34 @@ function DockedConversationPanel({
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [performAllActionsKey, setPerformAllActionsKey] = useState(0);
 
+  // Ask Copilot state for summary panel
+  const [summaryCopilotQuery, setSummaryCopilotQuery] = useState("");
+  const [summarySubmittedQuery, setSummarySubmittedQuery] = useState("");
+  const [summaryCopilotPhase, setSummaryCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [summaryCopilotReasoningVisible, setSummaryCopilotReasoningVisible] = useState(0);
+  const [isSummaryCopilotOpen, setIsSummaryCopilotOpen] = useState(true);
+  const summaryCopilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function handleSummaryCopilotSubmit() {
+    if (!summaryCopilotQuery.trim()) return;
+    summaryCopilotTimersRef.current.forEach(clearTimeout);
+    summaryCopilotTimersRef.current = [];
+    setSummarySubmittedQuery(summaryCopilotQuery);
+    setSummaryCopilotQuery("");
+    setSummaryCopilotPhase("thinking");
+    setSummaryCopilotReasoningVisible(0);
+    setIsSummaryCopilotOpen(true);
+    SUMMARY_COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setSummaryCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      summaryCopilotTimersRef.current.push(t);
+    });
+    const doneTimer = setTimeout(
+      () => setSummaryCopilotPhase("done"),
+      1000 + SUMMARY_COPILOT_REASONING_STEPS.length * 600 + 600,
+    );
+    summaryCopilotTimersRef.current.push(doneTimer);
+  }
+
   // Reset the summary tab to overview whenever the customer changes.
   useEffect(() => {
     setSummaryTab("overview");
@@ -2383,28 +2418,94 @@ function DockedConversationPanel({
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
-                            <div className="px-4 pb-4">
+                            <div className="px-4 pb-4 space-y-3">
                               {(() => {
-                                const actions = getOverviewActions(conversation);
-                                return actions ? (
-                                  <ul className="space-y-2">
-                                    {actions.map((action, i) => (
-                                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
-                                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
-                                        {action}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                ) : (
-                                  <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
-                                    {getInteractionOverview(conversation)}
-                                  </p>
+                                const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
+                                const customerContext = sa?.customerContext;
+                                const actions = sa?.aiOverview?.actions ?? getOverviewActions(conversation);
+                                return (
+                                  <>
+                                    {customerContext && (
+                                      <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                                        <div>
+                                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                                          <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">{customerContext}</p>
+                                        </div>
+                                      </div>
+                                    )}
+                                    {actions && actions.length > 0 ? (
+                                      <ul className="space-y-2">
+                                        {actions.map((action, i) => (
+                                          <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
+                                            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                            {action}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
+                                        {getInteractionOverview(conversation)}
+                                      </p>
+                                    )}
+                                  </>
                                 );
                               })()}
                             </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* Copilot response card */}
+                      {summaryCopilotPhase !== "idle" && (
+                        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                          <button type="button" onClick={() => setIsSummaryCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                              {summaryCopilotPhase === "thinking" && (
+                                <span className="flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                                </span>
+                              )}
+                            </div>
+                            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
+                          </button>
+                          <div className={cn("grid transition-all duration-200 ease-out", isSummaryCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                            <div className="overflow-hidden">
+                              <div className="px-4 pb-4 space-y-3">
+                                <p className="text-[11px] text-[#98A2B3] italic">"{summarySubmittedQuery}"</p>
+                                {summaryCopilotPhase === "done" && (
+                                  <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                                    <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
+                                      Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Ask Copilot input */}
+                      <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                        <input
+                          type="text"
+                          value={summaryCopilotQuery}
+                          onChange={(e) => setSummaryCopilotQuery(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
+                          placeholder="Ask Copilot about this Case"
+                          className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                        />
+                        <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
+                      </div>
+
                       </>) : (
                         /* Customer History timeline */
                         (() => {
@@ -2620,27 +2721,92 @@ function DockedConversationPanel({
                       </button>
                       <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                         <div className="overflow-hidden">
-                          <div className="px-4 pb-4">
+                          <div className="px-4 pb-4 space-y-3">
                             {(() => {
-                              const actions = getOverviewActions(conversation);
-                              return actions ? (
-                                <ul className="space-y-2">
-                                  {actions.map((action, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
-                                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
-                                      {action}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
-                                  {getInteractionOverview(conversation)}
-                                </p>
+                              const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
+                              const customerContext = sa?.customerContext;
+                              const actions = sa?.aiOverview?.actions ?? getOverviewActions(conversation);
+                              return (
+                                <>
+                                  {customerContext && (
+                                    <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                                      <div>
+                                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                                        <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">{customerContext}</p>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {actions && actions.length > 0 ? (
+                                    <ul className="space-y-2">
+                                      {actions.map((action, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
+                                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                          {action}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
+                                      {getInteractionOverview(conversation)}
+                                    </p>
+                                  )}
+                                </>
                               );
                             })()}
                           </div>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Copilot response card */}
+                    {summaryCopilotPhase !== "idle" && (
+                      <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                        <button type="button" onClick={() => setIsSummaryCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                            {summaryCopilotPhase === "thinking" && (
+                              <span className="flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
+                        </button>
+                        <div className={cn("grid transition-all duration-200 ease-out", isSummaryCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                          <div className="overflow-hidden">
+                            <div className="px-4 pb-4 space-y-3">
+                              <p className="text-[11px] text-[#98A2B3] italic">"{summarySubmittedQuery}"</p>
+                              {summaryCopilotPhase === "done" && (
+                                <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                                  <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
+                                    Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Ask Copilot input */}
+                    <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+                      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                      <input
+                        type="text"
+                        value={summaryCopilotQuery}
+                        onChange={(e) => setSummaryCopilotQuery(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSummaryCopilotSubmit(); }}
+                        placeholder="Ask Copilot about this Case"
+                        className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                      />
+                      <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </button>
                     </div>
 
                   </>)}
