@@ -1850,15 +1850,15 @@ function IssueRow({
   }, [isMonitored]);
 
   return (
-    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isSelected && "bg-[#F2F4F7]")}>
-      {(isMonitored || isSelected) && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full z-[1]", isMonitored ? "bg-[#6E56CF]" : "bg-[#6E56CF]/50")} />}
+    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : status === "escalated" ? "bg-[#FEF2F2]" : isSelected && "bg-[#F2F4F7]")}>
+      {(isMonitored || isSelected || status === "escalated") && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full z-[1]", isMonitored ? "bg-[#6E56CF]" : status === "escalated" ? "bg-[#E53935]" : "bg-[#6E56CF]/50")} />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
         role="button"
         tabIndex={0}
         onClick={() => onSelect?.(id)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(id); } }}
-        className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
+        className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : status === "escalated" ? "hover:bg-[#FEE2E2]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
           <div className="shrink-0 relative flex h-2 w-2">
