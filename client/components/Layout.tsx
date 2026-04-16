@@ -9412,6 +9412,19 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="rounded-full bg-[#6E56CF] px-2.5 py-0.5 text-[12px] font-semibold text-white">1</span>
               </div>
 
+              {/* Active Human Agents */}
+              <div className="flex items-center justify-between rounded-xl border border-[#BAE6FD]/60 dark:border-[#0C4A6E]/60 bg-[#F0F9FF] dark:bg-[#082032] px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#E0F2FE] dark:bg-[#0C4A6E]">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0284C7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  <span className="text-[13px] font-medium text-[#0369A1] dark:text-[#7DD3FC]">Active Human Agents</span>
+                </div>
+                <span className="rounded-full bg-[#0284C7] px-2.5 py-0.5 text-[12px] font-semibold text-white">4</span>
+              </div>
+
               {/* Pending Cases */}
               <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
                 <div className="flex items-center gap-3">
