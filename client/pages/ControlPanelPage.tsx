@@ -2808,15 +2808,23 @@ export default function ControlCenterPage() {
   }, [isBriefingDismissed]);
 
 
-  // When Monitor is clicked on an incoming toast, open that case's monitor panel.
+  // When Monitor is clicked on an incoming toast, open the modal for escalated cases
+  // or the monitor panel for regular cases.
   useEffect(() => {
     if (!pendingMonitorCaseId) return;
     const match = staticNormalisedRef.current.find(
       (r) => r.customerRecordId === pendingMonitorCaseId || r.id === pendingMonitorCaseId,
     );
-    if (match) setMonitoredCase(match);
+    if (match) {
+      const isEscalated = escalatedOverrides.has(match.id) || match.status === "escalated";
+      if (isEscalated) {
+        setEscalatedModalCase({ ...match, status: "escalated" });
+      } else {
+        setMonitoredCase(match);
+      }
+    }
     clearPendingMonitorCaseId();
-  }, [pendingMonitorCaseId, clearPendingMonitorCaseId]);
+  }, [pendingMonitorCaseId, clearPendingMonitorCaseId, escalatedOverrides]);
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
