@@ -5984,7 +5984,7 @@ function LeftQueueRail({
                                 </span>
                               )}
                               <span
-                                className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold"
+                                className="flex h-7 w-7 items-center justify-center rounded-lg text-[10px] font-bold"
                                 style={{
                                   backgroundColor: `${pcCollapsed.accent}20`,
                                   color: pcCollapsed.accent,
