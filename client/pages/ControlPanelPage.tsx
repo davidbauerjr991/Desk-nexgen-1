@@ -3277,7 +3277,7 @@ export default function ControlCenterPage() {
                       : "border-[#D0D5DD] bg-white text-[#667085] hover:border-[#6E56CF]/40 hover:bg-[#F2F0FA] hover:text-[#6E56CF]",
                   )}
                 >
-                  Group by Case
+                  Group by Case Type
                 </button>
               </div>
 
@@ -3316,8 +3316,21 @@ export default function ControlCenterPage() {
               {(() => {
                 const renderRows = (rows: typeof allRows) => {
                   if (groupMode === "case") {
-                    return rows.map((a) => (
-                      <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
+                    // Group by bot/case type with accordion + Respond to all
+                    const caseTypeMap = new Map<string, typeof allRows>();
+                    rows.forEach((a) => {
+                      const key = a.botType ?? "Other";
+                      if (!caseTypeMap.has(key)) caseTypeMap.set(key, []);
+                      caseTypeMap.get(key)!.push(a);
+                    });
+                    return [...caseTypeMap.entries()].map(([label, items]) => (
+                      <IssueGroup
+                        key={label}
+                        label={label}
+                        items={items}
+                        monitoredCaseId={monitoredCase?.id ?? null}
+                        onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
+                      />
                     ));
                   }
                   // Group by Customer — key is customerId (unique per customer)
