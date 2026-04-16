@@ -1932,6 +1932,17 @@ function IssueRow({
             <>
               <button
                 type="button"
+                ref={rejectButtonRef}
+                onClick={() => {
+                  const rect = rejectButtonRef.current?.getBoundingClientRect();
+                  if (rect) { setRejectTriggerRect(rect); setShowReject(true); }
+                }}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Transfer
+              </button>
+              <button
+                type="button"
                 onClick={() => onMonitor()}
                 className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
@@ -2322,6 +2333,9 @@ const CARD_COPILOT_STEPS = [
 ];
 
 function QueueCard({ caseData }: { caseData: RowData }) {
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
+  const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [isResolutionOpen, setIsResolutionOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -2374,7 +2388,27 @@ function QueueCard({ caseData }: { caseData: RowData }) {
 
         {/* Actions */}
         {caseData.status !== "resolved" && (
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 mt-3 relative">
+            {showTransfer && transferTriggerRect && (
+              <RejectPopover
+                priority={caseData.priority}
+                preview={caseData.preview}
+                triggerRect={transferTriggerRect}
+                onClose={() => setShowTransfer(false)}
+                onAssign={() => { setShowTransfer(false); caseData.onReject(); }}
+              />
+            )}
+            <button
+              type="button"
+              ref={transferBtnRef}
+              onClick={() => {
+                const rect = transferBtnRef.current?.getBoundingClientRect();
+                if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+            >
+              Transfer
+            </button>
             <button
               type="button"
               onClick={() => caseData.onMonitor()}
@@ -2829,6 +2863,9 @@ function QueueCardView({ rows }: { rows: RowData[] }) {
 // ─── CaseDetailPanel — right-side panel that opens when a row is clicked ────────
 
 function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: () => void }) {
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
+  const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -2873,9 +2910,29 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
           </div>
         </div>
 
-        {/* Monitor / Takeover actions */}
+        {/* Monitor / Takeover / Transfer actions */}
         {caseData.status !== "resolved" && (
           <div className="flex items-center gap-2 mt-3">
+            {showTransfer && transferTriggerRect && (
+              <RejectPopover
+                priority={caseData.priority}
+                preview={caseData.preview}
+                triggerRect={transferTriggerRect}
+                onClose={() => setShowTransfer(false)}
+                onAssign={() => { setShowTransfer(false); caseData.onReject(); }}
+              />
+            )}
+            <button
+              type="button"
+              ref={transferBtnRef}
+              onClick={() => {
+                const rect = transferBtnRef.current?.getBoundingClientRect();
+                if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+            >
+              Transfer
+            </button>
             <button
               type="button"
               onClick={() => caseData.onMonitor()}
