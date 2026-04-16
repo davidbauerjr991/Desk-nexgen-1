@@ -6,6 +6,7 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
+  ChevronRight,
   Clock,
   Loader2,
   Mail,
@@ -1769,6 +1770,8 @@ function IssueRow({
   onReopen,
   onMonitor,
   isMonitored = false,
+  isSelected = false,
+  onSelect,
 }: {
   id: string;
   name: string;
@@ -1793,10 +1796,11 @@ function IssueRow({
   onReopen: () => void;
   onMonitor: () => void;
   isMonitored?: boolean;
+  isSelected?: boolean;
+  onSelect?: (id: string | null) => void;
 }) {
   const { selectAssignment } = useLayoutContext();
   const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(false);
   const [showReject, setShowReject] = useState(false);
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
@@ -1834,12 +1838,10 @@ function IssueRow({
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
   useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
 
-  // Auto-open and scroll into view when this row becomes monitored
+  // Scroll into view when this row becomes monitored
   const rowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (isMonitored) {
-      setIsOpen(true);
-      // Small delay so the DOM has expanded before scrolling
       const t = setTimeout(() => {
         rowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 50);
@@ -1848,14 +1850,14 @@ function IssueRow({
   }, [isMonitored]);
 
   return (
-    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F2F4F7]")}>
+    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isSelected && "bg-[#F2F4F7]")}>
       {isMonitored && <div className="absolute left-0 inset-y-0 w-[3px] bg-[#6E56CF] rounded-r-full" />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
         role="button"
         tabIndex={0}
-        onClick={() => setIsOpen((v) => !v)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setIsOpen((v) => !v); } }}
+        onClick={() => onSelect?.(isSelected ? null : id)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(isSelected ? null : id); } }}
         className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
@@ -1985,81 +1987,10 @@ function IssueRow({
           )}
         </div>
 
-        <ChevronDown className={cn(
-          "h-4 w-4 shrink-0 text-[#98A2B3] transition-transform duration-200",
-          isOpen && "rotate-180",
+        <ChevronRight className={cn(
+          "h-4 w-4 shrink-0 text-[#98A2B3] transition-colors duration-200",
+          isSelected && "text-[#6E56CF]",
         )} />
-      </div>
-
-      {/* Accordion body */}
-      <div className={cn(
-        "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
-        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none",
-      )}>
-        <div className="overflow-hidden">
-          <div className="px-5 pb-4 pt-2 space-y-3">
-            {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
-                className="flex w-full items-center justify-between px-4 py-3 text-left"
-              >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
-              </button>
-              <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-                <div className="overflow-hidden">
-                  <div className="px-4 pb-4 space-y-3">
-                    {/* Customer Context card */}
-                    {customerContext && (
-                      <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                        <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
-                        <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
-                          <p className="text-[12px] text-[#344054] leading-relaxed">{customerContext}</p>
-                        </div>
-                      </div>
-                    )}
-                    <ul className="space-y-2">
-                      {aiOverview.actions.map((action, i) => (
-                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
-                          {action}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* Copilot response card — appears above the Ask input after submission */}
-            {copilotPhase !== "idle" && (
-              <CopilotResponseCard
-                query={submittedQuery}
-                phase={copilotPhase}
-                reasoningVisible={copilotReasoningVisible}
-                isOpen={isCopilotOpen}
-                onToggle={() => setIsCopilotOpen((v) => !v)}
-              />
-            )}
-            {/* Ask Copilot input */}
-            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
-              <input
-                type="text"
-                value={copilotQuery}
-                onChange={(e) => setCopilotQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
-                placeholder="Ask Copilot about this Case"
-                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
-              />
-              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -2420,6 +2351,137 @@ function BulkResponseModal({
   );
 }
 
+// ─── CaseDetailPanel — right-side panel that opens when a row is clicked ────────
+
+function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: () => void }) {
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Reset state when case changes
+  useEffect(() => {
+    setIsAttemptedResolutionOpen(true);
+    setCopilotQuery(""); setSubmittedQuery(""); setCopilotPhase("idle");
+    setCopilotReasoningVisible(0); setIsCopilotOpen(true);
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+  }, [caseData.id]);
+
+  useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
+
+  function handleCopilotSubmit() {
+    if (!copilotQuery.trim()) return;
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setSubmittedQuery(copilotQuery); setCopilotQuery("");
+    setCopilotPhase("thinking"); setCopilotReasoningVisible(0); setIsCopilotOpen(true);
+    COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      copilotTimersRef.current.push(t);
+    });
+    copilotTimersRef.current.push(setTimeout(() => setCopilotPhase("done"), 1000 + COPILOT_REASONING_STEPS.length * 600 + 600));
+  }
+
+  return (
+    <div className="w-[360px] flex-shrink-0 border-l border-border flex flex-col bg-white dark:bg-[#0F1629] overflow-hidden transition-all duration-300">
+      {/* Header */}
+      <div className="shrink-0 px-5 py-4 border-b border-border">
+        <div className="flex items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap mb-1">
+              <span className={cn("inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold", priorityStyles[caseData.priority])}>
+                {caseData.priority}
+              </span>
+              <span className="inline-flex items-center rounded border border-[#D0D5DD] bg-[#F9FAFB] px-1.5 py-0.5 text-[10px] font-medium text-[#344054] capitalize">
+                {caseData.status}
+              </span>
+            </div>
+            <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug">{caseData.name}</p>
+            <p className="text-[11px] text-[#667085] mt-0.5 truncate">{caseData.preview}</p>
+            <p className="text-[10px] text-[#98A2B3] mt-0.5">{caseData.botType} · Wait: {caseData.waitTime}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:bg-[#F2F4F7] hover:text-[#333333] transition-colors"
+            aria-label="Close detail panel"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Body — scrollable */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Customer Context */}
+        {caseData.customerContext && (
+          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+            <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
+          </div>
+        )}
+
+        {/* Attempted Resolution */}
+        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+          </button>
+          <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+            <div className="overflow-hidden">
+              <ul className="px-4 pb-4 space-y-2">
+                {caseData.aiOverview.actions.map((action, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                    {action}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Copilot response card */}
+        {copilotPhase !== "idle" && (
+          <CopilotResponseCard
+            query={submittedQuery}
+            phase={copilotPhase}
+            reasoningVisible={copilotReasoningVisible}
+            isOpen={isCopilotOpen}
+            onToggle={() => setIsCopilotOpen((v) => !v)}
+          />
+        )}
+      </div>
+
+      {/* Ask Copilot — fixed at bottom */}
+      <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
+        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+          <input
+            type="text"
+            value={copilotQuery}
+            onChange={(e) => setCopilotQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
+            placeholder="Ask Copilot about this Case"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+          />
+          <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── IssueGroup — grouped accordion wrapper ────────────────────────────────────
 
 function IssueGroup({
@@ -2427,11 +2489,15 @@ function IssueGroup({
   items,
   monitoredCaseId,
   onResolveAll,
+  selectedCaseId,
+  onSelectCase,
 }: {
   label: string;
   items: RowData[];
   monitoredCaseId: string | null;
   onResolveAll: () => void;
+  selectedCaseId?: string | null;
+  onSelectCase?: (id: string | null) => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -2477,7 +2543,7 @@ function IssueGroup({
       <div className={cn("grid transition-all duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
         <div className="overflow-hidden">
           {items.map((a) => (
-            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} />
+            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} isSelected={selectedCaseId === a.id} onSelect={onSelectCase} />
           ))}
         </div>
       </div>
@@ -2493,6 +2559,8 @@ function CustomerGroup({
   items,
   monitoredCaseId,
   onResolveAll,
+  selectedCaseId,
+  onSelectCase,
 }: {
   customerRecord: ReturnType<typeof getCustomerRecord> | null;
   caseCustomerName?: string;
@@ -2500,6 +2568,8 @@ function CustomerGroup({
   items: RowData[];
   monitoredCaseId: string | null;
   onResolveAll: () => void;
+  selectedCaseId?: string | null;
+  onSelectCase?: (id: string | null) => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -2580,7 +2650,7 @@ function CustomerGroup({
       <div className={cn("grid transition-all duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
         <div className="overflow-hidden">
           {items.map((a) => (
-            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} />
+            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} isSelected={selectedCaseId === a.id} onSelect={onSelectCase} />
           ))}
         </div>
       </div>
@@ -2627,6 +2697,7 @@ export default function ControlCenterPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [isFilterPanelOpen]);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
 
   // Drain any cross-page rejections queued by the global Layout modal
@@ -3137,8 +3208,9 @@ export default function ControlCenterPage() {
           </div>
 
           {/* Tasks card */}
-          <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
+          <div className="flex flex-row flex-1 min-w-0 h-full overflow-hidden">
 
+            <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
             {/* Header: title + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
@@ -3342,6 +3414,8 @@ export default function ControlCenterPage() {
                         items={items}
                         monitoredCaseId={null}
                         onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
+                        selectedCaseId={selectedCaseId}
+                        onSelectCase={setSelectedCaseId}
                       />
                     ));
                   }
@@ -3365,7 +3439,7 @@ export default function ControlCenterPage() {
                     );
                     // Only wrap in accordion when there are 2+ cases for this customer
                     if (sortedItems.length === 1) {
-                      return <IssueRow key={key} {...sortedItems[0]} isMonitored={false} />;
+                      return <IssueRow key={key} {...sortedItems[0]} isMonitored={false} isSelected={selectedCaseId === sortedItems[0].id} onSelect={setSelectedCaseId} />;
                     }
                     const customerRecord = sortedItems[0]?.customerRecordId
                       ? getCustomerRecord(sortedItems[0].customerRecordId)
@@ -3379,6 +3453,8 @@ export default function ControlCenterPage() {
                         items={sortedItems}
                         monitoredCaseId={null}
                         onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...sortedItems.map((i) => i.id)]))}
+                        selectedCaseId={selectedCaseId}
+                        onSelectCase={setSelectedCaseId}
                       />
                     );
                   });
@@ -3396,6 +3472,19 @@ export default function ControlCenterPage() {
                 return renderRows(allRows);
               })()}
             </div>
+
+            </div>{/* end queue list flex-col */}
+
+            {/* Case detail panel — slides in from the right */}
+            {selectedCaseId && (() => {
+              const selectedCase = allRows.find((r) => r.id === selectedCaseId);
+              return selectedCase ? (
+                <CaseDetailPanel
+                  caseData={selectedCase}
+                  onClose={() => setSelectedCaseId(null)}
+                />
+              ) : null;
+            })()}
           </div>
 
 
