@@ -2629,6 +2629,100 @@ export default function ControlCenterPage() {
 
   return (
     <div className="flex h-full flex-col">
+
+      {/* ── Summary cards row — above the entire container ──────────────────── */}
+      {(() => {
+        const criticalCount = baseRows.filter((a) => a.priority === "Critical").length;
+        const highCount     = baseRows.filter((a) => a.priority === "High").length;
+        const resolvedCount = tabCounts.resolved;
+        const pendingCount  = tabCounts.pending;
+        const openCount     = tabCounts.open;
+
+        const trendText = criticalCount > 0
+          ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need immediate attention. You've already resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""}, which is a strong start. With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback. Keep an eye on handle time and aim to wrap responses within SLA windows.`
+          : highCount > 0
+          ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} requiring attention. You've resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""} so far today. With ${openCount} open and ${pendingCount} pending, stay focused on timely responses and SLA compliance.`
+          : `Your queue is in good shape today. You've already resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""} and have ${openCount} open items remaining. Keep up the momentum and aim to close pending cases before end of shift.`;
+
+        const newChats = baseRows.filter((a) => a.channel === "chat" && a.status === "open").length;
+
+        return (
+          <div className="shrink-0 px-5 pt-4 pb-3 grid grid-cols-3 gap-3 border-b border-border">
+
+            {/* Overview card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Overview</p>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
+                    <TrendingUp className="h-3.5 w-3.5 text-[#6E56CF]" />
+                  </div>
+                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Active AI Agents</span>
+                  <span className="inline-flex items-center justify-center rounded-full bg-[#6E56CF] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                    {Math.max(openCount, 1)}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
+                    <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
+                  </div>
+                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
+                  <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                    {pendingCount || 4}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#10B981]" />
+                  </div>
+                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
+                  <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                    {newChats || 1}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                </div>
+              </div>
+            </div>
+
+            {/* Trend Detection card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
+                <button type="button" className="text-[11px] font-medium text-[#6E56CF] hover:underline">View All</button>
+              </div>
+              <p className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] flex-1">
+                {trendText}
+              </p>
+              <div className="flex items-center gap-1.5 mt-3">
+                <span className="h-1.5 w-4 rounded-full bg-[#6E56CF]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
+              </div>
+            </div>
+
+            {/* Statistics card */}
+            <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Statistics</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Cases Handled Today</p>
+                  <p className="text-[22px] font-bold text-[#101828] dark:text-[#E2E8F0] leading-none mt-0.5">{resolvedCount + openCount + pendingCount || 5}</p>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Connected Applications</p>
+                  <p className="text-[22px] font-bold text-[#101828] dark:text-[#E2E8F0] leading-none mt-0.5">13</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        );
+      })()}
+
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex gap-0 h-full">
@@ -2767,105 +2861,8 @@ export default function ControlCenterPage() {
           {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
 
-            {/* ── Summary cards row ─────────────────────────────────────────────── */}
-            {(() => {
-              const criticalCount = baseRows.filter((a) => a.priority === "Critical").length;
-              const highCount     = baseRows.filter((a) => a.priority === "High").length;
-              const resolvedCount = tabCounts.resolved;
-              const pendingCount  = tabCounts.pending;
-              const openCount     = tabCounts.open;
-
-              const trendText = criticalCount > 0
-                ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need immediate attention. You've already resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""}, which is a strong start. With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback. Keep an eye on handle time and aim to wrap responses within SLA windows.`
-                : highCount > 0
-                ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} requiring attention. You've resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""} so far today. With ${openCount} open and ${pendingCount} pending, stay focused on timely responses and SLA compliance.`
-                : `Your queue is in good shape today. You've already resolved ${resolvedCount} case${resolvedCount !== 1 ? "s" : ""} and have ${openCount} open items remaining. Keep up the momentum and aim to close pending cases before end of shift.`;
-
-              const newChats = baseRows.filter((a) => a.channel === "chat" && a.status === "open").length;
-
-              return (
-                <div className="shrink-0 px-5 pt-4 pb-3 grid grid-cols-3 gap-3">
-
-                  {/* Overview card */}
-                  <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Overview</p>
-                    <div className="space-y-2.5">
-                      {/* Active AI Agents */}
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
-                          <TrendingUp className="h-3.5 w-3.5 text-[#6E56CF]" />
-                        </div>
-                        <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Active AI Agents</span>
-                        <span className="inline-flex items-center justify-center rounded-full bg-[#6E56CF] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                          {Math.max(openCount, 1)}
-                        </span>
-                        <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
-                      </div>
-                      {/* Pending Cases */}
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
-                          <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
-                        </div>
-                        <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
-                        <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                          {pendingCount || 4}
-                        </span>
-                        <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
-                      </div>
-                      {/* New Chats */}
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
-                          <MessageCircle className="h-3.5 w-3.5 text-[#10B981]" />
-                        </div>
-                        <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
-                        <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                          {newChats || 1}
-                        </span>
-                        <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Trend Detection card */}
-                  <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
-                    <div className="flex items-center justify-between mb-2.5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
-                      <button type="button" className="text-[11px] font-medium text-[#6E56CF] hover:underline">View All</button>
-                    </div>
-                    <p className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] flex-1">
-                      {trendText}
-                    </p>
-                    {/* Pagination dots */}
-                    <div className="flex items-center gap-1.5 mt-3">
-                      <span className="h-1.5 w-4 rounded-full bg-[#6E56CF]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
-                    </div>
-                  </div>
-
-                  {/* Statistics card */}
-                  <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Statistics</p>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Cases Handled Today</p>
-                        <p className="text-[22px] font-bold text-[#101828] dark:text-[#E2E8F0] leading-none mt-0.5">{resolvedCount + openCount + pendingCount || 5}</p>
-                      </div>
-                      <div className="border-t border-border pt-3">
-                        <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Connected Applications</p>
-                        <p className="text-[22px] font-bold text-[#101828] dark:text-[#E2E8F0] leading-none mt-0.5">13</p>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              );
-            })()}
-
             {/* Header: title + tabs + filters */}
-            <div className="shrink-0 px-5 pt-0 pb-0">
+            <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
                 {/* Status tabs */}
                 <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
