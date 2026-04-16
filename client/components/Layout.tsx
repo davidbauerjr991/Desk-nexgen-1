@@ -5573,6 +5573,7 @@ function NotificationStack({
 function LeftQueueRail({
   visibleAssignments,
   queueStatuses,
+  escalatedRailCount,
   onStatusChange,
   onRemoveAssignment,
   isOpen,
@@ -5590,6 +5591,7 @@ function LeftQueueRail({
   completedTodayCount: number;
   onAddNewAssignment: (rect: DOMRect) => void;
   totalQueueCount: number;
+  escalatedRailCount: number;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -5818,7 +5820,7 @@ function LeftQueueRail({
                   { icon: Settings,      path: "/settings",      label: "Settings"       },
                 ] as const).map(({ icon: Icon, path, label }) => {
                   const isActive = location.pathname === path;
-                  const showDot = label === "Control Center" && totalQueueCount > 0;
+                  const showDot = label === "Control Center" && escalatedRailCount > 0;
                   return (
                     <Tooltip key={label}>
                       <TooltipTrigger asChild>
@@ -5838,7 +5840,7 @@ function LeftQueueRail({
                             <Icon className="h-4 w-4 stroke-[1.5]" />
                           </button>
                           {showDot && (
-                            <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#E32926]" />
+                            <span className="pointer-events-none absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[#E32926] animate-pulse" />
                           )}
                         </div>
                       </TooltipTrigger>
@@ -5847,6 +5849,11 @@ function LeftQueueRail({
                         {label === "Control Center" && totalQueueCount > 0 && (
                           <span className="mt-0.5 block text-[11px] font-normal opacity-75">
                             {totalQueueCount} in queue
+                          </span>
+                        )}
+                        {label === "Control Center" && escalatedRailCount > 0 && (
+                          <span className="mt-0.5 block text-[11px] font-normal text-[#E53935]">
+                            {escalatedRailCount} escalated
                           </span>
                         )}
                       </TooltipContent>
@@ -6123,6 +6130,9 @@ export default function Layout({ children }: LayoutProps) {
   const clearPendingTakeoverCaseId = useMemo(() => () => setPendingTakeoverCaseId(null), []);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
+  // Track how many cases are currently escalated (for the left rail badge + tooltip).
+  const [escalatedRailCount, setEscalatedRailCount] = useState(0);
+
   // This lives in Layout so it fires regardless of which page the agent is currently on.
   useEffect(() => {
     if (!isBriefingDismissed) return;
@@ -6152,6 +6162,7 @@ export default function Layout({ children }: LayoutProps) {
           },
         ];
       });
+      setEscalatedRailCount((n) => n + 1);
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
@@ -8745,6 +8756,7 @@ export default function Layout({ children }: LayoutProps) {
             setIsAddNewFlowOpen((v) => !v);
           }}
           totalQueueCount={staticAssignments.filter((a) => a.channel !== "voice" && a.channel !== "email").length}
+          escalatedRailCount={escalatedRailCount}
         />
         {isActivityRoute && visibleAssignments.length === 0 && (
           <div className={cn(

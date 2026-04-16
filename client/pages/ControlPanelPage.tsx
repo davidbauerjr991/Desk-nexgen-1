@@ -2487,18 +2487,29 @@ function IssueGroup({
 
 const CURRENT_AGENT_NAME = "Jeff Comstock";
 
+// ─── Persistent state store (survives navigation away and back) ───────────────
+// Stored at module scope so it outlives component unmount/remount cycles.
+const persistedState = {
+  issueTab: "all" as IssueTab,
+  priorityFilters: new Set<Priority>(),
+  channelFilters: new Set<ChannelFilterValue>(),
+  agentTypeFilter: "all" as "all" | "virtual" | "human",
+  groupIssues: false,
+  monitoredCaseId: null as string | null,
+};
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
   const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
-  const [issueTab, setIssueTab] = useState<IssueTab>("all");
-  const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(new Set());
-  const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(new Set());
-  const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">("all");
+  const [issueTab, setIssueTab] = useState<IssueTab>(() => persistedState.issueTab);
+  const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(() => new Set(persistedState.priorityFilters));
+  const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
+  const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">(() => persistedState.agentTypeFilter);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [groupIssues, setGroupIssues] = useState(false);
+  const [groupIssues, setGroupIssues] = useState(() => persistedState.groupIssues);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2521,6 +2532,24 @@ export default function ControlCenterPage() {
   const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
+
+  // Sync filter/view state into the persistence store whenever it changes so
+  // navigating away and back restores the last state.
+  useEffect(() => { persistedState.issueTab = issueTab; }, [issueTab]);
+  useEffect(() => { persistedState.priorityFilters = priorityFilters; }, [priorityFilters]);
+  useEffect(() => { persistedState.channelFilters = channelFilters; }, [channelFilters]);
+  useEffect(() => { persistedState.agentTypeFilter = agentTypeFilter; }, [agentTypeFilter]);
+  useEffect(() => { persistedState.groupIssues = groupIssues; }, [groupIssues]);
+  useEffect(() => { persistedState.monitoredCaseId = monitoredCase?.id ?? null; }, [monitoredCase]);
+
+  // After staticNormalisedRef is populated on first render, restore the monitored case if
+  // the agent was in monitor mode before navigating away.
+  const didRestoreMonitor = useRef(false);
+  useEffect(() => {
+    if (didRestoreMonitor.current || !persistedState.monitoredCaseId) return;
+    const match = staticNormalisedRef.current.find((r) => r.id === persistedState.monitoredCaseId);
+    if (match) { setMonitoredCase(match); didRestoreMonitor.current = true; }
+  });
 
   // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
   // When the escalated notification is pushed, also mark static-11 as escalated locally.
