@@ -1742,6 +1742,7 @@ function IssueRow({
   customerId,
   customerRecordId,
   company,
+  botType,
   channel,
   priority,
   status,
@@ -1764,6 +1765,7 @@ function IssueRow({
   customerId: string;
   customerRecordId?: string;
   company: string;
+  botType: string;
   channel: Channel;
   priority: Priority;
   status: QueueAssignmentStatus;
@@ -1856,7 +1858,7 @@ function IssueRow({
           </div>
           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{preview}</p>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
-            <span>{company}</span>
+            <span>{botType}</span>
             <span>•</span>
             <span>⏱ Wait: {waitTime}</span>
             <span>•</span>
@@ -2578,6 +2580,7 @@ export default function ControlCenterPage() {
         customerId: a.customerId,
         customerRecordId: a.customerRecordId,
         company: companyByCustomerId[a.customerRecordId] ?? a.name,
+        botType: "Service Bot",
         channel: a.channel as Channel,
         priority,
         status: displayStatus as QueueAssignmentStatus,
