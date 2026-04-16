@@ -5,7 +5,6 @@ import {
   Check,
   ChevronDown,
   Sparkles,
-  TrendingUp,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -346,6 +345,7 @@ export function EscalatedCaseModal({
   const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
   const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
@@ -441,34 +441,42 @@ export function EscalatedCaseModal({
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
           {/* Left column: AI analysis */}
-          <div className="flex flex-col w-[420px] shrink-0 border-r border-border">
-            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
-              {/* Attempted Resolution */}
-              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
-                <div className="px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+          <div className="flex flex-col w-[380px] shrink-0 border-r border-border overflow-hidden">
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
+              {/* Customer Context */}
+              {caseData.customerContext && (
+                <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+                  <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
                 </div>
-                <div className="px-4 pb-4 space-y-3">
-                  {caseData.customerContext && (
-                    <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                      <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
-                        <p className="text-[12px] text-[#344054] leading-relaxed">{caseData.customerContext}</p>
-                      </div>
-                    </div>
-                  )}
-                  <ul className="space-y-2">
-                    {caseData.aiOverview.actions.map((action, i) => (
-                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
-                        {action}
-                      </li>
-                    ))}
-                  </ul>
+              )}
+
+              {/* Attempted Resolution accordion */}
+              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                  className="flex w-full items-center justify-between px-4 py-3 text-left"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+                </button>
+                <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                  <div className="overflow-hidden">
+                    <ul className="px-4 pb-4 space-y-2">
+                      {caseData.aiOverview.actions.map((action, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                          {action}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
 
+              {/* Copilot response card */}
               {copilotPhase !== "idle" && (
                 <CopilotResponseCard
                   query={submittedQuery}
@@ -479,6 +487,26 @@ export function EscalatedCaseModal({
                 />
               )}
 
+              {showQuickActions && (
+                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-3 space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
+                  {QUICK_ACTION_OPTIONS.map((action) => (
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => { setShowQuickActions(false); onClose(); }}
+                      className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2 text-left text-[12px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
+                    >
+                      <Check className="h-3 w-3 shrink-0 text-[#6E56CF]" />
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ask Copilot — pinned to bottom */}
+            <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
               <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
                 <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
                 <input
@@ -500,23 +528,6 @@ export function EscalatedCaseModal({
                   </svg>
                 </button>
               </div>
-
-              {showQuickActions && (
-                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-3 space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
-                  {QUICK_ACTION_OPTIONS.map((action) => (
-                    <button
-                      key={action}
-                      type="button"
-                      onClick={() => { setShowQuickActions(false); onClose(); }}
-                      className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2 text-left text-[12px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
-                    >
-                      <Check className="h-3 w-3 shrink-0 text-[#6E56CF]" />
-                      {action}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
