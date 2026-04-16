@@ -408,7 +408,7 @@ export function EscalatedCaseModal({
                 </span>
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-3">
               {caseData.status === "escalated" ? (
                 <>
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
@@ -423,6 +423,14 @@ export function EscalatedCaseModal({
                   Monitoring
                 </p>
               )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
           <p className="mt-0.5 text-[12px] text-[#475467] leading-snug">{caseData.preview}</p>
