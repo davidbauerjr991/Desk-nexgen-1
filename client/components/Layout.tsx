@@ -8448,7 +8448,14 @@ export default function Layout({ children }: LayoutProps) {
               </svg>
               <div>
                 <p className="text-base font-semibold text-[#333333] leading-none">Good morning, Jeff</p>
-                <p className="text-xs text-[#7A7A7A] mt-0.5">You have several pending cases to review</p>
+                <p className="text-xs text-[#7A7A7A] mt-0.5">
+                  {(() => {
+                    const pendingCount = queuePreviewItems.filter(i => i.statusLabel === "Pending").length;
+                    if (pendingCount === 0) return "Your queue is clear — great work!";
+                    if (pendingCount === 1) return "You have 1 pending case to review";
+                    return `You have ${pendingCount} pending cases to review`;
+                  })()}
+                </p>
               </div>
             </div>
 
