@@ -2395,15 +2395,22 @@ function DockedConversationPanel({
                           </div>
                         </div>
                       </div>
-                    {/* Section 1: Customer Issue */}
-                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
-                          Customer Issue
-                        </p>
-                        <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
-                          {casePreview ?? getCustomerIssueSummary(conversation)}
-                        </p>
-                      </div>
+                    {/* Section 1: Customer Context */}
+                      {(() => {
+                        const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
+                        const customerContext = sa?.customerContext;
+                        return customerContext ? (
+                          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Context</p>
+                            <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Issue</p>
+                            <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
+                          </div>
+                        );
+                      })()}
                       {/* Section 2: Collapsible Attempted Resolution */}
                       <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
@@ -2421,19 +2428,9 @@ function DockedConversationPanel({
                             <div className="px-4 pb-4 space-y-3">
                               {(() => {
                                 const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
-                                const customerContext = sa?.customerContext;
                                 const actions = sa?.aiOverview?.actions ?? getOverviewActions(conversation);
                                 return (
                                   <>
-                                    {customerContext && (
-                                      <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
-                                        <div>
-                                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
-                                          <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">{customerContext}</p>
-                                        </div>
-                                      </div>
-                                    )}
                                     {actions && actions.length > 0 ? (
                                       <ul className="space-y-2">
                                         {actions.map((action, i) => (
@@ -2697,15 +2694,22 @@ function DockedConversationPanel({
                         </div>
                       </div>
                     </div>
-                    {/* Section 1: Customer Issue */}
-                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
-                        Customer Issue
-                      </p>
-                      <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">
-                        {casePreview ?? getCustomerIssueSummary(conversation)}
-                      </p>
-                    </div>
+                    {/* Section 1: Customer Context */}
+                    {(() => {
+                      const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
+                      const customerContext = sa?.customerContext;
+                      return customerContext ? (
+                        <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Context</p>
+                          <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Issue</p>
+                          <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
+                        </div>
+                      );
+                    })()}
 
                     {/* Section 2: Collapsible Attempted Resolution */}
                     <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
@@ -2724,19 +2728,9 @@ function DockedConversationPanel({
                           <div className="px-4 pb-4 space-y-3">
                             {(() => {
                               const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
-                              const customerContext = sa?.customerContext;
                               const actions = sa?.aiOverview?.actions ?? getOverviewActions(conversation);
                               return (
                                 <>
-                                  {customerContext && (
-                                    <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                                      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
-                                      <div>
-                                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
-                                        <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">{customerContext}</p>
-                                      </div>
-                                    </div>
-                                  )}
                                   {actions && actions.length > 0 ? (
                                     <ul className="space-y-2">
                                       {actions.map((action, i) => (
