@@ -2405,6 +2405,26 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Monitor / Takeover actions */}
+        {caseData.status !== "resolved" && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F2F4F7]">
+            <button
+              type="button"
+              onClick={() => caseData.onMonitor()}
+              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+            >
+              Monitor
+            </button>
+            <button
+              type="button"
+              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
+              className="flex-1 rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+            >
+              Takeover
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Body — scrollable */}
@@ -2689,7 +2709,9 @@ export default function ControlCenterPage() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [isFilterPanelOpen]);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(
+    () => staticAssignments.filter((a) => a.channel !== "voice")[0]?.id ?? null
+  );
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
 
   // Drain any cross-page rejections queued by the global Layout modal
