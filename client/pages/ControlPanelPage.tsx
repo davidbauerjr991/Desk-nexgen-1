@@ -2700,9 +2700,9 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
     else if (delta > 60 && index > 0) onIndexChange(index - 1);
   }
 
-  // Each card is 88% of the container; 6% of the adjacent card peeks on each side
-  const cardWidthPct = 88;
-  const gapPx = 12;
+  const CARD_MAX_W = 960;
+  const CARD_PEEK = 40; // px visible from adjacent card on each side
+  const GAP = 16; // px gap between cards
 
   return (
     <div ref={containerRef} className="flex flex-col flex-1 min-h-0 overflow-hidden py-3">
@@ -2715,25 +2715,33 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
         onPointerCancel={onPointerUp}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        <div
-          className="flex h-full items-stretch"
-          style={{
-            width: `${rows.length * cardWidthPct + (rows.length - 1) * (gapPx / 8)}%`,
-            transform: `translateX(calc(6% - ${index * (cardWidthPct + gapPx / 8)}% + ${dragOffset}px))`,
-            transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1)",
-            gap: `${gapPx}px`,
-            padding: "0 4px",
-          }}
-        >
-          {rows.map((row, i) => (
+        {/* Centering wrapper so cards are max 960px and centred with peek on sides */}
+        <div className="flex h-full items-stretch justify-center">
+          <div
+            className="relative h-full"
+            style={{ width: `min(${CARD_MAX_W}px, calc(100% - ${CARD_PEEK * 2}px))` }}
+          >
             <div
-              key={row.id}
-              style={{ width: `${cardWidthPct}%`, flexShrink: 0 }}
-              className="h-full"
+              className="flex h-full items-stretch absolute inset-y-0"
+              style={{
+                left: 0,
+                width: `${rows.length * 100}%`,
+                transform: `translateX(calc(-${index * (100 / rows.length)}% + ${dragOffset}px))`,
+                transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1)",
+                gap: `${GAP}px`,
+              }}
             >
-              <MonitorCard caseData={row} isActive={i === index} />
+              {rows.map((row, i) => (
+                <div
+                  key={row.id}
+                  style={{ width: `calc(${100 / rows.length}% - ${GAP * (rows.length - 1) / rows.length}px)`, flexShrink: 0 }}
+                  className="h-full"
+                >
+                  <MonitorCard caseData={row} isActive={i === index} />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
 
