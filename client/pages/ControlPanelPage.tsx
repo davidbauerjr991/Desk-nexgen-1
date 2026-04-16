@@ -2826,15 +2826,51 @@ export default function ControlCenterPage() {
     .filter((a) => channelFilters.size === 0 || channelFilters.has(a.channel as ChannelFilterValue))
     .filter((a) => agentTypeFilter === "all" || a.agentType === agentTypeFilter);
 
-  const allRows = baseRows
-    .filter((a) => issueTab === "all" || a.status === issueTab)
-    .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
-
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => r.channel !== "email" &&
             (priorityFilters.size === 0 || priorityFilters.has(r.priority as Priority)) &&
             (channelFilters.size === 0 || channelFilters.has(r.channel as ChannelFilterValue)),
   );
+
+  // Convert session-resolved assignments into RowData so they can be merged into
+  // the grouped queue alongside active cases for the same customer.
+  const resolvedNormalised: RowData[] = filteredResolvedAssignments.map((r) => {
+    const sa = staticAssignments.find((s) => s.id === r.id) ??
+               staticAssignments.find((s) => s.customerRecordId === r.customerRecordId);
+    return {
+      id: r.id,
+      name: r.name,
+      customerId: sa?.customerId ?? r.customerRecordId ?? r.id,
+      customerRecordId: r.customerRecordId,
+      company: sa?.company ?? r.name,
+      botType: sa?.botType ?? "Service Bot",
+      caseType: sa?.caseType ?? "General Inquiry",
+      agentType: (sa?.agentType ?? "virtual") as "virtual" | "human",
+      channel: r.channel as Channel,
+      priority: r.priority as Priority,
+      status: "resolved" as const,
+      preview: r.preview,
+      waitTime: "",
+      aiOverview: sa?.aiOverview ?? { actions: [], whyNeeded: "", nextSteps: [] },
+      customerContext: sa?.customerContext ?? "",
+      isLive: false,
+      isAccepted: true,
+      isClosed: true,
+      isParkedFromToast: false,
+      liveAssignmentId: null,
+      onAccept: () => {},
+      onReject: () => {},
+      onReopen: () => {},
+      onMonitor: () => {},
+    };
+  });
+
+  // Status rank for within-group and group-level sorting: escalated first, resolved last
+  const statusRank: Record<string, number> = { escalated: 0, open: 1, pending: 2, resolved: 3 };
+
+  const allRows = [...baseRows, ...resolvedNormalised]
+    .filter((a) => issueTab === "all" || a.status === issueTab)
+    .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
 
   // Number of items parked from a toast — used for the red Queue tab badge
   const parkedCount = liveNormalised.filter((a) => a.isParkedFromToast).length;
@@ -3333,58 +3369,34 @@ export default function ControlCenterPage() {
                     if (!customerMap.has(key)) customerMap.set(key, []);
                     customerMap.get(key)!.push(a);
                   });
-                  return [...customerMap.entries()].map(([key, items]) => {
-                    const customerRecord = items[0]?.customerRecordId
-                      ? getCustomerRecord(items[0].customerRecordId)
+                  // Sort customer groups by the highest (most urgent) status among their cases
+                  const sortedGroups = [...customerMap.entries()].sort(([, aItems], [, bItems]) => {
+                    const aHighest = Math.min(...aItems.map((i) => statusRank[i.status] ?? 99));
+                    const bHighest = Math.min(...bItems.map((i) => statusRank[i.status] ?? 99));
+                    return aHighest - bHighest;
+                  });
+                  return sortedGroups.map(([key, items]) => {
+                    // Sort cases within each group: escalated → open → pending → resolved
+                    const sortedItems = [...items].sort(
+                      (a, b) => (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99)
+                    );
+                    const customerRecord = sortedItems[0]?.customerRecordId
+                      ? getCustomerRecord(sortedItems[0].customerRecordId)
                       : null;
                     return (
                       <CustomerGroup
                         key={key}
                         customerRecord={customerRecord}
-                        caseCustomerName={items[0]?.name}
-                        caseCustomerId={items[0]?.customerId}
-                        items={items}
+                        caseCustomerName={sortedItems[0]?.name}
+                        caseCustomerId={sortedItems[0]?.customerId}
+                        items={sortedItems}
                         monitoredCaseId={monitoredCase?.id ?? null}
-                        onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
+                        onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...sortedItems.map((i) => i.id)]))}
                       />
                     );
                   });
                 };
 
-                if (issueTab === "resolved" || (issueTab === "all" && filteredResolvedAssignments.length > 0)) {
-                  if (allRows.length === 0 && filteredResolvedAssignments.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-                        <p className="text-sm font-medium text-[#7A7A7A]">No resolved tasks</p>
-                        <p className="text-xs text-[#B0B7C3] mt-1">Cases you resolve today will appear here.</p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <>
-                      {filteredResolvedAssignments.map((item) => (
-                        <ResolvedIssueRow
-                          key={item.id}
-                          item={item}
-                          onTransfer={() => {}}
-                          onOpen={() => acceptIssue({
-                            id: item.id,
-                            name: item.name,
-                            customerId: item.customerRecordId,
-                            channel: item.channel,
-                            priority: item.priority,
-                            preview: item.preview,
-                            status: "open",
-                            waitTime: "",
-                            isOutbound: true,
-                          })}
-                        />
-                      ))}
-                      {renderRows(allRows)}
-                    </>
-                  );
-                }
                 if (allRows.length === 0) {
                   return (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
