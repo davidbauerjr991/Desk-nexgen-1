@@ -8450,7 +8450,7 @@ export default function Layout({ children }: LayoutProps) {
                 <p className="text-base font-semibold text-[#333333] leading-none">Good morning, Jeff</p>
                 <p className="text-xs text-[#7A7A7A] mt-0.5">
                   {(() => {
-                    const pendingCount = staticAssignments.filter(a => a.status === "pending").length;
+                    const pendingCount = staticAssignments.filter(a => a.status === "pending" && a.channel !== "email").length;
                     if (pendingCount === 0) return "Your queue is clear — great work!";
                     if (pendingCount === 1) return "You have 1 pending case to review";
                     return `You have ${pendingCount} pending cases to review`;
@@ -9417,7 +9417,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <span className="text-[13px] font-medium text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
                 </div>
-                <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{staticAssignments.filter(a => a.status === "pending").length}</span>
+                <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{staticAssignments.filter(a => a.status === "pending" && a.channel !== "email").length}</span>
               </div>
             </div>
 

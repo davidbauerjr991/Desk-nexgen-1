@@ -2672,7 +2672,7 @@ export default function ControlCenterPage() {
                   </div>
                   <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
                   <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
-                    {pendingCount || 4}
+                    {pendingCount}
                   </span>
                   <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
                 </div>
