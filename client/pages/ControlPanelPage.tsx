@@ -1823,8 +1823,21 @@ function IssueRow({
   useEffect(() => () => { if (performActionsTimerRef.current) clearTimeout(performActionsTimerRef.current); }, []);
   useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
 
+  // Auto-open and scroll into view when this row becomes monitored
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isMonitored) {
+      setIsOpen(true);
+      // Small delay so the DOM has expanded before scrolling
+      const t = setTimeout(() => {
+        rowRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [isMonitored]);
+
   return (
-    <div className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F2F4F7]")}>
+    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : isOpen && "bg-[#F2F4F7]")}>
       {isMonitored && <div className="absolute left-0 inset-y-0 w-[3px] bg-[#6E56CF] rounded-r-full" />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
