@@ -38,6 +38,25 @@ export type CustomerProfile = {
   cardBlocked: boolean;
 };
 
+export type CustomerAccount = {
+  id: string;
+  type: "Checking" | "Savings" | "Credit" | "Investment" | "Mortgage" | "Business";
+  number: string;        // masked, e.g. "****4521"
+  balance: string;       // formatted, e.g. "$12,450.00"
+  availableBalance?: string;
+  status: "active" | "frozen" | "closed";
+  openedDate: string;    // e.g. "Mar 2019"
+  currency?: string;     // defaults to USD
+};
+
+export type CustomerAddress = {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+};
+
 export type CustomerSeedRecord = {
   id: string;
   initials: string;
@@ -46,6 +65,13 @@ export type CustomerSeedRecord = {
   lastUpdated: string;
   profile: CustomerProfile;
   conversationTopics: string[];
+  contact: {
+    email: string;
+    phone: string;
+    address: CustomerAddress;
+  };
+  accounts: CustomerAccount[];
+  /** @deprecated use contact.address for structured access; overview.address kept for backward compat */
   overview: {
     contactNumber: string;
     assignedAgent: string;
@@ -100,6 +126,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Dispute a fraudulent Costco charge",
       "Clear the billing zip mismatch flag",
       "Retry Pro upgrade after security clearance",
+    ],
+    contact: {
+      email: "alex.kowalski@vertexsystems.com",
+      phone: "(415) 555-4092",
+      address: { street: "245 Market St, Apt 8C", city: "San Francisco", state: "CA", zip: "94105", country: "US" },
+    },
+    accounts: [
+      { id: "ak-chk", type: "Business", number: "****4521", balance: "$48,250.00", availableBalance: "$48,250.00", status: "active", openedDate: "Jan 2021" },
+      { id: "ak-sav", type: "Savings",  number: "****8832", balance: "$125,000.00", status: "active", openedDate: "Mar 2021" },
+      { id: "ak-crd", type: "Credit",   number: "****2017", balance: "-$18,400.00", availableBalance: "$31,600.00", status: "active", openedDate: "Jun 2022" },
     ],
     overview: {
       contactNumber: "(415) 555-4092",
@@ -359,6 +395,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Discuss tax-loss harvesting strategy",
       "Schedule quarterly advisor review",
     ],
+    contact: {
+      email: "sarah.miller@harborbridge.com",
+      phone: "(206) 555-0184",
+      address: { street: "881 Pine St", city: "Seattle", state: "WA", zip: "98101", country: "US" },
+    },
+    accounts: [
+      { id: "sm-chk", type: "Checking",   number: "****7104", balance: "$12,430.00",    availableBalance: "$12,430.00", status: "active", openedDate: "Apr 2020" },
+      { id: "sm-sav", type: "Savings",    number: "****5521", balance: "$45,000.00",    status: "active", openedDate: "Apr 2020" },
+      { id: "sm-inv", type: "Investment", number: "****0038", balance: "$834,720.00",   status: "active", openedDate: "Aug 2020" },
+    ],
     overview: {
       contactNumber: "(206) 555-0184",
       assignedAgent: "Priya Shah",
@@ -614,6 +660,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Request fee waiver for overdraft",
       "Update contact information on file",
     ],
+    contact: {
+      email: "emily.chen@apexfinancial.com",
+      phone: "(646) 555-0117",
+      address: { street: "117 Orchard St", city: "New York", state: "NY", zip: "10002", country: "US" },
+    },
+    accounts: [
+      { id: "ec-chk", type: "Checking", number: "****3317", balance: "$5,840.00",  availableBalance: "$5,840.00", status: "active", openedDate: "Feb 2023" },
+      { id: "ec-sav", type: "Savings",  number: "****8841", balance: "$18,000.00", status: "active", openedDate: "Feb 2023" },
+      { id: "ec-crd", type: "Credit",   number: "****7722", balance: "-$2,340.00", availableBalance: "$7,660.00", status: "active", openedDate: "Jun 2023" },
+    ],
     overview: {
       contactNumber: "(646) 555-0117",
       assignedAgent: "Marcus Lee",
@@ -833,6 +889,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Discuss business expansion financing",
       "Escalate to a senior relationship manager",
     ],
+    contact: {
+      email: "david.brown@crescentmedia.com",
+      phone: "(312) 555-0146",
+      address: { street: "410 W Lake St", city: "Chicago", state: "IL", zip: "60606", country: "US" },
+    },
+    accounts: [
+      { id: "db-chk", type: "Business",   number: "****9912", balance: "$280,000.00",   availableBalance: "$280,000.00", status: "active", openedDate: "Mar 2015" },
+      { id: "db-sav", type: "Savings",    number: "****4470", balance: "$540,000.00",   status: "active", openedDate: "Mar 2015" },
+      { id: "db-inv", type: "Investment", number: "****0028", balance: "$2,367,900.00", status: "active", openedDate: "Nov 2015" },
+    ],
     overview: {
       contactNumber: "(312) 555-0146",
       assignedAgent: "Alex Bogush",
@@ -1051,6 +1117,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Discuss Roth IRA conversion strategy",
       "Review beneficiary designations",
       "Schedule annual financial plan review",
+    ],
+    contact: {
+      email: "priya.nair@nakamurawg.com",
+      phone: "(512) 555-0172",
+      address: { street: "1812 Nueces St", city: "Austin", state: "TX", zip: "78701", country: "US" },
+    },
+    accounts: [
+      { id: "pn-chk", type: "Checking",   number: "****6614", balance: "$8,920.00",   availableBalance: "$8,920.00", status: "active", openedDate: "Sep 2022" },
+      { id: "pn-sav", type: "Savings",    number: "****3302", balance: "$42,500.00",  status: "active", openedDate: "Sep 2022" },
+      { id: "pn-inv", type: "Investment", number: "****8810", balance: "$577,000.00", status: "active", openedDate: "Jan 2023" },
     ],
     overview: {
       contactNumber: "(512) 555-0172",
@@ -1307,6 +1383,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Escalate to a supervisor",
       "Document the information around it",
     ],
+    contact: {
+      email: "miguel.santos@dupont-fs.com",
+      phone: "(305) 555-0143",
+      address: { street: "922 Biscayne Blvd", city: "Miami", state: "FL", zip: "33132", country: "US" },
+    },
+    accounts: [
+      { id: "ms-chk", type: "Checking", number: "****2241", balance: "$3,180.00",  availableBalance: "$3,180.00", status: "active", openedDate: "Jul 2024" },
+      { id: "ms-sav", type: "Savings",  number: "****6605", balance: "$14,700.00", status: "active", openedDate: "Jul 2024" },
+      { id: "ms-crd", type: "Credit",   number: "****4423", balance: "-$1,840.00", availableBalance: "$8,160.00", status: "active", openedDate: "Oct 2024" },
+    ],
     overview: {
       contactNumber: "(305) 555-0143",
       assignedAgent: "Marcus Lee",
@@ -1525,6 +1611,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Review estate planning options",
       "Transfer assets to trust account",
       "Confirm power of attorney documentation",
+    ],
+    contact: {
+      email: "olivia.reed@reedcapital.com",
+      phone: "(617) 555-0198",
+      address: { street: "41 Charles St", city: "Boston", state: "MA", zip: "02114", country: "US" },
+    },
+    accounts: [
+      { id: "or-chk", type: "Checking",   number: "****5518", balance: "$21,000.00",   availableBalance: "$21,000.00", status: "active", openedDate: "Jun 2019" },
+      { id: "or-sav", type: "Savings",    number: "****2290", balance: "$95,000.00",   status: "active", openedDate: "Jun 2019" },
+      { id: "or-inv", type: "Investment", number: "****8800", balance: "$1,840,700.00",status: "active", openedDate: "Dec 2019" },
     ],
     overview: {
       contactNumber: "(617) 555-0198",
@@ -1745,6 +1841,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Set up international payment alerts",
       "Review business credit card limits",
     ],
+    contact: {
+      email: "jamal.carter@blakeInvestments.com",
+      phone: "(404) 555-0121",
+      address: { street: "290 Peachtree St NW", city: "Atlanta", state: "GA", zip: "30303", country: "US" },
+    },
+    accounts: [
+      { id: "jc-chk", type: "Business",   number: "****5517", balance: "$145,000.00",   availableBalance: "$145,000.00", status: "active", openedDate: "May 2017" },
+      { id: "jc-sav", type: "Savings",    number: "****8831", balance: "$380,000.00",   status: "active", openedDate: "May 2017" },
+      { id: "jc-inv", type: "Investment", number: "****2215", balance: "$2,216,500.00", status: "active", openedDate: "Jan 2018" },
+    ],
     overview: {
       contactNumber: "(404) 555-0121",
       assignedAgent: "Alex Bogush",
@@ -1963,6 +2069,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Dispute incorrect mortgage payment posting",
       "Request escrow account analysis",
       "Update insurance information on loan",
+    ],
+    contact: {
+      email: "hannah.brooks@volkovasset.com",
+      phone: "(720) 555-0115",
+      address: { street: "1980 Wazee St", city: "Denver", state: "CO", zip: "80202", country: "US" },
+    },
+    accounts: [
+      { id: "hb-chk", type: "Checking",   number: "****4481", balance: "$9,310.00",   availableBalance: "$9,310.00", status: "active", openedDate: "Aug 2021" },
+      { id: "hb-sav", type: "Savings",    number: "****7723", balance: "$68,000.00",  status: "active", openedDate: "Aug 2021" },
+      { id: "hb-inv", type: "Investment", number: "****0091", balance: "$434,890.00", status: "active", openedDate: "Feb 2022" },
     ],
     overview: {
       contactNumber: "(720) 555-0115",
@@ -2183,6 +2299,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Discuss charitable giving strategy",
       "Coordinate with tax advisor on year-end planning",
     ],
+    contact: {
+      email: "noah.patel@patelbridgecap.com",
+      phone: "(213) 555-0179",
+      address: { street: "775 S Grand Ave", city: "Los Angeles", state: "CA", zip: "90017", country: "US" },
+    },
+    accounts: [
+      { id: "np-chk", type: "Checking",   number: "****3309", balance: "$44,000.00",   availableBalance: "$44,000.00", status: "active", openedDate: "Oct 2014" },
+      { id: "np-sav", type: "Savings",    number: "****6612", balance: "$220,000.00",  status: "active", openedDate: "Oct 2014" },
+      { id: "np-inv", type: "Investment", number: "****0017", balance: "$5,566,100.00",status: "active", openedDate: "Mar 2015" },
+    ],
     overview: {
       contactNumber: "(213) 555-0179",
       assignedAgent: "Marcus Lee",
@@ -2401,6 +2527,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Review business succession planning",
       "Set up employee benefits account",
       "Discuss SBA loan refinancing options",
+    ],
+    contact: {
+      email: "lauren.kim@beaumontlegal.com",
+      phone: "(503) 555-0132",
+      address: { street: "622 NW Everett St", city: "Portland", state: "OR", zip: "97209", country: "US" },
+    },
+    accounts: [
+      { id: "lk-chk", type: "Business",   number: "****8826", balance: "$312,000.00",   availableBalance: "$312,000.00", status: "active", openedDate: "Nov 2018" },
+      { id: "lk-sav", type: "Savings",    number: "****3314", balance: "$820,000.00",   status: "active", openedDate: "Nov 2018" },
+      { id: "lk-inv", type: "Investment", number: "****5521", balance: "$3,372,340.00", status: "active", openedDate: "Apr 2019" },
     ],
     overview: {
       contactNumber: "(503) 555-0132",
@@ -2621,6 +2757,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Discuss interest rate lock options",
       "Escalate underwriting timeline concern",
     ],
+    contact: {
+      email: "ethan.zhang@madison-trading.com",
+      phone: "(646) 555-0163",
+      address: { street: "515 Madison Ave", city: "New York", state: "NY", zip: "10022", country: "US" },
+    },
+    accounts: [
+      { id: "ez-chk", type: "Business",   number: "****7741", balance: "$88,500.00",   availableBalance: "$88,500.00", status: "active", openedDate: "Sep 2020" },
+      { id: "ez-sav", type: "Savings",    number: "****4428", balance: "$310,000.00",  status: "active", openedDate: "Sep 2020" },
+      { id: "ez-inv", type: "Investment", number: "****8801", balance: "$1,700,100.00",status: "active", openedDate: "Feb 2021" },
+    ],
     overview: {
       contactNumber: "(646) 555-0163",
       assignedAgent: "Alex Bogush",
@@ -2839,6 +2985,16 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Reverse $47,500 transfer sent to wrong account",
       "Contact receiving bank to initiate recall",
       "Confirm funds returned and close incident",
+    ],
+    contact: {
+      email: "darius.knox@pinnaclewealth.com",
+      phone: "(312) 555-0877",
+      address: { street: "1420 N Lake Shore Dr, Unit 22B", city: "Chicago", state: "IL", zip: "60610", country: "US" },
+    },
+    accounts: [
+      { id: "dk-chk", type: "Checking",   number: "****9934", balance: "$95,000.00",   availableBalance: "$95,000.00", status: "active", openedDate: "Feb 2023" },
+      { id: "dk-sav", type: "Savings",    number: "****1178", balance: "$280,000.00",  status: "active", openedDate: "Feb 2023" },
+      { id: "dk-inv", type: "Investment", number: "****4490", balance: "$2,500,000.00",status: "active", openedDate: "Jun 2023" },
     ],
     overview: {
       contactNumber: "(312) 555-0877",

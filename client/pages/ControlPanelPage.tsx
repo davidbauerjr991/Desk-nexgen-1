@@ -2484,6 +2484,113 @@ function IssueGroup({
     </div>
   );
 }
+// ─── CustomerGroup ─────────────────────────────────────────────────────────────
+
+function CustomerGroup({
+  customerRecord,
+  items,
+  monitoredCaseId,
+  onResolveAll,
+}: {
+  customerRecord: ReturnType<typeof getCustomerRecord> | null;
+  items: RowData[];
+  monitoredCaseId: string | null;
+  onResolveAll: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+
+  const displayName = customerRecord?.name ?? items[0]?.name ?? "Unknown Customer";
+  const initials = customerRecord
+    ? customerRecord.initials
+    : displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const customerId = customerRecord?.customerId ?? items[0]?.customerId ?? "";
+  const contactEmail = customerRecord?.contact?.email ?? "";
+  const contactPhone = customerRecord?.contact?.phone ?? customerRecord?.overview?.contactNumber ?? "";
+  const address = customerRecord?.contact?.address;
+  const accounts = customerRecord?.accounts ?? [];
+
+  return (
+    <div className="border-b border-border last:border-b-0">
+      {showBulkModal && (
+        <BulkResponseModal
+          label={displayName}
+          count={items.length}
+          onClose={() => setShowBulkModal(false)}
+          onSent={onResolveAll}
+        />
+      )}
+
+      {/* Customer group header */}
+      <div className="flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors">
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="flex flex-1 items-center gap-2.5 text-left min-w-0"
+        >
+          {/* Avatar */}
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[9px] font-bold text-[#5C46B8]">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[12px] font-semibold text-[#344054] truncate">{displayName}</span>
+              <span className="text-[10px] text-[#98A2B3] font-mono">{customerId}</span>
+            </div>
+            {(contactEmail || contactPhone || address) && (
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {contactPhone && <span className="text-[10px] text-[#667085]">{contactPhone}</span>}
+                {contactEmail && <span className="text-[10px] text-[#667085]">{contactEmail}</span>}
+                {address && <span className="text-[10px] text-[#667085]">{address.city}, {address.state}</span>}
+              </div>
+            )}
+          </div>
+          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
+            {items.length}
+          </span>
+        </button>
+
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          {/* Accounts summary */}
+          {accounts.length > 0 && (
+            <div className="hidden sm:flex items-center gap-1">
+              {accounts.slice(0, 2).map((acc) => (
+                <span
+                  key={acc.id}
+                  className="rounded border border-[#E4E7EC] bg-white px-1.5 py-0.5 text-[9px] font-medium text-[#344054]"
+                >
+                  {acc.type} {acc.number}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setShowBulkModal(true); }}
+            className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+            Respond to all
+          </button>
+          <ChevronDown
+            className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200", isOpen && "rotate-180")}
+            onClick={() => setIsOpen((v) => !v)}
+          />
+        </div>
+      </div>
+
+      {/* Cases */}
+      <div className={cn("grid transition-all duration-200 ease-out", isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="overflow-hidden">
+          {items.map((a) => (
+            <IssueRow key={a.id} {...a} isMonitored={monitoredCaseId === a.id} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CURRENT_AGENT_NAME = "Jeff Comstock";
@@ -3221,22 +3328,27 @@ export default function ControlCenterPage() {
                       <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
                     ));
                   }
-                  // Build groups
-                  const groupMap = new Map<string, typeof allRows>();
+                  // Build customer groups
+                  const customerMap = new Map<string, typeof allRows>();
                   rows.forEach((a) => {
-                    const label = getIssueGroup(a.preview, a.name);
-                    if (!groupMap.has(label)) groupMap.set(label, []);
-                    groupMap.get(label)!.push(a);
+                    const key = a.customerRecordId ?? `anon-${a.name}`;
+                    if (!customerMap.has(key)) customerMap.set(key, []);
+                    customerMap.get(key)!.push(a);
                   });
-                  return [...groupMap.entries()].map(([label, items]) => (
-                    <IssueGroup
-                      key={label}
-                      onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
-                      label={label}
-                      items={items}
-                      monitoredCaseId={monitoredCase?.id ?? null}
-                    />
-                  ));
+                  return [...customerMap.entries()].map(([key, items]) => {
+                    const customerRecord = items[0]?.customerRecordId
+                      ? getCustomerRecord(items[0].customerRecordId)
+                      : null;
+                    return (
+                      <CustomerGroup
+                        key={key}
+                        customerRecord={customerRecord}
+                        items={items}
+                        monitoredCaseId={monitoredCase?.id ?? null}
+                        onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
+                      />
+                    );
+                  });
                 };
 
                 if (issueTab === "resolved" || (issueTab === "all" && filteredResolvedAssignments.length > 0)) {
