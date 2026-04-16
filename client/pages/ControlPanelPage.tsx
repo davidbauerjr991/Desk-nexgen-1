@@ -2488,11 +2488,15 @@ function IssueGroup({
 
 function CustomerGroup({
   customerRecord,
+  caseCustomerName,
+  caseCustomerId,
   items,
   monitoredCaseId,
   onResolveAll,
 }: {
   customerRecord: ReturnType<typeof getCustomerRecord> | null;
+  caseCustomerName?: string;
+  caseCustomerId?: string;
   items: RowData[];
   monitoredCaseId: string | null;
   onResolveAll: () => void;
@@ -2500,15 +2504,16 @@ function CustomerGroup({
   const [isOpen, setIsOpen] = useState(true);
   const [showBulkModal, setShowBulkModal] = useState(false);
 
-  const displayName = customerRecord?.name ?? items[0]?.name ?? "Unknown Customer";
-  const initials = customerRecord
-    ? customerRecord.initials
-    : displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-  const customerId = customerRecord?.customerId ?? items[0]?.customerId ?? "";
-  const contactEmail = customerRecord?.contact?.email ?? "";
-  const contactPhone = customerRecord?.contact?.phone ?? customerRecord?.overview?.contactNumber ?? "";
-  const address = customerRecord?.contact?.address;
-  const accounts = customerRecord?.accounts ?? [];
+  // Use the actual case customer's name/ID (from the case row), not the potentially-mismatched DB record
+  const displayName = caseCustomerName ?? items[0]?.name ?? "Unknown Customer";
+  const initials = displayName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+  const customerId = caseCustomerId ?? items[0]?.customerId ?? "";
+  // Only show extended contact/account info if the customerRecord actually matches (same customerId)
+  const recordMatches = customerRecord?.customerId === customerId;
+  const contactEmail = recordMatches ? (customerRecord?.contact?.email ?? "") : "";
+  const contactPhone = recordMatches ? (customerRecord?.contact?.phone ?? customerRecord?.overview?.contactNumber ?? "") : "";
+  const address = recordMatches ? customerRecord?.contact?.address : undefined;
+  const accounts = recordMatches ? (customerRecord?.accounts ?? []) : [];
 
   return (
     <div className="border-b border-border last:border-b-0">
@@ -2564,14 +2569,6 @@ function CustomerGroup({
               ))}
             </div>
           )}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setShowBulkModal(true); }}
-            className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
-            Respond to all
-          </button>
           <ChevronDown
             className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200", isOpen && "rotate-180")}
             onClick={() => setIsOpen((v) => !v)}
@@ -2602,7 +2599,7 @@ const persistedState = {
   priorityFilters: new Set<Priority>(),
   channelFilters: new Set<ChannelFilterValue>(),
   agentTypeFilter: "all" as "all" | "virtual" | "human",
-  groupIssues: false,
+  groupMode: "customer" as "customer" | "case",
   monitoredCaseId: null as string | null,
 };
 
@@ -2617,7 +2614,7 @@ export default function ControlCenterPage() {
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
   const [agentTypeFilter, setAgentTypeFilter] = useState<"all" | "virtual" | "human">(() => persistedState.agentTypeFilter);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [groupIssues, setGroupIssues] = useState(() => persistedState.groupIssues);
+  const [groupMode, setGroupMode] = useState<"customer" | "case">(() => persistedState.groupMode);
   const filterPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -2659,7 +2656,7 @@ export default function ControlCenterPage() {
   useEffect(() => { persistedState.priorityFilters = priorityFilters; }, [priorityFilters]);
   useEffect(() => { persistedState.channelFilters = channelFilters; }, [channelFilters]);
   useEffect(() => { persistedState.agentTypeFilter = agentTypeFilter; }, [agentTypeFilter]);
-  useEffect(() => { persistedState.groupIssues = groupIssues; }, [groupIssues]);
+  useEffect(() => { persistedState.groupMode = groupMode; }, [groupMode]);
   useEffect(() => { persistedState.monitoredCaseId = monitoredCase?.id ?? null; }, [monitoredCase]);
 
   // After staticNormalisedRef is populated on first render, restore the monitored case if
@@ -3135,7 +3132,7 @@ export default function ControlCenterPage() {
                     onClick={() => setIsFilterPanelOpen((v) => !v)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                      (channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all")
+                      (channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all")
                         ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
                         : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
@@ -3241,39 +3238,12 @@ export default function ControlCenterPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="mx-3 my-2 border-t border-border" />
-                      {/* Group Issues toggle */}
-                      <div className="px-3 pb-3">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-[12px] font-medium text-[#344054]">Group Issues</p>
-                            <p className="text-[10px] text-[#98A2B3]">Cluster related cases together</p>
-                          </div>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={groupIssues}
-                            onClick={() => setGroupIssues((v) => !v)}
-                            className={cn(
-                              "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
-                              groupIssues ? "bg-[#6E56CF]" : "bg-[#D0D5DD]",
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200",
-                                groupIssues ? "translate-x-4" : "translate-x-0",
-                              )}
-                            />
-                          </button>
-                        </div>
-                      </div>
                       {/* Clear all */}
-                      {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all") && (
+                      {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                         <div className="border-t border-border px-3 py-2">
                           <button
                             type="button"
-                            onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setGroupIssues(false); setAgentTypeFilter("all"); setIssueTab("all"); setIsFilterPanelOpen(false); }}
+                            onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setAgentTypeFilter("all"); setIssueTab("all"); setIsFilterPanelOpen(false); }}
                             className="text-[11px] font-medium text-[#6E56CF] hover:underline"
                           >Clear all</button>
                         </div>
@@ -3283,8 +3253,36 @@ export default function ControlCenterPage() {
                 </div>
               </div>
 
-              {/* Active filter chips + Group Issues indicator */}
-              {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all") && (
+              {/* Group mode chips — always visible */}
+              <div className="flex items-center gap-1.5 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setGroupMode("customer")}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    groupMode === "customer"
+                      ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                      : "border-[#D0D5DD] bg-white text-[#667085] hover:border-[#6E56CF]/40 hover:bg-[#F2F0FA] hover:text-[#6E56CF]",
+                  )}
+                >
+                  Group by Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGroupMode("case")}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                    groupMode === "case"
+                      ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                      : "border-[#D0D5DD] bg-white text-[#667085] hover:border-[#6E56CF]/40 hover:bg-[#F2F0FA] hover:text-[#6E56CF]",
+                  )}
+                >
+                  Group by Case
+                </button>
+              </div>
+
+              {/* Active filter chips */}
+              {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                 <div className="flex flex-wrap gap-1.5 pb-3">
                   {[...channelFilters].map((ch) => (
                     <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
@@ -3310,12 +3308,6 @@ export default function ControlCenterPage() {
                       <button type="button" onClick={() => setAgentTypeFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
-                  {groupIssues && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
-                      Grouped
-                      <button type="button" onClick={() => setGroupIssues(false)} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
-                    </span>
-                  )}
                 </div>
               )}
             </div>
@@ -3323,15 +3315,15 @@ export default function ControlCenterPage() {
             <div className="flex-1 overflow-y-auto">
               {(() => {
                 const renderRows = (rows: typeof allRows) => {
-                  if (!groupIssues) {
+                  if (groupMode === "case") {
                     return rows.map((a) => (
                       <IssueRow key={a.id} {...a} isMonitored={monitoredCase?.id === a.id} />
                     ));
                   }
-                  // Build customer groups
+                  // Group by Customer — key is customerId (unique per customer)
                   const customerMap = new Map<string, typeof allRows>();
                   rows.forEach((a) => {
-                    const key = a.customerRecordId ?? `anon-${a.name}`;
+                    const key = a.customerId ?? `anon-${a.name}`;
                     if (!customerMap.has(key)) customerMap.set(key, []);
                     customerMap.get(key)!.push(a);
                   });
@@ -3343,6 +3335,8 @@ export default function ControlCenterPage() {
                       <CustomerGroup
                         key={key}
                         customerRecord={customerRecord}
+                        caseCustomerName={items[0]?.name}
+                        caseCustomerId={items[0]?.customerId}
                         items={items}
                         monitoredCaseId={monitoredCase?.id ?? null}
                         onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...items.map((i) => i.id)]))}
