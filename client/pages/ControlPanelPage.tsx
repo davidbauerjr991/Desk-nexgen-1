@@ -2989,10 +2989,6 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("escalated");
-                    const escalatedCase = staticNormalisedRef.current.find(
-                      (r) => r.status === "escalated" || escalatedOverrides.has(r.id),
-                    );
-                    if (escalatedCase) setEscalatedModalCase(escalatedCase);
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors",
