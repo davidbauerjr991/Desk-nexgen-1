@@ -1856,8 +1856,8 @@ function IssueRow({
       <div
         role="button"
         tabIndex={0}
-        onClick={() => onSelect?.(isSelected ? null : id)}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(isSelected ? null : id); } }}
+        onClick={() => onSelect?.(id)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(id); } }}
         className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
@@ -2332,14 +2332,6 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <p className="text-[11px] text-[#667085] mt-0.5 truncate">{caseData.preview}</p>
             <p className="text-[10px] text-[#98A2B3] mt-0.5">{caseData.botType} · Wait: {caseData.waitTime}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:bg-[#F2F4F7] hover:text-[#333333] transition-colors"
-            aria-label="Close detail panel"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
 
         {/* Monitor / Takeover actions */}
