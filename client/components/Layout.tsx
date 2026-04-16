@@ -87,6 +87,7 @@ import {
 } from "@/lib/customer-database";
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
+import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -6129,6 +6130,9 @@ export default function Layout({ children }: LayoutProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const clearPendingTakeoverCaseId = useMemo(() => () => setPendingTakeoverCaseId(null), []);
 
+  // Global escalation modal — renders on any page when agent clicks Monitor from a toast
+  const [escalatedToastModal, setEscalatedToastModal] = useState<EscalatedCaseModalData | null>(null);
+
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // Track how many cases are currently escalated (for the left rail badge + tooltip).
   const [escalatedRailCount, setEscalatedRailCount] = useState(0);
@@ -7542,8 +7546,30 @@ export default function Layout({ children }: LayoutProps) {
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
     removeIncoming(item.id);
-    setPendingMonitorCaseId(item.customerRecordId);
-    navigate("/control-panel");
+    if (item.statusLabel === "Escalated") {
+      // Find the matching static assignment for full case data
+      const sa = staticAssignments.find(
+        (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+      );
+      setEscalatedToastModal({
+        id: sa?.id ?? item.id,
+        name: item.name,
+        customerId: item.customerId,
+        customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
+        channel: item.channel,
+        priority: item.priority,
+        botType: sa?.botType ?? "Security Bot",
+        waitTime: item.time,
+        preview: item.preview,
+        customerContext: sa?.customerContext,
+        aiOverview: sa?.aiOverview ?? { actions: [] },
+        status: "escalated",
+      });
+      // No navigation — modal renders on whatever page the agent is currently on
+    } else {
+      setPendingMonitorCaseId(item.customerRecordId);
+      navigate("/control-panel");
+    }
   };
 
   const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
@@ -9322,6 +9348,16 @@ export default function Layout({ children }: LayoutProps) {
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
       />
+
+      {/* Global escalated case modal — renders on any page without navigating away */}
+      {escalatedToastModal && (
+        <EscalatedCaseModal
+          caseData={escalatedToastModal}
+          onTakeover={() => setEscalatedToastModal(null)}
+          onTransfer={() => setEscalatedToastModal(null)}
+          onClose={() => setEscalatedToastModal(null)}
+        />
+      )}
 
       {isAddNewFlowOpen && addNewFlowAnchorRect && (
         <AddNewAssignmentFlowPopover
