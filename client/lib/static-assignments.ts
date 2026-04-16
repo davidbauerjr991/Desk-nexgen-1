@@ -25,6 +25,8 @@ export interface StaticAssignment {
   status: QueueAssignmentStatus;
   preview: string;
   waitTime: string;
+  /** Brief customer profile context for the agent: tenure, history, sentiment */
+  customerContext: string;
   aiOverview: AiOverview;
 }
 
@@ -44,6 +46,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Payment processing failure on recurring transactions",
     waitTime: "4m",
+    customerContext: "Long-term client (5 years). Recurring subscription in good standing. No prior billing disputes. Sentiment: Confused but cooperative.",
     aiOverview: {
       actions: [
         "Reviewed the full chat thread and identified a recurring payment failure tied to an expired card token.",
@@ -74,6 +77,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Enterprise license renewal dispute — pricing discrepancy",
     waitTime: "19m",
+    customerContext: "Enterprise account (3 years, $180K/yr). One prior escalation 6 months ago. Sentiment: Assertive — expects management-level resolution.",
     aiOverview: {
       actions: [
         "Reviewed James's enterprise contract and identified a tier pricing change applied at last renewal.",
@@ -104,6 +108,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Account security alert — unauthorized login detected",
     waitTime: "1h 48m",
+    customerContext: "Individual account (2 years). No prior security incidents. MFA not enabled. Sentiment: Anxious — needs reassurance and clear guidance.",
     aiOverview: {
       actions: [
         "Reviewed the security alert and confirmed an unrecognised login from a foreign IP address.",
@@ -134,6 +139,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "API integration errors after platform migration",
     waitTime: "2m",
+    customerContext: "Mid-market developer-tier client (18 months). Two prior API tickets resolved. Sentiment: Technically confident, frustrated by post-migration regression.",
     aiOverview: {
       actions: [
         "Reviewed Robert's SMS thread and identified API authentication errors starting immediately post-migration.",
@@ -164,6 +170,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Bulk data export request — compliance deadline",
     waitTime: "49m",
+    customerContext: "Compliance-focused client (4 years). Prior GDPR requests all on time. Sentiment: Formally urgent, professionally composed — deadline pressure is real.",
     aiOverview: {
       actions: [
         "Reviewed Lisa's email thread and confirmed a GDPR-mandated data export was requested 18 days ago.",
@@ -194,6 +201,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Billing system discrepancy causing double invoices",
     waitTime: "7m",
+    customerContext: "Key account (6 years, $240K/yr). One prior billing escalation to management. Sentiment: Frustrated — signalling exec escalation risk if not resolved today.",
     aiOverview: {
       actions: [
         "Reviewed Kevin's billing history and confirmed duplicate invoices were generated for three consecutive months.",
@@ -224,6 +232,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Request to update payment method on file",
     waitTime: "1h 12m",
+    customerContext: "Corporate account (2 years). No prior payment issues on record. Sentiment: Transactional — routine request, no urgency expressed.",
     aiOverview: {
       actions: [
         "Reviewed Angela's chat and confirmed she is requesting a payment method update for her corporate account.",
@@ -254,6 +263,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "SSO configuration broken after directory sync",
     waitTime: "33m",
+    customerContext: "Enterprise IT client (3 years). Prior SSO issue resolved 12 months ago. Sentiment: Technical and professional — urgency increasing as user access is blocked.",
     aiOverview: {
       actions: [
         "Reviewed Marcus's email thread and confirmed SSO broke immediately after an Azure AD directory sync.",
@@ -284,6 +294,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Unable to access quarterly reports in portal",
     waitTime: "15m",
+    customerContext: "Finance-sector client (2 years). Quarterly reporting dependency. First portal access issue. Sentiment: Calm but time-pressed — reports needed for an investor review.",
     aiOverview: {
       actions: [
         "Reviewed Sandra's SMS thread and confirmed she cannot access the Q1 and Q2 report documents in the portal.",
@@ -314,6 +325,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Contract renewal terms need urgent clarification",
     waitTime: "2h 3m",
+    customerContext: "Long-standing client (7 years). Contracts auto-renewed previously without issue. Sentiment: Cooperative but time-pressured — 11-day renewal window creates urgency.",
     aiOverview: {
       actions: [
         "Reviewed Derek's account and identified his annual contract expires in 11 days with no renewal initiated.",
@@ -344,6 +356,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Data breach concern — suspicious export activity flagged",
     waitTime: "11m",
+    customerContext: "Media-sector client (3 years). High-volume data account. No prior security incidents. Sentiment: Alarmed — potential active breach, expects immediate containment.",
     aiOverview: {
       actions: [
         "Reviewed the security alert and confirmed an abnormal bulk data export was initiated from Fatima's account.",
@@ -374,6 +387,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "resolved",
     preview: "Follow-up on last month's refund — confirmation needed",
     waitTime: "3h 20m",
+    customerContext: "Retail SME client (2 years). Refund follows a product return. Sentiment: Patient — following up on a previous action, no signs of escalation.",
     aiOverview: {
       actions: [
         "Reviewed Tom's email and confirmed he is following up on a refund issued 22 days ago.",
@@ -404,6 +418,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "International wire transfer delay beyond SLA window",
     waitTime: "58m",
+    customerContext: "International trading client (4 years). Regular cross-border transfers. Prior SWIFT delay resolved 14 months ago. Sentiment: Businesslike — firm on SLA compliance, tracking closely.",
     aiOverview: {
       actions: [
         "Reviewed Nadia's SMS thread and confirmed her international wire transfer is 3 days past the SLA window.",
@@ -434,6 +449,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Service outage impacting production pipeline monitoring",
     waitTime: "26m",
+    customerContext: "Critical infrastructure client (5 years). Real-time monitoring SLA in place. Sentiment: Operationally stressed — needs certainty and a firm ETA, not just sympathy.",
     aiOverview: {
       actions: [
         "Reviewed Carlos's call notes and confirmed a real-time data feed outage affecting pipeline monitoring dashboards.",
@@ -464,6 +480,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Customs documentation error on recent shipment",
     waitTime: "44m",
+    customerContext: "Freight logistics client (3 years). Regular international shipments. No prior customs issues. Sentiment: Pragmatic — focused on shipment release, wants clear amendment steps.",
     aiOverview: {
       actions: [
         "Reviewed Ingrid's email and identified an HS code classification error on a recent shipment declaration.",
@@ -494,6 +511,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "I just realized I sent money to the wrong account — I need this fixed right away",
     waitTime: "3m",
+    customerContext: "Wealth management client (2 years). Very high-value account. First payment incident. Sentiment: Alarmed — $47,500 at stake, expects immediate escalation and constant updates.",
     aiOverview: {
       actions: [
         "Reviewed Darius's chat and confirmed a $47,500 transfer was sent to an incorrect beneficiary account.",
@@ -524,6 +542,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent unable to process my subscription upgrade",
     waitTime: "6m",
+    customerContext: "Growth-stage tech company (1 year). Rapidly scaling subscription. Recent corporate rebrand changed email domain. Sentiment: Eager to upgrade — frustrated by a technical account mismatch blocking progress.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent failed to locate Yuki's account during the upgrade flow.",
@@ -553,6 +572,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot keeps looping on my account verification — need a human",
     waitTime: "11m",
+    customerContext: "Investment firm client (4 years). Rarely contacts support — highly self-sufficient. Security question last set 4 years ago. Sentiment: Calm — expects an efficient, no-fuss resolution.",
     aiOverview: {
       actions: [
         "Reviewed the SMS thread — virtual agent verification loop triggered by an expired security question on file.",
@@ -582,6 +602,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI suggested the wrong product — need correct recommendation",
     waitTime: "22m",
+    customerContext: "Professional services client (3 years). Mid-market plan. AI recommendation history has been inconsistent. Sentiment: Mildly skeptical — wants the right answer first time, no more runarounds.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent recommended an entry-level plan despite Patrick's enterprise usage profile.",
@@ -611,6 +632,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent closed my case without resolving it",
     waitTime: "8m",
+    customerContext: "Legal firm client (2 years). Document-intensive workflows. Case auto-closed incorrectly during a public holiday. Sentiment: Frustrated — expects acknowledgement of the system failure before resolution.",
     aiOverview: {
       actions: [
         "Reviewed case history — virtual agent auto-closed the case after a 24-hour inactivity window during a public holiday.",
@@ -640,6 +662,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI provided incorrect compliance guidance — urgent correction needed",
     waitTime: "2m",
+    customerContext: "Tech consultancy client (3 years). Compliance-critical engagements. May have acted on the incorrect guidance already. Sentiment: Highly concerned — potential regulatory exposure drives extreme urgency.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent cited an outdated compliance regulation that was revised in Q3.",
@@ -669,6 +692,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot couldn't understand my shipment tracking query",
     waitTime: "17m",
+    customerContext: "German freight client (18 months). Uses partner carriers not in the bot's database. No prior tracking issues. Sentiment: Practical and direct — wants the information, not an explanation of the gap.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent could not parse Sophie's tracking reference format from the partner carrier.",
@@ -698,6 +722,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent gave wrong account balance — discrepancy of $18,000",
     waitTime: "5m",
+    customerContext: "Capital management client (4 years). Balance accuracy is mission-critical. Incorrect figure still fresh — may have influenced a financial decision. Sentiment: Concerned — trust in data accuracy is shaken.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent pulled balance from a cached snapshot 3 days out of date.",
@@ -727,6 +752,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Need to speak to a human — AI not helpful for my situation",
     waitTime: "31m",
+    customerContext: "Legal firm with bespoke SLA (5 years). Human-contact preference flagged on account. Custom contract arrangement. Sentiment: Formal and precise — expects the bespoke terms to be honoured.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent attempted standard triage but Isabella's issue involves a bespoke contract arrangement not in the knowledge base.",
@@ -756,6 +782,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent escalated my password reset — token not arriving",
     waitTime: "14m",
+    customerContext: "Digital agency client (2 years). Corporate email with strict spam filtering. First password reset incident. Sentiment: Mildly frustrated — technically aware, wants a quick practical fix.",
     aiOverview: {
       actions: [
         "Reviewed chat thread — virtual agent triggered a password reset but the token email has not arrived after 20 minutes.",
@@ -785,6 +812,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot approved a transaction it should have flagged for review",
     waitTime: "9m",
+    customerContext: "Trading company client (3 years). Regular large cross-border payments. Threshold misconfiguration allowed auto-approval. Sentiment: Concerned — questioning the reliability of internal oversight controls.",
     aiOverview: {
       actions: [
         "Reviewed the transaction — a $22,000 cross-border payment was auto-approved despite exceeding the manual review threshold.",
@@ -814,6 +842,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI couldn't answer questions about my new plan features",
     waitTime: "27m",
+    customerContext: "Nordic SME client (1 year). Growing subscription. Early adopter keen on new features. Sentiment: Positive and inquisitive — minor frustration at the knowledge gap, no escalation risk.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — Finn's questions relate to features released in the last product update, which are not yet in the virtual agent's knowledge base.",
@@ -843,6 +872,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Urgent: Virtual agent locked my account during tax filing season",
     waitTime: "1m",
+    customerContext: "CPA firm client (3 years). Peak tax filing season — client access is time-critical. Lock triggered by a false positive on a new device login. Sentiment: Highly stressed and time-constrained.",
     aiOverview: {
       actions: [
         "Reviewed the account lock — virtual agent applied a precautionary lock after detecting an unusual login pattern during peak hours.",
@@ -872,6 +902,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot couldn't process my bulk invoice submission",
     waitTime: "19m",
+    customerContext: "Engineering firm client (2 years). Regular bulk invoice submissions via accounting software. Non-standard delimiter caused validation failure. Sentiment: Task-focused — wants a practical fix, not explanations.",
     aiOverview: {
       actions: [
         "Reviewed chat thread — virtual agent returned a validation error on Liam's bulk invoice file.",
@@ -901,6 +932,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI couldn't verify my identity — account changes are urgent",
     waitTime: "13m",
+    customerContext: "Asset management client (4 years). SIM migrated recently — registered phone number changed. Time-sensitive account updates pending. Sentiment: Direct and urgent — identity block is the primary frustration.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent identity check failed because Nadia's registered phone number changed after a SIM migration.",
@@ -930,6 +962,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent sent me in circles — need someone to actually help",
     waitTime: "38m",
+    customerContext: "Investment client (3 years). Eligible for loyalty fee waiver. Circular bot loop caused visible frustration. Sentiment: Tired and mildly annoyed — wants resolution, not more apologies.",
     aiOverview: {
       actions: [
         "Reviewed the chat transcript — Ethan's question about fee waivers triggered a loop between two virtual agent intents.",
@@ -959,6 +992,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Automated agent gave incorrect dosage calculation guidance",
     waitTime: "4m",
+    customerContext: "Pharma client (4 years). Patient safety implications. Regulatory compliance is paramount. Sentiment: Alarmed — clinical risk drives urgency well beyond standard SLA expectations.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent provided a calculation example using an outdated formula from an archived knowledge article.",
@@ -988,6 +1022,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot failed to book my appointment — double booking risk",
     waitTime: "21m",
+    customerContext: "Swedish business client (2 years). Regular scheduled call-backs. Booking timeout is an isolated issue. Sentiment: Mildly inconvenienced — expects a confirmed appointment as a quick resolution.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent attempted to book a call-back slot but the calendar API returned a timeout error.",
@@ -1017,6 +1052,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI triggered an account freeze I didn't authorize",
     waitTime: "2m",
+    customerContext: "Wealth management client (3 years). Active investment account. Freeze was triggered by AI misinterpretation — not a fraud risk. Sentiment: Distressed — locked out of her own investments without cause.",
     aiOverview: {
       actions: [
         "Reviewed the account freeze — virtual agent misinterpreted an ambiguous customer message as a freeze request.",
@@ -1046,6 +1082,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent can't locate my order history from last year",
     waitTime: "44m",
+    customerContext: "Import/export SME client (3 years). Needs historic order data for an audit. Legacy archive not indexed in current search. Sentiment: Matter-of-fact — no drama, just needs the records retrieved.",
     aiOverview: {
       actions: [
         "Reviewed chat thread — virtual agent query returned no results because Hugo's historic orders are in an archived data store not indexed by the current search.",
@@ -1075,6 +1112,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot can't process my VAT exemption certificate",
     waitTime: "16m",
+    customerContext: "Mining sector client (2 years). VAT exemption is standard for her jurisdiction. Authority code was recently added to the approved list. Sentiment: Confident — clear expectation the exemption will be applied correctly.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent rejected Thandi's VAT exemption certificate due to an unrecognised issuing authority code.",
@@ -1104,6 +1142,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI couldn't process my multi-currency transfer request",
     waitTime: "25m",
+    customerContext: "Financial services client (4 years). Multi-currency transactions are routine. FX window adds time pressure today. Sentiment: Businesslike — same-day resolution is non-negotiable.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent declined the multi-currency transfer due to an unsupported currency pair in the automated flow.",
@@ -1133,6 +1172,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Virtual agent closed my chat before I finished explaining",
     waitTime: "52m",
+    customerContext: "Holdings group client (3 years). Beneficiary updates are infrequent but important. Session timed out during document retrieval. Sentiment: Mildly put out — expects the agent to complete what the bot failed to start.",
     aiOverview: {
       actions: [
         "Reviewed SMS thread — virtual agent auto-closed the session after a 5-minute inactivity timeout while Vera was gathering documents.",
@@ -1162,6 +1202,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "AI gave conflicting answers about my warranty claim eligibility",
     waitTime: "10m",
+    customerContext: "Industrial client (4 years). First warranty claim. Conflicting AI answers across two sessions created distrust. Sentiment: Skeptical — needs a definitive answer and the claim initiated on his behalf.",
     aiOverview: {
       actions: [
         "Reviewed chat transcript — virtual agent gave two conflicting eligibility answers across separate sessions due to a knowledge base versioning conflict.",
@@ -1191,6 +1232,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Bot sent my sensitive documents to the wrong recipient",
     waitTime: "1m",
+    customerContext: "Venture capital client (2 years). Sensitive investor documents exposed in active data incident. Sentiment: Alarmed — demands immediate action and complete transparency on every step taken.",
     aiOverview: {
       actions: [
         "Reviewed the incident — virtual agent sent a document package to an incorrect email address due to a cached recipient from a previous session.",
@@ -1222,6 +1264,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Patient portal access issue — urgent appointment needed",
     waitTime: "3m",
+    customerContext: "Healthcare organisation client (3 years). Urgent follow-up appointment at stake. Portal locked after three failed verification attempts. Sentiment: Anxious — appointment is time-sensitive.",
     aiOverview: {
       actions: [
         "Reviewed the chat and confirmed Sarah is unable to access the patient portal to book an urgent follow-up appointment.",
@@ -1251,6 +1294,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Overcharged on last three invoices — requesting immediate refund",
     waitTime: "7m",
+    customerContext: "Logistics client (4 years). Significant overcharge across three invoices — $8,400 in total. Second billing incident this year. Sentiment: Frustrated — expects an immediate refund and a clear explanation.",
     aiOverview: {
       actions: [
         "Reviewed the account billing history and confirmed duplicate charges on three consecutive invoices.",
@@ -1280,6 +1324,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Requesting account ownership transfer following company acquisition",
     waitTime: "22m",
+    customerContext: "Realty client in post-acquisition transition (2 years). Documentation submitted and verified. Compliance sign-off required before transfer completes. Sentiment: Cooperative and procedurally focused.",
     aiOverview: {
       actions: [
         "Reviewed the request and confirmed Coastal Realty Partners was acquired last quarter.",
@@ -1309,6 +1354,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Production API down — critical integration failure affecting 2,000 users",
     waitTime: "2m",
+    customerContext: "Enterprise tech client (3 years). 2,000 users impacted since 14:22. Certificate expiry was not detected before production failure. Sentiment: Highly stressed — every minute of downtime has direct business impact.",
     aiOverview: {
       actions: [
         "Reviewed incident report — Vertex Systems API gateway is returning 503 errors since 14:22.",
@@ -1338,6 +1384,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Suspicious login activity detected — possible credential compromise",
     waitTime: "5m",
+    customerContext: "Legal firm client (2 years). Sensitive client matter files potentially accessed during suspicious session. Breach notification obligation may apply. Sentiment: Deeply concerned — professional and reputational risk at stake.",
     aiOverview: {
       actions: [
         "Reviewed the security alert — five failed logins from an unrecognised IP were followed by a successful login.",
@@ -1367,6 +1414,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "International wire transfer blocked — compliance hold on cross-border payment",
     waitTime: "18m",
+    customerContext: "Swedish business client (2 years). €45K wire held on compliance. Beneficiary is a known, long-standing supplier with a 3-year history. Sentiment: Calm and confident — needs the hold released promptly.",
     aiOverview: {
       actions: [
         "Reviewed the transaction — a €45,000 cross-border wire is on compliance hold pending manual review.",
@@ -1396,6 +1444,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Enterprise plan upgrade — needs custom pricing and contract terms",
     waitTime: "35m",
+    customerContext: "Retail client experiencing rapid growth (3 years). Usage well above mid-tier thresholds. Needs enterprise plan with custom SLA terms. Sentiment: Enthusiastic — growth-driven request, expects competitive terms.",
     aiOverview: {
       actions: [
         "Reviewed the upgrade request — Amara is seeking an enterprise plan with custom user limits and SLA terms.",
@@ -1425,6 +1474,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "open",
     preview: "Regulatory audit request — GDPR data subject access request overdue",
     waitTime: "9m",
+    customerContext: "Enterprise pharma client (5 years). GDPR DSAR now 2 days overdue — ICO notification risk if not resolved immediately. Sentiment: Formally urgent — regulatory consequences are the primary concern.",
     aiOverview: {
       actions: [
         "Reviewed the DSAR — Orion Pharma submitted a data subject access request 32 days ago, exceeding the 30-day GDPR deadline.",

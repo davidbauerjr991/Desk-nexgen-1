@@ -77,6 +77,13 @@ const companyByCustomerId: Record<string, string> = {
 };
 
 // AI overview content keyed by customer record id (live assignments)
+// Customer context per live customerRecordId
+const liveCustomerContext: Record<string, string> = {
+  noah: "Individual account. Technically proficient user. First data-export failure. Sentiment: Frustrated but methodical — expects a clear resolution path.",
+  olivia: "Mid-market tech client. Growing subscription. Billing discrepancy tied to a mid-cycle plan upgrade. Sentiment: Confused but calm — has contacted support twice already.",
+  ethan: "High-value client. Frequent wire transfers to known payees. Transaction flagged as a false positive. Sentiment: Concerned — expects swift manual clearance.",
+};
+
 const liveAiOverview: Record<string, AiOverview> = {
   noah: {
     actions: [
@@ -1749,6 +1756,7 @@ function IssueRow({
   preview,
   waitTime,
   aiOverview,
+  customerContext,
   isLive,
   isAccepted,
   isClosed,
@@ -1772,6 +1780,7 @@ function IssueRow({
   preview: string;
   waitTime: string;
   aiOverview: AiOverview;
+  customerContext?: string;
   isLive: boolean;
   isAccepted: boolean;
   isClosed: boolean;
@@ -1999,7 +2008,17 @@ function IssueRow({
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Customer Context card */}
+                    {customerContext && (
+                      <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                        <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                          <p className="text-[12px] text-[#344054] leading-relaxed">{customerContext}</p>
+                        </div>
+                      </div>
+                    )}
                     <ul className="space-y-2">
                       {aiOverview.actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
@@ -2064,6 +2083,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const priorityKey = item.priority as Priority;
   const aiOverview = getLiveAiOverview(item.customerRecordId, item.name, item.preview, item.channel);
+  const resolvedCustomerContext = liveCustomerContext[item.customerRecordId];
   const customerRecord = item.customerRecordId ? getCustomerRecord(item.customerRecordId) : null;
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -2141,7 +2161,17 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
-                  <div className="px-4 pb-4">
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Customer Context card */}
+                    {resolvedCustomerContext && (
+                      <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                        <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                        <div>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                          <p className="text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">{resolvedCustomerContext}</p>
+                        </div>
+                      </div>
+                    )}
                     <ul className="space-y-2">
                       {aiOverview.actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
@@ -2602,6 +2632,7 @@ export default function ControlCenterPage() {
         preview: a.preview,
         waitTime: a.time,
         aiOverview: getLiveAiOverview(a.customerRecordId, a.name, a.preview, a.channel),
+        customerContext: liveCustomerContext[a.customerRecordId] ?? "No additional customer context available.",
         isLive: true,
         isAccepted: !isParkedFromToast,
         isClosed: false,
