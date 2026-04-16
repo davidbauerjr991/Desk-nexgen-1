@@ -2676,9 +2676,40 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
 
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <CheckCircle className="h-8 w-8 text-[#D0D5DD] mb-3" />
-        <p className="text-sm font-medium text-[#7A7A7A]">No cases</p>
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center px-8 h-full">
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          {/* Beach chair / relaxing agent */}
+          <circle cx="60" cy="60" r="56" fill="#F2F0FA" stroke="#C8BFF0" strokeWidth="2"/>
+          {/* Sun */}
+          <circle cx="60" cy="38" r="12" fill="#FFD166"/>
+          {/* Rays */}
+          {[0,45,90,135,180,225,270,315].map((deg, i) => (
+            <line key={i}
+              x1={60 + Math.cos(deg * Math.PI/180) * 15}
+              y1={38 + Math.sin(deg * Math.PI/180) * 15}
+              x2={60 + Math.cos(deg * Math.PI/180) * 20}
+              y2={38 + Math.sin(deg * Math.PI/180) * 20}
+              stroke="#FFD166" strokeWidth="2" strokeLinecap="round"/>
+          ))}
+          {/* Hammock rope left */}
+          <path d="M28 70 Q60 82 92 70" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+          {/* Hammock body */}
+          <path d="M28 70 Q60 90 92 70" stroke="#7C3AED" strokeWidth="0" fill="#C4B5FD" fillOpacity="0.5"/>
+          <path d="M28 70 Q60 90 92 70 Q60 82 28 70Z" fill="#C4B5FD"/>
+          {/* Person head */}
+          <circle cx="80" cy="66" r="7" fill="#FDDCB5"/>
+          {/* Zzz */}
+          <text x="88" y="58" fontSize="10" fill="#6E56CF" fontWeight="bold" fontFamily="sans-serif">z</text>
+          <text x="93" y="52" fontSize="8" fill="#A78BFA" fontWeight="bold" fontFamily="sans-serif">z</text>
+          <text x="97" y="47" fontSize="6" fill="#C4B5FD" fontWeight="bold" fontFamily="sans-serif">z</text>
+          {/* Legs */}
+          <line x1="34" y1="70" x2="28" y2="82" stroke="#6E56CF" strokeWidth="2.5" strokeLinecap="round"/>
+          <line x1="92" y1="70" x2="98" y2="82" stroke="#6E56CF" strokeWidth="2.5" strokeLinecap="round"/>
+        </svg>
+        <div>
+          <p className="text-[15px] font-semibold text-[#344054]">Queue's clear — enjoy the break!</p>
+          <p className="text-[12px] text-[#98A2B3] mt-1">No cases match your current filters.</p>
+        </div>
       </div>
     );
   }
