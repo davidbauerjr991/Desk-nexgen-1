@@ -2704,19 +2704,19 @@ export default function ControlCenterPage() {
             {/* Overview card */}
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Overview</p>
-              <div className="space-y-2.5">
+              <div className="space-y-1">
+                {/* Row shared layout: icon | label | fixed-width badge+chevron column */}
                 <button
                   type="button"
                   onClick={() => {
                     setIssueTab("escalated");
-                    // Open the first escalated case in monitor mode
                     const escalatedCase = staticNormalisedRef.current.find(
                       (r) => r.status === "escalated" || escalatedOverrides.has(r.id),
                     );
                     if (escalatedCase) setMonitoredCase(escalatedCase);
                   }}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-lg px-1 -mx-1 py-0.5 transition-colors text-left",
+                    "flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors",
                     tabCounts.escalated > 0 ? "animate-escalated-flash hover:bg-[#FEF2F2]" : "hover:bg-[#F9FAFB]",
                   )}
                 >
@@ -2730,41 +2730,43 @@ export default function ControlCenterPage() {
                     )} />
                   </div>
                   <span className={cn(
-                    "flex-1 text-[13px]",
+                    "flex-1 min-w-0 text-[13px]",
                     tabCounts.escalated > 0 ? "text-[#C71D1A] font-medium" : "text-[#344054] dark:text-[#CBD5E1]",
                   )}>Escalated Cases</span>
-                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                  <div className="flex w-[52px] shrink-0 items-center justify-end gap-1.5">
                     <span className={cn(
-                      "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]",
+                      "inline-flex items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]",
                       tabCounts.escalated > 0 ? "bg-[#E53935]" : "bg-[#D0D5DD] text-[#667085]",
                     )}>
                       {tabCounts.escalated}
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
                   </div>
                 </button>
-                <div className="flex items-center gap-2.5">
+
+                <div className="flex w-full items-center gap-2.5 py-1.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#FFFAEB] dark:bg-[#2A1F00]">
                     <Clock className="h-3.5 w-3.5 text-[#F59E0B]" />
                   </div>
-                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
-                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                    <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                  <span className="flex-1 min-w-0 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Pending Cases</span>
+                  <div className="flex w-[52px] shrink-0 items-center justify-end gap-1.5">
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#F59E0B] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
                       {pendingCount}
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5">
+
+                <div className="flex w-full items-center gap-2.5 py-1.5">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
                     <MessageCircle className="h-3.5 w-3.5 text-[#10B981]" />
                   </div>
-                  <span className="flex-1 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
-                  <div className="ml-auto flex items-center gap-1.5 shrink-0">
-                    <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[22px]">
+                  <span className="flex-1 min-w-0 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
+                  <div className="flex w-[52px] shrink-0 items-center justify-end gap-1.5">
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
                       {newChats || 1}
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-[#98A2B3] -rotate-90" />
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
                   </div>
                 </div>
               </div>
