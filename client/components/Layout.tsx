@@ -2313,7 +2313,7 @@ function DockedConversationPanel({
                     onSelectChannel={onSelectChannel}
                     onOpenDeskPanel={onOpenDeskPanel}
                     onResolveAssignment={onResolveAssignment}
-                    showAiPanel={isAiPanelVisible}
+                    showAiPanel={false}
                     hideTranscript={hideTranscript}
                     performAllActionsKey={performAllActionsKey}
                     isPendingAcceptance={isPendingAcceptance}
