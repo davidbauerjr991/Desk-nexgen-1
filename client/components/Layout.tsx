@@ -88,6 +88,7 @@ import {
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
+import { pendingQueueRejections } from "@/lib/queue-state";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -9353,8 +9354,18 @@ export default function Layout({ children }: LayoutProps) {
       {escalatedToastModal && (
         <EscalatedCaseModal
           caseData={escalatedToastModal}
-          onTakeover={() => setEscalatedToastModal(null)}
-          onTransfer={() => setEscalatedToastModal(null)}
+          onTakeover={() => {
+            // Queue the rejection so ControlPanelPage removes it from the queue on next render
+            pendingQueueRejections.add(escalatedToastModal.id);
+            // Navigate to control panel with takeover pending
+            setPendingTakeoverCaseId(escalatedToastModal.customerRecordId ?? null);
+            setEscalatedToastModal(null);
+            navigate("/control-panel");
+          }}
+          onTransfer={() => {
+            pendingQueueRejections.add(escalatedToastModal.id);
+            setEscalatedToastModal(null);
+          }}
           onClose={() => setEscalatedToastModal(null)}
         />
       )}

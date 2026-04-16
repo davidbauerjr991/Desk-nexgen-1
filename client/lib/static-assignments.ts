@@ -353,7 +353,7 @@ export const staticAssignments: StaticAssignment[] = [
     agentType: "virtual",
     channel: "chat",
     priority: "Critical",
-    status: "pending",
+    status: "escalated",
     preview: "Data breach concern — suspicious export activity flagged",
     waitTime: "11m",
     customerContext: "Media-sector client (3 years). High-volume data account. No prior security incidents. Sentiment: Alarmed — potential active breach, expects immediate containment.",

@@ -20,6 +20,7 @@ import {
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
+import { pendingQueueRejections } from "@/lib/queue-state";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -2524,6 +2525,17 @@ export default function ControlCenterPage() {
   }, [isFilterPanelOpen]);
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
 
+  // Drain any cross-page rejections queued by the global Layout modal
+  if (pendingQueueRejections.size > 0) {
+    const toAdd = [...pendingQueueRejections];
+    pendingQueueRejections.clear();
+    setRejectedIds((prev) => {
+      const next = new Set(prev);
+      toAdd.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
   // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
@@ -2653,9 +2665,19 @@ export default function ControlCenterPage() {
   // assignments (from acceptIssue → "issue-" prefix, or openCustomerConversation →
   // contains a millisecond timestamp) to avoid duplicating static-task entries.
   const acceptedAssignmentIds = new Set(acceptedStaticsStore.values());
+  // CustomerRecordIds already represented by a non-rejected static assignment
+  const staticCoveredCustomerIds = new Set(
+    staticAssignments
+      .filter((s) => s.customerRecordId && !rejectedIds.has(s.id))
+      .map((s) => s.customerRecordId as string),
+  );
   const validPriorities = new Set<string>(["Critical", "High", "Medium", "Low"]);
   const liveNormalised: RowData[] = visibleAssignments
-    .filter((a) => !acceptedAssignmentIds.has(a.id) && !/\d{10,}/.test(a.id))
+    .filter((a) =>
+      !acceptedAssignmentIds.has(a.id) &&
+      !/\d{10,}/.test(a.id) &&
+      !staticCoveredCustomerIds.has(a.customerRecordId),
+    )
     .map((a) => {
       const liveStatus = (assignmentStatusesById[a.id] as QueueAssignmentStatus | undefined) ?? "open";
       const isParkedFromToast = liveStatus === "parked";
@@ -3343,9 +3365,13 @@ export default function ControlCenterPage() {
           caseData={{ ...escalatedModalCase, status: "escalated" }}
           onTakeover={() => {
             handleAcceptStatic(escalatedModalCase as any);
+            rejectIssue(escalatedModalCase.id); // remove from queue
             setEscalatedModalCase(null);
           }}
-          onTransfer={() => setEscalatedModalCase(null)}
+          onTransfer={() => {
+            rejectIssue(escalatedModalCase.id); // remove from queue
+            setEscalatedModalCase(null);
+          }}
           onClose={() => setEscalatedModalCase(null)}
         />
       )}
