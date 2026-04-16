@@ -2494,20 +2494,182 @@ function QueueCard({ caseData }: { caseData: RowData }) {
   );
 }
 
-// ─── QueueCarouselView — one-at-a-time card with slide animation ─────────────
+// ─── MonitorCard — full monitor-mode card for carousel ───────────────────────
 
-function QueueCarouselView({ rows, index, direction }: { rows: RowData[]; index: number; direction: "next" | "prev" }) {
-  const [displayIndex, setDisplayIndex] = useState(index);
-  const [animKey, setAnimKey] = useState(0);
-  const [slideClass, setSlideClass] = useState("");
+function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: boolean }) {
+  const [isResolutionOpen, setIsResolutionOpen] = useState(true);
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [reasoningVisible, setReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [isReasoningOpen, setIsReasoningOpen] = useState(false);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
-  useEffect(() => {
-    if (index === displayIndex) return;
-    const entering = index > displayIndex ? "carousel-enter-next" : "carousel-enter-prev";
-    setSlideClass(entering);
-    setAnimKey((k) => k + 1);
-    setDisplayIndex(index);
-  }, [index]);
+  function handleSubmit() {
+    if (!copilotQuery.trim()) return;
+    timersRef.current.forEach(clearTimeout); timersRef.current = [];
+    setSubmittedQuery(copilotQuery); setCopilotQuery("");
+    setCopilotPhase("thinking"); setReasoningVisible(0); setIsCopilotOpen(true);
+    CARD_COPILOT_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setReasoningVisible(i + 1), 1000 + i * 600);
+      timersRef.current.push(t);
+    });
+    timersRef.current.push(setTimeout(() => setCopilotPhase("done"), 1000 + CARD_COPILOT_STEPS.length * 600 + 600));
+  }
+
+  const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+  const conversation = caseData.customerRecordId
+    ? createConversationState(caseData.customerRecordId, channel)
+    : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }], isCustomerTyping: false };
+
+  return (
+    <div className={cn(
+      "flex flex-col h-full rounded-2xl border shadow-md overflow-hidden bg-white transition-all duration-300",
+      isActive ? "shadow-[0_8px_32px_rgba(110,86,207,0.14)] border-[#C8BFF0]" : "opacity-60 border-border",
+      caseData.status === "escalated" && isActive && "border-[#E53935]/30 shadow-[0_8px_32px_rgba(229,57,53,0.12)]",
+    )}>
+      {/* Card header */}
+      <div className={cn(
+        "shrink-0 px-5 pt-3 pb-3 border-b border-border",
+        caseData.status === "escalated" && "bg-[#FEF2F2]",
+      )}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
+              {caseData.priority}
+            </span>
+            <span className={cn(
+              "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none capitalize",
+              caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+              caseData.status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
+              caseData.status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
+              caseData.status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+            )}>{caseData.status}</span>
+          </div>
+          {caseData.status !== "resolved" && (
+            <div className="flex shrink-0 items-center gap-2">
+              <button type="button" onClick={() => caseData.onMonitor()} className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors">Monitor</button>
+              <button type="button" onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()} className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors">Takeover</button>
+            </div>
+          )}
+        </div>
+        <p className="mt-0.5 text-[12px] text-[#475467] truncate">{caseData.preview}</p>
+        <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#98A2B3]">
+          <span>{caseData.botType}</span><span>·</span><span className="capitalize">{caseData.channel}</span><span>·</span><span>⏱ {caseData.waitTime}</span>
+        </div>
+      </div>
+
+      {/* Two-column body */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        {/* Left: AI analysis */}
+        <div className="flex flex-col w-[320px] shrink-0 border-r border-border overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+            {caseData.customerContext && (
+              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+                <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
+              </div>
+            )}
+            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+              <button type="button" onClick={() => setIsResolutionOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <ul className="px-4 pb-4 space-y-2">
+                    {caseData.aiOverview.actions.map((action, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />{action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+            {copilotPhase !== "idle" && (
+              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                <button type="button" onClick={() => setIsCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                    {copilotPhase === "thinking" && <span className="flex gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]"/></span>}
+                  </div>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+                </button>
+                <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                  <div className="overflow-hidden px-4 pb-4 space-y-2">
+                    <p className="text-[11px] text-[#98A2B3] italic">"{submittedQuery}"</p>
+                    {reasoningVisible > 0 && (
+                      <div>
+                        <button type="button" onClick={() => setIsReasoningOpen((v) => !v)} className="flex items-center gap-1 text-[11px] text-[#98A2B3] hover:text-[#667085] transition-colors">
+                          <span>{copilotPhase === "thinking" ? "Thinking…" : "Thought process"}</span>
+                          <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isReasoningOpen && "rotate-180")} />
+                        </button>
+                        <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                          <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                            {CARD_COPILOT_STEPS.slice(0, reasoningVisible).map((step, i) => <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    {copilotPhase === "done" && (
+                      <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                        <p className="text-[12px] text-[#344054] leading-relaxed">Based on the case analysis, I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
+            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+              <input type="text" value={copilotQuery} onChange={(e) => setCopilotQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} placeholder="Ask Copilot about this Case" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none" />
+              <button type="button" onClick={handleSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: live conversation */}
+        <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+          <ConversationPanel
+            key={caseData.id}
+            draftKey={`carousel-${caseData.id}`}
+            conversation={conversation}
+            activeChannel={channel}
+            openChannels={[channel]}
+            customerId={caseData.customerRecordId}
+            showAiPanel={false}
+            hideTranscript={false}
+            hideInput={true}
+            isPendingAcceptance={false}
+            onSelectChannel={() => {}}
+            onConversationChange={() => {}}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── QueueCarouselView — peek carousel with swipe/drag ───────────────────────
+
+function QueueCarouselView({ rows, index, onIndexChange }: {
+  rows: RowData[];
+  index: number;
+  onIndexChange: (i: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragStartX = useRef<number | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   if (rows.length === 0) {
     return (
@@ -2518,47 +2680,79 @@ function QueueCarouselView({ rows, index, direction }: { rows: RowData[]; index:
     );
   }
 
-  const row = rows[Math.min(displayIndex, rows.length - 1)];
+  function onPointerDown(e: React.PointerEvent) {
+    dragStartX.current = e.clientX;
+    setIsDragging(true);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (dragStartX.current === null) return;
+    setDragOffset(e.clientX - dragStartX.current);
+  }
+
+  function onPointerUp() {
+    const delta = dragOffset;
+    setIsDragging(false);
+    setDragOffset(0);
+    dragStartX.current = null;
+    if (delta < -60 && index < rows.length - 1) onIndexChange(index + 1);
+    else if (delta > 60 && index > 0) onIndexChange(index - 1);
+  }
+
+  // Each card is 88% of the container; 6% of the adjacent card peeks on each side
+  const cardWidthPct = 88;
+  const gapPx = 12;
 
   return (
-    <>
-      <style>{`
-        @keyframes slideInFromRight {
-          from { opacity: 0; transform: translateX(48px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes slideInFromLeft {
-          from { opacity: 0; transform: translateX(-48px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        .carousel-enter-next { animation: slideInFromRight 0.32s cubic-bezier(0.22,0.61,0.36,1) both; }
-        .carousel-enter-prev { animation: slideInFromLeft  0.32s cubic-bezier(0.22,0.61,0.36,1) both; }
-      `}</style>
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+    <div ref={containerRef} className="flex flex-col flex-1 min-h-0 overflow-hidden py-3">
+      {/* Track */}
+      <div
+        className="flex-1 min-h-0 overflow-hidden relative"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ cursor: isDragging ? "grabbing" : "grab" }}
+      >
         <div
-          key={animKey}
-          className={cn("h-full", slideClass)}
-          onAnimationEnd={() => setSlideClass("")}
+          className="flex h-full items-stretch"
+          style={{
+            width: `${rows.length * cardWidthPct + (rows.length - 1) * (gapPx / 8)}%`,
+            transform: `translateX(calc(6% - ${index * (cardWidthPct + gapPx / 8)}% + ${dragOffset}px))`,
+            transition: isDragging ? "none" : "transform 0.38s cubic-bezier(0.22, 0.61, 0.36, 1)",
+            gap: `${gapPx}px`,
+            padding: "0 4px",
+          }}
         >
-          <QueueCard caseData={row} />
-        </div>
-
-        {/* Dot indicators */}
-        <div className="flex justify-center gap-1.5 mt-4">
-          {rows.map((_, i) => (
-            <span
-              key={i}
-              className={cn(
-                "rounded-full transition-all duration-300",
-                i === displayIndex
-                  ? "w-4 h-1.5 bg-[#6E56CF]"
-                  : "w-1.5 h-1.5 bg-[#D0D5DD]",
-              )}
-            />
+          {rows.map((row, i) => (
+            <div
+              key={row.id}
+              style={{ width: `${cardWidthPct}%`, flexShrink: 0 }}
+              className="h-full"
+            >
+              <MonitorCard caseData={row} isActive={i === index} />
+            </div>
           ))}
         </div>
       </div>
-    </>
+
+      {/* Dot indicators */}
+      <div className="flex justify-center gap-1.5 pt-3 pb-1 shrink-0">
+        {rows.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => onIndexChange(i)}
+            aria-label={`Go to card ${i + 1}`}
+            className={cn(
+              "rounded-full transition-all duration-300",
+              i === index ? "w-5 h-1.5 bg-[#6E56CF]" : "w-1.5 h-1.5 bg-[#D0D5DD] hover:bg-[#98A2B3]",
+            )}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -3721,7 +3915,7 @@ export default function ControlCenterPage() {
 
             <div className="flex-1 overflow-y-auto">
               {viewMode === "card" && <QueueCardView rows={allRows} />}
-              {viewMode === "carousel" && <QueueCarouselView rows={allRows} index={carouselIndex} direction={carouselDir} />}
+              {viewMode === "carousel" && <QueueCarouselView rows={allRows} index={carouselIndex} onIndexChange={(i) => { setCarouselDir(i > carouselIndex ? "next" : "prev"); setCarouselIndex(i); }} />}
               {viewMode === "list" && (() => {
                 const renderRows = (rows: typeof allRows) => {
                   if (groupMode === "case") {
