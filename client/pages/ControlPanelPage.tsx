@@ -2550,10 +2550,13 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
             )}>{caseData.status}</span>
           </div>
           {caseData.status !== "resolved" && (
-            <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={() => caseData.onMonitor()} className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors">Monitor</button>
-              <button type="button" onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()} className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors">Takeover</button>
-            </div>
+            <button
+              type="button"
+              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
+              className="rounded-md bg-[#E53935] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#C71D1A] transition-colors shrink-0"
+            >
+              Takeover
+            </button>
           )}
         </div>
         <p className="mt-0.5 text-[12px] text-[#475467] truncate">{caseData.preview}</p>
