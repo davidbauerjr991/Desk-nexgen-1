@@ -3183,6 +3183,10 @@ export default function ControlCenterPage() {
   useEffect(() => { persistedState.agentTypeFilter = agentTypeFilter; }, [agentTypeFilter]);
   useEffect(() => { persistedState.groupMode = groupMode; }, [groupMode]);
 
+  // Reset carousel to first item whenever any filter changes in carousel mode
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (viewMode === "carousel") setCarouselIndex(0); }, [issueTab, priorityFilters, channelFilters, agentTypeFilter]);
+
   // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
   // When the escalated notification is pushed, also mark static-11 as escalated locally
   // and auto-open the escalated case modal.
