@@ -2104,7 +2104,7 @@ function DockedConversationPanel({
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? el.offsetWidth;
       setIsNarrowPanel(width < 640);
-      setIsWidePanel(width >= 1280);
+      setIsWidePanel(width >= 991);
     });
     observer.observe(el);
     return () => observer.disconnect();
@@ -2215,7 +2215,7 @@ function DockedConversationPanel({
 
             </div>
 
-            {/* Content area — flex-row when wide (>=1280px) to show persistent sidebar */}
+            {/* Content area — flex-row when wide (>=991px) to show persistent sidebar */}
             <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row-reverse" : "flex-col")}>
 
               {/* Main conversation / task summary */}
