@@ -1892,22 +1892,26 @@ function IssueRow({
           </div>
         </div>
 
-        {/* In Progress button — shown only when the case is actively in progress */}
-        {isInProgress && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            {showReject && rejectTriggerRect && (
-              <RejectPopover
-                priority={priority}
-                preview={preview}
-                triggerRect={rejectTriggerRect}
-                onClose={() => setShowReject(false)}
-                onAssign={() => { setShowReject(false); onReject(); }}
-              />
-            )}
+        {/* Action buttons — revealed on hover, absolutely positioned */}
+        <div
+          className={cn(
+            "absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-opacity duration-150 z-10",
+            isInProgress ? "opacity-100" : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
+          )}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {showReject && rejectTriggerRect && (
+            <RejectPopover
+              priority={priority}
+              preview={preview}
+              triggerRect={rejectTriggerRect}
+              onClose={() => setShowReject(false)}
+              onAssign={() => { setShowReject(false); onReject(); }}
+            />
+          )}
+          {isInProgress ? (
             <button
               type="button"
               onClick={() => {
@@ -1920,8 +1924,25 @@ function IssueRow({
             >
               In Progress
             </button>
-          </div>
-        )}
+          ) : status !== "resolved" && (
+            <>
+              <button
+                type="button"
+                onClick={() => onMonitor()}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Monitor
+              </button>
+              <button
+                type="button"
+                onClick={() => isAccepted ? onReopen() : onAccept()}
+                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+              >
+                Takeover
+              </button>
+            </>
+          )}
+        </div>
 
         <ChevronRight className={cn(
           "h-4 w-4 shrink-0 text-[#98A2B3] transition-colors duration-200",
