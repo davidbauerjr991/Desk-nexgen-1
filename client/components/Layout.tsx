@@ -2078,7 +2078,7 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
-  const [summaryTab, setSummaryTab] = useState<"overview" | "history">("overview");
+  const [summaryTab, setSummaryTab] = useState<"overview" | "history" | "conversation">("overview");
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
@@ -2144,12 +2144,19 @@ function DockedConversationPanel({
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? el.offsetWidth;
-      setIsNarrowPanel(width < 640);
-      setIsWidePanel(width >= 991);
+      setIsNarrowPanel(width < 728);
+      setIsWidePanel(true);
     });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Reset conversation tab when panel is no longer narrow
+  useEffect(() => {
+    if (!isNarrowPanel && summaryTab === "conversation") {
+      setSummaryTab("overview");
+    }
+  }, [isNarrowPanel, summaryTab]);
 
   useEffect(() => {
     if (!contentInitializedRef.current) {
@@ -2285,8 +2292,8 @@ function DockedConversationPanel({
             {/* Content area — flex-row when wide (>=991px) to show persistent sidebar */}
             <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row-reverse" : "flex-col")}>
 
-              {/* Main conversation / task summary */}
-              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+              {/* Main conversation / task summary — hidden when conversation is the active sidebar tab */}
+              <div className={cn("min-h-0 flex-1 overflow-hidden flex flex-col", isNarrowPanel && summaryTab === "conversation" && "hidden")}>
                 {showTaskSummary ? (
                   <TaskSummaryView
                     assignment={{
@@ -2583,20 +2590,25 @@ function DockedConversationPanel({
                 </>
               )}
 
-              {/* Wide-mode sidebar — persistent Case Overview + Suggested Next Steps (LEFT) */}
-              {isWidePanel && isHandoffSummaryOpen && (
+              {/* Summary sidebar — persistent, becomes full-width when Conversation tab is active below 728px */}
+              {isHandoffSummaryOpen && (
                 <div
-                  className="w-[350px] flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26]"
-                  style={{ transition: "width 300ms ease" }}
+                  className={cn(
+                    "flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26] transition-[width] duration-300",
+                    isNarrowPanel && summaryTab === "conversation" ? "w-full" : "w-[350px]",
+                  )}
                 >
-                  {/* Tab bar (wide mode) */}
+                  {/* Tab bar */}
                   <div className="shrink-0 px-4 pt-4 pb-0">
                     <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 w-full">
-                      {(["overview", "history"] as const).map((tab) => (
+                      {(isNarrowPanel
+                        ? (["overview", "history", "conversation"] as const)
+                        : (["overview", "history"] as const)
+                      ).map((tab) => (
                         <button
                           key={tab}
                           type="button"
-                          onClick={() => setSummaryTab(tab)}
+                          onClick={() => setSummaryTab(tab as "overview" | "history" | "conversation")}
                           className={cn(
                             "flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
                             summaryTab === tab
@@ -2604,14 +2616,43 @@ function DockedConversationPanel({
                               : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
                           )}
                         >
-                          {tab === "overview" ? "Overview" : "Customer History"}
+                          {tab === "overview" ? "Overview" : tab === "history" ? "Customer History" : "Conversation"}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="overflow-y-auto flex-1 p-4 space-y-3">
-                    {summaryTab === "history" ? (
+                  <div className={cn("flex-1", summaryTab === "conversation" ? "overflow-hidden min-h-0" : "overflow-y-auto p-4 space-y-3")}>
+                    {summaryTab === "conversation" ? (
+                      showTaskSummary ? (
+                        <TaskSummaryView
+                          assignment={{
+                            customerRecordId,
+                            name: conversation.customerName,
+                            channel: activeChannel,
+                          } as QueuePreviewItem}
+                        />
+                      ) : (
+                        <ConversationPanel
+                          conversation={conversation}
+                          openChannels={openChannels}
+                          activeChannel={activeChannel}
+                          customerId={customerRecordId}
+                          draftKey={`summary-conv-${conversation.label}-${conversation.customerName}`}
+                          onConversationChange={onConversationChange}
+                          onSelectChannel={onSelectChannel}
+                          onOpenDeskPanel={onOpenDeskPanel}
+                          onResolveAssignment={onResolveAssignment}
+                          showAiPanel={false}
+                          hideTranscript={hideTranscript}
+                          performAllActionsKey={performAllActionsKey}
+                          isPendingAcceptance={isPendingAcceptance}
+                          onAcceptAssignment={onAcceptAssignment}
+                          isWidePanel={false}
+                          onAgentTasksChange={setHasAgentTasks}
+                        />
+                      )
+                    ) : summaryTab === "history" ? (
                       /* Customer History timeline (wide) */
                       (() => {
                         const historyItems: CustomerHistoryItem[] = customerRecord?.customerHistory ?? [];
