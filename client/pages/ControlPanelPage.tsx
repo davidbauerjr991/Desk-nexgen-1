@@ -2911,44 +2911,11 @@ export default function ControlCenterPage() {
           {/* Tasks card */}
           <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
 
-            {/* Header: title + tabs + filters */}
+            {/* Header: title + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
-                {/* Status tabs */}
-                <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 shrink-0">
-                  {(["all", "escalated", "open", "pending", "resolved"] as const).map((tab) => {
-                    const tabLabels: Record<typeof tab, string> = {
-                      all: "All",
-                      escalated: "Escalated",
-                      open: "Active",
-                      pending: "Pending",
-                      resolved: "Resolved",
-                    };
-                    return (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setIssueTab(tab)}
-                        className={cn(
-                          "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150 whitespace-nowrap",
-                          issueTab === tab
-                            ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
-                            : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
-                        )}
-                      >
-                        {tabLabels[tab]}
-                        <span className={cn(
-                          "inline-flex h-[17px] min-w-[17px] items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-colors",
-                          issueTab === tab
-                            ? "bg-[#6E56CF] text-white"
-                            : "bg-[#E4E7EC] dark:bg-[#2A3448] text-[#667085] dark:text-[#94A3B8]",
-                        )}>
-                          {tabCounts[tab]}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* Queue header */}
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Queue</p>
 
                 {/* Filter icon button */}
                 <div className="relative ml-auto" ref={filterPanelRef}>
@@ -2957,15 +2924,15 @@ export default function ControlCenterPage() {
                     onClick={() => setIsFilterPanelOpen((v) => !v)}
                     className={cn(
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                      (channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all")
+                      (channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all")
                         ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
                         : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
-                    {(channelFilters.size + priorityFilters.size > 0 || agentTypeFilter !== "all") && (
+                    {(channelFilters.size + priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                       <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[9px] font-bold text-white">
-                        {channelFilters.size + priorityFilters.size + (agentTypeFilter !== "all" ? 1 : 0)}
+                        {channelFilters.size + priorityFilters.size + (agentTypeFilter !== "all" ? 1 : 0) + (issueTab !== "all" ? 1 : 0)}
                       </span>
                     )}
                   </button>
@@ -2973,6 +2940,29 @@ export default function ControlCenterPage() {
                   {/* Combined filter panel */}
                   {isFilterPanelOpen && (
                     <div className="absolute right-0 top-full mt-1 z-20 w-56 rounded-xl border border-border bg-white shadow-lg overflow-hidden">
+                      {/* Status section */}
+                      <div className="px-3 pt-3 pb-1">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Status</p>
+                        <div className="flex flex-wrap gap-1">
+                          {(["all", "escalated", "open", "pending", "resolved"] as const).map((tab) => {
+                            const labels: Record<typeof tab, string> = { all: "All", escalated: "Escalated", open: "Active", pending: "Pending", resolved: "Resolved" };
+                            return (
+                              <button
+                                key={tab}
+                                type="button"
+                                onClick={() => setIssueTab(tab)}
+                                className={cn(
+                                  "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
+                                  issueTab === tab
+                                    ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                    : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
+                                )}
+                              >{labels[tab]}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="mx-3 my-2 border-t border-border" />
                       {/* Agent Type section */}
                       <div className="px-3 pt-3 pb-1">
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Agent Type</p>
@@ -3068,11 +3058,11 @@ export default function ControlCenterPage() {
                         </div>
                       </div>
                       {/* Clear all */}
-                      {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all") && (
+                      {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all") && (
                         <div className="border-t border-border px-3 py-2">
                           <button
                             type="button"
-                            onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setGroupIssues(false); setAgentTypeFilter("all"); setIsFilterPanelOpen(false); }}
+                            onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setGroupIssues(false); setAgentTypeFilter("all"); setIssueTab("all"); setIsFilterPanelOpen(false); }}
                             className="text-[11px] font-medium text-[#6E56CF] hover:underline"
                           >Clear all</button>
                         </div>
@@ -3083,7 +3073,7 @@ export default function ControlCenterPage() {
               </div>
 
               {/* Active filter chips + Group Issues indicator */}
-              {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all") && (
+              {(channelFilters.size > 0 || priorityFilters.size > 0 || groupIssues || agentTypeFilter !== "all" || issueTab !== "all") && (
                 <div className="flex flex-wrap gap-1.5 pb-3">
                   {[...channelFilters].map((ch) => (
                     <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
@@ -3097,6 +3087,12 @@ export default function ControlCenterPage() {
                       <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   ))}
+                  {issueTab !== "all" && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                      {issueTab === "open" ? "Active" : issueTab.charAt(0).toUpperCase() + issueTab.slice(1)}
+                      <button type="button" onClick={() => setIssueTab("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                    </span>
+                  )}
                   {agentTypeFilter !== "all" && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
                       {agentTypeFilter === "virtual" ? "Virtual Agents" : "Human Agents"}
