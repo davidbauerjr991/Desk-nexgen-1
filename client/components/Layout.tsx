@@ -4012,7 +4012,7 @@ function QueueAssignmentCard({
   style?: React.CSSProperties;
 }) {
   const ItemIcon = item.icon;
-  const canRemove = status !== "open";
+  const canRemove = status !== "open" && status !== "escalated";
   const channelLabel = conversationChannelOptions.find((option) => option.channel === item.channel)?.label ?? item.channel;
   const { activeCallAssignmentId, isAgentInCall, openCallDisposition } = useLayoutContext();
   const showActiveVoiceControls = isAgentInCall && item.id === activeCallAssignmentId;
