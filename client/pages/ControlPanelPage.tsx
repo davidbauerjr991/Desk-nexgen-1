@@ -2408,7 +2408,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
 
         {/* Monitor / Takeover actions */}
         {caseData.status !== "resolved" && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#F2F4F7]">
+          <div className="flex items-center gap-2 mt-3">
             <button
               type="button"
               onClick={() => caseData.onMonitor()}
@@ -2419,7 +2419,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <button
               type="button"
               onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
-              className="flex-1 rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+              className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
             >
               Takeover
             </button>
