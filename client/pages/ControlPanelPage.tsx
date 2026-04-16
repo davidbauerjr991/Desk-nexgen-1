@@ -2540,6 +2540,9 @@ function CustomerGroup({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[12px] font-semibold text-[#344054] truncate">{displayName}</span>
+              <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
+                {items.length}
+              </span>
               <span className="text-[10px] text-[#98A2B3] font-mono">{customerId}</span>
             </div>
             {(contactEmail || contactPhone || address) && (
@@ -2550,9 +2553,6 @@ function CustomerGroup({
               </div>
             )}
           </div>
-          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
-            {items.length}
-          </span>
         </button>
 
         <div className="flex items-center gap-2 shrink-0 ml-2">
