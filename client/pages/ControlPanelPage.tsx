@@ -2483,6 +2483,227 @@ function IssueGroup({
   );
 }
 
+// ─── EscalatedCaseModal ───────────────────────────────────────────────────────
+
+function EscalatedCaseModal({
+  caseData,
+  onTakeover,
+  onTransfer,
+  onClose,
+}: {
+  caseData: RowData;
+  onTakeover: () => void;
+  onTransfer: () => void;
+  onClose: () => void;
+}) {
+  const [copilotQuery, setCopilotQuery] = useState("");
+  const [submittedQuery, setSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(true);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function handleCopilotSubmit() {
+    if (!copilotQuery.trim()) return;
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setSubmittedQuery(copilotQuery);
+    setCopilotQuery("");
+    setCopilotPhase("thinking");
+    setCopilotReasoningVisible(0);
+    setIsCopilotOpen(true);
+    COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 1000 + i * 600);
+      copilotTimersRef.current.push(t);
+    });
+    const done = setTimeout(() => setCopilotPhase("done"), 1000 + COPILOT_REASONING_STEPS.length * 600 + 600);
+    copilotTimersRef.current.push(done);
+  }
+
+  useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const QUICK_ACTION_OPTIONS = [
+    "Notify data protection officer",
+    "Suspend account access temporarily",
+    "Escalate to security team",
+    "Send breach notification to customer",
+  ];
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative z-10 flex flex-col w-full max-w-[680px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.24)] overflow-hidden">
+
+        {/* Header */}
+        <div className="shrink-0 border-b border-border px-6 py-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#FEE2E2] text-[12px] font-bold text-[#E53935]">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">Escalated Case — Immediate Action Required</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Case identity */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[16px] font-bold text-[#101828]">{caseData.name}</span>
+            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
+              {caseData.priority}
+            </span>
+            <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+              escalated
+            </span>
+          </div>
+          <p className="mt-1 text-[13px] text-[#475467]">{caseData.preview}</p>
+          <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
+            <span>{caseData.botType}</span>
+            <span>·</span>
+            <span className="capitalize">{caseData.channel}</span>
+            <span>·</span>
+            <span>⏱ Wait: {caseData.waitTime}</span>
+            <span>·</span>
+            <span>{caseData.customerId}</span>
+          </div>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
+
+          {/* Attempted Resolution */}
+          <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+            </div>
+            <div className="px-4 pb-4 space-y-3">
+              {/* Customer Context */}
+              {caseData.customerContext && (
+                <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
+                  <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                    <p className="text-[12px] text-[#344054] leading-relaxed">{caseData.customerContext}</p>
+                  </div>
+                </div>
+              )}
+              {/* AI actions */}
+              <ul className="space-y-2">
+                {caseData.aiOverview.actions.map((action, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                    {action}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Copilot response */}
+          {copilotPhase !== "idle" && (
+            <CopilotResponseCard
+              query={submittedQuery}
+              phase={copilotPhase}
+              reasoningVisible={copilotReasoningVisible}
+              isOpen={isCopilotOpen}
+              onToggle={() => setIsCopilotOpen((v) => !v)}
+            />
+          )}
+
+          {/* Ask Copilot input */}
+          <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+            <input
+              type="text"
+              value={copilotQuery}
+              onChange={(e) => setCopilotQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
+              placeholder="Ask Copilot about this Case"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+            />
+            <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+
+          {/* Quick actions inline panel */}
+          {showQuickActions && (
+            <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-4 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
+              {QUICK_ACTION_OPTIONS.map((action) => (
+                <button
+                  key={action}
+                  type="button"
+                  onClick={() => { setShowQuickActions(false); onClose(); }}
+                  className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2.5 text-left text-[13px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
+                >
+                  <Check className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                  {action}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        <div className="shrink-0 border-t border-border bg-[#F9FAFB] px-6 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onTransfer}
+              className="rounded-lg border border-border bg-white px-4 py-2 text-[13px] font-medium text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Transfer
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowQuickActions((v) => !v)}
+              className={cn(
+                "rounded-lg border px-4 py-2 text-[13px] font-medium transition-colors",
+                showQuickActions
+                  ? "border-[#6E56CF] bg-[#F2F0FA] text-[#5C46B8]"
+                  : "border-border bg-white text-[#344054] hover:bg-[#F2F4F7]",
+              )}
+            >
+              Quick Action
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onTakeover}
+            className="rounded-lg bg-[#E53935] px-5 py-2 text-[13px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
+          >
+            Takeover
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CURRENT_AGENT_NAME = "Jeff Comstock";
@@ -2528,6 +2749,7 @@ export default function ControlCenterPage() {
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
   const [monitoredCase, setMonitoredCase] = useState<RowData | null>(null);
+  const [escalatedModalCase, setEscalatedModalCase] = useState<RowData | null>(null);
   const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
   const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
   // Ref so the toast callback (created once) always reads the latest rows
@@ -2552,11 +2774,15 @@ export default function ControlCenterPage() {
   });
 
   // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
-  // When the escalated notification is pushed, also mark static-11 as escalated locally.
+  // When the escalated notification is pushed, also mark static-11 as escalated locally
+  // and auto-open the escalated case modal.
   useEffect(() => {
     if (!isBriefingDismissed) return;
     const timer = setTimeout(() => {
       setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
+      // Auto-open the modal with the escalated case
+      const escalatedCase = staticNormalisedRef.current.find((r) => r.id === "static-11");
+      if (escalatedCase) setEscalatedModalCase(escalatedCase);
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
@@ -2742,7 +2968,7 @@ export default function ControlCenterPage() {
                     const escalatedCase = staticNormalisedRef.current.find(
                       (r) => r.status === "escalated" || escalatedOverrides.has(r.id),
                     );
-                    if (escalatedCase) setMonitoredCase(escalatedCase);
+                    if (escalatedCase) setEscalatedModalCase(escalatedCase);
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors",
@@ -3319,6 +3545,20 @@ export default function ControlCenterPage() {
 
         </div>
       </div>
+
+      {/* Escalated Case Modal */}
+      {escalatedModalCase && (
+        <EscalatedCaseModal
+          caseData={{ ...escalatedModalCase, status: "escalated" }}
+          onTakeover={() => {
+            handleAcceptStatic(escalatedModalCase as any);
+            setEscalatedModalCase(null);
+          }}
+          onTransfer={() => setEscalatedModalCase(null)}
+          onClose={() => setEscalatedModalCase(null)}
+        />
+      )}
+
       {/* Other tabs hidden but code preserved for future use
       {activePageTab === "customers" && (
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
