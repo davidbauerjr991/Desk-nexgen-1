@@ -1926,17 +1926,6 @@ function IssueRow({
             <>
               <button
                 type="button"
-                ref={rejectButtonRef}
-                onClick={() => {
-                  const rect = rejectButtonRef.current?.getBoundingClientRect();
-                  if (rect) { setRejectTriggerRect(rect); setShowReject(true); }
-                }}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-              >
-                Transfer
-              </button>
-              <button
-                type="button"
                 onClick={() => onMonitor()}
                 className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
