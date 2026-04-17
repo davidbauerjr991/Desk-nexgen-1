@@ -2230,109 +2230,124 @@ const dispositionCodes = [
 ];
 
 function DispositionPopover({
+  triggerRef,
   mode,
   targetName,
   onConfirm,
   onCancel,
 }: {
+  triggerRef: React.RefObject<HTMLButtonElement>;
   mode: "dismiss" | "transfer";
   targetName?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   const [disposition, setDisposition] = useState("");
   const [notes, setNotes] = useState("");
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+  }, [triggerRef]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onCancel();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onCancel]);
 
   const actionLabel = mode === "dismiss" ? "Dismiss" : "Transfer";
   const title = mode === "dismiss" ? "Dismiss Case" : `Transfer to ${targetName ?? ""}`;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999999] flex items-center justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel(); }}
+      ref={ref}
+      className="fixed z-[9999999] w-[320px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.16)] overflow-visible"
+      style={{ top: pos.top, right: pos.right }}
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
-
-      {/* Card */}
-      <div
-        className="relative z-10 w-[380px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_16px_40px_rgba(16,24,40,0.18)] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <p className="text-[13px] font-semibold text-[#1D2939]">{title}</p>
-            <p className="text-[11px] text-[#98A2B3] mt-0.5">Select a disposition and add notes before closing</p>
-          </div>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-[#98A2B3] hover:text-[#475467] transition-colors ml-3 shrink-0"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div>
+          <p className="text-[12px] font-semibold text-[#1D2939]">{title}</p>
+          <p className="text-[10px] text-[#98A2B3] mt-0.5">Select a disposition before closing</p>
         </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-[#98A2B3] hover:text-[#475467] transition-colors ml-3 shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
-        {/* Body */}
-        <div className="px-5 py-4 space-y-4">
-          {/* Disposition */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold uppercase tracking-widest text-[#667085]">
-              Disposition
-            </label>
-            <Select value={disposition} onValueChange={setDisposition}>
-              <SelectTrigger className="h-9 text-[12px]">
-                <SelectValue placeholder="Select a disposition code…" />
-              </SelectTrigger>
-              <SelectContent>
-                {dispositionCodes.map((code) => (
-                  <SelectItem key={code} value={code} className="text-[12px]">
-                    {code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-semibold uppercase tracking-widest text-[#667085]">
-              Additional Notes <span className="normal-case font-normal text-[#98A2B3]">(optional)</span>
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add any relevant notes about this interaction…"
-              rows={3}
-              className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-[12px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-shadow"
-            />
+      {/* Body */}
+      <div className="px-4 py-3 space-y-3">
+        {/* Disposition — custom list to avoid portal z-index issues */}
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Disposition</p>
+          <div className="rounded-md border border-input overflow-hidden divide-y divide-border max-h-[180px] overflow-y-auto">
+            {dispositionCodes.map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setDisposition(code)}
+                className={cn(
+                  "w-full px-3 py-2 text-left text-[12px] transition-colors",
+                  disposition === code
+                    ? "bg-[#F2F0FA] text-[#6E56CF] font-semibold"
+                    : "text-[#344054] hover:bg-[#F9FAFB]",
+                )}
+              >
+                {code}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-[#FAFAFA]">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="h-8 px-3 rounded-md text-[12px] font-medium text-[#475467] border border-border bg-white hover:bg-[#F9FAFB] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!disposition}
-            onClick={() => { if (disposition) onConfirm(); }}
-            className={cn(
-              "h-8 px-4 rounded-md text-[12px] font-semibold transition-colors",
-              mode === "dismiss"
-                ? "bg-[#C71D1A] text-white hover:bg-[#A81714] disabled:opacity-40 disabled:cursor-not-allowed"
-                : "bg-[#6E56CF] text-white hover:bg-[#5B45B0] disabled:opacity-40 disabled:cursor-not-allowed",
-            )}
-          >
-            {actionLabel}
-          </button>
+        {/* Notes */}
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">
+            Notes <span className="normal-case font-normal text-[#98A2B3]">(optional)</span>
+          </p>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add any relevant notes…"
+            rows={2}
+            className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-[12px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-shadow"
+          />
         </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-[#FAFAFA] rounded-b-xl">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-7 px-3 rounded-md text-[11px] font-medium text-[#475467] border border-border bg-white hover:bg-[#F9FAFB] transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={!disposition}
+          onClick={() => { if (disposition) onConfirm(); }}
+          className={cn(
+            "h-7 px-3 rounded-md text-[11px] font-semibold transition-colors",
+            mode === "dismiss"
+              ? "bg-[#C71D1A] text-white hover:bg-[#A81714] disabled:opacity-40 disabled:cursor-not-allowed"
+              : "bg-[#6E56CF] text-white hover:bg-[#5B45B0] disabled:opacity-40 disabled:cursor-not-allowed",
+          )}
+        >
+          {actionLabel}
+        </button>
       </div>
     </div>,
     document.body,
@@ -2411,6 +2426,7 @@ function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
 
       {disposition && (
         <DispositionPopover
+          triggerRef={triggerRef}
           mode={disposition.mode}
           targetName={disposition.targetName}
           onConfirm={handleDispositionConfirm}
