@@ -46,6 +46,7 @@ import {
   Sun,
   Volume2,
   X,
+  MoreVertical,
 } from "lucide-react";
 
 import {
@@ -4887,7 +4888,6 @@ function GroupedQueueCard({
   // Changing it syncs ALL channels so the task always has one status.
   const primaryChannelId = group.lastActiveChannel.id;
   const primaryStatus = queueStatuses[primaryChannelId] ?? "open";
-  const canRemoveTask = primaryStatus !== "open" && primaryStatus !== "escalated";
   const handleGroupStatusChange = (newStatus: QueueAssignmentStatus) => {
     group.channels.forEach((ch) => onStatusChange(ch.id, newStatus));
   };
@@ -4939,16 +4939,21 @@ function GroupedQueueCard({
               onStatusChange={handleGroupStatusChange}
               onOpenChange={onStatusDropdownOpenChange}
             />
-            {canRemoveTask && (
-              <button
-                type="button"
-                aria-label={`Close task for ${group.name}`}
-                onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
-                className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`More options for ${group.name}`}
+                  onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-[11px]">
+                More options
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
         {/* Task description — task-level, shown once in the header.
