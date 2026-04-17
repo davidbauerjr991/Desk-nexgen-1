@@ -3964,7 +3964,50 @@ export default function ControlCenterPage() {
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
 
-                {/* Right side: carousel pagination + view toggles + filter */}
+                {/* Left side: view toggles */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "list"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="List view"
+                  >
+                    <LayoutList className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("card")}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "card"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="Card view"
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setViewMode("carousel"); setCarouselIndex(0); }}
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
+                      viewMode === "carousel"
+                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
+                    )}
+                    aria-label="Carousel view"
+                  >
+                    <GalleryVertical className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Right side: carousel pagination + filter */}
                 <div className="flex items-center gap-2 ml-auto">
                   {viewMode === "carousel" && allRows.length > 0 && (
                     <div className="flex items-center gap-1">
@@ -3991,48 +4034,6 @@ export default function ControlCenterPage() {
                       </button>
                     </div>
                   )}
-                  {/* View toggles */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("list")}
-                      className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
-                        viewMode === "list"
-                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
-                          : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
-                      )}
-                      aria-label="List view"
-                    >
-                      <LayoutList className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode("card")}
-                      className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
-                        viewMode === "card"
-                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
-                          : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
-                      )}
-                      aria-label="Card view"
-                    >
-                      <LayoutGrid className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setViewMode("carousel"); setCarouselIndex(0); }}
-                      className={cn(
-                        "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
-                        viewMode === "carousel"
-                          ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
-                          : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
-                      )}
-                      aria-label="Carousel view"
-                    >
-                      <GalleryVertical className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
 
                   {/* Filter icon button */}
                   <div className="relative" ref={filterPanelRef}>
