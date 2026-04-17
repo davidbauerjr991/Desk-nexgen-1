@@ -2393,17 +2393,19 @@ function QueueCard({ caseData }: { caseData: RowData }) {
                 onAssign={() => { setShowTransfer(false); caseData.onReject(); }}
               />
             )}
-            <button
-              type="button"
-              ref={transferBtnRef}
-              onClick={() => {
-                const rect = transferBtnRef.current?.getBoundingClientRect();
-                if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
-              }}
-              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-            >
-              Transfer
-            </button>
+            {caseData.assignedTo === CURRENT_AGENT_NAME && (
+              <button
+                type="button"
+                ref={transferBtnRef}
+                onClick={() => {
+                  const rect = transferBtnRef.current?.getBoundingClientRect();
+                  if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
+                }}
+                className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Transfer
+              </button>
+            )}
             <button
               type="button"
               onClick={() => caseData.onMonitor()}
@@ -2928,17 +2930,19 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
                 onAssign={() => { setShowTransfer(false); caseData.onReject(); }}
               />
             )}
-            <button
-              type="button"
-              ref={transferBtnRef}
-              onClick={() => {
-                const rect = transferBtnRef.current?.getBoundingClientRect();
-                if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
-              }}
-              className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-            >
-              Transfer
-            </button>
+            {caseData.assignedTo === CURRENT_AGENT_NAME && (
+              <button
+                type="button"
+                ref={transferBtnRef}
+                onClick={() => {
+                  const rect = transferBtnRef.current?.getBoundingClientRect();
+                  if (rect) { setTransferTriggerRect(rect); setShowTransfer(true); }
+                }}
+                className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Transfer
+              </button>
+            )}
             <button
               type="button"
               onClick={() => caseData.onMonitor()}
