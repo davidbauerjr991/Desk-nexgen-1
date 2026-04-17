@@ -2794,7 +2794,7 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
     <div ref={containerRef} className="flex flex-col h-full overflow-hidden py-3">
       {/* Track */}
       <div
-        className="flex-1 min-h-0 overflow-hidden relative select-none"
+        className="flex-1 min-h-0 max-h-[800px] overflow-hidden relative select-none"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
