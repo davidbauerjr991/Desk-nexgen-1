@@ -1890,7 +1890,11 @@ function IssueRow({
           </div>
           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{preview}</p>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
-            <span>{botType}</span>
+            {assignedTo ? (
+              <span className="font-medium text-[#6E56CF]">{assignedTo}</span>
+            ) : (
+              <span>{botType}</span>
+            )}
             <span>•</span>
             <span>⏱ Wait: {waitTime}</span>
             <span>•</span>
@@ -3225,7 +3229,8 @@ function CustomerGroup({
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CURRENT_AGENT_NAME = "Jeff Comstock";
+// The name of the currently logged-in agent — shown in the queue subhead when a case is assigned to them.
+const CURRENT_AGENT_NAME = "David Bauer";
 
 // ─── Persistent state store (survives navigation away and back) ───────────────
 // Stored at module scope so it outlives component unmount/remount cycles.
@@ -3382,7 +3387,7 @@ export default function ControlCenterPage() {
     const row: RowData = {
       ...a,
       // Override assignedTo with the runtime value — "You" when actively in rail, null otherwise.
-      assignedTo: isAssignedToMe ? "You" : null,
+      assignedTo: isAssignedToMe ? CURRENT_AGENT_NAME : null,
       status: bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
@@ -3446,7 +3451,7 @@ export default function ControlCenterPage() {
         isClosed: false,
         isParkedFromToast,
         liveAssignmentId: a.id,
-        assignedTo: isParkedFromToast ? null : "You",
+        assignedTo: isParkedFromToast ? null : CURRENT_AGENT_NAME,
         onAccept: isParkedFromToast
           ? () => { setAssignmentStatus(a.id, "open"); selectAssignment(a.id); navigate("/activity"); }
           : () => {},
