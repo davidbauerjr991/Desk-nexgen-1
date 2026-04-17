@@ -3570,8 +3570,7 @@ export default function ControlCenterPage() {
 
       {/* ── Top-level Monitor / Queue tabs ───────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
-        {(["Monitor", "Queue"] as const).map((tab) => {
-          const key = tab.toLowerCase() as "monitor" | "queue";
+        {([["Home", "monitor"], ["Queue", "queue"]] as const).map(([label, key]) => {
           const isActive = controlCenterTab === key;
           return (
             <button
@@ -3585,7 +3584,7 @@ export default function ControlCenterPage() {
                   : "text-[#667085] hover:text-[#344054]",
               )}
             >
-              {tab}
+              {label}
               {isActive && (
                 <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-[#6E56CF]" />
               )}
