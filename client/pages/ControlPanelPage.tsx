@@ -3631,14 +3631,14 @@ export default function ControlCenterPage() {
                     setIssueTab("open");
                     setActivePageTab("queue");
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#F2F0FA]"
+                  className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#EFFBF1]"
                 >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] dark:bg-[#1C1A2E]">
-                    <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EFFBF1] dark:bg-[#0D2818]">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#16A34A]" />
                   </div>
                   <span className="flex-1 min-w-0 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Open Cases</span>
                   <div className="flex w-[52px] shrink-0 items-center justify-end gap-1.5">
-                    <span className="inline-flex items-center justify-center rounded-full bg-[#6E56CF] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#16A34A] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
                       {openCount}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
@@ -4066,7 +4066,7 @@ export default function ControlCenterPage() {
                   ))}
                   {issueTab !== "all" && (
                     <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
-                      {issueTab === "open" ? "Active" : issueTab.charAt(0).toUpperCase() + issueTab.slice(1)}
+                      {issueTab.charAt(0).toUpperCase() + issueTab.slice(1)}
                       <button type="button" onClick={() => setIssueTab("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
