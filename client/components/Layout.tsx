@@ -2384,10 +2384,10 @@ function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-52">
-          {/* Dismiss — routes through disposition */}
+          {/* Dismiss — closes the case immediately */}
           <DropdownMenuItem
             className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
-            onClick={() => { setDropdownOpen(false); setDisposition({ mode: "dismiss" }); }}
+            onClick={() => { setDropdownOpen(false); onDismiss(); }}
           >
             <X className="h-4 w-4" />
             Dismiss
