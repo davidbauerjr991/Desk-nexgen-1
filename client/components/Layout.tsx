@@ -2276,16 +2276,23 @@ function DockedConversationPanel({
                       <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
                     </div>
                   )}
-                  {onRemoveAssignment && assignmentStatus && assignmentStatus !== "open" && assignmentStatus !== "escalated" && (
-                    <button
-                      type="button"
-                      aria-label="Remove case"
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => { e.stopPropagation(); onRemoveAssignment(); }}
-                      className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                  {onRemoveAssignment && assignmentStatus && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="More options"
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); onRemoveAssignment(); }}
+                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[11px]">
+                        More options
+                      </TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
