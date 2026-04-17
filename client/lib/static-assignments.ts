@@ -45,6 +45,12 @@ export interface StaticAssignment {
   /** Brief customer profile context for the agent: tenure, history, sentiment */
   customerContext: string;
   aiOverview: AiOverview;
+  /**
+   * The agent this case is currently assigned to.
+   * null = unassigned (waiting in queue).
+   * Set when an agent clicks Takeover; cleared when they transfer or dismiss.
+   */
+  assignedTo: string | null;
 }
 
 // ─── Static assignments ───────────────────────────────────────────────────────
@@ -81,6 +87,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the account is current and future transactions are enabled",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-2",
@@ -113,6 +120,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Negotiate a resolution with James and document the outcome",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-3",
@@ -145,6 +153,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Enable MFA and confirm the account is fully secured",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-4",
@@ -177,6 +186,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Verify the integration is restored and confirm with the developer team",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-5",
@@ -209,6 +219,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Send a compliance-safe confirmation email and close the case",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-6",
@@ -241,6 +252,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Personally confirm with Kevin that the credits have been applied",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-7",
@@ -273,6 +285,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the new payment method is active and send a confirmation",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-8",
@@ -305,6 +318,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Test SSO end-to-end and confirm access is restored for Vertex users",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-9",
@@ -337,6 +351,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Close the case and confirm with Sandra that access is restored",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-10",
@@ -369,6 +384,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Secure a signed renewal before the contract lapses",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-11",
@@ -401,6 +417,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Initiate full incident response protocol and document findings",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-12",
@@ -433,6 +450,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Close the case once Tom confirms receipt",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-13",
@@ -465,6 +483,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Provide Nadia with a firm release timeline and status update",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-14",
@@ -497,6 +516,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Arrange direct engineering contact if the outage extends beyond 2 hours",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-15",
@@ -529,6 +549,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Guide Ingrid through the amendment process and confirm no penalty",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-16",
@@ -561,6 +582,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Keep Darius informed at every step until funds are confirmed returned",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-17",
@@ -592,6 +614,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the upgrade is active and send Yuki a confirmation",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-18",
@@ -623,6 +646,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Close the case and confirm with Amara that access is restored",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-19",
@@ -654,6 +678,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the change is active and billing is updated accordingly",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-20",
@@ -685,6 +710,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the case is resolved and close it with Chloe's confirmation",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-21",
@@ -716,6 +742,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Document the AI error and escalate to the compliance quality team",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-22",
@@ -747,6 +774,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Close the case once Sophie confirms the information is satisfactory",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-23",
@@ -778,6 +806,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Escalate the batch job failure to the engineering team for immediate fix",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-24",
@@ -809,6 +838,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Note the interaction and update the account preference flag if needed",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-25",
@@ -840,6 +870,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Verify login is restored and close the case",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-26",
@@ -871,6 +902,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Document the incident and notify the relevant oversight team",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-27",
@@ -902,6 +934,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm Finn is satisfied and the features are working correctly",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-28",
@@ -933,6 +966,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Review the lock trigger logic to prevent false positives during peak usage",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-29",
@@ -964,6 +998,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm all invoices are processed and the submission is complete",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-30",
@@ -995,6 +1030,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm all changes are saved and send Nadia a confirmation",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-31",
@@ -1026,6 +1062,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the waiver is applied and close the case",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-32",
@@ -1057,6 +1094,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Notify the compliance and content teams of the knowledge base error",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-33",
@@ -1088,6 +1126,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Monitor the calendar sync and confirm no double-booking occurred",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-34",
@@ -1119,6 +1158,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Review and update the freeze intent logic to prevent recurrence",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-35",
@@ -1150,6 +1190,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm Hugo has all the records he needs and close the case",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-36",
@@ -1181,6 +1222,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Close the case and confirm with Thandi that billing is corrected",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-37",
@@ -1212,6 +1254,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Monitor the transfer and confirm completion with Jerome",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-38",
@@ -1243,6 +1286,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Review the inactivity timeout for this account type and escalate if too short",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-39",
@@ -1274,6 +1318,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Keep Nathan informed of the claim progress and expected timeline",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "static-40",
@@ -1305,6 +1350,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Pursue the document recall and document all actions taken",
       ],
     },
+    assignedTo: null,
   },
 
   // ─── Human Agent assignments ──────────────────────────────────────────────
@@ -1338,6 +1384,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm with Sarah that access is fully restored",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-2",
@@ -1369,6 +1416,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm with James that the refund has been processed",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-3",
@@ -1400,6 +1448,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Confirm the transfer is complete and update account records",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-4",
@@ -1431,6 +1480,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Communicate ETA and resolution to Marcus",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-5",
@@ -1462,6 +1512,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Determine if a data breach notification is required",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-6",
@@ -1493,6 +1544,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Log the clearance decision for audit purposes",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-7",
@@ -1524,6 +1576,7 @@ export const staticAssignments: StaticAssignment[] = [
         "Issue a contract and confirm the upgrade with Amara",
       ],
     },
+    assignedTo: null,
   },
   {
     id: "human-8",
@@ -1555,5 +1608,6 @@ export const staticAssignments: StaticAssignment[] = [
         "Document all actions taken for the compliance audit trail",
       ],
     },
+    assignedTo: null,
   },
 ];

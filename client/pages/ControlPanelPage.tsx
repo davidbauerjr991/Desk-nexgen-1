@@ -1761,6 +1761,7 @@ function IssueRow({
   waitTime,
   aiOverview,
   customerContext,
+  assignedTo,
   isLive,
   isAccepted,
   isClosed,
@@ -1788,6 +1789,7 @@ function IssueRow({
   aiOverview: AiOverview;
   customerContext?: string;
   isLive: boolean;
+  assignedTo?: string | null;
   isAccepted: boolean;
   isClosed: boolean;
   isParkedFromToast: boolean;
@@ -1879,6 +1881,12 @@ function IssueRow({
             )}>
               {status}
             </span>
+            {assignedTo && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                Assigned — {assignedTo}
+              </span>
+            )}
           </div>
           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{preview}</p>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
@@ -2358,6 +2366,12 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             )}>
               {caseData.status}
             </span>
+            {caseData.assignedTo && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                Assigned — {caseData.assignedTo}
+              </span>
+            )}
           </div>
         </div>
         <p className="text-[12px] text-[#475467] leading-snug mb-1">{caseData.preview}</p>
@@ -2556,6 +2570,12 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
               caseData.status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
               caseData.status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
             )}>{caseData.status}</span>
+            {caseData.assignedTo && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                Assigned — {caseData.assignedTo}
+              </span>
+            )}
           </div>
           {caseData.status !== "resolved" && (
             <button
@@ -2878,7 +2898,15 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
       <div className="shrink-0 px-5 py-4 border-b border-border">
         <div className="flex items-start gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug mb-0.5">{caseData.name}</p>
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug">{caseData.name}</p>
+              {caseData.assignedTo && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                  Assigned — {caseData.assignedTo}
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-[#667085] mt-0.5 truncate">{caseData.preview}</p>
             <p className="text-[10px] text-[#98A2B3] mt-0.5">{caseData.botType} · Wait: {caseData.waitTime}</p>
           </div>
@@ -2927,6 +2955,31 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
 
       {/* Body — scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Case metadata row: channel · priority · assignment */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border bg-[#FAFAFA] px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Channel</span>
+            <span className="text-[11px] font-medium capitalize text-[#344054]">{caseData.channel}</span>
+          </div>
+          <span className="text-[#D0D5DD]">·</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Priority</span>
+            <span className={cn("text-[11px] font-semibold", caseData.priority === "Critical" && "text-[#C71D1A]", caseData.priority === "High" && "text-[#A37A00]", caseData.priority === "Medium" && "text-[#6E56CF]", caseData.priority === "Low" && "text-[#208337]")}>{caseData.priority}</span>
+          </div>
+          <span className="text-[#D0D5DD]">·</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Assigned To</span>
+            {caseData.assignedTo ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E56CF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                {caseData.assignedTo}
+              </span>
+            ) : (
+              <span className="text-[11px] text-[#98A2B3]">Unassigned</span>
+            )}
+          </div>
+        </div>
+
         {/* Customer Context */}
         {caseData.customerContext && (
           <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
@@ -3324,8 +3377,12 @@ export default function ControlCenterPage() {
     const liveStatus = assignmentId ? (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) : undefined;
     const isAccepted = acceptedStaticsStore.has(a.id);
     const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
+    // A case is "assigned to me" when it's been taken over and is still actively in the rail.
+    const isAssignedToMe = isAccepted && !isClosed;
     const row: RowData = {
       ...a,
+      // Override assignedTo with the runtime value — "You" when actively in rail, null otherwise.
+      assignedTo: isAssignedToMe ? "You" : null,
       status: bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
@@ -3389,6 +3446,7 @@ export default function ControlCenterPage() {
         isClosed: false,
         isParkedFromToast,
         liveAssignmentId: a.id,
+        assignedTo: isParkedFromToast ? null : "You",
         onAccept: isParkedFromToast
           ? () => { setAssignmentStatus(a.id, "open"); selectAssignment(a.id); navigate("/activity"); }
           : () => {},
@@ -3432,6 +3490,7 @@ export default function ControlCenterPage() {
       waitTime: "",
       aiOverview: sa?.aiOverview ?? { actions: [], whyNeeded: "", nextSteps: [] },
       customerContext: sa?.customerContext ?? "",
+      assignedTo: null,
       isLive: false,
       isAccepted: true,
       isClosed: true,
