@@ -2356,7 +2356,7 @@ function DispositionPopover({
 
 // ─── More-options dropdown for the active-case panel header ──────────────────
 
-function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
+function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => void; iconSize?: "sm" | "md" }) {
   const { openChatPopover } = useLayoutContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -2378,9 +2378,12 @@ function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
             aria-label="More options"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+            className={cn(
+              "flex flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]",
+              iconSize === "sm" ? "h-6 w-6" : "h-7 w-7",
+            )}
           >
-            <MoreVertical className="h-4 w-4" />
+            <MoreVertical className={iconSize === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-52">
@@ -5365,21 +5368,10 @@ function GroupedQueueCard({
               onStatusChange={handleGroupStatusChange}
               onOpenChange={onStatusDropdownOpenChange}
             />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`More options for ${group.name}`}
-                  onClick={() => group.channels.forEach((ch) => onRemove(ch.id))}
-                  className="flex h-6 w-6 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-                >
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-[11px]">
-                More options
-              </TooltipContent>
-            </Tooltip>
+            <CaseMoreOptionsMenu
+              onDismiss={() => group.channels.forEach((ch) => onRemove(ch.id))}
+              iconSize="sm"
+            />
           </div>
         </div>
         {/* Task description — task-level, shown once in the header.
