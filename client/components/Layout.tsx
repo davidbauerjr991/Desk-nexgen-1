@@ -55,6 +55,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -159,6 +162,7 @@ interface LayoutContextValue {
   liveLastCustomerCommentByAssignmentId: Record<string, string>;
   setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
   openCopilot: () => void;
+  openChatPopover: () => void;
   isBriefingDismissed: boolean;
   pushToIncomingNotifications: (item: QueuePreviewItem) => void;
   pendingMonitorCaseId: string | null;
@@ -168,6 +172,16 @@ interface LayoutContextValue {
 }
 
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
+
+// Agent roster used for the Transfer sub-menu in the case header dropdown
+const caseTransferAgents = [
+  { id: "a1", name: "Priya Mehra",     initials: "PM", availability: "Available" as const },
+  { id: "a2", name: "Sam Torres",      initials: "ST", availability: "Available" as const },
+  { id: "a3", name: "Amara Osei",      initials: "AO", availability: "Available" as const },
+  { id: "a4", name: "Marcus Webb",     initials: "MW", availability: "Available" as const },
+  { id: "a5", name: "Kenji Watanabe",  initials: "KW", availability: "In a Call" as const },
+  { id: "a6", name: "Lena Fischer",    initials: "LF", availability: "Away" as const },
+];
 
 export type AgentChatNotification = {
   id: string;
@@ -2005,6 +2019,79 @@ function TaskSummaryView({
   );
 }
 
+// ─── More-options dropdown for the active-case panel header ──────────────────
+
+function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
+  const { openChatPopover } = useLayoutContext();
+  const [transferOpen, setTransferOpen] = useState(false);
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="More options"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="bottom" align="end" className="w-52">
+        {/* Dismiss — closes the case and all open interactions */}
+        <DropdownMenuItem
+          className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
+          onClick={() => onDismiss()}
+        >
+          <X className="h-4 w-4" />
+          Dismiss
+        </DropdownMenuItem>
+
+        {/* Transfer — sub-menu with available agents */}
+        <DropdownMenuSub open={transferOpen} onOpenChange={setTransferOpen}>
+          <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+            <ArrowRightLeft className="h-4 w-4" />
+            Transfer
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-56 p-1">
+            <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Transfer to</p>
+            {caseTransferAgents.map((agent) => (
+              <DropdownMenuItem
+                key={agent.id}
+                className="gap-2 cursor-pointer py-2"
+                onClick={() => setTransferOpen(false)}
+              >
+                <div className={cn(
+                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+                  agent.availability === "Available" && "bg-[#EFFBF1] text-[#208337]",
+                  agent.availability === "In a Call" && "bg-[#FFF6E0] text-[#A37A00]",
+                  agent.availability === "Away"      && "bg-[#F2F4F7] text-[#667085]",
+                )}>
+                  {agent.initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-medium leading-tight truncate">{agent.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{agent.availability}</p>
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Consult — opens the internal agent chat window */}
+        <DropdownMenuItem
+          className="gap-2 cursor-pointer"
+          onClick={() => openChatPopover()}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Consult
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function DockedConversationPanel({
   isOpen,
   conversation,
@@ -2277,22 +2364,9 @@ function DockedConversationPanel({
                     </div>
                   )}
                   {onRemoveAssignment && assignmentStatus && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          aria-label="More options"
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onClick={(e) => { e.stopPropagation(); onRemoveAssignment(); }}
-                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-[11px]">
-                        More options
-                      </TooltipContent>
-                    </Tooltip>
+                    <CaseMoreOptionsMenu
+                      onDismiss={onRemoveAssignment}
+                    />
                   )}
                 </div>
               </div>
@@ -8652,6 +8726,7 @@ export default function Layout({ children }: LayoutProps) {
           openHeaderAppPanel("copilot");
         }
       },
+      openChatPopover,
     }),
     [
       activeRightPanel,
@@ -8705,6 +8780,7 @@ export default function Layout({ children }: LayoutProps) {
       setAssignmentStatusesById,
       isCopilotViewPopunderOpen,
       openHeaderAppPanel,
+      openChatPopover,
       isBriefingDismissed,
       setIncomingNotifications,
       pendingMonitorCaseId,
