@@ -3590,10 +3590,9 @@ export default function ControlCenterPage() {
                 <button
                   type="button"
                   onClick={() => setActivePageTab("queue")}
-                  className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-[#6E56CF] transition-colors hover:bg-[#F2F0FA]"
+                  className="text-[11px] font-medium text-[#6E56CF] hover:underline"
                 >
                   View Queue
-                  <ChevronDown className="h-3 w-3 -rotate-90" />
                 </button>
               </div>
               <div className="space-y-1">
