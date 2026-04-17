@@ -3585,7 +3585,17 @@ export default function ControlCenterPage() {
 
             {/* Overview card */}
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B] mb-3">Overview</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Overview</p>
+                <button
+                  type="button"
+                  onClick={() => setActivePageTab("queue")}
+                  className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-[#6E56CF] transition-colors hover:bg-[#F2F0FA]"
+                >
+                  View Queue
+                  <ChevronDown className="h-3 w-3 -rotate-90" />
+                </button>
+              </div>
               <div className="space-y-1">
                 {/* Row shared layout: icon | label | fixed-width badge+chevron column */}
                 <button
