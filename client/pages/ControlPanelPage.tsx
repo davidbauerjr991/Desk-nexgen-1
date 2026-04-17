@@ -3767,6 +3767,56 @@ export default function ControlCenterPage() {
               </div>
             </div>
 
+            {/* Escalated case cards */}
+            {(() => {
+              const escalatedRows = baseRows.filter((a) => a.status === "escalated");
+              if (escalatedRows.length === 0) return null;
+              return (
+                <div className="w-full max-w-[56rem] flex flex-col gap-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">
+                    {escalatedRows.length} Escalated {escalatedRows.length === 1 ? "Case" : "Cases"} Requiring Attention
+                  </p>
+                  {escalatedRows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="relative rounded-xl border border-[#FECACA] bg-[#FEF2F2] shadow-sm overflow-hidden animate-in slide-in-from-bottom-2 fade-in duration-300"
+                    >
+                      {/* left accent bar */}
+                      <div className="absolute left-0 inset-y-0 w-[3px] bg-[#E53935] rounded-r-full" />
+                      <div className="flex items-center gap-3 px-5 py-3.5">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[13px] font-semibold text-[#1D2939]">{row.botType}</span>
+                            <span className="text-[11px] text-[#98A2B3]">{row.waitTime}</span>
+                            <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+                              {row.priority}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{row.preview}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => row.onMonitor()}
+                            className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                          >
+                            Monitor
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => row.isAccepted ? row.onReopen() : row.onAccept()}
+                            className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          >
+                            Takeover
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
           </div>
         );
       })()}
