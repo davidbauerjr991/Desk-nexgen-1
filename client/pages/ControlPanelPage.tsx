@@ -3247,7 +3247,14 @@ const persistedState = {
   monitoredCaseId: null as string | null,
   viewMode: "list" as "list" | "card" | "carousel",
   carouselIndex: 0,
+  // Tracks which static case IDs have been marked escalated — persists across
+  // navigation so the escalated state is not lost on remount.
+  escalatedIds: new Set<string>(),
 };
+
+// Ensures the local escalation-override timer fires at most once per session,
+// even if ControlCenterPage mounts and unmounts multiple times.
+let escalationLocalFired = false;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -3296,7 +3303,8 @@ export default function ControlCenterPage() {
   // so it survives remounts when the agent navigates away and back).
   const [, forceUpdate] = useState(0);
   const [escalatedModalCase, setEscalatedModalCase] = useState<EscalatedCaseModalData | null>(null);
-  const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(new Set());
+  // Initialise from persistedState so escalated status survives navigation away and back.
+  const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(() => new Set(persistedState.escalatedIds));
   const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
@@ -3316,12 +3324,19 @@ export default function ControlCenterPage() {
   useEffect(() => { if (viewMode === "carousel") setCarouselIndex(0); }, [issueTab, priorityFilters, channelFilters, agentTypeFilter]);
 
   // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
-  // When the escalated notification is pushed, also mark static-11 as escalated locally
-  // and auto-open the escalated case modal.
+  // When the escalated notification is pushed, also mark static-11 as escalated locally.
+  // The module-level flag + persistedState.escalatedIds ensure this only fires once per
+  // browser session and the escalated status is preserved across remounts.
   useEffect(() => {
     if (!isBriefingDismissed) return;
+    if (escalationLocalFired) return;
+    escalationLocalFired = true;
     const timer = setTimeout(() => {
-      setEscalatedOverrides((prev) => new Set([...prev, "static-11"]));
+      setEscalatedOverrides((prev) => {
+        const next = new Set([...prev, "static-11"]);
+        persistedState.escalatedIds = next;
+        return next;
+      });
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isBriefingDismissed]);
@@ -3407,7 +3422,9 @@ export default function ControlCenterPage() {
       },
     };
     return row;
-  });
+  // Exclude closed cases (taken over + dismissed) — they are represented in resolvedNormalised
+  // and keeping them here would cause Fatima (or any other case) to appear twice in the queue.
+  }).filter((row) => !row.isClosed);
   staticNormalisedRef.current = staticNormalised;
 
   // Live assignments currently open in the left rail. Exclude dynamically-created

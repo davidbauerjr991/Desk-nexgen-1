@@ -8259,6 +8259,9 @@ export default function Layout({ children }: LayoutProps) {
     const sa = staticAssignments.find(
       (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
     );
+    // Mark the static case as "handled" so the queue removes it on next render
+    // (prevents double-entry when the live resolved assignment appears in resolvedNormalised).
+    if (sa) pendingQueueRejections.add(sa.id);
     // Call acceptIssue directly — ONE navigation to /activity so the page
     // fade-in animation fires cleanly (double navigation via /control-panel breaks it).
     acceptIssue({
