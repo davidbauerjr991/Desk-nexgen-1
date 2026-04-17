@@ -5747,11 +5747,13 @@ function IncomingAssignmentCard({
   onMonitor,
   onTakeover,
   onTransfer,
+  onDismiss,
 }: {
   item: QueuePreviewItem;
   onMonitor: (item: QueuePreviewItem) => void;
   onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
+  onDismiss: (item: QueuePreviewItem) => void;
 }) {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -5809,14 +5811,24 @@ function IncomingAssignmentCard({
             <p className="text-[12px] text-[#667085] dark:text-[#8898AB] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
           </div>
         </div>
-        <span className={cn(
-          "shrink-0 ml-2 rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-          item.statusLabel === "Escalated"
-            ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
-            : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
-        )}>
-          {item.statusLabel ?? "Open"}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          <span className={cn(
+            "rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+            item.statusLabel === "Escalated"
+              ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+              : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+          )}>
+            {item.statusLabel ?? "Open"}
+          </span>
+          <button
+            type="button"
+            onClick={() => onDismiss(item)}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
+            aria-label="Dismiss notification"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Channel + time */}
@@ -6089,6 +6101,7 @@ function NotificationStack({
   onMonitor,
   onTakeover,
   onTransfer,
+  onDismiss,
   onChatOpen,
   onChatDismiss,
 }: {
@@ -6097,6 +6110,7 @@ function NotificationStack({
   onMonitor: (item: QueuePreviewItem) => void;
   onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
+  onDismiss: (item: QueuePreviewItem) => void;
   onChatOpen: (notif: AgentChatNotification) => void;
   onChatDismiss: (notif: AgentChatNotification) => void;
 }) {
@@ -6147,6 +6161,7 @@ function NotificationStack({
         onMonitor={onMonitor}
         onTakeover={onTakeover}
         onTransfer={onTransfer}
+        onDismiss={onDismiss}
       />
     ) : (
       <IncomingAgentChatCard
@@ -10056,6 +10071,7 @@ export default function Layout({ children }: LayoutProps) {
         onMonitor={monitorIncomingAssignment}
         onTakeover={takeoverIncomingAssignment}
         onTransfer={transferIncomingAssignment}
+        onDismiss={(item) => removeIncoming(item.id)}
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
       />
