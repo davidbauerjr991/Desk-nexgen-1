@@ -6437,6 +6437,7 @@ export default function Layout({ children }: LayoutProps) {
     height: typeof window === "undefined" ? 720 : Math.max(DESK_CANVAS_POPOUNDER_MIN_HEIGHT, window.innerHeight - 80),
   }));
   const [isPageEntered, setIsPageEntered] = useState(false);
+  const [contentRevealTrigger, setContentRevealTrigger] = useState(0);
   const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
     width: 380,
@@ -6644,7 +6645,7 @@ export default function Layout({ children }: LayoutProps) {
       window.cancelAnimationFrame(outer);
       window.cancelAnimationFrame(inner);
     };
-  }, [location.pathname]);
+  }, [location.pathname, contentRevealTrigger]);
 
   useEffect(() => {
     return () => {
@@ -7872,6 +7873,7 @@ export default function Layout({ children }: LayoutProps) {
     setSelectedAssignmentId(newItem.id);
     setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
     data.onCreated?.(newItem.id);
+    setContentRevealTrigger((t) => t + 1);
 
     navigate("/activity");
   };
