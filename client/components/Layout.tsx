@@ -8103,6 +8103,24 @@ export default function Layout({ children }: LayoutProps) {
     const conversationStateKey = getConversationStateKey(assignmentId);
     setCompletedTodayCount((n) => n + 1);
 
+    // If this assignment is escalated, decrement the rail badge count
+    const isEscalated =
+      removedAssignment?.statusLabel === "Escalated" ||
+      assignmentStatusesById[assignmentId] === "escalated";
+    if (isEscalated) {
+      setEscalatedRailCount((n) => Math.max(0, n - 1));
+    }
+
+    // Remove the case from the ControlPanel static queue by reverse-looking up
+    // acceptedStaticsStore (staticId → assignmentId) and adding to pendingQueueRejections.
+    for (const [staticId, acceptedId] of acceptedStaticsStore.entries()) {
+      if (acceptedId === assignmentId) {
+        pendingQueueRejections.add(staticId);
+        acceptedStaticsStore.delete(staticId);
+        break;
+      }
+    }
+
     if (removedAssignment) {
       setResolvedAssignments((prev) => [
         {
