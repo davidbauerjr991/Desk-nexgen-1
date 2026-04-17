@@ -174,15 +174,6 @@ interface LayoutContextValue {
 export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
 
 // Agent roster used for the Transfer sub-menu in the case header dropdown
-const caseTransferAgents = [
-  { id: "a1", name: "Priya Mehra",     initials: "PM", availability: "Available" as const },
-  { id: "a2", name: "Sam Torres",      initials: "ST", availability: "Available" as const },
-  { id: "a3", name: "Amara Osei",      initials: "AO", availability: "Available" as const },
-  { id: "a4", name: "Marcus Webb",     initials: "MW", availability: "Available" as const },
-  { id: "a5", name: "Kenji Watanabe",  initials: "KW", availability: "In a Call" as const },
-  { id: "a6", name: "Lena Fischer",    initials: "LF", availability: "Away" as const },
-];
-
 export type AgentChatNotification = {
   id: string;
   conversationId: string;   // matches ChatPopover conversation id
@@ -2019,76 +2010,269 @@ function TaskSummaryView({
   );
 }
 
+// ─── Transfer popover for the active-case header (tabbed: Department / Agent / Supervisor) ───
+function CaseTransferPopover({
+  triggerRef,
+  onClose,
+}: {
+  triggerRef: React.RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<"Department" | "Agent" | "Supervisor">("Department");
+  const [assigned, setAssigned] = useState<string | null>(null);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+
+  useEffect(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+  }, [triggerRef]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const handleAssignAgent = (id: string) => {
+    setAssigned(id);
+    setTimeout(() => onClose(), 800);
+  };
+  const handleAssignDept = (id: string) => {
+    setAssigned(id);
+    setTimeout(() => onClose(), 800);
+  };
+
+  const humanAgents = [...notifAgentRoster].sort(
+    (a, b) => notifAvailabilityOrder[a.availability] - notifAvailabilityOrder[b.availability],
+  );
+  const supervisors = [...notifSupervisorRoster].sort(
+    (a, b) => notifAvailabilityOrder[a.availability] - notifAvailabilityOrder[b.availability],
+  );
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[999999] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={{ top: pos.top, right: pos.right }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <p className="text-[12px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Transfer to</p>
+        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {/* Tabs */}
+      <div className="flex border-b border-border">
+        {(["Department", "Agent", "Supervisor"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => { setTab(t); setAssigned(null); }}
+            className={cn("relative flex-1 py-2.5 text-[11px] font-medium transition-colors",
+              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
+          >
+            {t}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+          </button>
+        ))}
+      </div>
+      {/* Content */}
+      <div className="max-h-[260px] overflow-y-auto divide-y divide-border">
+        {tab === "Department" && notifDepartmentRoster.map((dept) => {
+          const isAssigned = assigned === dept.id;
+          return (
+            <button
+              key={dept.id}
+              type="button"
+              onClick={() => handleAssignDept(dept.id)}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]")}
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[15px]">
+                {dept.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12px] font-semibold text-[#1D2939] truncate">{dept.name}</p>
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                </div>
+                <p className="text-[10px] text-[#98A2B3] truncate">{dept.description}</p>
+              </div>
+              <span className="shrink-0 rounded-full bg-[#F2F4F7] px-1.5 py-0.5 text-[10px] font-semibold text-[#667085]">{dept.queue}</span>
+            </button>
+          );
+        })}
+
+        {tab === "Agent" && (
+          <>
+            {/* Human agents */}
+            {humanAgents.map((agent) => {
+              const isAssigned = assigned === agent.id;
+              const isDisabled = agent.availability === "Offline" || (assigned !== null && !isAssigned);
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => handleAssignAgent(agent.id)}
+                  className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                    isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                    isDisabled && "opacity-40 cursor-not-allowed")}
+                >
+                  <div className="relative shrink-0">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F2F4F7] text-[10px] font-bold text-[#475467]">
+                      {agent.initials}
+                    </div>
+                    <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", notifAvailabilityDot[agent.availability])} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
+                      {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                    </div>
+                    <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-[#667085]">{agent.activeCount}</span>
+                </button>
+              );
+            })}
+            {/* Virtual (bot) agents */}
+            <div className="px-4 py-1.5 bg-[#FAFAFA]">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Virtual (Bot)</p>
+            </div>
+            {notifBotRoster.map((bot) => {
+              const isAssigned = assigned === bot.id;
+              const isDisabled = assigned !== null && !isAssigned;
+              return (
+                <button
+                  key={bot.id}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => handleAssignAgent(bot.id)}
+                  className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                    isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                    isDisabled && "opacity-40 cursor-not-allowed")}
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[14px]">
+                    {bot.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[12px] font-semibold text-[#1D2939] truncate">{bot.name}</p>
+                      {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                    </div>
+                    <p className="text-[10px] text-[#98A2B3]">Virtual agent</p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-[#667085]">{bot.activeCount}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
+
+        {tab === "Supervisor" && supervisors.map((sup) => {
+          const isAssigned = assigned === sup.id;
+          const isDisabled = sup.availability === "Offline" || (assigned !== null && !isAssigned);
+          return (
+            <button
+              key={sup.id}
+              type="button"
+              disabled={isDisabled}
+              onClick={() => handleAssignAgent(sup.id)}
+              className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
+                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isDisabled && "opacity-40 cursor-not-allowed")}
+            >
+              <div className="relative shrink-0">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#FFF6E0] text-[10px] font-bold text-[#A37A00]">
+                  {sup.initials}
+                </div>
+                <span className={cn("absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border-2 border-white", notifAvailabilityDot[sup.availability])} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12px] font-semibold text-[#1D2939] truncate">{sup.name}</p>
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                </div>
+                <p className="text-[10px] text-[#98A2B3] truncate">{sup.skills.join(" · ")}</p>
+              </div>
+              <span className="shrink-0 text-[10px] text-[#667085]">{sup.activeCount}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── More-options dropdown for the active-case panel header ──────────────────
 
 function CaseMoreOptionsMenu({ onDismiss }: { onDismiss: () => void }) {
   const { openChatPopover } = useLayoutContext();
-  const [transferOpen, setTransferOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          aria-label="More options"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
-        >
-          <MoreVertical className="h-4 w-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" align="end" className="w-52">
-        {/* Dismiss — closes the case and all open interactions */}
-        <DropdownMenuItem
-          className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
-          onClick={() => onDismiss()}
-        >
-          <X className="h-4 w-4" />
-          Dismiss
-        </DropdownMenuItem>
+    <>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+        <DropdownMenuTrigger asChild>
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-label="More options"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="bottom" align="end" className="w-52">
+          {/* Dismiss — closes the case and all open interactions */}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
+            onClick={() => { setDropdownOpen(false); onDismiss(); }}
+          >
+            <X className="h-4 w-4" />
+            Dismiss
+          </DropdownMenuItem>
 
-        {/* Transfer — sub-menu with available agents */}
-        <DropdownMenuSub open={transferOpen} onOpenChange={setTransferOpen}>
-          <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+          {/* Transfer — opens a tabbed popover */}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={(e) => { e.preventDefault(); setDropdownOpen(false); setShowTransfer(true); }}
+          >
             <ArrowRightLeft className="h-4 w-4" />
             Transfer
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-56 p-1">
-            <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Transfer to</p>
-            {caseTransferAgents.map((agent) => (
-              <DropdownMenuItem
-                key={agent.id}
-                className="gap-2 cursor-pointer py-2"
-                onClick={() => setTransferOpen(false)}
-              >
-                <div className={cn(
-                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-                  agent.availability === "Available" && "bg-[#EFFBF1] text-[#208337]",
-                  agent.availability === "In a Call" && "bg-[#FFF6E0] text-[#A37A00]",
-                  agent.availability === "Away"      && "bg-[#F2F4F7] text-[#667085]",
-                )}>
-                  {agent.initials}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-medium leading-tight truncate">{agent.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{agent.availability}</p>
-                </div>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
+          </DropdownMenuItem>
 
-        {/* Consult — opens the internal agent chat window */}
-        <DropdownMenuItem
-          className="gap-2 cursor-pointer"
-          onClick={() => openChatPopover()}
-        >
-          <MessageCircle className="h-4 w-4" />
-          Consult
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {/* Consult — opens the internal agent chat window */}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={() => { setDropdownOpen(false); openChatPopover(); }}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Consult
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {showTransfer && (
+        <CaseTransferPopover
+          triggerRef={triggerRef}
+          onClose={() => setShowTransfer(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -5239,6 +5423,13 @@ const notifAgentRoster: NotifAgent[] = [
   { id: "agent-6", name: "Lena Fischer",    initials: "LF", availability: "Away",       skills: ["Billing", "Refunds", "Account Management"],            activeCount: 1 },
   { id: "agent-7", name: "Marcus Webb",     initials: "MW", availability: "Available",  skills: ["Security", "Identity Management", "SSO"],              activeCount: 2 },
   { id: "agent-8", name: "Chloe Nguyen",    initials: "CN", availability: "Offline",    skills: ["Technical Support", "Logistics", "Customs"],           activeCount: 0 },
+];
+type NotifBot = { id: string; name: string; icon: string; skills: string[]; activeCount: number };
+const notifBotRoster: NotifBot[] = [
+  { id: "bot-1", name: "Aria",          icon: "🤖", skills: ["FAQ", "Self-Service", "Account Lookup"],            activeCount: 24 },
+  { id: "bot-2", name: "Billing Bot",   icon: "💳", skills: ["Invoices", "Payment Status", "Refunds"],            activeCount: 11 },
+  { id: "bot-3", name: "Tech Assist",   icon: "🛠️", skills: ["Troubleshooting", "Diagnostics", "Reset Flows"],    activeCount: 8  },
+  { id: "bot-4", name: "Security Bot",  icon: "🔒", skills: ["Identity Verification", "Access Resets", "MFA"],   activeCount: 6  },
 ];
 const notifSupervisorRoster: NotifAgent[] = [
   { id: "sup-1", name: "Rachel Kim",    initials: "RK", availability: "Available",  skills: ["Escalations", "Enterprise Accounts", "Compliance"],  activeCount: 3 },
