@@ -3876,7 +3876,7 @@ export default function ControlCenterPage() {
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-1.5">Status</p>
                         <div className="flex flex-wrap gap-1">
                           {(["all", "escalated", "open", "pending", "resolved"] as const).map((tab) => {
-                            const labels: Record<typeof tab, string> = { all: "All", escalated: "Escalated", open: "Active", pending: "Pending", resolved: "Resolved" };
+                            const labels: Record<typeof tab, string> = { all: "All", escalated: "Escalated", open: "Open", pending: "Pending", resolved: "Resolved" };
                             return (
                               <button
                                 key={tab}
