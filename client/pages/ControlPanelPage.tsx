@@ -3632,6 +3632,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("escalated");
+                    setControlCenterTab("queue");
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors",
@@ -3666,7 +3667,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("pending");
-                    setActivePageTab("queue");
+                    setControlCenterTab("queue");
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#FFFAEB]"
                 >
@@ -3686,7 +3687,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("open");
-                    setActivePageTab("queue");
+                    setControlCenterTab("queue");
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#EFFBF1]"
                 >
