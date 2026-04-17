@@ -1870,9 +1870,6 @@ function IssueRow({
         <div className="flex-1 min-w-0 pr-2">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold text-[#1D2939]">{name}</span>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priority])}>
-              {priority}
-            </span>
             <span className={cn(
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
               status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E] dark:border-[#1E4A1E] dark:bg-[#0A2010] dark:text-[#4CAF50]",
@@ -2024,9 +2021,6 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-semibold text-[#1D2939]">{item.name}</span>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[priorityKey] ?? priorityStyles.Medium)}>
-              {item.priority}
-            </span>
             <span className="rounded border border-[#B9E0B4] bg-[#F0FAF0] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#1E7B1E]">
               resolved
             </span>
@@ -2366,9 +2360,6 @@ function QueueCard({ caseData }: { caseData: RowData }) {
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="text-[14px] font-semibold text-[#1D2939] leading-snug">{caseData.name}</span>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
-              {caseData.priority}
-            </span>
             <span className={cn(
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
               caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
@@ -2569,9 +2560,6 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 flex-wrap min-w-0">
             <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
-            <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority])}>
-              {caseData.priority}
-            </span>
             <span className={cn(
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none capitalize",
               caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
