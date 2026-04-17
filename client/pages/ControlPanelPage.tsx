@@ -3743,7 +3743,7 @@ export default function ControlCenterPage() {
           </div>
 
             {/* AI input bar */}
-            <div className="w-full max-w-2xl">
+            <div className="w-full max-w-[56rem]">
               <div className="flex items-center gap-3 rounded-xl border border-border bg-white shadow-sm px-4 py-3">
                 <Sparkles className="h-4 w-4 shrink-0 text-[#6E56CF]" />
                 <input
