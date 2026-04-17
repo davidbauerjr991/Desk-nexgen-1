@@ -88,7 +88,7 @@ import {
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections } from "@/lib/queue-state";
+import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -7800,8 +7800,26 @@ export default function Layout({ children }: LayoutProps) {
 
   const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
     removeIncoming(item.id);
-    setPendingTakeoverCaseId(item.customerRecordId);
-    navigate("/control-panel");
+    // Find the matching static assignment so acceptedStaticsStore is kept in sync
+    const sa = staticAssignments.find(
+      (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+    );
+    // Call acceptIssue directly — ONE navigation to /activity so the page
+    // fade-in animation fires cleanly (double navigation via /control-panel breaks it).
+    acceptIssue({
+      id: sa?.id ?? item.id,
+      name: item.name,
+      customerId: item.customerId,
+      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
+      channel: item.channel,
+      priority: item.priority,
+      preview: item.preview,
+      status: (item.statusLabel?.toLowerCase() ?? sa?.status ?? "open") as QueueAssignmentStatus, // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
+      waitTime: item.time,
+      onCreated: sa
+        ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
+        : undefined,
+    });
   };
 
   const transferIncomingAssignment = (item: QueuePreviewItem) => {
@@ -9587,12 +9605,28 @@ export default function Layout({ children }: LayoutProps) {
         <EscalatedCaseModal
           caseData={escalatedToastModal}
           onTakeover={() => {
-            // Queue the rejection so ControlPanelPage removes it from the queue on next render
+            // Remove from ControlPanelPage queue on next render
             pendingQueueRejections.add(escalatedToastModal.id);
-            // Navigate to control panel with takeover pending
-            setPendingTakeoverCaseId(escalatedToastModal.customerRecordId ?? null);
             setEscalatedToastModal(null);
-            navigate("/control-panel");
+            // Find the static assignment so acceptedStaticsStore stays in sync
+            const sa = staticAssignments.find(
+              (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
+            );
+            // Call acceptIssue directly — ONE navigation to /activity for a clean fade-in
+            acceptIssue({
+              id: escalatedToastModal.id,
+              name: escalatedToastModal.name,
+              customerId: escalatedToastModal.customerId,
+              customerRecordId: escalatedToastModal.customerRecordId ?? undefined,
+              channel: escalatedToastModal.channel as AssignmentChannel,
+              priority: escalatedToastModal.priority,
+              preview: escalatedToastModal.preview,
+              status: escalatedToastModal.status as QueueAssignmentStatus,
+              waitTime: escalatedToastModal.waitTime,
+              onCreated: sa
+                ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
+                : undefined,
+            });
           }}
           onTransfer={() => {
             pendingQueueRejections.add(escalatedToastModal.id);

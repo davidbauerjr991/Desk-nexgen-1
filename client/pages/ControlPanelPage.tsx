@@ -25,7 +25,7 @@ import {
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections } from "@/lib/queue-state";
+import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -1313,9 +1313,6 @@ function getIssueGroup(preview: string, name: string): string {
   return "Other Issues";
 }
 
-// Module-level store so the accepted-task map survives component remounts
-// (ControlCenterPage unmounts on every navigate("/activity") call).
-const acceptedStaticsStore = new Map<string, string>(); // staticId → assignmentId
 
 // ─── Connected applications (static) ─────────────────────────────────────────
 
