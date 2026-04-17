@@ -250,7 +250,7 @@ function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
   }
 
   if (status === "pending") {
-    return "border-[#A37A00] bg-[#FFF6E0] text-[#A37A00] hover:bg-[#FFF6E0]";
+    return "border-[#D0D5DD] bg-[#F2F4F7] text-[#667085] hover:bg-[#E4E7EC]";
   }
 
   if (status === "resolved") {
