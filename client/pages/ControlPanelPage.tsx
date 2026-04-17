@@ -3250,6 +3250,8 @@ const persistedState = {
   // Tracks which static case IDs have been marked escalated — persists across
   // navigation so the escalated state is not lost on remount.
   escalatedIds: new Set<string>(),
+  // Top-level tab inside the Control Center (Monitor vs Queue).
+  controlCenterTab: "queue" as "monitor" | "queue",
 };
 
 // Ensures the local escalation-override timer fires at most once per session,
@@ -3262,6 +3264,7 @@ export default function ControlCenterPage() {
   const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
+  const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
   const [issueTab, setIssueTab] = useState<IssueTab>(() => persistedState.issueTab);
   const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(() => new Set(persistedState.priorityFilters));
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
@@ -3318,6 +3321,7 @@ export default function ControlCenterPage() {
   useEffect(() => { persistedState.groupMode = groupMode; }, [groupMode]);
   useEffect(() => { persistedState.viewMode = viewMode; }, [viewMode]);
   useEffect(() => { persistedState.carouselIndex = carouselIndex; }, [carouselIndex]);
+  useEffect(() => { persistedState.controlCenterTab = controlCenterTab; }, [controlCenterTab]);
 
   // Reset carousel to first item whenever any filter changes in carousel mode
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3564,7 +3568,36 @@ export default function ControlCenterPage() {
   return (
     <div className="flex h-full flex-col">
 
-      {/* ── Summary cards row — above the entire container ──────────────────── */}
+      {/* ── Top-level Monitor / Queue tabs ───────────────────────────────────── */}
+      <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
+        {(["Monitor", "Queue"] as const).map((tab) => {
+          const key = tab.toLowerCase() as "monitor" | "queue";
+          const isActive = controlCenterTab === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setControlCenterTab(key)}
+              className={cn(
+                "relative py-3 px-1 mr-6 text-[13px] font-medium transition-colors",
+                isActive
+                  ? "text-[#6E56CF]"
+                  : "text-[#667085] hover:text-[#344054]",
+              )}
+            >
+              {tab}
+              {isActive && (
+                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-[#6E56CF]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
+      {controlCenterTab === "queue" && <>
+
+      {/* ── Summary cards row ────────────────────────────────────────────────── */}
       {(() => {
         const criticalCount = baseRows.filter((a) => a.priority === "Critical").length;
         const highCount     = baseRows.filter((a) => a.priority === "High").length;
@@ -4202,6 +4235,19 @@ export default function ControlCenterPage() {
 
         </div>
       </div>
+
+      </> /* end Queue tab */}
+
+      {/* ── Monitor tab ───────────────────────────────────────────────────────── */}
+      {controlCenterTab === "monitor" && (
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-center p-10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F2F0FA]">
+            <GalleryVertical className="h-5 w-5 text-[#6E56CF]" />
+          </div>
+          <p className="text-[15px] font-semibold text-[#344054]">Monitor</p>
+          <p className="text-[13px] text-[#667085] max-w-xs">Live monitoring of active conversations and agent activity will appear here.</p>
+        </div>
+      )}
 
       {/* Case Monitor Modal */}
       {escalatedModalCase && (
