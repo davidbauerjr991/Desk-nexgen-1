@@ -3963,10 +3963,35 @@ export default function ControlCenterPage() {
             {/* Header: title + filters */}
             <div className="shrink-0 px-5 pt-4 pb-0">
               <div className="flex items-center justify-between gap-3 mb-3">
-                {/* Queue label + view toggles (inline) */}
-                <div className="flex items-center gap-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Queue</p>
-                  {/* View toggle — sits right of the Queue label */}
+
+                {/* Right side: carousel pagination + view toggles + filter */}
+                <div className="flex items-center gap-2 ml-auto">
+                  {viewMode === "carousel" && allRows.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => { setCarouselDir("prev"); setCarouselIndex((i) => Math.max(0, i - 1)); }}
+                        disabled={carouselIndex === 0}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="Previous case"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      <span className="text-[10px] font-medium text-[#98A2B3] tabular-nums min-w-[32px] text-center">
+                        {carouselIndex + 1}/{allRows.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => { setCarouselDir("next"); setCarouselIndex((i) => Math.min(allRows.length - 1, i + 1)); }}
+                        disabled={carouselIndex >= allRows.length - 1}
+                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                        aria-label="Next case"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  {/* View toggles */}
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -4008,35 +4033,7 @@ export default function ControlCenterPage() {
                       <GalleryVertical className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                </div>
 
-                {/* Right side: carousel pagination + filter */}
-                <div className="flex items-center gap-2 ml-auto">
-                  {viewMode === "carousel" && allRows.length > 0 && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => { setCarouselDir("prev"); setCarouselIndex((i) => Math.max(0, i - 1)); }}
-                        disabled={carouselIndex === 0}
-                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                        aria-label="Previous case"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </button>
-                      <span className="text-[10px] font-medium text-[#98A2B3] tabular-nums min-w-[32px] text-center">
-                        {carouselIndex + 1}/{allRows.length}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => { setCarouselDir("next"); setCarouselIndex((i) => Math.min(allRows.length - 1, i + 1)); }}
-                        disabled={carouselIndex >= allRows.length - 1}
-                        className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-white text-[#667085] hover:bg-[#F9FAFB] disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                        aria-label="Next case"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
                   {/* Filter icon button */}
                   <div className="relative" ref={filterPanelRef}>
                   <button
