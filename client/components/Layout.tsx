@@ -96,6 +96,9 @@ import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/Es
 import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
 import { toast } from "sonner";
 
+// Prevents the Fatima Al-Rashid escalation from re-firing if Layout remounts during navigation.
+let escalationFired = false;
+
 interface LayoutProps {
   children: React.ReactNode;
 }
@@ -6797,12 +6800,16 @@ export default function Layout({ children }: LayoutProps) {
   // Track how many cases are currently escalated (for the left rail badge + tooltip).
   const [escalatedRailCount, setEscalatedRailCount] = useState(0);
 
+  // Module-level flag — ensures the Fatima escalation fires at most once per browser session,
+  // even if Layout unmounts and remounts during navigation.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
   useEffect(() => {
     if (!isBriefingDismissed) return;
+    if (escalationFired) return; // already queued or fired — do not repeat
+    escalationFired = true;
     const timer = setTimeout(() => {
       setIncomingNotifications((prev) => {
-        if (prev.some((n) => n.id === "escalation-static-11")) return prev; // already pushed
+        if (prev.some((n) => n.id === "escalation-static-11")) return prev; // already in list
         return [
           ...prev,
           {
