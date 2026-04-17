@@ -18,6 +18,7 @@ import {
   LayoutGrid,
   LayoutList,
   SlidersHorizontal,
+  Send,
   Sparkles,
   TrendingUp,
   X,
@@ -3612,7 +3613,8 @@ export default function ControlCenterPage() {
         const newChats = baseRows.filter((a) => a.channel === "chat" && a.status === "open").length;
 
         return (
-          <div className="shrink-0 px-5 pt-4 pb-3 grid grid-cols-3 gap-3">
+          <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-8 overflow-y-auto px-8 py-10">
+            <div className="w-full max-w-4xl grid grid-cols-3 gap-4">
 
             {/* Overview card */}
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
@@ -3735,6 +3737,33 @@ export default function ControlCenterPage() {
                   <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Connected Applications</p>
                   <p className="text-[22px] font-bold text-[#101828] dark:text-[#E2E8F0] leading-none mt-0.5">13</p>
                 </div>
+              </div>
+            </div>
+
+          </div>
+
+            {/* AI input bar */}
+            <div className="w-full max-w-2xl">
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-white shadow-sm px-4 py-3">
+                <Sparkles className="h-4 w-4 shrink-0 text-[#6E56CF]" />
+                <input
+                  type="text"
+                  placeholder="What would you like to do today?"
+                  className="flex-1 bg-transparent text-[13px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                      openCopilot();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => openCopilot()}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] text-white transition-colors hover:bg-[#5C46B8]"
+                  aria-label="Ask AI"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
 
