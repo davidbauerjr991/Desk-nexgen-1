@@ -3625,18 +3625,25 @@ export default function ControlCenterPage() {
                   </div>
                 </button>
 
-                <div className="flex w-full items-center gap-2.5 py-1.5">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF5] dark:bg-[#052E16]">
-                    <MessageCircle className="h-3.5 w-3.5 text-[#10B981]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIssueTab("open");
+                    setActivePageTab("queue");
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#F2F0FA]"
+                >
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] dark:bg-[#1C1A2E]">
+                    <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
                   </div>
-                  <span className="flex-1 min-w-0 text-[13px] text-[#344054] dark:text-[#CBD5E1]">New Chats</span>
+                  <span className="flex-1 min-w-0 text-[13px] text-[#344054] dark:text-[#CBD5E1]">Open Cases</span>
                   <div className="flex w-[52px] shrink-0 items-center justify-end gap-1.5">
-                    <span className="inline-flex items-center justify-center rounded-full bg-[#10B981] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
-                      {newChats || 1}
+                    <span className="inline-flex items-center justify-center rounded-full bg-[#6E56CF] px-2 py-0.5 text-[11px] font-semibold text-white min-w-[24px]">
+                      {openCount}
                     </span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#98A2B3] -rotate-90" />
                   </div>
-                </div>
+                </button>
               </div>
             </div>
 
