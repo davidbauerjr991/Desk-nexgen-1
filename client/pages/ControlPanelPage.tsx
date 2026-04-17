@@ -3251,7 +3251,7 @@ const persistedState = {
   // navigation so the escalated state is not lost on remount.
   escalatedIds: new Set<string>(),
   // Top-level tab inside the Control Center (Monitor vs Queue).
-  controlCenterTab: "queue" as "monitor" | "queue",
+  controlCenterTab: "monitor" as "monitor" | "queue",
 };
 
 // Ensures the local escalation-override timer fires at most once per session,
@@ -3594,10 +3594,9 @@ export default function ControlCenterPage() {
       </div>
 
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
-      {controlCenterTab === "queue" && <>
 
       {/* ── Summary cards row ────────────────────────────────────────────────── */}
-      {(() => {
+      {controlCenterTab === "monitor" && (() => {
         const criticalCount = baseRows.filter((a) => a.priority === "Critical").length;
         const highCount     = baseRows.filter((a) => a.priority === "High").length;
         const resolvedCount = tabCounts.resolved;
@@ -3613,7 +3612,7 @@ export default function ControlCenterPage() {
         const newChats = baseRows.filter((a) => a.channel === "chat" && a.status === "open").length;
 
         return (
-          <div className="shrink-0 px-5 pt-4 pb-3 grid grid-cols-3 gap-3 border-b border-border">
+          <div className="shrink-0 px-5 pt-4 pb-3 grid grid-cols-3 gap-3">
 
             {/* Overview card */}
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4">
@@ -3621,7 +3620,7 @@ export default function ControlCenterPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Overview</p>
                 <button
                   type="button"
-                  onClick={() => setActivePageTab("queue")}
+                  onClick={() => setControlCenterTab("queue")}
                   className="text-[11px] font-medium text-[#6E56CF] hover:underline"
                 >
                   View Queue
@@ -3743,7 +3742,7 @@ export default function ControlCenterPage() {
       })()}
 
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      {controlCenterTab === "queue" && <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex gap-0 h-full">
 
           {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
@@ -4235,18 +4234,9 @@ export default function ControlCenterPage() {
         </div>
       </div>
 
-      </> /* end Queue tab */}
+      }
 
       {/* ── Monitor tab ───────────────────────────────────────────────────────── */}
-      {controlCenterTab === "monitor" && (
-        <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-3 text-center p-10">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F2F0FA]">
-            <GalleryVertical className="h-5 w-5 text-[#6E56CF]" />
-          </div>
-          <p className="text-[15px] font-semibold text-[#344054]">Monitor</p>
-          <p className="text-[13px] text-[#667085] max-w-xs">Live monitoring of active conversations and agent activity will appear here.</p>
-        </div>
-      )}
 
       {/* Case Monitor Modal */}
       {escalatedModalCase && (
