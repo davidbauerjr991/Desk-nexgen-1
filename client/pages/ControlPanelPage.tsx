@@ -3750,12 +3750,21 @@ export default function ControlCenterPage() {
                           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{row.preview}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
+                          {!row.isAccepted && (
+                            <button
+                              type="button"
+                              onClick={() => row.onMonitor()}
+                              className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              Review
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => row.isAccepted ? row.onReopen() : row.onAccept()}
                             className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                           >
-                            {row.isClosed ? "View" : "Takeover"}
+                            {row.isAccepted ? "View" : "Takeover"}
                           </button>
                         </div>
                       </div>
