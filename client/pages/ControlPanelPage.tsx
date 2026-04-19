@@ -3539,9 +3539,19 @@ export default function ControlCenterPage() {
       };
     });
 
+  // Static ids that have a dismissed/resolved entry — used to suppress the original static row
+  // so it never co-appears with its resolvedNormalised counterpart, regardless of rejectedIds timing.
+  const staticIdsWithResolvedEntry = new Set(
+    resolvedAssignments
+      .filter((r) => r.staticId && !acceptedStaticsStore.has(r.staticId))
+      .map((r) => r.staticId as string),
+  );
+
   const baseRows = [...liveNormalised, ...staticNormalised]
-    // Also filter by pendingRejectionSnapshot to prevent a one-render flash where the static
-    // case appears alongside its dismissed resolvedNormalised counterpart.
+    // Suppress static rows that are already represented in resolvedNormalised (dismissed cases).
+    // This is timing-independent — no need to wait for rejectedIds to be updated.
+    .filter((a) => !staticIdsWithResolvedEntry.has(a.id))
+    // Also filter by pendingRejectionSnapshot to prevent a one-render flash.
     .filter((a) => !rejectedIds.has(a.id) && !(pendingRejectionSnapshot?.has(a.id) ?? false))
     .filter((a) => a.channel !== "email")
     .filter((a) => priorityFilters.size === 0 || priorityFilters.has(a.priority as Priority))
