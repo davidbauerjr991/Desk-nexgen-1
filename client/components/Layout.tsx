@@ -7402,13 +7402,15 @@ export default function Layout({ children }: LayoutProps) {
    */
   const getCaseStatus = (customerRecordId: string): QueueAssignmentStatus => {
     const severityMap: Record<string, number> = { escalated: 4, pending: 3, open: 2, resolved: 1, parked: 0 };
-    return visibleAssignmentIds
+    const channels = visibleAssignmentIds
       .map((id) => assignmentItemsById[id])
-      .filter((item) => item?.customerRecordId === customerRecordId)
-      .reduce<QueueAssignmentStatus>((highest, item) => {
-        const s = (assignmentStatusesById[item!.id] ?? "open") as QueueAssignmentStatus;
-        return (severityMap[s] ?? 0) > (severityMap[highest] ?? 0) ? s : highest;
-      }, "open");
+      .filter((item) => item?.customerRecordId === customerRecordId);
+    if (channels.length === 0) return "open";
+    // Start from the lowest possible severity so any real status wins.
+    return channels.reduce<QueueAssignmentStatus>((highest, item) => {
+      const s = (assignmentStatusesById[item!.id] ?? "open") as QueueAssignmentStatus;
+      return (severityMap[s] ?? 0) > (severityMap[highest] ?? 0) ? s : highest;
+    }, "parked");
   };
 
   /**
