@@ -1949,7 +1949,7 @@ function IssueRow({
               <button
                 type="button"
                 onClick={() => onSupervise()}
-                className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+                className="hidden rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
               >
                 Monitor
               </button>
@@ -2427,7 +2427,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             <button
               type="button"
               onClick={() => caseData.onSupervise()}
-              className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+              className="hidden rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
             >
               Monitor
             </button>
@@ -2606,7 +2606,7 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
               <button
                 type="button"
                 onClick={() => caseData.onSupervise()}
-                className="rounded-md bg-[#F59E0B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+                className="hidden rounded-md bg-[#F59E0B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
               >
                 Monitor
               </button>
@@ -2980,7 +2980,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <button
               type="button"
               onClick={() => caseData.onSupervise()}
-              className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+              className="hidden rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
             >
               Monitor
             </button>
@@ -3732,7 +3732,7 @@ export default function ControlCenterPage() {
                           <button
                             type="button"
                             onClick={() => row.onSupervise()}
-                            className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+                            className="hidden rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
                           >
                             Monitor
                           </button>
