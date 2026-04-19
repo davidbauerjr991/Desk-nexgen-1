@@ -3400,6 +3400,16 @@ export default function ControlCenterPage() {
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
   const handleAcceptStatic = (a: StaticAssignment, statusOverride?: QueueAssignmentStatus) => {
+    // If this case is already open in the rail, just navigate to it — don't create a duplicate channel.
+    const existingAssignmentId = acceptedStaticsStore.get(a.id);
+    const isAlreadyOpen = !!existingAssignmentId && visibleAssignments.some((v) => v.id === existingAssignmentId);
+    if (isAlreadyOpen) {
+      if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
+      selectAssignment(existingAssignmentId);
+      navigate("/activity");
+      return;
+    }
+
     const data: AcceptIssueData = {
       id: a.id,
       name: a.name,
