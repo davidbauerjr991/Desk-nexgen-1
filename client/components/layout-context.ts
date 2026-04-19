@@ -140,6 +140,8 @@ export interface LayoutContextValue {
   openChatPopover: () => void;
   isBriefingDismissed: boolean;
   pushToIncomingNotifications: (item: QueuePreviewItem) => void;
+  /** Dismiss the incoming toast for a customer (by customerRecordId) when an action is taken from the queue/alert. */
+  dismissIncomingByCustomer: (customerRecordId: string) => void;
   pendingMonitorCaseId: string | null;
   clearPendingMonitorCaseId: () => void;
   pendingTakeoverCaseId: string | null;

@@ -611,7 +611,7 @@ export function EscalatedCaseModal({
             onClick={onSupervise}
             className="rounded-lg bg-[#F59E0B] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
           >
-            Supervise
+            Monitor
           </button>
           <button
             type="button"

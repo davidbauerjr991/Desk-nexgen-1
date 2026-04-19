@@ -8368,6 +8368,10 @@ export default function Layout({ children }: LayoutProps) {
   const removeIncoming = (assignmentId: string) =>
     setIncomingNotifications((prev) => prev.filter((n) => n.id !== assignmentId));
 
+  /** Dismiss the escalation toast that belongs to a given customer (if any). */
+  const dismissIncomingByCustomer = (customerRecordId: string) =>
+    setIncomingNotifications((prev) => prev.filter((n) => n.customerRecordId !== customerRecordId));
+
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
     removeIncoming(item.id);
     // Always open the monitor modal on the current page — no navigation required
@@ -9073,6 +9077,7 @@ export default function Layout({ children }: LayoutProps) {
       isAgentAvailable: status === "Available",
       isBriefingDismissed,
       pushToIncomingNotifications: (item: QueuePreviewItem) => setIncomingNotifications((prev) => [...prev, item]),
+      dismissIncomingByCustomer,
       pendingMonitorCaseId,
       clearPendingMonitorCaseId,
       pendingTakeoverCaseId,
@@ -10229,7 +10234,7 @@ export default function Layout({ children }: LayoutProps) {
             });
           }}
           onSupervise={() => {
-            // Supervise behaves like Takeover for now
+            // Monitor behaves like Takeover for now
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
             const sa = staticAssignments.find(

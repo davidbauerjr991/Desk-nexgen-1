@@ -1951,7 +1951,7 @@ function IssueRow({
                 onClick={() => onSupervise()}
                 className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
               >
-                Supervise
+                Monitor
               </button>
               <button
                 type="button"
@@ -2429,7 +2429,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
               onClick={() => caseData.onSupervise()}
               className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
             >
-              Supervise
+              Monitor
             </button>
             <button
               type="button"
@@ -2608,7 +2608,7 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
                 onClick={() => caseData.onSupervise()}
                 className="rounded-md bg-[#F59E0B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
               >
-                Supervise
+                Monitor
               </button>
               <button
                 type="button"
@@ -2982,7 +2982,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
               onClick={() => caseData.onSupervise()}
               className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
             >
-              Supervise
+              Monitor
             </button>
             <button
               type="button"
@@ -3295,7 +3295,7 @@ let escalationLocalFired = false;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
@@ -3416,6 +3416,8 @@ export default function ControlCenterPage() {
         forceUpdate((v) => v + 1);
       },
     };
+    // Close the incoming toast for this customer if one is showing.
+    if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
     acceptIssue(data);
   };
 
@@ -3459,6 +3461,7 @@ export default function ControlCenterPage() {
       onReject: () => rejectIssue(a.id),
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
       onMonitor: () => {
+        if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
         const effectiveStatus = bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (row.status);
         setEscalatedModalCase({ ...row, status: effectiveStatus });
       },
@@ -3594,6 +3597,7 @@ export default function ControlCenterPage() {
         });
       },
       onMonitor: () => {
+        if (r.customerRecordId) dismissIncomingByCustomer(r.customerRecordId);
         if (sa) setEscalatedModalCase({ ...sa, status: r.status, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
       },
       onSupervise: () => {
@@ -3730,7 +3734,7 @@ export default function ControlCenterPage() {
                             onClick={() => row.onSupervise()}
                             className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
                           >
-                            Supervise
+                            Monitor
                           </button>
                           <button
                             type="button"
