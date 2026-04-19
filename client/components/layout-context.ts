@@ -55,6 +55,11 @@ export type ResolvedAssignment = {
   status: QueueAssignmentStatus;
   /** The agent it was assigned to when dismissed — preserved so the queue row still shows "Assigned". */
   assignedTo: string | null;
+  /**
+   * The static assignment id (e.g. "static-11") that this live assignment was accepted from.
+   * Used to correctly key into acceptedStaticsStore and rejectedIds, both of which use static ids.
+   */
+  staticId?: string;
 };
 
 export type AcceptIssueData = {

@@ -3523,7 +3523,9 @@ export default function ControlCenterPage() {
     });
 
   const baseRows = [...liveNormalised, ...staticNormalised]
-    .filter((a) => !rejectedIds.has(a.id))
+    // Also filter by pendingQueueRejections to prevent a one-render flash where the static
+    // case appears alongside its dismissed resolvedNormalised counterpart.
+    .filter((a) => !rejectedIds.has(a.id) && !pendingQueueRejections.has(a.id))
     .filter((a) => a.channel !== "email")
     .filter((a) => priorityFilters.size === 0 || priorityFilters.has(a.priority as Priority))
     .filter((a) => channelFilters.size === 0 || channelFilters.has(a.channel as ChannelFilterValue))
@@ -3531,8 +3533,9 @@ export default function ControlCenterPage() {
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => r.channel !== "email" &&
-            // Exclude cases that have been re-accepted — they'll appear in staticNormalised instead
-            !acceptedStaticsStore.has(r.id) &&
+            // Exclude cases that have been re-accepted — they'll appear in staticNormalised instead.
+            // Use staticId (the static assignment id) which is what acceptedStaticsStore keys on.
+            !acceptedStaticsStore.has(r.staticId ?? r.id) &&
             (priorityFilters.size === 0 || priorityFilters.has(r.priority as Priority)) &&
             (channelFilters.size === 0 || channelFilters.has(r.channel as ChannelFilterValue)),
   );
@@ -3565,23 +3568,26 @@ export default function ControlCenterPage() {
       isParkedFromToast: false,
       liveAssignmentId: null,
       onAccept: () => {
-        // Re-open a dismissed case: remove from rejectedIds and re-accept with preserved status
+        // Re-open a dismissed case: remove staticId from rejectedIds, then re-accept.
         if (!sa) return;
-        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        const keyToRemove = r.staticId ?? sa.id;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
       },
       onReject: () => {},
       onReopen: () => {
         if (!sa) return;
-        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        const keyToRemove = r.staticId ?? sa.id;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
       },
       onMonitor: () => {
-        if (sa) setEscalatedModalCase({ ...sa, status: r.status, assignedTo: r.assignedTo, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
+        if (sa) setEscalatedModalCase({ ...sa, status: r.status, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
       },
       onSupervise: () => {
         if (!sa) return;
-        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        const keyToRemove = r.staticId ?? sa.id;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
       },
     };

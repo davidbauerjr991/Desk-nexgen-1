@@ -8011,8 +8011,10 @@ export default function Layout({ children }: LayoutProps) {
 
     // Remove the case from the ControlPanel static queue by reverse-looking up
     // acceptedStaticsStore (staticId → assignmentId) and adding to pendingQueueRejections.
+    let dismissedStaticId: string | undefined;
     for (const [staticId, acceptedId] of acceptedStaticsStore.entries()) {
       if (acceptedId === assignmentId) {
+        dismissedStaticId = staticId;
         pendingQueueRejections.add(staticId);
         acceptedStaticsStore.delete(staticId);
         break;
@@ -8026,20 +8028,28 @@ export default function Layout({ children }: LayoutProps) {
         (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) ??
         (removedAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
         "open";
-      setResolvedAssignments((prev) => [
-        {
-          id: removedAssignment.id,
-          name: removedAssignment.name,
-          preview: removedAssignment.preview,
-          priority: removedAssignment.priority,
-          channel: removedAssignment.channel,
-          resolvedAt: Date.now(),
-          customerRecordId: removedAssignment.customerRecordId,
-          status: dismissedStatus,
-          assignedTo: CURRENT_AGENT_NAME,
-        },
-        ...prev,
-      ]);
+      setResolvedAssignments((prev) => {
+        // Deduplicate: if we already have a dismissed entry for this static case, replace it
+        // rather than appending — prevents multiple supervise→dismiss cycles from piling up.
+        const filtered = dismissedStaticId
+          ? prev.filter((r) => r.staticId !== dismissedStaticId)
+          : prev;
+        return [
+          {
+            id: removedAssignment.id,
+            name: removedAssignment.name,
+            preview: removedAssignment.preview,
+            priority: removedAssignment.priority,
+            channel: removedAssignment.channel,
+            resolvedAt: Date.now(),
+            customerRecordId: removedAssignment.customerRecordId,
+            status: dismissedStatus,
+            assignedTo: CURRENT_AGENT_NAME,
+            staticId: dismissedStaticId,
+          },
+          ...filtered,
+        ];
+      });
     }
 
     if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
