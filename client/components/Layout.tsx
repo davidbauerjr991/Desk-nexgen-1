@@ -5206,10 +5206,10 @@ function GroupedQueueCard({
   // Use the highest-severity status across all channels so that opening a
   // new channel never silently downgrades an escalated case to "open".
   const statusSeverity: Record<string, number> = { escalated: 4, pending: 3, open: 2, resolved: 1, parked: 0 };
-  const caseStatus: QueueAssignmentStatus = group.channels.reduce<QueueAssignmentStatus>((highest, ch) => {
+  const caseStatus: QueueAssignmentStatus = group.channels.length === 0 ? "open" : group.channels.reduce<QueueAssignmentStatus>((highest, ch) => {
     const chStatus = (queueStatuses[ch.id] ?? "open") as QueueAssignmentStatus;
     return (statusSeverity[chStatus] ?? 0) > (statusSeverity[highest] ?? 0) ? chStatus : highest;
-  }, "open");
+  }, "parked");
   const handleGroupStatusChange = (newStatus: QueueAssignmentStatus) => {
     // Sync the new status to ALL channels so they stay in lockstep.
     group.channels.forEach((ch) => onStatusChange(ch.id, newStatus));
