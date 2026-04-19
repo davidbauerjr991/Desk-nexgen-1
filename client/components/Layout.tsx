@@ -5202,11 +5202,16 @@ function GroupedQueueCard({
     liveLastCustomerCommentByAssignmentId,
   } = useLayoutContext();
 
-  // Task-level status — driven by the last-active (primary) channel.
-  // Changing it syncs ALL channels so the task always has one status.
-  const primaryChannelId = group.lastActiveChannel.id;
-  const primaryStatus = queueStatuses[primaryChannelId] ?? "open";
+  // Task-level status — the case owns the status, not individual channels.
+  // Use the highest-severity status across all channels so that opening a
+  // new channel never silently downgrades an escalated case to "open".
+  const statusSeverity: Record<string, number> = { escalated: 4, pending: 3, open: 2, resolved: 1, parked: 0 };
+  const caseStatus: QueueAssignmentStatus = group.channels.reduce<QueueAssignmentStatus>((highest, ch) => {
+    const chStatus = (queueStatuses[ch.id] ?? "open") as QueueAssignmentStatus;
+    return (statusSeverity[chStatus] ?? 0) > (statusSeverity[highest] ?? 0) ? chStatus : highest;
+  }, "open");
   const handleGroupStatusChange = (newStatus: QueueAssignmentStatus) => {
+    // Sync the new status to ALL channels so they stay in lockstep.
     group.channels.forEach((ch) => onStatusChange(ch.id, newStatus));
   };
 
@@ -5253,7 +5258,7 @@ function GroupedQueueCard({
             onKeyDown={(e) => e.stopPropagation()}
           >
             <ConversationStatusDropdown
-              status={primaryStatus}
+              status={caseStatus}
               onStatusChange={handleGroupStatusChange}
               onOpenChange={onStatusDropdownOpenChange}
             />
@@ -7953,6 +7958,17 @@ export default function Layout({ children }: LayoutProps) {
 
     const nextAssignment = createLaunchedAssignment(customerRecordId, channel, existingAssignment);
 
+    // Inherit the case's current status so opening a new channel (e.g. email)
+    // doesn't silently downgrade an escalated case back to "open".
+    const statusSeverityMap: Record<string, number> = { escalated: 4, pending: 3, open: 2, resolved: 1, parked: 0 };
+    const inheritedStatus = visibleAssignmentIds
+      .map((id) => assignmentItemsById[id])
+      .filter((item) => item?.customerRecordId === customerRecordId)
+      .reduce<QueueAssignmentStatus>((highest, item) => {
+        const s = (assignmentStatusesById[item!.id] ?? "open") as QueueAssignmentStatus;
+        return (statusSeverityMap[s] ?? 0) > (statusSeverityMap[highest] ?? 0) ? s : highest;
+      }, "open");
+
     setDeskPanelSelection(null);
     setAssignmentItemsById((currentItems) => ({
       ...currentItems,
@@ -7961,7 +7977,7 @@ export default function Layout({ children }: LayoutProps) {
     setVisibleAssignmentIds((currentIds) => [nextAssignment.id, ...currentIds]);
     setAssignmentStatusesById((currentStatuses) => ({
       ...currentStatuses,
-      [nextAssignment.id]: "open",
+      [nextAssignment.id]: inheritedStatus,
     }));
     setSelectedAssignmentId(nextAssignment.id);
     setConversationStatesByKey((currentStates) => {
