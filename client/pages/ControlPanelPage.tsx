@@ -3759,13 +3759,30 @@ export default function ControlCenterPage() {
                               Review
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => row.isAccepted ? row.onReopen() : row.onAccept()}
-                            className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-                          >
-                            {row.isAccepted ? "View" : "Takeover"}
-                          </button>
+                          {(() => {
+                            const isInProgress = row.isAccepted && !row.isClosed;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isInProgress && row.liveAssignmentId) {
+                                    selectAssignment(row.liveAssignmentId);
+                                    navigate("/activity");
+                                  } else {
+                                    row.isAccepted ? row.onReopen() : row.onAccept();
+                                  }
+                                }}
+                                className={cn(
+                                  "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
+                                  isInProgress
+                                    ? "border border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#E8E3F8]"
+                                    : "bg-[#6E56CF] text-white hover:bg-[#5C46B8]",
+                                )}
+                              >
+                                {isInProgress ? "In Progress" : row.isAccepted ? "View" : "Takeover"}
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
