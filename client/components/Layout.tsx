@@ -109,6 +109,9 @@ import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/Es
 import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
 import { toast } from "sonner";
 
+// The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
+const CURRENT_AGENT_NAME = "David Bauer";
+
 // Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
 
@@ -8017,6 +8020,12 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     if (removedAssignment) {
+      // Capture the status at the moment of dismissal so the queue row retains it
+      // (e.g. "pending" stays "pending" — it should not be forced to "resolved").
+      const dismissedStatus: QueueAssignmentStatus =
+        (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) ??
+        (removedAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
+        "open";
       setResolvedAssignments((prev) => [
         {
           id: removedAssignment.id,
@@ -8026,6 +8035,8 @@ export default function Layout({ children }: LayoutProps) {
           channel: removedAssignment.channel,
           resolvedAt: Date.now(),
           customerRecordId: removedAssignment.customerRecordId,
+          status: dismissedStatus,
+          assignedTo: CURRENT_AGENT_NAME,
         },
         ...prev,
       ]);

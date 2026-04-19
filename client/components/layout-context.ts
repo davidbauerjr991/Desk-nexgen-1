@@ -51,6 +51,10 @@ export type ResolvedAssignment = {
   channel: AssignmentChannel;
   resolvedAt: number;
   customerRecordId: string;
+  /** The status of the case at the time it was dismissed from the rail. */
+  status: QueueAssignmentStatus;
+  /** The agent it was assigned to when dismissed — preserved so the queue row still shows "Assigned". */
+  assignedTo: string | null;
 };
 
 export type AcceptIssueData = {

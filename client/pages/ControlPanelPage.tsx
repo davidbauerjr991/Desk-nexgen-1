@@ -3551,12 +3551,12 @@ export default function ControlCenterPage() {
       agentType: (sa?.agentType ?? "virtual") as "virtual" | "human",
       channel: r.channel as Channel,
       priority: r.priority as Priority,
-      status: "resolved" as const,
+      status: r.status,
       preview: r.preview,
       waitTime: "",
       aiOverview: sa?.aiOverview ?? { actions: [], whyNeeded: "", nextSteps: [] },
       customerContext: sa?.customerContext ?? "",
-      assignedTo: null,
+      assignedTo: r.assignedTo,
       isLive: false,
       isAccepted: true,
       isClosed: true,
@@ -3595,10 +3595,10 @@ export default function ControlCenterPage() {
   // Per-tab counts for badges
   const tabCounts: Record<IssueTab, number> = {
     all: baseRows.length + filteredResolvedAssignments.length,
-    open: baseRows.filter((a) => a.status === "open").length,
-    pending: baseRows.filter((a) => a.status === "pending").length,
-    resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.length,
-    escalated: baseRows.filter((a) => a.status === "escalated").length,
+    open: baseRows.filter((a) => a.status === "open").length + filteredResolvedAssignments.filter((r) => r.status === "open").length,
+    pending: baseRows.filter((a) => a.status === "pending").length + filteredResolvedAssignments.filter((r) => r.status === "pending").length,
+    resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.filter((r) => r.status === "resolved").length,
+    escalated: baseRows.filter((a) => a.status === "escalated").length + filteredResolvedAssignments.filter((r) => r.status === "escalated").length,
   };
   const totalTasks = tabCounts.open + tabCounts.pending + tabCounts.resolved + tabCounts.escalated;
 
