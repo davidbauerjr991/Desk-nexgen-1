@@ -1909,7 +1909,7 @@ function IssueRow({
         <div
           className={cn(
             "absolute right-10 top-1/2 -translate-y-1/2 flex items-center gap-1.5 transition-opacity duration-150 z-10",
-            isInProgress ? "opacity-100" : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
+            (isInProgress || isClosed) ? "opacity-100" : "opacity-0 pointer-events-none group-hover/row:opacity-100 group-hover/row:pointer-events-auto",
           )}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
@@ -1936,6 +1936,14 @@ function IssueRow({
               className="rounded-md border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-1 text-[11px] font-semibold text-[#6E56CF] hover:bg-[#DAEEFA] transition-colors"
             >
               In Progress
+            </button>
+          ) : isClosed ? (
+            <button
+              type="button"
+              onClick={() => onReopen()}
+              className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+            >
+              Open Case
             </button>
           ) : status !== "resolved" && (
             <>
