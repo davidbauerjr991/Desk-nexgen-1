@@ -3451,14 +3451,14 @@ export default function ControlCenterPage() {
       isClosed,
       isParkedFromToast: false,
       liveAssignmentId: assignmentId ?? null,
-      onAccept: () => handleAcceptStatic(a),
+      onAccept: () => handleAcceptStatic(a, row.status),
       onReject: () => rejectIssue(a.id),
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
       onMonitor: () => {
         const effectiveStatus = bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (row.status);
         setEscalatedModalCase({ ...row, status: effectiveStatus });
       },
-      onSupervise: () => handleAcceptStatic(a),
+      onSupervise: () => handleAcceptStatic(a, row.status),
     };
     return row;
   // Exclude closed cases (taken over + dismissed) — they are represented in resolvedNormalised
