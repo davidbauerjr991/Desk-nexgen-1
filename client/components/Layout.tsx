@@ -5170,6 +5170,7 @@ function GroupedQueueCard({
   queueStatuses,
   onStatusChange,
   onRemove,
+  onRemoveAll,
   onCloseChannelKeepTask,
   taskSummaryIds,
   onSelectAssignment,
@@ -5181,6 +5182,7 @@ function GroupedQueueCard({
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
+  onRemoveAll?: (assignmentIds: string[]) => void;
   onCloseChannelKeepTask?: (assignmentId: string) => void;
   taskSummaryIds?: Set<string>;
   onSelectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -5256,7 +5258,14 @@ function GroupedQueueCard({
               onOpenChange={onStatusDropdownOpenChange}
             />
             <CaseMoreOptionsMenu
-              onDismiss={() => group.channels.forEach((ch) => onRemove(ch.id))}
+              onDismiss={() => {
+                const allIds = group.channels.map((ch) => ch.id);
+                if (onRemoveAll) {
+                  onRemoveAll(allIds);
+                } else {
+                  allIds.forEach((id) => onRemove(id));
+                }
+              }}
               iconSize="sm"
             />
           </div>
@@ -5416,6 +5425,7 @@ function QueueOverlayList({
   queueStatuses,
   onStatusChange,
   onRemove,
+  onRemoveAll,
   onCloseChannelKeepTask,
   taskSummaryIds,
   isOpen,
@@ -5425,6 +5435,7 @@ function QueueOverlayList({
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemove: (assignmentId: QueuePreviewItem["id"]) => void;
+  onRemoveAll?: (assignmentIds: string[]) => void;
   onCloseChannelKeepTask: (assignmentId: string) => void;
   taskSummaryIds: Set<string>;
   isOpen: boolean;
@@ -5439,6 +5450,7 @@ function QueueOverlayList({
           queueStatuses={queueStatuses}
           onStatusChange={onStatusChange}
           onRemove={onRemove}
+          onRemoveAll={onRemoveAll}
           onCloseChannelKeepTask={onCloseChannelKeepTask}
           taskSummaryIds={taskSummaryIds}
           onSelectAssignment={onSelectAssignment}
@@ -6126,6 +6138,7 @@ function LeftQueueRail({
   escalatedRailCount,
   onStatusChange,
   onRemoveAssignment,
+  onRemoveGroupedAssignments,
   isOpen,
   onToggle,
   completedTodayCount,
@@ -6136,6 +6149,7 @@ function LeftQueueRail({
   queueStatuses: Record<string, QueueAssignmentStatus>;
   onStatusChange: (assignmentId: QueuePreviewItem["id"], status: QueueAssignmentStatus) => void;
   onRemoveAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
+  onRemoveGroupedAssignments?: (assignmentIds: string[]) => void;
   isOpen: boolean;
   onToggle: () => void;
   completedTodayCount: number;
@@ -6196,6 +6210,14 @@ function LeftQueueRail({
 
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
     onRemoveAssignment(assignmentId);
+  };
+
+  const handleRemoveGroupedQueueItems = (assignmentIds: string[]) => {
+    if (onRemoveGroupedAssignments) {
+      onRemoveGroupedAssignments(assignmentIds);
+    } else {
+      assignmentIds.forEach(onRemoveAssignment);
+    }
   };
 
   return (
@@ -6354,6 +6376,7 @@ function LeftQueueRail({
                           queueStatuses={queueStatuses}
                           onStatusChange={onStatusChange}
                           onRemove={handleRemoveQueueItem}
+                          onRemoveAll={handleRemoveGroupedQueueItems}
                           onSelectAssignment={selectAssignment}
                           onStatusDropdownOpenChange={(open) => {
                             if (open) {
@@ -6471,6 +6494,7 @@ function LeftQueueRail({
                 queueStatuses={queueStatuses}
                 onStatusChange={onStatusChange}
                 onRemove={handleRemoveQueueItem}
+                onRemoveAll={handleRemoveGroupedQueueItems}
                 onCloseChannelKeepTask={closeChannelKeepTask}
                 taskSummaryIds={taskSummaryIds}
                 isOpen={isOpen}
@@ -8106,6 +8130,148 @@ export default function Layout({ children }: LayoutProps) {
     });
   };
 
+  /**
+   * Batch dismiss all channels that belong to a single customer's grouped card.
+   * Compared to calling handleRemoveVisibleAssignment per-channel, this preserves
+   * sibling channel state inside ONE ResolvedAssignment so the agent can restore
+   * all channels when they re-open the case.
+   */
+  const handleRemoveGroupedAssignments = (assignmentIds: string[]) => {
+    if (assignmentIds.length === 0) return;
+    if (assignmentIds.length === 1) {
+      handleRemoveVisibleAssignment(assignmentIds[0]);
+      return;
+    }
+
+    // Find the primary assignment (the one keyed in acceptedStaticsStore → has a staticId)
+    let primaryId: string | undefined;
+    let dismissedStaticId: string | undefined;
+    for (const [staticId, acceptedId] of acceptedStaticsStore.entries()) {
+      if (assignmentIds.includes(acceptedId)) {
+        primaryId = acceptedId;
+        dismissedStaticId = staticId;
+        break;
+      }
+    }
+    // Fall back to the first id if none has a static mapping
+    if (!primaryId) primaryId = assignmentIds[0];
+
+    const primaryAssignment = assignmentItemsById[primaryId];
+    const additionalChannels: Array<{ channel: AssignmentChannel; preview: string }> = assignmentIds
+      .filter((id) => id !== primaryId)
+      .map((id) => assignmentItemsById[id])
+      .filter(Boolean)
+      .map((a) => ({ channel: a.channel as AssignmentChannel, preview: a.preview }));
+
+    // Mark the static mapping as dismissed
+    if (dismissedStaticId) {
+      pendingQueueRejections.add(dismissedStaticId);
+      acceptedStaticsStore.delete(dismissedStaticId);
+    }
+
+    // Decrement escalated rail badge if the primary is escalated
+    const isEscalated =
+      primaryAssignment?.statusLabel === "Escalated" ||
+      assignmentStatusesById[primaryId] === "escalated";
+    if (isEscalated) {
+      setEscalatedRailCount((n) => Math.max(0, n - 1));
+    }
+
+    // Create ONE ResolvedAssignment for the primary, embedding additional channel info
+    if (primaryAssignment) {
+      const dismissedStatus: QueueAssignmentStatus =
+        (assignmentStatusesById[primaryId] as QueueAssignmentStatus | undefined) ??
+        (primaryAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
+        "open";
+
+      setResolvedAssignments((prev) => {
+        const filtered = dismissedStaticId
+          ? prev.filter((r) => r.staticId !== dismissedStaticId)
+          : prev;
+        return [
+          {
+            id: primaryAssignment.id,
+            name: primaryAssignment.name,
+            preview: primaryAssignment.preview,
+            priority: primaryAssignment.priority,
+            channel: primaryAssignment.channel,
+            resolvedAt: Date.now(),
+            customerRecordId: primaryAssignment.customerRecordId,
+            status: dismissedStatus,
+            assignedTo: CURRENT_AGENT_NAME,
+            staticId: dismissedStaticId,
+            additionalChannels: additionalChannels.length > 0 ? additionalChannels : undefined,
+          },
+          ...filtered,
+        ];
+      });
+    }
+
+    // Archive conversation state for ALL channels (primary + siblings)
+    setConversationStatesByKey((currentStates) => {
+      const nextStates = { ...currentStates };
+      assignmentIds.forEach((assignmentId) => {
+        const assignment = assignmentItemsById[assignmentId];
+        const conversationStateKey = getConversationStateKey(assignmentId);
+        if (assignment && currentStates[conversationStateKey]) {
+          const archiveKey = `${assignment.customerRecordId}::${assignment.channel}`;
+          channelStateArchiveRef.current.set(archiveKey, currentStates[conversationStateKey]);
+        }
+        delete nextStates[conversationStateKey];
+      });
+      return nextStates;
+    });
+
+    // Clear call timeouts for all channels
+    assignmentIds.forEach((assignmentId) => {
+      const conversationStateKey = getConversationStateKey(assignmentId);
+      if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
+        window.clearTimeout(customerReplyTimeoutsRef.current[conversationStateKey]);
+        delete customerReplyTimeoutsRef.current[conversationStateKey];
+      }
+    });
+
+    // Clear active call if any channel was it
+    if (assignmentIds.includes(activeCallAssignmentId ?? "")) {
+      setActiveCallAssignmentId(null);
+    }
+
+    // Clear task-summary entries
+    setTaskSummaryIds((prev) => {
+      const next = new Set(prev);
+      assignmentIds.forEach((id) => next.delete(id));
+      return next;
+    });
+
+    // Clear overview-open entries
+    setOverviewOpenByAssignmentId((currentOverviewState) => {
+      const nextOverviewState = { ...currentOverviewState };
+      assignmentIds.forEach((id) => delete nextOverviewState[id]);
+      return nextOverviewState;
+    });
+
+    setCompletedTodayCount((n) => n + 1);
+
+    // Remove all assignments from the visible rail
+    setVisibleAssignmentIds((currentIds) => {
+      const nextIds = currentIds.filter((id) => !assignmentIds.includes(id));
+      if (assignmentIds.includes(selectedAssignmentId)) {
+        setSelectedAssignmentId(nextIds[0] ?? primaryAssignment?.customerRecordId ?? initialSelectedAssignmentId);
+      }
+      if (nextIds.length === 0) {
+        navigate("/control-panel");
+      }
+      return nextIds;
+    });
+
+    // Remove from items map
+    setAssignmentItemsById((currentItems) => {
+      const nextItems = { ...currentItems };
+      assignmentIds.forEach((id) => delete nextItems[id]);
+      return nextItems;
+    });
+  };
+
   const removePending = (assignmentId: string) =>
     setPendingAcceptanceIds((prev) => { const n = new Set(prev); n.delete(assignmentId); return n; });
 
@@ -9396,6 +9562,7 @@ export default function Layout({ children }: LayoutProps) {
           queueStatuses={assignmentStatusesById}
           onStatusChange={handleAssignmentStatusChange}
           onRemoveAssignment={handleRemoveVisibleAssignment}
+          onRemoveGroupedAssignments={handleRemoveGroupedAssignments}
           isOpen={isLeftRailOpen}
           onToggle={() => setIsLeftRailOpen((v) => !v)}
           completedTodayCount={completedTodayCount}

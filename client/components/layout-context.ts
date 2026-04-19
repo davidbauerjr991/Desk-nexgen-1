@@ -60,6 +60,11 @@ export type ResolvedAssignment = {
    * Used to correctly key into acceptedStaticsStore and rejectedIds, both of which use static ids.
    */
   staticId?: string;
+  /**
+   * Extra channels that were open alongside the primary channel when the case was dismissed.
+   * Stored so they can be restored when the agent re-opens the case.
+   */
+  additionalChannels?: Array<{ channel: AssignmentChannel; preview: string }>;
 };
 
 export type AcceptIssueData = {

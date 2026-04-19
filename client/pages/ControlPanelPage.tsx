@@ -3295,7 +3295,7 @@ let escalationLocalFired = false;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
@@ -3577,6 +3577,10 @@ export default function ControlCenterPage() {
         const keyToRemove = r.staticId ?? sa.id;
         setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
+        // Restore any additional channels that were open when the case was dismissed.
+        r.additionalChannels?.forEach(({ channel }) => {
+          openCustomerConversation(r.customerRecordId, channel);
+        });
       },
       onReject: () => {},
       onReopen: () => {
@@ -3584,6 +3588,10 @@ export default function ControlCenterPage() {
         const keyToRemove = r.staticId ?? sa.id;
         setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
+        // Restore any additional channels that were open when the case was dismissed.
+        r.additionalChannels?.forEach(({ channel }) => {
+          openCustomerConversation(r.customerRecordId, channel);
+        });
       },
       onMonitor: () => {
         if (sa) setEscalatedModalCase({ ...sa, status: r.status, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
@@ -3593,6 +3601,10 @@ export default function ControlCenterPage() {
         const keyToRemove = r.staticId ?? sa.id;
         setRejectedIds((prev) => { const next = new Set(prev); next.delete(keyToRemove); return next; });
         handleAcceptStatic(sa, r.status);
+        // Restore any additional channels that were open when the case was dismissed.
+        r.additionalChannels?.forEach(({ channel }) => {
+          openCustomerConversation(r.customerRecordId, channel);
+        });
       },
     };
   });
