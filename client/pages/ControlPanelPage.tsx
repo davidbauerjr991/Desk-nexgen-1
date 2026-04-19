@@ -3325,13 +3325,17 @@ export default function ControlCenterPage() {
   );
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set());
 
-  // Drain any cross-page rejections queued by the global Layout modal
-  if (pendingQueueRejections.size > 0) {
-    const toAdd = [...pendingQueueRejections];
+  // Drain any cross-page rejections queued by the global Layout modal.
+  // We snapshot the ids BEFORE clearing so the baseRows filter below can use them on
+  // this same render — without the snapshot, both rejectedIds (not yet updated) and
+  // pendingQueueRejections (already cleared) would miss the just-dismissed case,
+  // causing it to flash in staticNormalised alongside its resolvedNormalised entry.
+  const pendingRejectionSnapshot = pendingQueueRejections.size > 0 ? new Set(pendingQueueRejections) : null;
+  if (pendingRejectionSnapshot) {
     pendingQueueRejections.clear();
     setRejectedIds((prev) => {
       const next = new Set(prev);
-      toAdd.forEach((id) => next.add(id));
+      pendingRejectionSnapshot.forEach((id) => next.add(id));
       return next;
     });
   }
@@ -3523,9 +3527,9 @@ export default function ControlCenterPage() {
     });
 
   const baseRows = [...liveNormalised, ...staticNormalised]
-    // Also filter by pendingQueueRejections to prevent a one-render flash where the static
+    // Also filter by pendingRejectionSnapshot to prevent a one-render flash where the static
     // case appears alongside its dismissed resolvedNormalised counterpart.
-    .filter((a) => !rejectedIds.has(a.id) && !pendingQueueRejections.has(a.id))
+    .filter((a) => !rejectedIds.has(a.id) && !(pendingRejectionSnapshot?.has(a.id) ?? false))
     .filter((a) => a.channel !== "email")
     .filter((a) => priorityFilters.size === 0 || priorityFilters.has(a.priority as Priority))
     .filter((a) => channelFilters.size === 0 || channelFilters.has(a.channel as ChannelFilterValue))
