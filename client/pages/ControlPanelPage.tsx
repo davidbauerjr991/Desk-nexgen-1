@@ -1943,7 +1943,7 @@ function IssueRow({
               onClick={() => onReopen()}
               className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
             >
-              Open Case
+              View
             </button>
           ) : status !== "resolved" && (
             <>
@@ -3769,7 +3769,7 @@ export default function ControlCenterPage() {
                             onClick={() => row.isAccepted ? row.onReopen() : row.onAccept()}
                             className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                           >
-                            Takeover
+                            {row.isClosed ? "View" : "Takeover"}
                           </button>
                         </div>
                       </div>
