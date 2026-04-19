@@ -422,7 +422,7 @@ export function EscalatedCaseModal({
                 </>
               ) : (
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#667085]">
-                  Monitoring
+                  Reviewing
                 </p>
               )}
               <button

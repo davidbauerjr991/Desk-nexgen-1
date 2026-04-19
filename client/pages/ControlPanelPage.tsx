@@ -1944,7 +1944,7 @@ function IssueRow({
                 onClick={() => onMonitor()}
                 className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Monitor
+                Review
               </button>
               <button
                 type="button"
@@ -2139,7 +2139,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                 }}
                 className="rounded-md border border-border bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
-                Monitor
+                Review
               </button>
               <button
                 type="button"
@@ -2422,7 +2422,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
               onClick={() => caseData.onMonitor()}
               className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
             >
-              Monitor
+              Review
             </button>
             <button
               type="button"
@@ -2945,7 +2945,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
           </div>
         </div>
 
-        {/* Monitor / Takeover / Transfer actions */}
+        {/* Review / Takeover / Transfer actions */}
         {caseData.status !== "resolved" && (
           <div className="flex items-center gap-2 mt-3">
             {showTransfer && transferTriggerRect && (
@@ -2975,7 +2975,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
               onClick={() => caseData.onMonitor()}
               className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
             >
-              Monitor
+              Review
             </button>
             <button
               type="button"
@@ -3284,7 +3284,7 @@ const persistedState = {
   // Tracks which static case IDs have been marked escalated — persists across
   // navigation so the escalated state is not lost on remount.
   escalatedIds: new Set<string>(),
-  // Top-level tab inside the Control Center (Monitor vs Queue).
+  // Top-level tab inside the Control Center (Review vs Queue).
   controlCenterTab: "monitor" as "monitor" | "queue",
 };
 
@@ -3380,7 +3380,7 @@ export default function ControlCenterPage() {
   }, [isBriefingDismissed]);
 
 
-  // When Monitor is clicked on an incoming toast, always open the modal.
+  // When Review is clicked on an incoming toast, always open the modal.
   useEffect(() => {
     if (!pendingMonitorCaseId) return;
     const match = staticNormalisedRef.current.find(
@@ -3605,7 +3605,7 @@ export default function ControlCenterPage() {
   return (
     <div className="flex h-full flex-col">
 
-      {/* ── Top-level Monitor / Queue tabs ───────────────────────────────────── */}
+      {/* ── Top-level Review / Queue tabs ────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
         {([["Home", "monitor"], ["Queue", "queue"]] as const).map(([label, key]) => {
           const isActive = controlCenterTab === key;
@@ -3836,7 +3836,7 @@ export default function ControlCenterPage() {
                             onClick={() => row.onMonitor()}
                             className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
                           >
-                            Monitor
+                            Review
                           </button>
                           <button
                             type="button"
@@ -4357,9 +4357,9 @@ export default function ControlCenterPage() {
 
       }
 
-      {/* ── Monitor tab ───────────────────────────────────────────────────────── */}
+      {/* ── Review tab ────────────────────────────────────────────────────────── */}
 
-      {/* Case Monitor Modal */}
+      {/* Case Review Modal */}
       {escalatedModalCase && (
         <EscalatedCaseModal
           caseData={escalatedModalCase}

@@ -5863,7 +5863,7 @@ function IncomingAssignmentCard({
           onClick={() => onMonitor(item)}
           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
         >
-          Monitor
+          Review
         </button>
         <button
           ref={transferBtnRef}
@@ -6692,7 +6692,7 @@ export default function Layout({ children }: LayoutProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const clearPendingTakeoverCaseId = useMemo(() => () => setPendingTakeoverCaseId(null), []);
 
-  // Global escalation modal — renders on any page when agent clicks Monitor from a toast
+  // Global escalation modal — renders on any page when agent clicks Review from a toast
   const [escalatedToastModal, setEscalatedToastModal] = useState<EscalatedCaseModalData | null>(null);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
