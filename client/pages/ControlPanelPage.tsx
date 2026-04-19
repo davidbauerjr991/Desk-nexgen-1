@@ -3585,7 +3585,7 @@ export default function ControlCenterPage() {
       priority: r.priority as Priority,
       status: r.status,
       preview: r.preview,
-      waitTime: "",
+      waitTime: sa?.waitTime ?? "",
       aiOverview: sa?.aiOverview ?? { actions: [], whyNeeded: "", nextSteps: [] },
       customerContext: sa?.customerContext ?? "",
       assignedTo: r.assignedTo,
@@ -3716,7 +3716,7 @@ export default function ControlCenterPage() {
 
             {/* Escalated case alerts — shown above the summary cards when present */}
             {(() => {
-              const escalatedRows = baseRows.filter((a) => a.status === "escalated");
+              const escalatedRows = [...baseRows, ...resolvedNormalised].filter((a) => a.status === "escalated");
               if (escalatedRows.length === 0) return null;
               return (
                 <div className="w-full max-w-4xl flex flex-col gap-2">
