@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLayoutContext } from "@/components/Layout";
+import { useLayoutContext } from "@/components/layout-context";
 import NotesPanel, { NOTES_PANEL_MENU_ITEMS } from "@/components/NotesPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import ConversationPanel from "@/components/ConversationPanel";

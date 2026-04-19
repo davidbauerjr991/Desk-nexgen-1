@@ -23,7 +23,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/Layout";
+import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/layout-context";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";

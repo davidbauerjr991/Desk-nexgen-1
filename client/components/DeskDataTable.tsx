@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Mail, MessageSquare, Phone, Search, SlidersHorizontal, X } from "lucide-react";
 
-import { useLayoutContext } from "@/components/Layout";
+import { useLayoutContext } from "@/components/layout-context";
 import { getCustomerTickets } from "@/components/NotesPanel";
 import { Button } from "@/components/ui/button";
 import {

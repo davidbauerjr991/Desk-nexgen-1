@@ -8,7 +8,7 @@ import {
   MessageSquare,
   Phone,
 } from "lucide-react";
-import { useLayoutContext } from "@/components/Layout";
+import { useLayoutContext } from "@/components/layout-context";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 

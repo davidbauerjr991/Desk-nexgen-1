@@ -1,4 +1,17 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  LayoutContext,
+  useLayoutContext,
+  type LayoutContextValue,
+  type RightPanelView,
+  type DeskCanvasView,
+  type DeskPanelSelection,
+  type AssignmentChannel,
+  type QueueAssignmentStatus,
+  type QueuePreviewItem,
+  type ResolvedAssignment,
+  type AcceptIssueData,
+} from "@/components/layout-context";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -103,79 +116,8 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-type RightPanelView = "info" | "desk" | "interactions" | null;
-type DeskCanvasView = "desk" | "copilot" | "notes" | "add" | "customer" | "notifications";
 type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew" | "chat" | "notifications";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
-type DeskPanelSelection = {
-  initialTab?: string;
-  ticketId?: string;
-} | null;
-
-interface LayoutContextValue {
-  activeRightPanel: RightPanelView;
-  isRightPanelOpen: boolean;
-  isInfoOpen: boolean;
-  isDeskOpen: boolean;
-  isInteractionsOpen: boolean;
-  isAddNewOpen: boolean;
-  isAgentInCall: boolean;
-  isAgentAvailable: boolean;
-  isConversationPanelOpen: boolean;
-  isConversationPopunderOpen: boolean;
-  activeConversationChannel: CustomerChannel;
-  activeConversationTabs: CustomerChannel[];
-  selectedAssignment: QueuePreviewItem;
-  visibleAssignments: QueuePreviewItem[];
-  assignmentStatusesById: Record<string, QueueAssignmentStatus>;
-  deskPanelSelection: DeskPanelSelection;
-  recentInteractions: RecentInteractionItem[];
-  conversationState: SharedConversationData;
-  activeCallAssignmentId: QueuePreviewItem["id"] | null;
-  toggleInfo: () => void;
-  toggleDesk: () => void;
-  openDeskPanel: (selection?: Exclude<DeskPanelSelection, null>) => void;
-  closeAppSpacePanel: () => void;
-  closeFloatingAppSpacePanel: () => void;
-  isAppSpacePanelInDragMode: boolean;
-  toggleInteractions: () => void;
-  toggleConversationPanel: () => void;
-  openConversationPanel: () => void;
-  openConversationPopunder: (anchorRect?: DOMRect | null) => void;
-  closeConversationPopunder: () => void;
-  setActiveConversationChannel: (channel: CustomerChannel) => void;
-  openCustomerConversation: (customerRecordId: string, channel: AssignmentChannel) => void;
-  openRecentInteractionAssignment: (interaction: RecentInteractionItem) => void;
-  setConversationState: (conversation: SharedConversationData) => void;
-  closeRightPanel: () => void;
-  resolvedAssignments: ResolvedAssignment[];
-  selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
-  acceptIssue: (data: AcceptIssueData) => void;
-  undockDeskPanel: (view: DeskCanvasView, event: React.MouseEvent<HTMLElement>) => void;
-  toggleCallPopunder: (anchorRect?: DOMRect | null, customerRecordId?: string) => void;
-  openCallDisposition: (anchorRect?: DOMRect | null) => void;
-  startCallStatus: () => void;
-  endCallStatus: () => void;
-  pendingAcceptanceIds: Set<string>;
-  acceptPendingAssignment: (assignmentId: string) => void;
-  rejectPendingAssignment: (assignmentId: string) => void;
-  reviewPendingAssignment: (assignmentId: string) => void;
-  taskSummaryIds: Set<string>;
-  closeChannelKeepTask: (assignmentId: string) => void;
-  activatedChannelIds: Set<string>;
-  liveLastCustomerCommentByAssignmentId: Record<string, string>;
-  setAssignmentStatus: (assignmentId: string, status: QueueAssignmentStatus) => void;
-  openCopilot: () => void;
-  openChatPopover: () => void;
-  isBriefingDismissed: boolean;
-  pushToIncomingNotifications: (item: QueuePreviewItem) => void;
-  pendingMonitorCaseId: string | null;
-  clearPendingMonitorCaseId: () => void;
-  pendingTakeoverCaseId: string | null;
-  clearPendingTakeoverCaseId: () => void;
-}
-
-export type QueueAssignmentStatus = ConversationStatus | "resolved" | "escalated" | "parked";
 
 // Agent roster used for the Transfer sub-menu in the case header dropdown
 export type AgentChatNotification = {
@@ -188,28 +130,6 @@ export type AgentChatNotification = {
   message: string;          // preview of the inbound message
   time: string;
 };
-
-export type ResolvedAssignment = {
-  id: string;
-  name: string;
-  preview: string;
-  priority: string;
-  channel: AssignmentChannel;
-  resolvedAt: number; // Date.now() timestamp
-  customerRecordId: string;
-};
-
-const LayoutContext = createContext<LayoutContextValue | null>(null);
-
-export function useLayoutContext() {
-  const context = useContext(LayoutContext);
-
-  if (!context) {
-    throw new Error("useLayoutContext must be used within Layout");
-  }
-
-  return context;
-}
 
 type AgentStatus = "Available" | "Busy" | "Away" | "Offline" | "In a Call";
 type WorkspaceOption = {
@@ -271,8 +191,6 @@ function getConversationStatusChipClasses(status: QueueAssignmentStatus) {
   return "border-[#D0D5DD] bg-white text-[#667085] hover:bg-[#F9FAFB]";
 }
 
-type AssignmentChannel = Extract<CustomerChannel, "chat" | "sms" | "email" | "voice" | "whatsapp">;
-
 function WhatsAppIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className} aria-hidden="true">
@@ -287,27 +205,6 @@ function getConversationStateKey(assignmentId: string) {
 }
 
 type QueueSortOption = "created-desc" | "created-asc" | "updated-desc" | "updated-asc";
-
-export type QueuePreviewItem = {
-  id: string;
-  customerRecordId: string;
-  channel: AssignmentChannel;
-  initials: string;
-  name: string;
-  customerId: string;
-  lastUpdated: string;
-  time: string;
-  preview: string;
-  label?: string;
-  statusLabel?: string;  // e.g. "Escalated" — defaults to "Open"
-  priority: string;
-  priorityClassName: string;
-  badgeColor: string;
-  icon: React.ElementType;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
 
 type GroupedQueueItem = {
   customerRecordId: string;
@@ -391,22 +288,6 @@ const priorityBadgeColorMap: Record<string, string> = {
   low:      "bg-[#208337]",
 };
 
-export type AcceptIssueData = {
-  id: string;
-  name: string;
-  customerId: string;
-  /** ID matching a record in customer-database — drives Customer Profile and Customer Information panels */
-  customerRecordId?: string;
-  channel: AssignmentChannel;
-  priority: string;
-  preview: string;
-  status: QueueAssignmentStatus;
-  waitTime: string;
-  /** When true, voice tasks open the outbound dial setup (enter account number) instead of the inbound join-call screen */
-  isOutbound?: boolean;
-  /** Called with the newly-created assignment id after the item is added to the queue */
-  onCreated?: (assignmentId: string) => void;
-};
 
 const visibleAssignmentNames = new Set([
   "Noah Patel",

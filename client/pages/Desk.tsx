@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLayoutContext } from "@/components/Layout";
+import { useLayoutContext } from "@/components/layout-context";
 import DeskDataTable from "@/components/DeskDataTable";
 import NotesPanel from "@/components/NotesPanel";
 
