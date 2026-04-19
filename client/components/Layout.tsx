@@ -7407,6 +7407,45 @@ export default function Layout({ children }: LayoutProps) {
     }));
   };
 
+  /**
+   * Returns the highest-severity status across all visible channels for a customer.
+   * Used so the active record header shows the case status, not a single channel's status.
+   */
+  const getCaseStatus = (customerRecordId: string): QueueAssignmentStatus => {
+    const severityMap: Record<string, number> = { escalated: 4, pending: 3, open: 2, resolved: 1, parked: 0 };
+    return visibleAssignmentIds
+      .map((id) => assignmentItemsById[id])
+      .filter((item) => item?.customerRecordId === customerRecordId)
+      .reduce<QueueAssignmentStatus>((highest, item) => {
+        const s = (assignmentStatusesById[item!.id] ?? "open") as QueueAssignmentStatus;
+        return (severityMap[s] ?? 0) > (severityMap[highest] ?? 0) ? s : highest;
+      }, "open");
+  };
+
+  /**
+   * Sets the status on ALL visible channels for a customer so status is case-owned.
+   */
+  const handleCaseStatusChange = (customerRecordId: string, status: QueueAssignmentStatus) => {
+    const siblingIds = visibleAssignmentIds.filter(
+      (id) => assignmentItemsById[id]?.customerRecordId === customerRecordId,
+    );
+    setAssignmentStatusesById((currentStatuses) => {
+      const next = { ...currentStatuses };
+      siblingIds.forEach((id) => { next[id] = status; });
+      return next;
+    });
+  };
+
+  /**
+   * Dismisses ALL visible channels for a customer (case-level dismiss from the active record header).
+   */
+  const handleDismissCase = (customerRecordId: string) => {
+    const siblingIds = visibleAssignmentIds.filter(
+      (id) => assignmentItemsById[id]?.customerRecordId === customerRecordId,
+    );
+    handleRemoveGroupedAssignments(siblingIds);
+  };
+
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
     if (typeof window === "undefined") {
       return { x: 24, y: 24 };
@@ -9694,9 +9733,9 @@ export default function Layout({ children }: LayoutProps) {
                 isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
                 onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
                 casePreview={selectedAssignment.preview}
-                assignmentStatus={assignmentStatusesById[selectedAssignment.id] ?? "open"}
-                onAssignmentStatusChange={(s) => handleAssignmentStatusChange(selectedAssignment.id, s)}
-                onRemoveAssignment={() => handleRemoveVisibleAssignment(selectedAssignment.id)}
+                assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
+                onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
+                onRemoveAssignment={() => handleDismissCase(selectedAssignment.customerRecordId)}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -9823,9 +9862,9 @@ export default function Layout({ children }: LayoutProps) {
               isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
               onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
               casePreview={selectedAssignment.preview}
-              assignmentStatus={assignmentStatusesById[selectedAssignment.id] ?? "open"}
-              onAssignmentStatusChange={(s) => handleAssignmentStatusChange(selectedAssignment.id, s)}
-              onRemoveAssignment={() => handleRemoveVisibleAssignment(selectedAssignment.id)}
+              assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
+              onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
+              onRemoveAssignment={() => handleDismissCase(selectedAssignment.customerRecordId)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
