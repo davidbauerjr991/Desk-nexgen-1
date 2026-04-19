@@ -222,16 +222,16 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
     ],
   },
 
-  "fatima al-rashid": {
-    summary: "Fatima's account shows signs of compromise — a suspicious session triggered a bulk data export. This is a high-priority security incident requiring immediate escalation and containment. Here are my suggested actions, or ask me for more assistance.",
+  "jordan davis": {
+    summary: "Jordan's CloudMesh Pro v3 router is dropping all connections due to a firmware version mismatch. The AI has paused mid-reset to get expert confirmation on port forwarding config backup behavior before proceeding. Here are my suggested actions, or ask me for more assistance.",
     nextSteps: [
-      "Escalate to Security Team immediately to investigate the compromised session and bulk export",
-      "Create ADP Ticket to formally document the security incident and the suspended export job",
-      "Set Case to Resolved once the investigation is complete and the account is secured",
+      "Confirm port forwarding config backup behavior for CloudMesh Pro v3 firmware 4.0.8 before factory reset",
+      "Guide Jordan through the factory reset and firmware update to 4.1.2",
+      "Set Case to Resolved once connection is stable and custom config is restored",
     ],
     suggestedActions: [
-      { id: "escalate", label: "Escalate to Supervisor" },
-      { id: "create-ticket", label: "Create ADP Ticket" },
+      { id: "escalate", label: "Confirm Firmware Backup" },
+      { id: "create-ticket", label: "Create Support Ticket" },
       { id: "set-resolved", label: "Set Case to Resolved" },
     ],
   },

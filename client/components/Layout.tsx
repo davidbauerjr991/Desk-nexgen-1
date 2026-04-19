@@ -96,7 +96,7 @@ import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/Es
 import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
 import { toast } from "sonner";
 
-// Prevents the Fatima Al-Rashid escalation from re-firing if Layout remounts during navigation.
+// Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
 
 interface LayoutProps {
@@ -1103,11 +1103,11 @@ const overviewActionsByCustomerName: Record<string, string[]> = {
     "Identified two pricing options available under the current commercial framework.",
     "Prepared a contract summary and renewal options brief for the agent.",
   ],
-  "fatima al-rashid": [
-    "Reviewed the security alert and confirmed an abnormal bulk data export was initiated from Fatima's account.",
-    "Cross-referenced login timestamps — the export was triggered 40 minutes after an unrecognised session began.",
-    "Suspended the export job and flagged the session for security team investigation.",
-    "Prepared an incident report and escalation summary for the agent and security team.",
+  "jordan davis": [
+    "Pulled Jordan's account and identified router model: CloudMesh Pro v3 running firmware 4.0.8 — a known mismatch against the current stable release 4.1.2.",
+    "Reviewed 24 hours of diagnostic telemetry — confirmed recurring connection drops consistent with the firmware version mismatch.",
+    "Initiated a step-by-step guided factory reset sequence with Jordan, confirming each action in real time.",
+    "Flagged the conversation for human assist — Jordan's custom port forwarding rules may not survive the factory reset; firmware-specific backup behavior requires expert confirmation.",
   ],
   "tom hargrove": [
     "Reviewed Tom's email and confirmed he is following up on a refund issued 22 days ago.",
@@ -6815,7 +6815,7 @@ export default function Layout({ children }: LayoutProps) {
   // Track how many cases are currently escalated (for the left rail badge + tooltip).
   const [escalatedRailCount, setEscalatedRailCount] = useState(0);
 
-  // Module-level flag — ensures the Fatima escalation fires at most once per browser session,
+  // Module-level flag — ensures the Jordan Davis escalation fires at most once per browser session,
   // even if Layout unmounts and remounts during navigation.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
   useEffect(() => {
@@ -6829,14 +6829,14 @@ export default function Layout({ children }: LayoutProps) {
           ...prev,
           {
             id: "escalation-static-11",
-            customerRecordId: "david",
+            customerRecordId: "jordan",
             channel: "chat" as const,
-            initials: "FA",
-            name: "Fatima Al-Rashid",
+            initials: "JD",
+            name: "Jordan Davis",
             customerId: "CST-11621",
             lastUpdated: "Just now",
             time: "Just now",
-            preview: "Data breach concern — suspicious export activity flagged",
+            preview: "Router dropping all connections — port forwarding config blocking factory reset",
             statusLabel: "Escalated",
             priority: "Critical",
             priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",

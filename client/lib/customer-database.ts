@@ -3218,6 +3218,261 @@ export const customerDatabase: CustomerSeedRecord[] = [
       },
     },
   },
+  {
+    id: "jordan",
+    initials: "JD",
+    name: "Jordan Davis",
+    customerId: "CST-11621",
+    lastUpdated: "04/19/26 | 09:45 AM",
+    profile: {
+      department: "Residential",
+      tenureYears: 2,
+      totalAUM: "$89.99",
+      financialReadiness: 68,
+      financialAdvisor: "Jeff Comstock",
+      advisorTitle: "Home Services Advisor",
+      tags: ["Home Broadband", "CloudMesh Pro v3", "Fiber 500"],
+      fraudRiskScore: 12,
+      priorDisputeCount: 1,
+      cardBlocked: false,
+    },
+    conversationTopics: [
+      "Confirm port forwarding config backup before factory reset",
+      "Complete firmware update to CloudMesh Pro v3 4.1.2",
+      "Verify connection stability post-reset",
+    ],
+    contact: {
+      email: "jordan.davis@email.com",
+      phone: "(512) 555-0183",
+      address: { street: "2847 Ridgewood Dr", city: "Austin", state: "TX", zip: "78704", country: "US" },
+    },
+    accounts: [
+      { id: "jd-plan", type: "Checking", number: "****3821", balance: "$89.99", availableBalance: "$89.99", status: "active", openedDate: "Feb 2024" },
+    ],
+    overview: {
+      contactNumber: "(512) 555-0183",
+      assignedAgent: "Jeff Comstock",
+      pronoun: "he",
+      lastContactTime: "Today, 9:44 AM",
+      address: "2847 Ridgewood Dr, Austin, TX 78704",
+    },
+    interactionTimeline: [
+      {
+        id: "jordan-telemetry",
+        title: "Diagnostic telemetry reviewed",
+        timestamp: "Today · 9:33 AM",
+        detail: "Aria pulled 24h of router diagnostics; firmware mismatch detected — running 4.0.8, stable is 4.1.2.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "jordan-chat-open",
+        title: "Customer opened live chat",
+        timestamp: "Today · 9:33 AM",
+        detail: "Jordan reported router dropping all connections after 3 reboots.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "jordan-reset-started",
+        title: "AI agent initiated guided reset",
+        timestamp: "Today · 9:35 AM",
+        detail: "Aria began a step-by-step guided factory reset sequence with Jordan, confirming each action in real time.",
+        tone: "info",
+        sortOrder: 3,
+      },
+      {
+        id: "jordan-port-forward-concern",
+        title: "Reset paused — port forwarding concern raised",
+        timestamp: "Today · 9:41 AM",
+        detail: "Jordan asked about preserving custom port forwarding rules before factory reset — critical for his home office setup.",
+        tone: "critical",
+        sortOrder: 4,
+      },
+      {
+        id: "jordan-flagged",
+        title: "Conversation flagged for human assist",
+        timestamp: "Today · 9:42 AM",
+        detail: "Aria flagged firmware-specific backup behavior as outside its confidence threshold and requested human intervention.",
+        tone: "warning",
+        sortOrder: 5,
+      },
+      {
+        id: "jordan-escalated",
+        title: "Case escalated — awaiting firmware backup confirmation",
+        timestamp: "Today · 9:44 AM",
+        detail: "Human agent required to confirm CloudMesh Pro v3 config backup behavior before reset proceeds.",
+        tone: "critical",
+        sortOrder: 6,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "jordan-h1",
+        title: "CloudMesh Pro v3 router registered",
+        timestamp: "Feb 2024 · Account opened",
+        detail: "Jordan activated a Fiber 500 plan and registered a CloudMesh Pro v3 router.",
+        dot: "green",
+      },
+      {
+        id: "jordan-h2",
+        title: "Firmware auto-update failed",
+        timestamp: "Jan 2026",
+        detail: "Router firmware stuck on 4.0.8 after a failed automatic update to 4.1.2.",
+        dot: "orange",
+      },
+      {
+        id: "jordan-h3",
+        title: "Connection drop — resolved after reboot",
+        timestamp: "Mar 2026",
+        detail: "Jordan reported intermittent drops; resolved by agent-guided reboot.",
+        dot: "gray",
+      },
+      {
+        id: "jordan-h4",
+        title: "Case escalated — port forwarding backup query",
+        timestamp: "Today · 9:44 AM",
+        detail: "AI paused mid-reset; human agent assigned to confirm firmware backup behavior before factory reset proceeds.",
+        dot: "red",
+      },
+    ],
+    queue: {
+      time: "11m ago",
+      preview: "Router dropping all connections — port forwarding config blocking factory reset",
+      priority: "Critical",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
+      icon: "messageSquare",
+      isActive: true,
+      createdAt: "2026-04-19T09:33:00",
+      updatedAt: "2026-04-19T09:44:00",
+    },
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 9:33 AM",
+        draft:
+          "I've reviewed the CloudMesh Pro v3 documentation. Before we proceed with the factory reset, I can confirm your port forwarding rules can be exported from the router admin panel at 192.168.1.1 under Advanced > Backup Config. Let me walk you through it.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "My router keeps dropping all connections. I've rebooted it three times and nothing works.",
+            time: "9:33 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Jordan, I've pulled your account and identified your router as a CloudMesh Pro v3. I can see you're running firmware 4.0.8 — the current stable version is 4.1.2. This mismatch is likely causing your connection drops. I'll walk you through a reset sequence step by step.",
+            time: "9:34 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Before I do the factory reset, will I lose my custom port forwarding rules? I set those up for my home office and I really can't afford to lose them.",
+            time: "9:41 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 4,
+            role: "agent",
+            content:
+              "That's a great question about firmware-specific backup behavior — I want to make sure I give you the right answer before we proceed. I'm flagging this conversation for a human agent who can confirm exactly how port forwarding configs are handled during a factory reset on firmware 4.0.8.",
+            time: "9:42 AM",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 9:33 AM",
+        draft:
+          "I can confirm CloudMesh Pro v3 supports config backup before a factory reset. I'll send you the steps to export your port forwarding rules right now.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "My router is constantly dropping. Been rebooting for 20 mins — nothing is working.",
+            time: "9:33 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "I see your CloudMesh Pro v3 is on firmware 4.0.8 — there's a known issue with connection drops on this version. Can you do a factory reset? I'll guide you through it.",
+            time: "9:35 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content: "Will I lose my port forwarding rules? I use them for my home office.",
+            time: "9:41 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 9:33 AM",
+        draft:
+          "Hi Jordan — a human agent is now reviewing your case. We'll confirm the port forwarding backup process for CloudMesh Pro v3 firmware 4.0.8 before we proceed with the reset.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "Hi, my internet has been down for 20 minutes. Router keeps dropping. Already rebooted 3 times.",
+            time: "9:33 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Jordan! I can see your CloudMesh Pro v3 is running an outdated firmware version. A factory reset followed by a firmware update should resolve this. I'll walk you through it step by step.",
+            time: "9:34 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content: "OK but I need my port forwarding settings kept — I have a home office setup that depends on them.",
+            time: "9:41 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 9:33 AM",
+        draft:
+          "Hi Jordan — I've reviewed the CloudMesh Pro v3 firmware documentation. Your port forwarding configuration can be exported before the factory reset via the admin panel. I'll outline the exact steps in my next message.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Router dropping all connections\n\nHi, my router has been dropping all connections for the past 20 minutes. I've rebooted it three times and nothing works. Please help urgently — I work from home.",
+            time: "9:33 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 2,
+            role: "agent",
+            content:
+              "Hi Jordan, I've reviewed your account and identified a firmware mismatch on your CloudMesh Pro v3. You're running 4.0.8 and the stable release is 4.1.2. A factory reset followed by a firmware update should resolve your connection drops.",
+            time: "9:35 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Before I do the factory reset — I have custom port forwarding rules set up for my home office. Will those be lost? I really can't afford to lose that configuration.",
+            time: "9:41 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+    },
+  },
 ];
 
 export const defaultCustomerId = customerDatabase.find((customer) => customer.queue.isActive)?.id ?? customerDatabase[0]?.id ?? "alex";

@@ -23,7 +23,8 @@ export type CaseType =
   | "Incorrect AI Guidance"
   | "Subscription Upgrade"
   | "Scheduling"
-  | "General Inquiry";
+  | "General Inquiry"
+  | "IT Support";
 
 export interface StaticAssignment {
   id: string;
@@ -388,33 +389,33 @@ export const staticAssignments: StaticAssignment[] = [
   },
   {
     id: "static-11",
-    name: "Fatima Al-Rashid",
+    name: "Jordan Davis",
     customerId: "CST-11621",
-    customerRecordId: "david",
-    company: "Crescent Media Group",
-    botType: "Security Bot",
-    caseType: "Security Alert",
+    customerRecordId: "jordan",
+    company: "Residential",
+    botType: "Tech Bot",
+    caseType: "IT Support",
     agentType: "virtual",
     channel: "chat",
     priority: "Critical",
     status: "pending",
-    preview: "Data breach concern — suspicious export activity flagged",
+    preview: "Router dropping all connections — port forwarding config blocking factory reset",
     waitTime: "11m",
-    customerContext: "Media-sector client (3 years). High-volume data account. No prior security incidents. Sentiment: Alarmed — potential active breach, expects immediate containment.",
+    customerContext: "Residential broadband customer (2 years). CloudMesh Pro v3 router on firmware 4.0.8. Custom port forwarding rules configured for home office use. Sentiment: Frustrated — network down 20+ minutes, concerned about losing critical configuration.",
     aiOverview: {
       actions: [
-        "Reviewed the security alert and confirmed an abnormal bulk data export was initiated from Fatima's account.",
-        "Cross-referenced login timestamps — the export was triggered 40 minutes after an unrecognised session began.",
-        "Suspended the export job and flagged the session for security team investigation.",
-        "Prepared an incident report and escalation summary for the agent and security team.",
+        "Pulled Jordan's account and identified router model: CloudMesh Pro v3 running firmware 4.0.8 — a known mismatch against the current stable release 4.1.2.",
+        "Reviewed 24 hours of diagnostic telemetry — confirmed recurring connection drops consistent with the firmware version mismatch.",
+        "Initiated a step-by-step guided factory reset sequence with Jordan, confirming each action in real time.",
+        "Flagged the conversation for human assist — Jordan's custom port forwarding rules may not survive the factory reset; firmware-specific backup behavior requires expert confirmation.",
       ],
       whyNeeded:
-        "This is a potential data breach requiring immediate human intervention. A security agent must assess the scope of the export, notify the data protection officer, and engage Fatima to determine whether account credentials have been compromised.",
+        "Jordan's case requires human expertise on CloudMesh Pro v3 firmware 4.1.2 backup behavior. Before proceeding with the factory reset, an agent must confirm whether custom port forwarding rules can be exported or preserved. This is a firmware-specific configuration edge case outside the AI's confidence threshold.",
       nextSteps: [
-        "Assess the full scope of the abnormal data export",
-        "Notify the data protection officer immediately",
-        "Engage Fatima to determine if credentials have been compromised",
-        "Initiate full incident response protocol and document findings",
+        "Confirm whether CloudMesh Pro v3 supports config backup before a factory reset on firmware 4.0.8",
+        "Advise Jordan on how to export or document custom port forwarding rules",
+        "Guide Jordan through the factory reset and firmware update to 4.1.2",
+        "Verify connection stability post-reset and confirm all custom settings are restored",
       ],
     },
     assignedTo: null,
