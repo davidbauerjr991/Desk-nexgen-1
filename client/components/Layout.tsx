@@ -5701,47 +5701,35 @@ function IncomingAssignmentCard({
 
   return (
     <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-start justify-between px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F4F7] dark:bg-[#1C2A3A] text-[13px] font-semibold text-[#344054] dark:text-[#94A3B8]">
-            {item.initials}
+      {/* Header — matches escalated alert style: BotName · waitTime · Priority badge */}
+      <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
+              {item.label ?? "Service Bot"}
+            </span>
+            <span className="text-[11px] text-[#98A2B3]">{item.time}</span>
+            <span className={cn(
+              "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+              item.statusLabel === "Escalated"
+                ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+                : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+            )}>
+              {item.priority}
+            </span>
           </div>
-          <div>
-            <p className="text-[14px] font-semibold leading-tight text-[#101828] dark:text-[#E2E8F0]">{item.name}</p>
-            <p className="text-[12px] text-[#667085] dark:text-[#8898AB] mt-0.5 leading-snug line-clamp-1">{item.label ?? item.preview}</p>
-          </div>
+          <p className="mt-1 text-[12px] leading-[1.4] text-[#475467] dark:text-[#94A3B8] line-clamp-2">
+            {item.preview}
+          </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-          <span className={cn(
-            "rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
-            item.statusLabel === "Escalated"
-              ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
-              : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
-          )}>
-            {item.statusLabel ?? "Open"}
-          </span>
-          <button
-            type="button"
-            onClick={() => onDismiss(item)}
-            className="flex h-6 w-6 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
-            aria-label="Dismiss notification"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Channel + time */}
-      <div className="flex items-center gap-3 px-4 pb-2">
-        <span className="inline-flex items-center gap-1 rounded-full border border-black/[0.08] px-2 py-0.5 text-[11px] font-medium text-[#344054]">
-          <ChannelIcon className="h-3 w-3" />
-          {channelLabel}
-        </span>
-        <span className="flex items-center gap-1 text-[11px] text-[#667085]">
-          <Clock className="h-3 w-3" />
-          {item.lastUpdated}
-        </span>
+        <button
+          type="button"
+          onClick={() => onDismiss(item)}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
+          aria-label="Dismiss notification"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* Summary — always visible, collapsible */}
@@ -6747,8 +6735,9 @@ export default function Layout({ children }: LayoutProps) {
             initials: "JD",
             name: "Jordan Davis",
             customerId: "CST-11621",
-            lastUpdated: "Just now",
-            time: "Just now",
+            label: "Tech Bot",
+            lastUpdated: "11m",
+            time: "11m",
             preview: "Router dropping all connections — port forwarding config blocking factory reset",
             statusLabel: "Escalated",
             priority: "Critical",
