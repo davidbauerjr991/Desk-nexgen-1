@@ -3531,6 +3531,8 @@ export default function ControlCenterPage() {
 
   const filteredResolvedAssignments = resolvedAssignments.filter(
     (r) => r.channel !== "email" &&
+            // Exclude cases that have been re-accepted — they'll appear in staticNormalised instead
+            !acceptedStaticsStore.has(r.id) &&
             (priorityFilters.size === 0 || priorityFilters.has(r.priority as Priority)) &&
             (channelFilters.size === 0 || channelFilters.has(r.channel as ChannelFilterValue)),
   );
@@ -3562,11 +3564,26 @@ export default function ControlCenterPage() {
       isClosed: true,
       isParkedFromToast: false,
       liveAssignmentId: null,
-      onAccept: () => {},
+      onAccept: () => {
+        // Re-open a dismissed case: remove from rejectedIds and re-accept with preserved status
+        if (!sa) return;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        handleAcceptStatic(sa, r.status);
+      },
       onReject: () => {},
-      onReopen: () => {},
-      onMonitor: () => {},
-      onSupervise: () => {},
+      onReopen: () => {
+        if (!sa) return;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        handleAcceptStatic(sa, r.status);
+      },
+      onMonitor: () => {
+        if (sa) setEscalatedModalCase({ ...sa, status: r.status, assignedTo: r.assignedTo, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
+      },
+      onSupervise: () => {
+        if (!sa) return;
+        setRejectedIds((prev) => { const next = new Set(prev); next.delete(r.id); return next; });
+        handleAcceptStatic(sa, r.status);
+      },
     };
   });
 
