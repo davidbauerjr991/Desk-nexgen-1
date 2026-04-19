@@ -332,11 +332,13 @@ function CopilotResponseCard({
 export function EscalatedCaseModal({
   caseData,
   onTakeover,
+  onSupervise,
   onTransfer,
   onClose,
 }: {
   caseData: EscalatedCaseModalData;
   onTakeover: () => void;
+  onSupervise: () => void;
   onTransfer: () => void;
   onClose: () => void;
 }) {
@@ -604,6 +606,13 @@ export function EscalatedCaseModal({
               Quick Action
             </button>
           </div>
+          <button
+            type="button"
+            onClick={onSupervise}
+            className="rounded-lg bg-[#F59E0B] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+          >
+            Supervise
+          </button>
           <button
             type="button"
             onClick={onTakeover}

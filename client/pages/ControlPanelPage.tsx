@@ -1772,6 +1772,7 @@ function IssueRow({
   onReject,
   onReopen,
   onMonitor,
+  onSupervise,
   isMonitored = false,
   isSelected = false,
   onSelect,
@@ -1799,6 +1800,7 @@ function IssueRow({
   onReject: () => void;
   onReopen: () => void;
   onMonitor: () => void;
+  onSupervise: () => void;
   isMonitored?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string | null) => void;
@@ -1943,6 +1945,13 @@ function IssueRow({
                 className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
               >
                 Monitor
+              </button>
+              <button
+                type="button"
+                onClick={() => onSupervise()}
+                className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+              >
+                Supervise
               </button>
               <button
                 type="button"
@@ -2158,6 +2167,7 @@ type RowData = StaticAssignment & {
   onReject: () => void;
   onReopen: () => void;
   onMonitor: () => void;
+  onSupervise: () => void;
 };
 
 // ─── BulkResponseModal ────────────────────────────────────────────────────────
@@ -2416,6 +2426,13 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             </button>
             <button
               type="button"
+              onClick={() => caseData.onSupervise()}
+              className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+            >
+              Supervise
+            </button>
+            <button
+              type="button"
               onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
               className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
             >
@@ -2585,13 +2602,22 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
             )}
           </div>
           {caseData.status !== "resolved" && (
-            <button
-              type="button"
-              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
-              className="rounded-md bg-[#E53935] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#C71D1A] transition-colors shrink-0"
-            >
-              Takeover
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => caseData.onSupervise()}
+                className="rounded-md bg-[#F59E0B] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+              >
+                Supervise
+              </button>
+              <button
+                type="button"
+                onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
+                className="rounded-md bg-[#E53935] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
+              >
+                Takeover
+              </button>
+            </div>
           )}
         </div>
         <p className="mt-0.5 text-[12px] text-[#475467] truncate">{caseData.preview}</p>
@@ -2950,6 +2976,13 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
               className="flex items-center gap-1.5 rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
             >
               Monitor
+            </button>
+            <button
+              type="button"
+              onClick={() => caseData.onSupervise()}
+              className="rounded-md bg-[#F59E0B] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+            >
+              Supervise
             </button>
             <button
               type="button"
@@ -3425,6 +3458,7 @@ export default function ControlCenterPage() {
         const effectiveStatus = bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (row.status);
         setEscalatedModalCase({ ...row, status: effectiveStatus });
       },
+      onSupervise: () => handleAcceptStatic(a),
     };
     return row;
   // Exclude closed cases (taken over + dismissed) — they are represented in resolvedNormalised
@@ -3484,6 +3518,7 @@ export default function ControlCenterPage() {
         onReject: () => {},
         onReopen: () => {},
         onMonitor: () => {},
+        onSupervise: () => {},
       };
     });
 
@@ -3531,6 +3566,7 @@ export default function ControlCenterPage() {
       onReject: () => {},
       onReopen: () => {},
       onMonitor: () => {},
+      onSupervise: () => {},
     };
   });
 
@@ -3801,6 +3837,13 @@ export default function ControlCenterPage() {
                             className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
                           >
                             Monitor
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => row.onSupervise()}
+                            className="rounded-md bg-[#F59E0B] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+                          >
+                            Supervise
                           </button>
                           <button
                             type="button"
@@ -4321,6 +4364,11 @@ export default function ControlCenterPage() {
         <EscalatedCaseModal
           caseData={escalatedModalCase}
           onTakeover={() => {
+            handleAcceptStatic(escalatedModalCase as any);
+            rejectIssue(escalatedModalCase.id); // remove from queue
+            setEscalatedModalCase(null);
+          }}
+          onSupervise={() => {
             handleAcceptStatic(escalatedModalCase as any);
             rejectIssue(escalatedModalCase.id); // remove from queue
             setEscalatedModalCase(null);

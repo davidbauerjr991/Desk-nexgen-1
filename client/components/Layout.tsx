@@ -10104,6 +10104,28 @@ export default function Layout({ children }: LayoutProps) {
                 : undefined,
             });
           }}
+          onSupervise={() => {
+            // Supervise behaves like Takeover for now
+            pendingQueueRejections.add(escalatedToastModal.id);
+            setEscalatedToastModal(null);
+            const sa = staticAssignments.find(
+              (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
+            );
+            acceptIssue({
+              id: escalatedToastModal.id,
+              name: escalatedToastModal.name,
+              customerId: escalatedToastModal.customerId,
+              customerRecordId: escalatedToastModal.customerRecordId ?? undefined,
+              channel: escalatedToastModal.channel as AssignmentChannel,
+              priority: escalatedToastModal.priority,
+              preview: escalatedToastModal.preview,
+              status: escalatedToastModal.status as QueueAssignmentStatus,
+              waitTime: escalatedToastModal.waitTime,
+              onCreated: sa
+                ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
+                : undefined,
+            });
+          }}
           onTransfer={() => {
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
