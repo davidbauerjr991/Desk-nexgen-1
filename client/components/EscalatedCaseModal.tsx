@@ -361,6 +361,7 @@ export function EscalatedCaseModal({
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [superviseScrollTrigger, setSuperviseScrollTrigger] = useState(0);
   const [approveContext, setApproveContext] = useState(false);
+  const [showResolvedMessage, setShowResolvedMessage] = useState(false);
   const [jordanTyping, setJordanTyping] = useState(false);
   const [localStatus, setLocalStatus] = useState(caseData.status);
   const [localPriority, setLocalPriority] = useState(caseData.priority);
@@ -499,12 +500,16 @@ export function EscalatedCaseModal({
                       alt={`${caseData.botType} avatar`}
                       className="h-5 w-5 rounded-full object-cover shrink-0"
                     />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">{caseData.botType}</p>
                   </div>
-                  <p className="text-[13px] font-medium leading-5 text-[#344054]">{caseData.customerContext}</p>
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                    {showResolvedMessage
+                      ? `Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!`
+                      : caseData.customerContext}
+                  </p>
 
-                  {/* Confidence meter */}
-                  {!approveContext && (
+                  {/* Confidence meter — hidden once resolved */}
+                  {!approveContext && !showResolvedMessage && (
                     <div className="mt-3 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
@@ -524,7 +529,19 @@ export function EscalatedCaseModal({
                     </div>
                   )}
 
-                  {!approveContext ? (
+                  {showResolvedMessage ? (
+                    /* Post-resolution: status dropdown locked to resolved */
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between rounded-lg border border-[#24943E] bg-[#EFFBF1] px-3 py-2">
+                        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#208337]">Case Status</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-2 w-2 rounded-full bg-[#208337]" />
+                          <span className="text-[12px] font-semibold text-[#208337]">Resolved</span>
+                          <ChevronDown className="h-3.5 w-3.5 text-[#208337]" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : !approveContext ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -565,8 +582,7 @@ export function EscalatedCaseModal({
                         approveTimersRef.current.push(setTimeout(() => {
                           setLocalStatus("resolved");
                           setLocalPriority("Low");
-                          // Propagate resolved state back to the parent so the
-                          // home page / case list removes the escalated flag.
+                          setShowResolvedMessage(true);
                           onResolve();
                         }, 5500));
                       }}
@@ -577,7 +593,7 @@ export function EscalatedCaseModal({
                   ) : (
                     <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-1.5">
                       <Check className="h-3 w-3 text-[#208337]" />
-                      <span className="text-[11px] font-semibold text-[#208337]">Approved — Aria is responding to Jordan</span>
+                      <span className="text-[11px] font-semibold text-[#208337]">Approved — {caseData.botType} is responding to {caseData.name.split(" ")[0]}</span>
                     </div>
                   )}
                 </div>
