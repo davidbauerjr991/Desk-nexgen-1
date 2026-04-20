@@ -342,6 +342,7 @@ export function EscalatedCaseModal({
   onTakeover,
   onSupervise,
   onTransfer,
+  onResolve,
   onClose,
 }: {
   caseData: EscalatedCaseModalData;
