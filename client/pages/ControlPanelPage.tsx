@@ -4011,20 +4011,26 @@ export default function ControlCenterPage() {
 
       {/* ── Assigned tab ─────────────────────────────────────────────────────── */}
       {controlCenterTab === "assigned" && (() => {
-        // Include both:
-        // 1. Static cases taken over via the review modal (isAccepted + still in rail)
-        // 2. Live cases currently active in the rail (liveNormalised, not parked)
-        // Deduplicate by id to avoid any overlap.
+        // Include all cases assigned to the current agent:
+        // 1. Static cases taken over via the review modal (active in rail)
+        // 2. Live cases currently active in the rail
+        // 3. Resolved/dismissed cases still attributed to this agent (shown in queue via resolvedNormalised)
+        //    but NOT transferred to someone else.
         const staticAssigned = staticNormalised.filter(
           (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id),
         );
         const liveAssigned = liveNormalised.filter(
           (r) => r.isAccepted && !r.isParkedFromToast,
         );
-        const assignedIds = new Set(staticAssigned.map((r) => r.id));
+        const resolvedAssigned = resolvedNormalised.filter(
+          (r) => r.assignedTo === CURRENT_AGENT_NAME,
+        );
+        const seenIds = new Set(staticAssigned.map((r) => r.id));
+        liveAssigned.forEach((r) => seenIds.add(r.id));
         const assignedRows = [
           ...staticAssigned,
-          ...liveAssigned.filter((r) => !assignedIds.has(r.id)),
+          ...liveAssigned.filter((r) => !seenIds.has(r.id)),
+          ...resolvedAssigned.filter((r) => !seenIds.has(r.id)),
         ];
         return (
           <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
