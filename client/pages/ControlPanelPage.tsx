@@ -3305,7 +3305,7 @@ let escalationLocalFired = false;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isBriefingDismissed, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
@@ -3398,7 +3398,7 @@ export default function ControlCenterPage() {
   // The module-level flag + persistedState.escalatedIds ensure this only fires once per
   // browser session and the escalated status is preserved across remounts.
   useEffect(() => {
-    if (!isBriefingDismissed) return;
+    if (!isAgentAvailable) return;
     if (escalationLocalFired) return;
     escalationLocalFired = true;
     const timer = setTimeout(() => {
@@ -3409,7 +3409,7 @@ export default function ControlCenterPage() {
       });
     }, 5_000);
     return () => clearTimeout(timer);
-  }, [isBriefingDismissed]);
+  }, [isAgentAvailable]);
 
 
   // When Review is clicked on an incoming toast, always open the modal.

@@ -6733,7 +6733,7 @@ export default function Layout({ children }: LayoutProps) {
   // even if Layout unmounts and remounts during navigation.
   // This lives in Layout so it fires regardless of which page the agent is currently on.
   useEffect(() => {
-    if (!isBriefingDismissed) return;
+    if (status !== "Available") return;
     if (escalationFired) return; // already queued or fired — do not repeat
     escalationFired = true;
     const timer = setTimeout(() => {
@@ -6766,7 +6766,7 @@ export default function Layout({ children }: LayoutProps) {
       setEscalatedRailCount((n) => n + 1);
     }, 5_000);
     return () => clearTimeout(timer);
-  }, [isBriefingDismissed]);
+  }, [status]);
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
