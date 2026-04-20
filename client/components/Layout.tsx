@@ -8206,11 +8206,7 @@ export default function Layout({ children }: LayoutProps) {
       const nextIds = currentIds.filter((currentId) => currentId !== assignmentId);
 
       if (selectedAssignmentId === assignmentId) {
-        setSelectedAssignmentId(nextIds[0] ?? removedAssignment?.customerRecordId ?? initialSelectedAssignmentId);
-      }
-
-      if (nextIds.length === 0) {
-        navigate("/control-panel");
+        setSelectedAssignmentId(nextIds[0] ?? initialSelectedAssignmentId);
       }
 
       return nextIds;
@@ -8376,10 +8372,7 @@ export default function Layout({ children }: LayoutProps) {
     setVisibleAssignmentIds((currentIds) => {
       const nextIds = currentIds.filter((id) => !assignmentIds.includes(id));
       if (assignmentIds.includes(selectedAssignmentId)) {
-        setSelectedAssignmentId(nextIds[0] ?? primaryAssignment?.customerRecordId ?? initialSelectedAssignmentId);
-      }
-      if (nextIds.length === 0) {
-        navigate("/control-panel");
+        setSelectedAssignmentId(nextIds[0] ?? initialSelectedAssignmentId);
       }
       return nextIds;
     });
