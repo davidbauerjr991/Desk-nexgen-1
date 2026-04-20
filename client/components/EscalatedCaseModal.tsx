@@ -349,6 +349,10 @@ export function EscalatedCaseModal({
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [aiComment, setAiComment] = useState(
+    "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?"
+  );
+  const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -498,19 +502,45 @@ export function EscalatedCaseModal({
               )}
 
               {showQuickActions && (
-                <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] p-3 space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3] mb-2">Quick Actions</p>
-                  {QUICK_ACTION_OPTIONS.map((action) => (
-                    <button
-                      key={action}
-                      type="button"
-                      onClick={() => { setShowQuickActions(false); onClose(); }}
-                      className="flex w-full items-center gap-2.5 rounded-lg border border-border bg-white px-3 py-2 text-left text-[12px] text-[#344054] hover:bg-[#F2F0FA] hover:border-[#C8BFF0] hover:text-[#5C46B8] transition-colors"
-                    >
-                      <Check className="h-3 w-3 shrink-0 text-[#6E56CF]" />
-                      {action}
-                    </button>
-                  ))}
+                <div className="rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                  </div>
+                  <textarea
+                    value={aiComment}
+                    onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
+                    rows={5}
+                    className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                  />
+                  {aiCommentApproved ? (
+                    <div className={cn(
+                      "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium",
+                      aiCommentApproved === "approved"
+                        ? "bg-[#EFFBF1] text-[#208337]"
+                        : "bg-[#FDEAEA] text-[#C71D1A]"
+                    )}>
+                      <Check className="h-3 w-3" />
+                      {aiCommentApproved === "approved" ? "Response approved — AI will send this message" : "Response rejected — AI will await your instruction"}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiCommentApproved("approved")}
+                        className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiCommentApproved("rejected")}
+                        className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -586,7 +616,7 @@ export function EscalatedCaseModal({
             type="button"
             role="switch"
             aria-checked={showQuickActions}
-            onClick={() => setShowQuickActions((v) => !v)}
+            onClick={() => setShowQuickActions((v) => { if (!v) { setIsAttemptedResolutionOpen(false); setAiCommentApproved(null); } return !v; })}
             className="flex items-center gap-2 group"
           >
             <div
