@@ -5707,24 +5707,33 @@ function IncomingAssignmentCard({
     <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
       {/* Header — matches escalated alert style: BotName · waitTime · Priority badge */}
       <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
-              {item.label ?? "Service Bot"}
-            </span>
-            <span className="text-[11px] text-[#98A2B3]">{item.time}</span>
-            <span className={cn(
-              "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-              item.statusLabel === "Escalated"
-                ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
-                : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
-            )}>
-              {item.priority}
-            </span>
+        <div className="flex items-start gap-2.5 flex-1 min-w-0">
+          {(item.label ?? "Service Bot") === "Aria" && (
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+              alt="Aria avatar"
+              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
+                {item.label ?? "Service Bot"}
+              </span>
+              <span className="text-[11px] text-[#98A2B3]">{item.time}</span>
+              <span className={cn(
+                "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                item.statusLabel === "Escalated"
+                  ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+                  : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+              )}>
+                {item.priority}
+              </span>
+            </div>
+            <p className="mt-1 text-[12px] leading-[1.4] text-[#475467] dark:text-[#94A3B8] line-clamp-2">
+              {item.preview}
+            </p>
           </div>
-          <p className="mt-1 text-[12px] leading-[1.4] text-[#475467] dark:text-[#94A3B8] line-clamp-2">
-            {item.preview}
-          </p>
         </div>
         <button
           type="button"

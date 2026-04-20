@@ -3739,6 +3739,13 @@ export default function ControlCenterPage() {
                       {/* left accent bar */}
                       <div className="absolute left-0 inset-y-0 w-[3px] bg-[#E53935] rounded-r-full" />
                       <div className="flex items-center gap-3 px-5 py-3.5">
+                        {row.botType === "Aria" && (
+                          <img
+                            src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                            alt="Aria avatar"
+                            className="h-9 w-9 shrink-0 rounded-full object-cover"
+                          />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[13px] font-semibold text-[#1D2939]">{row.botType}</span>
