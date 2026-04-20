@@ -508,8 +508,8 @@ export function EscalatedCaseModal({
                       : caseData.customerContext}
                   </p>
 
-                  {/* Confidence meter — hidden once resolved */}
-                  {!approveContext && !showResolvedMessage && (
+                  {/* Confidence meter — hidden once resolved or when supervising */}
+                  {!approveContext && !showResolvedMessage && !showQuickActions && (
                     <div className="mt-3 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
@@ -541,7 +541,7 @@ export function EscalatedCaseModal({
                         </div>
                       </div>
                     </div>
-                  ) : !approveContext ? (
+                  ) : !approveContext && !showQuickActions ? (
                     <button
                       type="button"
                       onClick={() => {
