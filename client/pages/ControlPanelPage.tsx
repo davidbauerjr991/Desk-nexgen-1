@@ -3350,8 +3350,16 @@ export default function ControlCenterPage() {
     });
   }
 
+  // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
+  // so it survives remounts when the agent navigates away and back).
+  const [, forceUpdate] = useState(0);
+  const [escalatedModalCase, setEscalatedModalCase] = useState<EscalatedCaseModalData | null>(null);
+  // Initialise from persistedState so escalated status survives navigation away and back.
+  const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(() => new Set(persistedState.escalatedIds));
+  const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(() => new Set(persistedState.resolvedIds));
+
   // Drain resolved IDs queued by the global Layout modal (when Review is opened from a toast
-  // on a non-Home page). Mirrors the pendingQueueRejections pattern above.
+  // on a non-Home page). Must be after bulkResolvedIds/escalatedOverrides are declared.
   const pendingResolvedSnapshot = pendingResolvedIds.size > 0 ? new Set(pendingResolvedIds) : null;
   if (pendingResolvedSnapshot) {
     pendingResolvedIds.clear();
@@ -3367,14 +3375,6 @@ export default function ControlCenterPage() {
       return next;
     });
   }
-
-  // Trigger re-renders when acceptedStaticsStore changes (the store itself lives at module scope
-  // so it survives remounts when the agent navigates away and back).
-  const [, forceUpdate] = useState(0);
-  const [escalatedModalCase, setEscalatedModalCase] = useState<EscalatedCaseModalData | null>(null);
-  // Initialise from persistedState so escalated status survives navigation away and back.
-  const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(() => new Set(persistedState.escalatedIds));
-  const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(() => new Set(persistedState.resolvedIds));
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
