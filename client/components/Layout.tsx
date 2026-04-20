@@ -5768,10 +5768,17 @@ function IncomingAssignmentCard({
           style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
         >
           <div className="px-4 pb-3 flex flex-col gap-3">
-            {/* Customer Context */}
+            {/* Human Assist Request */}
             {customerContext && (
               <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+                <div className="mb-1.5 flex items-center gap-2">
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                    alt="Aria avatar"
+                    className="h-5 w-5 rounded-full object-cover shrink-0"
+                  />
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
+                </div>
                 <p className="text-[12px] leading-5 text-[#344054]">{customerContext}</p>
               </div>
             )}
