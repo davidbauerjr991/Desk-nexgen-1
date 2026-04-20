@@ -2319,11 +2319,14 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => 
           onClose={() => setShowTransfer(false)}
           onSelect={(targetName) => {
             setShowTransfer(false);
-            setDisposition({ mode: "transfer", targetName });
+            // Set recipient and dismiss immediately — no need for the disposition popup on transfer.
+            pendingTransferRecipient = targetName;
+            onDismiss();
           }}
         />
       )}
 
+      {/* DispositionPopover used only for dismiss, not transfer */}
       {disposition && (
         <DispositionPopover
           triggerRef={triggerRef}
