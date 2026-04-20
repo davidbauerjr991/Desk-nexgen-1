@@ -373,6 +373,10 @@ export function EscalatedCaseModal({
     return "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?";
   });
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [secondAiComment, setSecondAiComment] = useState(
+    "The dispute has been filed and you'll receive a confirmation number by email. To protect your account, I'd also like to send you a replacement card — could you confirm your current mailing address so I can get that issued for you right away?"
+  );
+  const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
   const [lastApprovedMsgCount, setLastApprovedMsgCount] = useState<number | null>(null);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
@@ -713,7 +717,60 @@ export function EscalatedCaseModal({
                 isCustomerTyping: jordanTyping,
               };
 
-              // AI Next Response card — rendered inside the conversation scroll area via appendContent
+              // Second AI response card (Sofia only) — shown after first is approved
+              const isSofia = caseData.customerRecordId === "sofia";
+              const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && secondAiCommentApproved !== "approved";
+              const secondAiResponseBubble = showSecondCard ? (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                    </div>
+                    <textarea
+                      value={secondAiComment}
+                      onChange={(e) => { setSecondAiComment(e.target.value); setSecondAiCommentApproved(null); }}
+                      rows={4}
+                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                    />
+                    {secondAiCommentApproved === "rejected" ? (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
+                        <Check className="h-3 w-3" />
+                        Response rejected — AI will await your instruction
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSecondAiCommentApproved("approved");
+                            const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            const newMessage = { id: Date.now(), role: "agent" as const, content: secondAiComment, time };
+                            setInjectedMessages((prev) => [...prev, newMessage]);
+                          }}
+                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSecondAiCommentApproved("rejected")}
+                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                    alt="Jacob avatar"
+                    className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
+                  />
+                </div>
+              ) : undefined;
+
+              // First AI Next Response card — rendered inside the conversation scroll area via appendContent
               const aiNextResponseBubble = showQuickActions && aiCommentApproved !== "approved" ? (
                 <div className="px-4 py-3 flex items-start gap-2">
                   <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
@@ -742,6 +799,8 @@ export function EscalatedCaseModal({
                             const newMessage = { id: Date.now(), role: "agent" as const, content: aiComment, time };
                             setInjectedMessages((prev) => [...prev, newMessage]);
                             setLastApprovedMsgCount(allMessages.length + 1);
+                            // Scroll down to reveal second response card (Sofia only)
+                            if (isSofia) setSuperviseScrollTrigger((n) => n + 1);
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                         >
@@ -784,7 +843,7 @@ export function EscalatedCaseModal({
                   agentAvatarUrl={caseData.botType === "Jacob"
                     ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
                     : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
-                  appendContent={aiNextResponseBubble}
+                  appendContent={aiNextResponseBubble ?? secondAiResponseBubble}
                   scrollToBottomTrigger={superviseScrollTrigger}
                 />
               );
