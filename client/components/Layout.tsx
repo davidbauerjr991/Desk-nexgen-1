@@ -7610,6 +7610,9 @@ export default function Layout({ children }: LayoutProps) {
     const siblingIds = visibleAssignmentIds.filter(
       (id) => assignmentItemsById[id]?.customerRecordId === customerRecordId,
     );
+    // Remove escalation alert from home tab for known escalated cases
+    if (customerRecordId === "sofia") pendingResolvedIds.add("static-sofia");
+    if (customerRecordId === "jordan") pendingResolvedIds.add("static-11");
     handleRemoveGroupedAssignments(siblingIds, transferRecipient);
   };
 
