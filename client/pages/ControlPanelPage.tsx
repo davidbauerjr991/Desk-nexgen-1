@@ -3401,14 +3401,13 @@ export default function ControlCenterPage() {
     if (!isAgentAvailable) return;
     if (escalationLocalFired) return;
     escalationLocalFired = true;
-    const timer = setTimeout(() => {
-      setEscalatedOverrides((prev) => {
-        const next = new Set([...prev, "static-11"]);
-        persistedState.escalatedIds = next;
-        return next;
-      });
+    // Do NOT clear this timer on unmount — if the user navigates away before it fires,
+    // we still want the escalation to register. The persistedState update ensures the
+    // remounted component picks up the escalated status immediately on return.
+    setTimeout(() => {
+      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-11"]);
+      setEscalatedOverrides(new Set(persistedState.escalatedIds));
     }, 5_000);
-    return () => clearTimeout(timer);
   }, [isAgentAvailable]);
 
   // Second escalation — Sofia Martinez / Jacob fraud alert.
@@ -3418,14 +3417,11 @@ export default function ControlCenterPage() {
     if (!persistedState.resolvedIds.has("static-11")) return;
     if (escalation2LocalFiredRef.current) return;
     escalation2LocalFiredRef.current = true;
-    const timer = setTimeout(() => {
-      setEscalatedOverrides((prev) => {
-        const next = new Set([...prev, "static-sofia"]);
-        persistedState.escalatedIds = next;
-        return next;
-      });
+    // Do NOT clear on unmount — same reasoning as the first escalation timer.
+    setTimeout(() => {
+      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-sofia"]);
+      setEscalatedOverrides(new Set(persistedState.escalatedIds));
     }, 8_000);
-    return () => clearTimeout(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkResolvedIds]);
 
