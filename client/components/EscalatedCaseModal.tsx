@@ -489,8 +489,10 @@ export function EscalatedCaseModal({
                 <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <img
-                      src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
-                      alt="Aria avatar"
+                      src={caseData.botType === "Jacob"
+                        ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                        : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                      alt={`${caseData.botType} avatar`}
                       className="h-5 w-5 rounded-full object-cover shrink-0"
                     />
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
@@ -735,7 +737,9 @@ export function EscalatedCaseModal({
                   isPendingAcceptance={false}
                   onSelectChannel={() => {}}
                   onConversationChange={() => {}}
-                  agentAvatarUrl="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                  agentAvatarUrl={caseData.botType === "Jacob"
+                    ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                    : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
                   appendContent={aiNextResponseBubble}
                 />
               );

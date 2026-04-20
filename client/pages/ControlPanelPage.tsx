@@ -3305,7 +3305,7 @@ let escalationLocalFired = false;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
@@ -3410,6 +3410,23 @@ export default function ControlCenterPage() {
     }, 5_000);
     return () => clearTimeout(timer);
   }, [isAgentAvailable]);
+
+  // Second escalation — mark Sofia's case (static-13) as escalated after Jordan's case resolves.
+  const escalation2LocalFiredRef = useRef(false);
+  useEffect(() => {
+    if (!persistedState.resolvedIds.has("static-11")) return;
+    if (escalation2LocalFiredRef.current) return;
+    escalation2LocalFiredRef.current = true;
+    const timer = setTimeout(() => {
+      setEscalatedOverrides((prev) => {
+        const next = new Set([...prev, "static-13"]);
+        persistedState.escalatedIds = next;
+        return next;
+      });
+    }, 8_000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkResolvedIds]);
 
 
   // When Review is clicked on an incoming toast, always open the modal.
@@ -3763,6 +3780,13 @@ export default function ControlCenterPage() {
                           <img
                             src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
                             alt="Aria avatar"
+                            className="h-9 w-9 shrink-0 rounded-full object-cover"
+                          />
+                        )}
+                        {row.botType === "Jacob" && (
+                          <img
+                            src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                            alt="Jacob avatar"
                             className="h-9 w-9 shrink-0 rounded-full object-cover"
                           />
                         )}
@@ -4509,6 +4533,8 @@ export default function ControlCenterPage() {
             const resolvedId = escalatedModalCase.id;
             // Decrement the left-rail escalated badge
             decrementEscalatedCount();
+            // If this is Jordan's case, trigger the second escalation (Sofia / Jacob)
+            if ((escalatedModalCase as any).customerRecordId === "jordan") onJordanCaseResolved();
             // Mark as resolved (overrides escalated status) — keeps case visible in list as resolved
             setBulkResolvedIds((prev) => {
               const next = new Set([...prev, resolvedId]);

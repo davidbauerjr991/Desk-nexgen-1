@@ -150,6 +150,8 @@ export interface LayoutContextValue {
   clearPendingTakeoverCaseId: () => void;
   /** Decrement the escalated rail badge count by 1 (min 0). Call when a case is resolved without going through the active rail. */
   decrementEscalatedCount: () => void;
+  /** Signal that Jordan's (Aria's) case has been resolved — triggers the second escalation (Sofia / Jacob). */
+  onJordanCaseResolved: () => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────

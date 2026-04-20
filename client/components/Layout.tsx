@@ -114,6 +114,8 @@ const CURRENT_AGENT_NAME = "David Bauer";
 
 // Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
+// Prevents the Sofia Martinez (Jacob) escalation from re-firing after Jordan's case resolves.
+let escalation2Fired = false;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -5715,6 +5717,13 @@ function IncomingAssignmentCard({
               className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
             />
           )}
+          {(item.label ?? "Service Bot") === "Jacob" && (
+            <img
+              src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+              alt="Jacob avatar"
+              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+            />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
@@ -6767,6 +6776,46 @@ export default function Layout({ children }: LayoutProps) {
     }, 5_000);
     return () => clearTimeout(timer);
   }, [status]);
+
+  // Second escalation — Sofia Martinez / Jacob fraud alert.
+  // Fires 8 seconds after Jordan's case is marked resolved.
+  const [isJordanResolved, setIsJordanResolved] = useState(false);
+  useEffect(() => {
+    if (!isJordanResolved) return;
+    if (escalation2Fired) return;
+    escalation2Fired = true;
+    const timer = setTimeout(() => {
+      setIncomingNotifications((prev) => {
+        if (prev.some((n) => n.id === "escalation-static-13")) return prev;
+        return [
+          ...prev,
+          {
+            id: "escalation-static-13",
+            customerRecordId: "sofia",
+            channel: "chat" as const,
+            initials: "SM",
+            name: "Sofia Martinez",
+            customerId: "CST-12045",
+            label: "Jacob",
+            lastUpdated: "8m",
+            time: "8m",
+            preview: "Proactive fraud alert — 2 unauthorized transactions totaling $2,159 detected",
+            statusLabel: "Escalated",
+            priority: "Critical",
+            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+            badgeColor: "#E32926",
+            icon: MessageCircle,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+      });
+      setEscalatedRailCount((n) => n + 1);
+    }, 8_000);
+    return () => clearTimeout(timer);
+  }, [isJordanResolved]);
+
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
@@ -9091,6 +9140,7 @@ export default function Layout({ children }: LayoutProps) {
       pendingTakeoverCaseId,
       clearPendingTakeoverCaseId,
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
+      onJordanCaseResolved: () => setIsJordanResolved(true),
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -10274,6 +10324,7 @@ export default function Layout({ children }: LayoutProps) {
             // Do NOT close the modal — agent closes it manually after seeing the resolved state.
             pendingResolvedIds.add(escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
+            if (escalatedToastModal.customerRecordId === "jordan") setIsJordanResolved(true);
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
           onClose={() => setEscalatedToastModal(null)}
