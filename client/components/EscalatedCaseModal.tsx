@@ -887,6 +887,23 @@ export function EscalatedCaseModal({
                             setLastApprovedMsgCount(allMessages.length + 1);
                             // Scroll down to reveal second response card (Sofia only)
                             if (isSofia) setSuperviseScrollTrigger((n) => n + 1);
+                            // Sofia responds 2.5s later — less critical, still stressed
+                            if (isSofia) {
+                              approveTimersRef.current.push(setTimeout(() => {
+                                const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    role: "customer" as const,
+                                    content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
+                                    time: sofiaTme,
+                                    sentiment: "frustrated" as const,
+                                  },
+                                ]);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                              }, 2500));
+                            }
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                         >
