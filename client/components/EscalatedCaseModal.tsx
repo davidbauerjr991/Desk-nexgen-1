@@ -345,7 +345,7 @@ export function EscalatedCaseModal({
   onClose,
 }: {
   caseData: EscalatedCaseModalData;
-  onTakeover: () => void;
+  onTakeover: (conversation: import("@/components/ConversationPanel").SharedConversationData) => void;
   onSupervise: () => void;
   onTransfer: () => void;
   onClose: () => void;
@@ -698,7 +698,16 @@ export function EscalatedCaseModal({
             </button>
             <button
               type="button"
-              onClick={onTakeover}
+              onClick={() => {
+                const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+                const base = caseData.customerRecordId
+                  ? createConversationState(caseData.customerRecordId, channel)
+                  : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
+                const fullConversation = injectedMessages.length > 0
+                  ? { ...base, messages: [...base.messages, ...injectedMessages] }
+                  : base;
+                onTakeover(fullConversation);
+              }}
               className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
             >
               Takeover

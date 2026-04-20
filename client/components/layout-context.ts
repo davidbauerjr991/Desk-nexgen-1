@@ -78,6 +78,8 @@ export type AcceptIssueData = {
   status: QueueAssignmentStatus;
   waitTime: string;
   isOutbound?: boolean;
+  /** When provided, seeds the conversation panel with this state instead of a blank preview. */
+  initialConversation?: SharedConversationData;
   onCreated?: (assignmentId: string) => void;
 };
 

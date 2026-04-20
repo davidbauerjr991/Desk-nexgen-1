@@ -8474,7 +8474,7 @@ export default function Layout({ children }: LayoutProps) {
     };
 
     const conversationStateKey = getConversationStateKey(newItem.id);
-    const conversationState = createCustomConversationState(data.name, data.channel, data.preview);
+    const conversationState = data.initialConversation ?? createCustomConversationState(data.name, data.channel, data.preview);
 
     setAssignmentItemsById((current) => ({ ...current, [newItem.id]: newItem }));
     setVisibleAssignmentIds((current) => [newItem.id, ...current]);
@@ -10200,7 +10200,7 @@ export default function Layout({ children }: LayoutProps) {
       {escalatedToastModal && (
         <EscalatedCaseModal
           caseData={escalatedToastModal}
-          onTakeover={() => {
+          onTakeover={(conversation) => {
             // Remove from ControlPanelPage queue on next render
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
@@ -10219,6 +10219,7 @@ export default function Layout({ children }: LayoutProps) {
               preview: escalatedToastModal.preview,
               status: escalatedToastModal.status as QueueAssignmentStatus,
               waitTime: escalatedToastModal.waitTime,
+              initialConversation: conversation,
               onCreated: sa
                 ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
                 : undefined,

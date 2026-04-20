@@ -4447,9 +4447,26 @@ export default function ControlCenterPage() {
       {escalatedModalCase && (
         <EscalatedCaseModal
           caseData={escalatedModalCase}
-          onTakeover={() => {
-            handleAcceptStatic(escalatedModalCase as any);
-            rejectIssue(escalatedModalCase.id); // remove from queue
+          onTakeover={(conversation) => {
+            const a = escalatedModalCase as any;
+            const data: AcceptIssueData = {
+              id: a.id,
+              name: a.name,
+              customerId: a.customerId,
+              customerRecordId: a.customerRecordId,
+              channel: a.channel,
+              priority: a.priority,
+              preview: a.preview,
+              status: a.status,
+              waitTime: a.waitTime,
+              initialConversation: conversation,
+              onCreated: (assignmentId) => {
+                acceptedStaticsStore.set(a.id, assignmentId);
+              },
+            };
+            if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
+            acceptIssue(data);
+            rejectIssue(escalatedModalCase.id);
             setEscalatedModalCase(null);
           }}
           onSupervise={() => {
