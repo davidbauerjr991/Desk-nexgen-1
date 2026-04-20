@@ -488,7 +488,7 @@ export function EscalatedCaseModal({
                           {
                             id: Date.now(),
                             role: "agent" as const,
-                            content: "Hi Jordan, I can confirm that your CloudMesh Pro v3 port forwarding configuration will be fully backed up before the factory reset. Once the reset is complete and firmware 4.1.2 is installed, I'll restore your rules automatically. You won't lose any of your home office setup. Ready to proceed?",
+                            content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
                             time,
                           },
                         ]);
