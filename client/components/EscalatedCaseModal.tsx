@@ -581,42 +581,40 @@ export function EscalatedCaseModal({
           </div>
 
           {/* Right column: live conversation */}
-          <div className="flex flex-col flex-1 min-w-0">
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              {(() => {
-                const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-                const baseConversation = caseData.customerRecordId
-                  ? createConversationState(caseData.customerRecordId, channel)
-                  : {
-                      customerName: caseData.name,
-                      label: "Chat",
-                      timelineLabel: "",
-                      status: "open" as const,
-                      draft: "",
-                      messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
-                      isCustomerTyping: false,
-                    };
-                const conversation = injectedMessages.length > 0
-                  ? { ...baseConversation, messages: [...baseConversation.messages, ...injectedMessages] }
-                  : baseConversation;
-                return (
-                  <ConversationPanel
-                    key={caseData.id}
-                    draftKey={`escalated-modal-${caseData.id}`}
-                    conversation={conversation}
-                    activeChannel={channel}
-                    openChannels={[channel]}
-                    customerId={caseData.customerRecordId}
-                    showAiPanel={false}
-                    hideTranscript={false}
-                    hideInput={true}
-                    isPendingAcceptance={false}
-                    onSelectChannel={() => {}}
-                    onConversationChange={() => {}}
-                  />
-                );
-              })()}
-            </div>
+          <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+            {(() => {
+              const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+              const baseConversation = caseData.customerRecordId
+                ? createConversationState(caseData.customerRecordId, channel)
+                : {
+                    customerName: caseData.name,
+                    label: "Chat",
+                    timelineLabel: "",
+                    status: "open" as const,
+                    draft: "",
+                    messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
+                    isCustomerTyping: false,
+                  };
+              const conversation = injectedMessages.length > 0
+                ? { ...baseConversation, messages: [...baseConversation.messages, ...injectedMessages] }
+                : baseConversation;
+              return (
+                <ConversationPanel
+                  key={caseData.id}
+                  draftKey={`escalated-modal-${caseData.id}`}
+                  conversation={conversation}
+                  activeChannel={channel}
+                  openChannels={[channel]}
+                  customerId={caseData.customerRecordId}
+                  showAiPanel={false}
+                  hideTranscript={false}
+                  hideInput={true}
+                  isPendingAcceptance={false}
+                  onSelectChannel={() => {}}
+                  onConversationChange={() => {}}
+                />
+              );
+            })()}
           </div>
 
         </div>
