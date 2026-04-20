@@ -5883,14 +5883,6 @@ function IncomingAssignmentCard({
           Review
         </button>
         <button
-          ref={transferBtnRef}
-          type="button"
-          onClick={() => setShowTransfer((v) => !v)}
-          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
-        >
-          Transfer
-        </button>
-        <button
           type="button"
           onClick={() => onTakeover(item)}
           className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
@@ -5899,13 +5891,6 @@ function IncomingAssignmentCard({
         </button>
       </div>
 
-      {showTransfer && (
-        <IncomingTransferPopover
-          triggerRef={transferBtnRef}
-          onClose={() => setShowTransfer(false)}
-          onTransferred={() => onTransfer(item)}
-        />
-      )}
     </div>
   );
 }
