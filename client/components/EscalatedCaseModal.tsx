@@ -453,7 +453,7 @@ export function EscalatedCaseModal({
       />
 
       {/* Modal */}
-      <div className="animate-modal-fade-in relative z-10 flex flex-col w-full max-w-[960px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
+      <div className="animate-modal-fade-in relative z-10 flex flex-col w-[90vw] max-w-[1200px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
 
         {/* ── Full-width header ── */}
         <div className="shrink-0 border-b border-border px-5 pt-3 pb-3">
