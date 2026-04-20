@@ -4011,11 +4011,21 @@ export default function ControlCenterPage() {
 
       {/* ── Assigned tab ─────────────────────────────────────────────────────── */}
       {controlCenterTab === "assigned" && (() => {
-        // Source from staticNormalised (before reject filter) so cases taken over via modal
-        // still appear here even after rejectIssue removes them from the main Queue.
-        const assignedRows = staticNormalised.filter(
+        // Include both:
+        // 1. Static cases taken over via the review modal (isAccepted + still in rail)
+        // 2. Live cases currently active in the rail (liveNormalised, not parked)
+        // Deduplicate by id to avoid any overlap.
+        const staticAssigned = staticNormalised.filter(
           (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id),
         );
+        const liveAssigned = liveNormalised.filter(
+          (r) => r.isAccepted && !r.isParkedFromToast,
+        );
+        const assignedIds = new Set(staticAssigned.map((r) => r.id));
+        const assignedRows = [
+          ...staticAssigned,
+          ...liveAssigned.filter((r) => !assignedIds.has(r.id)),
+        ];
         return (
           <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
             <div className="flex flex-row flex-1 min-w-0 h-full overflow-hidden">
