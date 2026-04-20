@@ -2249,21 +2249,13 @@ function DispositionPopover({
 
 // ─── More-options dropdown for the active-case panel header ──────────────────
 
-function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => void; iconSize?: "sm" | "md" }) {
+function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: (transferRecipient?: string) => void; iconSize?: "sm" | "md" }) {
   const { openChatPopover } = useLayoutContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
-  const [disposition, setDisposition] = useState<{ mode: "dismiss" | "transfer"; targetName?: string } | null>(null);
+  const [transferTarget, setTransferTarget] = useState<string | null>(null);
+  const [showDisposition, setShowDisposition] = useState<"dismiss" | "transfer" | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-
-  const handleDispositionConfirm = () => {
-    // If this is a transfer, record the recipient so the resolved assignment uses their name.
-    if (disposition?.mode === "transfer" && disposition.targetName) {
-      pendingTransferRecipient = disposition.targetName;
-    }
-    setDisposition(null);
-    onDismiss();
-  };
 
   return (
     <>
@@ -2284,16 +2276,16 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => 
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-52">
-          {/* Dismiss — closes the case immediately */}
+          {/* Dismiss — shows disposition, then closes */}
           <DropdownMenuItem
             className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
-            onClick={() => { setDropdownOpen(false); onDismiss(); }}
+            onClick={() => { setDropdownOpen(false); setShowDisposition("dismiss"); }}
           >
             <X className="h-4 w-4" />
             Dismiss
           </DropdownMenuItem>
 
-          {/* Transfer — opens tabbed transfer popover, then disposition */}
+          {/* Transfer — opens agent picker, then disposition */}
           <DropdownMenuItem
             className="gap-2 cursor-pointer"
             onClick={(e) => { e.preventDefault(); setDropdownOpen(false); setShowTransfer(true); }}
@@ -2313,27 +2305,32 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => 
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Step 1 for transfer: pick an agent / team / dept */}
       {showTransfer && (
         <CaseTransferPopover
           triggerRef={triggerRef}
           onClose={() => setShowTransfer(false)}
           onSelect={(targetName) => {
             setShowTransfer(false);
-            // Set recipient and dismiss immediately — no need for the disposition popup on transfer.
-            pendingTransferRecipient = targetName;
-            onDismiss();
+            setTransferTarget(targetName);
+            setShowDisposition("transfer");
           }}
         />
       )}
 
-      {/* DispositionPopover used only for dismiss, not transfer */}
-      {disposition && (
+      {/* Step 2: disposition — shared for both dismiss and transfer */}
+      {showDisposition && (
         <DispositionPopover
           triggerRef={triggerRef}
-          mode={disposition.mode}
-          targetName={disposition.targetName}
-          onConfirm={handleDispositionConfirm}
-          onCancel={() => setDisposition(null)}
+          mode={showDisposition}
+          targetName={transferTarget ?? undefined}
+          onConfirm={() => {
+            const recipient = showDisposition === "transfer" ? (transferTarget ?? undefined) : undefined;
+            setShowDisposition(null);
+            setTransferTarget(null);
+            onDismiss(recipient);
+          }}
+          onCancel={() => { setShowDisposition(null); setTransferTarget(null); }}
         />
       )}
     </>
@@ -2405,7 +2402,7 @@ function DockedConversationPanel({
   casePreview?: string;
   assignmentStatus?: QueueAssignmentStatus;
   onAssignmentStatusChange?: (status: QueueAssignmentStatus) => void;
-  onRemoveAssignment?: () => void;
+  onRemoveAssignment?: (transferRecipient?: string) => void;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -2613,7 +2610,7 @@ function DockedConversationPanel({
                   )}
                   {onRemoveAssignment && assignmentStatus && (
                     <CaseMoreOptionsMenu
-                      onDismiss={onRemoveAssignment}
+                      onDismiss={(recipient) => onRemoveAssignment(recipient)}
                     />
                   )}
                 </div>
@@ -7507,11 +7504,11 @@ export default function Layout({ children }: LayoutProps) {
   /**
    * Dismisses ALL visible channels for a customer (case-level dismiss from the active record header).
    */
-  const handleDismissCase = (customerRecordId: string) => {
+  const handleDismissCase = (customerRecordId: string, transferRecipient?: string) => {
     const siblingIds = visibleAssignmentIds.filter(
       (id) => assignmentItemsById[id]?.customerRecordId === customerRecordId,
     );
-    handleRemoveGroupedAssignments(siblingIds);
+    handleRemoveGroupedAssignments(siblingIds, transferRecipient);
   };
 
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
@@ -8143,7 +8140,7 @@ export default function Layout({ children }: LayoutProps) {
     setIsCallPopunderOpen(true);
   };
 
-  const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"]) => {
+  const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"], transferRecipient?: string) => {
     const removedAssignment = assignmentItemsById[assignmentId];
     const conversationStateKey = getConversationStateKey(assignmentId);
     setCompletedTodayCount((n) => n + 1);
@@ -8175,9 +8172,6 @@ export default function Layout({ children }: LayoutProps) {
         (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) ??
         (removedAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
         "open";
-      // Capture recipient before state setter — updater runs async so module var would be null by then.
-      const resolvedAssignedTo = pendingTransferRecipient ?? CURRENT_AGENT_NAME;
-      pendingTransferRecipient = null;
       setResolvedAssignments((prev) => {
         // Deduplicate: if we already have a dismissed entry for this static case, replace it
         // rather than appending — prevents multiple supervise→dismiss cycles from piling up.
@@ -8194,7 +8188,7 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: removedAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: resolvedAssignedTo,
+            assignedTo: transferRecipient ?? CURRENT_AGENT_NAME,
             staticId: dismissedStaticId,
           },
           ...filtered,
@@ -8262,10 +8256,10 @@ export default function Layout({ children }: LayoutProps) {
    * sibling channel state inside ONE ResolvedAssignment so the agent can restore
    * all channels when they re-open the case.
    */
-  const handleRemoveGroupedAssignments = (assignmentIds: string[]) => {
+  const handleRemoveGroupedAssignments = (assignmentIds: string[], transferRecipient?: string) => {
     if (assignmentIds.length === 0) return;
     if (assignmentIds.length === 1) {
-      handleRemoveVisibleAssignment(assignmentIds[0]);
+      handleRemoveVisibleAssignment(assignmentIds[0], transferRecipient);
       return;
     }
 
@@ -8309,10 +8303,6 @@ export default function Layout({ children }: LayoutProps) {
         (assignmentStatusesById[primaryId] as QueueAssignmentStatus | undefined) ??
         (primaryAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
         "open";
-      // Capture recipient before state setter — updater runs async so module var would be null by then.
-      const resolvedAssignedTo = pendingTransferRecipient ?? CURRENT_AGENT_NAME;
-      pendingTransferRecipient = null;
-
       setResolvedAssignments((prev) => {
         const filtered = dismissedStaticId
           ? prev.filter((r) => r.staticId !== dismissedStaticId)
@@ -8327,7 +8317,7 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: primaryAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: resolvedAssignedTo,
+            assignedTo: transferRecipient ?? CURRENT_AGENT_NAME,
             staticId: dismissedStaticId,
             additionalChannels: additionalChannels.length > 0 ? additionalChannels : undefined,
           },
@@ -9823,7 +9813,7 @@ export default function Layout({ children }: LayoutProps) {
                 casePreview={selectedAssignment.preview}
                 assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
                 onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
-                onRemoveAssignment={() => handleDismissCase(selectedAssignment.customerRecordId)}
+                onRemoveAssignment={(recipient) => handleDismissCase(selectedAssignment.customerRecordId, recipient)}
                 isEqualSplit
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
@@ -9952,7 +9942,7 @@ export default function Layout({ children }: LayoutProps) {
               casePreview={selectedAssignment.preview}
               assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
               onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
-              onRemoveAssignment={() => handleDismissCase(selectedAssignment.customerRecordId)}
+              onRemoveAssignment={(recipient) => handleDismissCase(selectedAssignment.customerRecordId, recipient)}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
