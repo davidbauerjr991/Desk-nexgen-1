@@ -3678,7 +3678,7 @@ export default function ControlCenterPage() {
 
       {/* ── Top-level Review / Queue tabs ────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
-        {([["Home", "monitor"], ["Queue", "queue"]] as const).map(([label, key]) => {
+        {([["Home", "monitor"], ["Cases", "queue"]] as const).map(([label, key]) => {
           const isActive = controlCenterTab === key;
           return (
             <button
