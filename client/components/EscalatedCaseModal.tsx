@@ -581,6 +581,33 @@ export function EscalatedCaseModal({
 
         {/* ── Full-width footer ── */}
         <div className="shrink-0 border-t border-border bg-[#F9FAFB] px-5 py-3 flex items-center justify-between gap-2">
+          {/* Supervise switch */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showQuickActions}
+            onClick={() => setShowQuickActions((v) => !v)}
+            className="flex items-center gap-2 group"
+          >
+            <div
+              className={cn(
+                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none",
+                showQuickActions ? "bg-[#6E56CF]" : "bg-[#D0D5DD]",
+              )}
+            >
+              <span
+                className={cn(
+                  "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
+                  showQuickActions ? "translate-x-4" : "translate-x-0",
+                )}
+              />
+            </div>
+            <span className={cn("text-[12px] font-medium", showQuickActions ? "text-[#5C46B8]" : "text-[#344054]")}>
+              Supervise
+            </span>
+          </button>
+
+          {/* Right-side actions */}
           <div className="flex items-center gap-2">
             <button
               ref={transferBtnRef}
@@ -595,31 +622,12 @@ export function EscalatedCaseModal({
             </button>
             <button
               type="button"
-              onClick={() => setShowQuickActions((v) => !v)}
-              className={cn(
-                "rounded-lg border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
-                showQuickActions
-                  ? "border-[#6E56CF] bg-[#F2F0FA] text-[#5C46B8]"
-                  : "border-border bg-white text-[#344054] hover:bg-[#F2F4F7]",
-              )}
+              onClick={onTakeover}
+              className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
             >
-              Quick Action
+              Takeover
             </button>
           </div>
-          <button
-            type="button"
-            onClick={onSupervise}
-            className="hidden rounded-lg bg-[#F59E0B] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
-          >
-            Monitor
-          </button>
-          <button
-            type="button"
-            onClick={onTakeover}
-            className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
-          >
-            Takeover
-          </button>
         </div>
 
       </div>
