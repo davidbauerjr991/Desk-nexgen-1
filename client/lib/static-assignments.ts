@@ -401,7 +401,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Router dropping all connections — port forwarding config blocking factory reset",
     waitTime: "11m",
-    customerContext: "Residential broadband customer (2 years). CloudMesh Pro v3 router on firmware 4.0.8. Custom port forwarding rules configured for home office use. Sentiment: Frustrated — network down 20+ minutes, concerned about losing critical configuration.",
+    customerContext: "Hey Jeff, Jordan and I have been speaking and I'm unsure of next steps. I would like to tell him that the CloudMesh Pro v3 firmware will be backed up if he factory resets. Can you please approve my confirmation?",
     aiOverview: {
       actions: [
         "Pulled Jordan's account and identified router model: CloudMesh Pro v3 running firmware 4.0.8 — a known mismatch against the current stable release 4.1.2.",
