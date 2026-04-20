@@ -4011,7 +4011,11 @@ export default function ControlCenterPage() {
 
       {/* ── Assigned tab ─────────────────────────────────────────────────────── */}
       {controlCenterTab === "assigned" && (() => {
-        const assignedRows = allRows.filter((r) => r.assignedTo !== null && r.assignedTo !== undefined);
+        // Source from staticNormalised (before reject filter) so cases taken over via modal
+        // still appear here even after rejectIssue removes them from the main Queue.
+        const assignedRows = staticNormalised.filter(
+          (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id),
+        );
         return (
           <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
             <div className="flex flex-row flex-1 min-w-0 h-full overflow-hidden">
@@ -4625,6 +4629,7 @@ export default function ControlCenterPage() {
               initialConversation: conversation,
               onCreated: (assignmentId) => {
                 acceptedStaticsStore.set(a.id, assignmentId);
+                forceUpdate((v) => v + 1);
               },
             };
             if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
