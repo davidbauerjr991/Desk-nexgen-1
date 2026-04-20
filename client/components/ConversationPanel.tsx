@@ -63,6 +63,8 @@ interface ConversationPanelProps {
   agentAvatarUrl?: string;
   /** Optional content rendered at the very end of the messages scroll area (inside the scroll container). */
   appendContent?: React.ReactNode;
+  /** Increment this value to force a scroll-to-bottom (e.g. when appendContent is shown). */
+  scrollToBottomTrigger?: number;
 }
 
 const conversationFooterMenuItems = [
@@ -1058,6 +1060,7 @@ export default function ConversationPanel({
   onAgentTasksChange,
   agentAvatarUrl,
   appendContent,
+  scrollToBottomTrigger,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1676,6 +1679,17 @@ export default function ConversationPanel({
 
     return () => window.cancelAnimationFrame(frameId);
   }, [conversation.isCustomerTyping]);
+
+  useEffect(() => {
+    if (!scrollToBottomTrigger) return;
+    // Give the DOM a frame to render appendContent before scrolling
+    const frameId = window.requestAnimationFrame(() => {
+      shouldStickToBottomRef.current = true;
+      scrollToBottom("smooth");
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToBottomTrigger]);
 
   const handleJumpToLatest = () => {
     shouldStickToBottomRef.current = true;

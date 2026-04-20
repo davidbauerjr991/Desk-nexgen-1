@@ -359,6 +359,7 @@ export function EscalatedCaseModal({
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [superviseScrollTrigger, setSuperviseScrollTrigger] = useState(0);
   const [approveContext, setApproveContext] = useState(false);
   const [jordanTyping, setJordanTyping] = useState(false);
   const [localStatus, setLocalStatus] = useState(caseData.status);
@@ -768,6 +769,7 @@ export function EscalatedCaseModal({
                     ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
                     : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
                   appendContent={aiNextResponseBubble}
+                  scrollToBottomTrigger={superviseScrollTrigger}
                 />
               );
             })()}
@@ -782,7 +784,13 @@ export function EscalatedCaseModal({
             type="button"
             role="switch"
             aria-checked={showQuickActions}
-            onClick={() => setShowQuickActions((v) => { if (!v) { setAiCommentApproved(null); } return !v; })}
+            onClick={() => setShowQuickActions((v) => {
+              if (!v) {
+                setAiCommentApproved(null);
+                setSuperviseScrollTrigger((n) => n + 1);
+              }
+              return !v;
+            })}
             className="flex items-center gap-2 group"
           >
             <div
