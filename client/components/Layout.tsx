@@ -2276,10 +2276,10 @@ function CaseMoreOptionsMenu({ onDismiss, onClose, iconSize = "md" }: { onDismis
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-52">
-          {/* Dismiss — just closes the case window, keeps assignment */}
+          {/* Dismiss — removes assignment from rail and navigates to next case / Control Center */}
           <DropdownMenuItem
             className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
-            onClick={() => { setDropdownOpen(false); onClose?.(); }}
+            onClick={() => { setDropdownOpen(false); onDismiss(undefined); }}
           >
             <X className="h-4 w-4" />
             Dismiss
