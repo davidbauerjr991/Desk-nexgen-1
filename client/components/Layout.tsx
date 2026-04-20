@@ -110,7 +110,7 @@ import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from
 import { toast } from "sonner";
 
 // The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
-const CURRENT_AGENT_NAME = "David Bauer";
+const CURRENT_AGENT_NAME = "Jeff Comstock";
 
 // When a case is transferred, this captures the recipient name so the resolved
 // assignment record shows the correct "Assigned to" instead of the current agent.

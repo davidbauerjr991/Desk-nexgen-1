@@ -945,7 +945,7 @@ function EmailConversationView({
   onSend: () => void;
 }) {
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
-  const agentName = customerRecord?.overview.assignedAgent ?? "David Bauer";
+  const agentName = customerRecord?.overview.assignedAgent ?? "Jeff Comstock";
   const agentEmail = getEmailAddress(agentName);
   const customerEmail = getEmailAddress(conversation.customerName);
   const firstCustomerEmail = conversation.messages.find((message) => message.role === "customer");

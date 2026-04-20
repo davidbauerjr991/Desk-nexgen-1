@@ -114,7 +114,7 @@ export default function LoginPage() {
           darkMode ? "bg-[#0F172A]" : "bg-[#F7F7F7]",
         )}>
           <p className={cn("text-[15px] font-bold", darkMode ? "text-white" : "text-[#101828]")}>
-            Welcome Back, Jeff
+            Welcome Back, Jeff Comstock
           </p>
 
           {/* Last login */}

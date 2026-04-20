@@ -65,9 +65,9 @@ const customerTickets: CustomerTicket[] = [
     type: "Incident",
     subject: "Pro plan upgrade blocked by billing mismatch",
     status: "Open",
-    agent: "David Bauer",
+    agent: "Jeff Comstock",
     agentTeam: "Digital Care",
-    modifiedBy: "DAVID.BAUER",
+    modifiedBy: "JEFF.COMSTOCK",
   },
   {
     customerId: "priya",

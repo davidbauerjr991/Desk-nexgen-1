@@ -3276,7 +3276,7 @@ function CustomerGroup({
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // The name of the currently logged-in agent — shown in the queue subhead when a case is assigned to them.
-const CURRENT_AGENT_NAME = "David Bauer";
+const CURRENT_AGENT_NAME = "Jeff Comstock";
 
 // ─── Persistent state store (survives navigation away and back) ───────────────
 // Stored at module scope so it outlives component unmount/remount cycles.
