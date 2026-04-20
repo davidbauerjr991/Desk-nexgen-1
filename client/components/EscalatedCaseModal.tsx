@@ -373,14 +373,17 @@ export function EscalatedCaseModal({
     return "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?";
   });
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [aiCommentRegenerating, setAiCommentRegenerating] = useState(false);
   const [secondAiComment, setSecondAiComment] = useState(
     "The dispute has been filed and you'll receive a confirmation number by email. To protect your account, I'd also like to send you a replacement card — could you confirm your current mailing address so I can get that issued for you right away?"
   );
   const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [secondAiCommentRegenerating, setSecondAiCommentRegenerating] = useState(false);
   const [thirdAiComment, setThirdAiComment] = useState(
     "Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file. Is there anything else I can help you with?"
   );
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
   // Temporary credit state
   const [creditChecked, setCreditChecked] = useState(false);
@@ -929,10 +932,10 @@ export function EscalatedCaseModal({
                       )}
                     </div>
 
-                    {thirdAiCommentApproved === "rejected" ? (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
-                        <Check className="h-3 w-3" />
-                        Response rejected — AI will await your instruction
+                    {thirdAiCommentRegenerating ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -964,7 +967,21 @@ export function EscalatedCaseModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => setThirdAiCommentApproved("rejected")}
+                          onClick={() => {
+                            // Reset shipping and credit state
+                            setShippingChecked(false);
+                            setSelectedShipping(null);
+                            setShippingConfirmed(false);
+                            setCreditChecked(false);
+                            setCreditAmount("2,159.00");
+                            setCreditConfirmed(false);
+                            setThirdAiCommentRegenerating(true);
+                            approveTimersRef.current.push(setTimeout(() => {
+                              setThirdAiComment("Sofia, I've escalated this case to our Priority Fraud Team. A dedicated specialist will contact you within the next 2 hours to confirm full resolution. In the meantime, your account has been secured and no further unauthorized transactions can occur. Is there anything else I can do for you right now?");
+                              setThirdAiCommentApproved(null);
+                              setThirdAiCommentRegenerating(false);
+                            }, 1800));
+                          }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
                           Reject
@@ -993,10 +1010,10 @@ export function EscalatedCaseModal({
                       rows={4}
                       className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
                     />
-                    {secondAiCommentApproved === "rejected" ? (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
-                        <Check className="h-3 w-3" />
-                        Response rejected — AI will await your instruction
+                    {secondAiCommentRegenerating ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -1033,7 +1050,14 @@ export function EscalatedCaseModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => setSecondAiCommentApproved("rejected")}
+                          onClick={() => {
+                            setSecondAiCommentRegenerating(true);
+                            approveTimersRef.current.push(setTimeout(() => {
+                              setSecondAiComment("Sofia, to verify your identity before issuing the replacement card, could you please confirm your date of birth and the billing zip code on file? I want to make sure the new card reaches the right person.");
+                              setSecondAiCommentApproved(null);
+                              setSecondAiCommentRegenerating(false);
+                            }, 1800));
+                          }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
                           Reject
@@ -1137,10 +1161,10 @@ export function EscalatedCaseModal({
                       </div>
                     )}
 
-                    {aiCommentApproved === "rejected" ? (
-                      <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
-                        <Check className="h-3 w-3" />
-                        Response rejected — AI will await your instruction
+                    {aiCommentRegenerating ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -1178,7 +1202,23 @@ export function EscalatedCaseModal({
                         </button>
                         <button
                           type="button"
-                          onClick={() => setAiCommentApproved("rejected")}
+                          onClick={() => {
+                            // Undo dispute actions
+                            disputeTimersRef.current.forEach(clearTimeout);
+                            disputeTimersRef.current = [];
+                            setDisputeChecked(false);
+                            setDisputeStepIndex(0);
+                            setDisputeComplete(false);
+                            setAiCommentRegenerating(true);
+                            approveTimersRef.current.push(setTimeout(() => {
+                              setAiComment(isSofia
+                                ? "Sofia, I understand this is incredibly stressful. Before proceeding, let me pull your complete transaction history from the past 30 days so we can confirm exactly which charges are unauthorized. I'll have the full details ready for you in just a moment."
+                                : "Hi Jordan, I want to make sure we handle this correctly. Before the factory reset, could you confirm your device serial number so I can locate your exact firmware version and prepare the right restoration package?"
+                              );
+                              setAiCommentApproved(null);
+                              setAiCommentRegenerating(false);
+                            }, 1800));
+                          }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
                           Reject
