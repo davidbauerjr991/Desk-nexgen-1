@@ -378,7 +378,7 @@ export function EscalatedCaseModal({
   );
   const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [thirdAiComment, setThirdAiComment] = useState(
-    "Thank you, Sofia. I've confirmed your new card will be sent to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 and should arrive within 3–5 business days. You'll receive a tracking number by email. Your account is fully protected and the provisional credit has been applied. Is there anything else I can help you with today?"
+    "Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file. Is there anything else I can help you with?"
   );
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
@@ -878,7 +878,7 @@ export function EscalatedCaseModal({
                                       ? "within up to one week"
                                       : "within 3–5 business days";
                                   setThirdAiComment(
-                                    `Thank you, Sofia. I've confirmed your new replacement card will be sent to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 and should arrive ${deliveryText}. You'll receive a tracking number by email. Your account is fully protected and the provisional credit has been applied. Is there anything else I can help you with today?`
+                                    `Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file — it will arrive ${deliveryText}. Is there anything else I can help you with?`
                                   );
                                 }}
                                 className={cn(
