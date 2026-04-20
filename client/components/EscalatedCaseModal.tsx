@@ -498,6 +498,28 @@ export function EscalatedCaseModal({
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
                   </div>
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">{caseData.customerContext}</p>
+
+                  {/* Confidence meter */}
+                  {!approveContext && (
+                    <div className="mt-3 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
+                        </div>
+                        <span className="text-[12px] font-bold text-[#6E56CF]">94%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#6E56CF] to-[#8B72E0] transition-all duration-700"
+                          style={{ width: "94%" }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-[#98A2B3] leading-relaxed">
+                        Based on 3 similar resolved cases and firmware documentation match.
+                      </p>
+                    </div>
+                  )}
+
                   {!approveContext ? (
                     <button
                       type="button"
