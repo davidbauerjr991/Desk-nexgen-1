@@ -3308,7 +3308,7 @@ export default function ControlCenterPage() {
   const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
-  const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "queue">(() => persistedState.controlCenterTab);
+  const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "assigned" | "queue">(() => persistedState.controlCenterTab as "monitor" | "assigned" | "queue");
   const [issueTab, setIssueTab] = useState<IssueTab>(() => persistedState.issueTab);
   const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(() => new Set(persistedState.priorityFilters));
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
@@ -3725,7 +3725,7 @@ export default function ControlCenterPage() {
 
       {/* ── Top-level Review / Queue tabs ────────────────────────────────────── */}
       <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
-        {([["Home", "monitor"], ["Cases", "queue"]] as const).map(([label, key]) => {
+        {([["Home", "monitor"], ["Assigned", "assigned"], ["Queue", "queue"]] as const).map(([label, key]) => {
           const isActive = controlCenterTab === key;
           return (
             <button
@@ -4005,6 +4005,108 @@ export default function ControlCenterPage() {
               </div>
             </div>
 
+          </div>
+        );
+      })()}
+
+      {/* ── Assigned tab ─────────────────────────────────────────────────────── */}
+      {controlCenterTab === "assigned" && (() => {
+        const assignedRows = allRows.filter((r) => r.assignedTo !== null && r.assignedTo !== undefined);
+        return (
+          <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+            <div className="flex flex-row flex-1 min-w-0 h-full overflow-hidden">
+              <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+                {/* Header: view toggles + filter */}
+                <div className="shrink-0 px-5 pt-4 pb-0">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => setViewMode("list")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "list" ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutList className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => setViewMode("card")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "card" ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutGrid className="h-3.5 w-3.5" /></button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] text-[#98A2B3]">{assignedRows.length} assigned case{assignedRows.length !== 1 ? "s" : ""}</span>
+                    </div>
+                  </div>
+                  {/* Active filter chips */}
+                  {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
+                    <div className="flex flex-wrap gap-1.5 pb-3">
+                      {[...channelFilters].map((ch) => (
+                        <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                          {channelFilterOptions.find(o => o.value === ch)?.label}
+                          <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                        </span>
+                      ))}
+                      {[...priorityFilters].map((p) => (
+                        <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                          {p}
+                          <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className={cn("flex-1 min-h-0", viewMode === "card" ? "overflow-y-auto" : "overflow-y-auto")}>
+                  {assignedRows.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F2F0FA]">
+                        <Check className="h-5 w-5 text-[#6E56CF]" />
+                      </div>
+                      <p className="text-[14px] font-semibold text-[#333333]">No assigned cases</p>
+                      <p className="text-[12px] text-[#667085] max-w-xs">Cases you take over will appear here.</p>
+                    </div>
+                  ) : viewMode === "card" ? (
+                    <QueueCardView rows={assignedRows} />
+                  ) : (
+                    (() => {
+                      const customerMap = new Map<string, typeof assignedRows>();
+                      assignedRows.forEach((a) => {
+                        const key = a.customerId ?? `anon-${a.name}`;
+                        if (!customerMap.has(key)) customerMap.set(key, []);
+                        customerMap.get(key)!.push(a);
+                      });
+                      const sortedGroups = [...customerMap.entries()].sort(([, aItems], [, bItems]) => {
+                        const statusRankLocal: Record<string, number> = { escalated: 0, open: 1, pending: 2, resolved: 3 };
+                        const aHighest = Math.min(...aItems.map((i) => statusRankLocal[i.status] ?? 99));
+                        const bHighest = Math.min(...bItems.map((i) => statusRankLocal[i.status] ?? 99));
+                        return aHighest - bHighest;
+                      });
+                      return sortedGroups.map(([key, items]) => {
+                        const sortedItems = [...items].sort((a, b) => {
+                          const statusRankLocal: Record<string, number> = { escalated: 0, open: 1, pending: 2, resolved: 3 };
+                          return (statusRankLocal[a.status] ?? 99) - (statusRankLocal[b.status] ?? 99);
+                        });
+                        if (sortedItems.length === 1) {
+                          return <IssueRow key={key} {...sortedItems[0]} isMonitored={false} isSelected={selectedCaseId === sortedItems[0].id} onSelect={setSelectedCaseId} />;
+                        }
+                        const customerRecord = sortedItems[0]?.customerRecordId ? getCustomerRecord(sortedItems[0].customerRecordId) : null;
+                        return (
+                          <CustomerGroup
+                            key={key}
+                            customerRecord={customerRecord}
+                            caseCustomerName={sortedItems[0]?.name}
+                            items={sortedItems}
+                            monitoredCaseId={null}
+                            onResolveAll={() => setBulkResolvedIds((prev) => new Set([...prev, ...sortedItems.map((i) => i.id)]))}
+                            selectedCaseId={selectedCaseId}
+                            onSelectCase={setSelectedCaseId}
+                          />
+                        );
+                      });
+                    })()
+                  )}
+                </div>
+              </div>
+
+              {/* Detail panel */}
+              {(() => {
+                const selectedCase = assignedRows.find((r) => r.id === selectedCaseId) ?? null;
+                return selectedCase ? (
+                  <CaseDetailPanel caseData={selectedCase} onClose={() => setSelectedCaseId(null)} />
+                ) : null;
+              })()}
+            </div>
           </div>
         );
       })()}
