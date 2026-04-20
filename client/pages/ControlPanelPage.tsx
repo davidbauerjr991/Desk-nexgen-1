@@ -24,14 +24,13 @@ import {
   X,
 } from "lucide-react";
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/layout-context";
-import { createConversationState } from "@/lib/customer-database";
+import { getCustomerRecord, createConversationState } from "@/lib/customer-database";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
-import { getCustomerRecord, createConversationState } from "@/lib/customer-database";
 import ConversationPanel from "@/components/ConversationPanel";
 
 type DeskPageTab = "queue" | "customers" | "tickets" | "accounts" | "contact-history";
