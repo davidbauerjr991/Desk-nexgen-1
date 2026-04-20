@@ -401,7 +401,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Proactive fraud alert — 2 unauthorized transactions totaling $2,159 detected",
     waitTime: "8m",
-    customerContext: "Hey Jeff, Sofia and I have been speaking about a proactive fraud alert. I've identified 2 unauthorized transactions totaling $2,159 from an out-of-state electronics retailer posted in the last hour. Sofia is very distressed — her rent is due tomorrow and her account balance has been impacted. I need your approval to begin the dispute process immediately.",
+    customerContext: "Sofia and I have been speaking about a proactive fraud alert. I've identified 2 unauthorized transactions totaling $2,159 from an out-of-state electronics retailer posted in the last hour. Sofia is very distressed — her rent is due tomorrow and her account balance has been impacted. I need your approval to begin the dispute process immediately.",
     aiOverview: {
       actions: [
         "Detected behavioral anomaly via real-time transaction monitoring — 4 flagged transactions in past 6 hours deviating from Sofia's 11-year spending pattern.",
@@ -434,7 +434,7 @@ export const staticAssignments: StaticAssignment[] = [
     status: "pending",
     preview: "Router dropping all connections — port forwarding config blocking factory reset",
     waitTime: "11m",
-    customerContext: "Hey Jeff, Jordan and I have been speaking and I'm unsure of next steps. I would like to tell him that the CloudMesh Pro v3 firmware will be backed up if he factory resets. Can you please approve my confirmation?",
+    customerContext: "Jordan and I have been speaking and I'm unsure of next steps. I would like to tell him that the CloudMesh Pro v3 firmware will be backed up if he factory resets. Can you please approve my confirmation?",
     aiOverview: {
       actions: [
         "Pulled Jordan's account and identified router model: CloudMesh Pro v3 running firmware 4.0.8 — a known mismatch against the current stable release 4.1.2.",
