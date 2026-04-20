@@ -752,7 +752,7 @@ export function EscalatedCaseModal({
             type="button"
             role="switch"
             aria-checked={showQuickActions}
-            onClick={() => setShowQuickActions((v) => { if (!v) { setIsAttemptedResolutionOpen(false); setAiCommentApproved(null); } return !v; })}
+            onClick={() => setShowQuickActions((v) => { if (!v) { setAiCommentApproved(null); } return !v; })}
             className="flex items-center gap-2 group"
           >
             <div
