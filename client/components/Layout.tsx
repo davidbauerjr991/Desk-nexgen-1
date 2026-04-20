@@ -106,7 +106,7 @@ import {
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
 import { toast } from "sonner";
 
 // The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
@@ -10258,8 +10258,10 @@ export default function Layout({ children }: LayoutProps) {
             setEscalatedToastModal(null);
           }}
           onResolve={() => {
-            pendingQueueRejections.add(escalatedToastModal.id);
-            setEscalatedToastModal(null);
+            // Queue the resolved ID so ControlPanelPage updates its list on next render.
+            // Do NOT close the modal — agent closes it manually after seeing the resolved state.
+            pendingResolvedIds.add(escalatedToastModal.id);
+            if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
           onClose={() => setEscalatedToastModal(null)}
         />

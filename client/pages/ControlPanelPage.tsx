@@ -26,7 +26,7 @@ import {
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/layout-context";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, acceptedStaticsStore } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -3346,6 +3346,24 @@ export default function ControlCenterPage() {
     setRejectedIds((prev) => {
       const next = new Set(prev);
       pendingRejectionSnapshot.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  // Drain resolved IDs queued by the global Layout modal (when Review is opened from a toast
+  // on a non-Home page). Mirrors the pendingQueueRejections pattern above.
+  const pendingResolvedSnapshot = pendingResolvedIds.size > 0 ? new Set(pendingResolvedIds) : null;
+  if (pendingResolvedSnapshot) {
+    pendingResolvedIds.clear();
+    setBulkResolvedIds((prev) => {
+      const next = new Set([...prev, ...pendingResolvedSnapshot]);
+      persistedState.resolvedIds = next;
+      return next;
+    });
+    setEscalatedOverrides((prev) => {
+      const next = new Set(prev);
+      pendingResolvedSnapshot.forEach((id) => next.delete(id));
+      persistedState.escalatedIds = next;
       return next;
     });
   }
