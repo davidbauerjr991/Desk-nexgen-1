@@ -5779,7 +5779,7 @@ function IncomingAssignmentCard({
                   />
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
                 </div>
-                <p className="text-[12px] leading-5 text-[#344054]">{customerContext}</p>
+                <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
               </div>
             )}
 
