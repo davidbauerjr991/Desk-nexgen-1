@@ -577,11 +577,9 @@ export function EscalatedCaseModal({
                             setAiCommentApproved("approved");
                             const now = new Date();
                             const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            setInjectedMessages((prev) => {
-                              const next = [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }];
-                              setLastApprovedMsgCount(allMessages.length + 1);
-                              return next;
-                            });
+                            const newMessage = { id: Date.now(), role: "agent" as const, content: aiComment, time };
+                            setInjectedMessages((prev) => [...prev, newMessage]);
+                            setLastApprovedMsgCount(allMessages.length + 1);
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                         >
