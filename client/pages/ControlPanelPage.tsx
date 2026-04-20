@@ -3292,6 +3292,8 @@ const persistedState = {
   // Tracks which static case IDs have been marked escalated — persists across
   // navigation so the escalated state is not lost on remount.
   escalatedIds: new Set<string>(),
+  // Tracks which static case IDs have been manually resolved via the modal.
+  resolvedIds: new Set<string>(),
   // Top-level tab inside the Control Center (Review vs Queue).
   controlCenterTab: "monitor" as "monitor" | "queue",
 };
@@ -3354,7 +3356,7 @@ export default function ControlCenterPage() {
   const [escalatedModalCase, setEscalatedModalCase] = useState<EscalatedCaseModalData | null>(null);
   // Initialise from persistedState so escalated status survives navigation away and back.
   const [escalatedOverrides, setEscalatedOverrides] = useState<Set<string>>(() => new Set(persistedState.escalatedIds));
-  const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(new Set());
+  const [bulkResolvedIds, setBulkResolvedIds] = useState<Set<string>>(() => new Set(persistedState.resolvedIds));
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
@@ -4486,8 +4488,22 @@ export default function ControlCenterPage() {
             setEscalatedModalCase(null);
           }}
           onResolve={() => {
-            rejectIssue(escalatedModalCase.id); // remove from queue
-            setEscalatedModalCase(null);
+            const resolvedId = escalatedModalCase.id;
+            // Mark as resolved (overrides escalated status) — keeps case visible in list as resolved
+            setBulkResolvedIds((prev) => {
+              const next = new Set([...prev, resolvedId]);
+              persistedState.resolvedIds = next;
+              return next;
+            });
+            // Remove from escalated overrides so it no longer shows in the escalated banner
+            setEscalatedOverrides((prev) => {
+              const next = new Set(prev);
+              next.delete(resolvedId);
+              persistedState.escalatedIds = next;
+              return next;
+            });
+            if ((escalatedModalCase as any).customerRecordId) dismissIncomingByCustomer((escalatedModalCase as any).customerRecordId);
+            // Do NOT close the modal — the user can see the resolved state and close it manually.
           }}
           onClose={() => setEscalatedModalCase(null)}
         />

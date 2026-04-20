@@ -530,6 +530,9 @@ export function EscalatedCaseModal({
                         approveTimersRef.current.push(setTimeout(() => {
                           setLocalStatus("resolved");
                           setLocalPriority("Low");
+                          // Propagate resolved state back to the parent so the
+                          // home page / case list removes the escalated flag.
+                          onResolve();
                         }, 5500));
                       }}
                       className="mt-3 w-full rounded-lg border border-[#6E56CF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
