@@ -590,12 +590,12 @@ export function EscalatedCaseModal({
                     >
                       Approve
                     </button>
-                  ) : (
+                  ) : !showQuickActions ? (
                     <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-1.5">
                       <Check className="h-3 w-3 text-[#208337]" />
                       <span className="text-[11px] font-semibold text-[#208337]">Approved — {caseData.botType} is responding to {caseData.name.split(" ")[0]}</span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
 
