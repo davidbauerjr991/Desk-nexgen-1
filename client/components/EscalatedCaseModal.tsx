@@ -943,6 +943,20 @@ export function EscalatedCaseModal({
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                             setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: thirdAiComment, time }]);
                             setSuperviseScrollTrigger((n) => n + 1);
+                            // Sofia's final reply — 2.5s later
+                            approveTimersRef.current.push(setTimeout(() => {
+                              const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                              setInjectedMessages((prev) => [
+                                ...prev,
+                                {
+                                  id: Date.now(),
+                                  role: "customer" as const,
+                                  content: "thank you. I'm sorry I got so upset. I was just really scared.",
+                                  time: sofiaTime,
+                                },
+                              ]);
+                              setSuperviseScrollTrigger((n) => n + 1);
+                            }, 2500));
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                         >
