@@ -10213,7 +10213,7 @@ export default function Layout({ children }: LayoutProps) {
       {escalatedToastModal && (
         <EscalatedCaseModal
           caseData={escalatedToastModal}
-          onTakeover={(conversation) => {
+          onTakeover={(conversation, localStatus, localPriority) => {
             // Remove from ControlPanelPage queue on next render
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
@@ -10228,9 +10228,9 @@ export default function Layout({ children }: LayoutProps) {
               customerId: escalatedToastModal.customerId,
               customerRecordId: escalatedToastModal.customerRecordId ?? undefined,
               channel: escalatedToastModal.channel as AssignmentChannel,
-              priority: escalatedToastModal.priority,
+              priority: localPriority as import("@/lib/static-assignments").Priority,
               preview: escalatedToastModal.preview,
-              status: escalatedToastModal.status as QueueAssignmentStatus,
+              status: localStatus as QueueAssignmentStatus,
               waitTime: escalatedToastModal.waitTime,
               initialConversation: conversation,
               onCreated: sa

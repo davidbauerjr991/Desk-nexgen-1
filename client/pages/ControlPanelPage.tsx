@@ -4474,7 +4474,7 @@ export default function ControlCenterPage() {
       {escalatedModalCase && (
         <EscalatedCaseModal
           caseData={escalatedModalCase}
-          onTakeover={(conversation) => {
+          onTakeover={(conversation, localStatus, localPriority) => {
             const a = escalatedModalCase as any;
             const data: AcceptIssueData = {
               id: a.id,
@@ -4482,9 +4482,9 @@ export default function ControlCenterPage() {
               customerId: a.customerId,
               customerRecordId: a.customerRecordId,
               channel: a.channel,
-              priority: a.priority,
+              priority: localPriority as Priority,
               preview: a.preview,
-              status: a.status,
+              status: localStatus as QueueAssignmentStatus,
               waitTime: a.waitTime,
               initialConversation: conversation,
               onCreated: (assignmentId) => {

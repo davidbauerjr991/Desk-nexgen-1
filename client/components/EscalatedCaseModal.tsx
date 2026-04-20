@@ -346,7 +346,7 @@ export function EscalatedCaseModal({
   onClose,
 }: {
   caseData: EscalatedCaseModalData;
-  onTakeover: (conversation: import("@/components/ConversationPanel").SharedConversationData) => void;
+  onTakeover: (conversation: import("@/components/ConversationPanel").SharedConversationData, status: string, priority: string) => void;
   onSupervise: () => void;
   onTransfer: () => void;
   onResolve: () => void;
@@ -795,7 +795,7 @@ export function EscalatedCaseModal({
                 const fullConversation = injectedMessages.length > 0
                   ? { ...base, messages: [...base.messages, ...injectedMessages] }
                   : base;
-                onTakeover(fullConversation);
+                onTakeover(fullConversation, localStatus, localPriority);
               }}
               className="rounded-lg bg-[#E53935] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
             >
