@@ -2249,12 +2249,12 @@ function DispositionPopover({
 
 // ─── More-options dropdown for the active-case panel header ──────────────────
 
-function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: (transferRecipient?: string) => void; iconSize?: "sm" | "md" }) {
+function CaseMoreOptionsMenu({ onDismiss, onClose, iconSize = "md" }: { onDismiss: (transferRecipient?: string) => void; onClose?: () => void; iconSize?: "sm" | "md" }) {
   const { openChatPopover } = useLayoutContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState<string | null>(null);
-  const [showDisposition, setShowDisposition] = useState<"dismiss" | "transfer" | null>(null);
+  const [showDisposition, setShowDisposition] = useState<"transfer" | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   return (
@@ -2276,10 +2276,10 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: (trans
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="bottom" align="end" className="w-52">
-          {/* Dismiss — shows disposition, then closes */}
+          {/* Dismiss — just closes the case window, keeps assignment */}
           <DropdownMenuItem
             className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
-            onClick={() => { setDropdownOpen(false); setShowDisposition("dismiss"); }}
+            onClick={() => { setDropdownOpen(false); onClose?.(); }}
           >
             <X className="h-4 w-4" />
             Dismiss
@@ -2318,14 +2318,14 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: (trans
         />
       )}
 
-      {/* Step 2: disposition — shared for both dismiss and transfer */}
-      {showDisposition && (
+      {/* Step 2: disposition — only for transfer */}
+      {showDisposition === "transfer" && (
         <DispositionPopover
           triggerRef={triggerRef}
-          mode={showDisposition}
+          mode="transfer"
           targetName={transferTarget ?? undefined}
           onConfirm={() => {
-            const recipient = showDisposition === "transfer" ? (transferTarget ?? undefined) : undefined;
+            const recipient = transferTarget ?? undefined;
             setShowDisposition(null);
             setTransferTarget(null);
             onDismiss(recipient);
@@ -2611,6 +2611,7 @@ function DockedConversationPanel({
                   {onRemoveAssignment && assignmentStatus && (
                     <CaseMoreOptionsMenu
                       onDismiss={(recipient) => onRemoveAssignment(recipient)}
+                      onClose={onClose}
                     />
                   )}
                 </div>
