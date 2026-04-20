@@ -360,6 +360,10 @@ export function EscalatedCaseModal({
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [approveContext, setApproveContext] = useState(false);
+  const [jordanTyping, setJordanTyping] = useState(false);
+  const [localStatus, setLocalStatus] = useState(caseData.status);
+  const [localPriority, setLocalPriority] = useState(caseData.priority);
+  const approveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [aiComment, setAiComment] = useState(
     "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?"
   );
@@ -391,6 +395,7 @@ export function EscalatedCaseModal({
   }
 
   useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
+  useEffect(() => () => { approveTimersRef.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -414,21 +419,29 @@ export function EscalatedCaseModal({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
-              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none", priorityStyles[caseData.priority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
-                {caseData.priority}
+              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none transition-all duration-500", priorityStyles[localPriority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
+                {localPriority}
               </span>
-              {caseData.status === "escalated" ? (
+              {localStatus === "resolved" ? (
+                <span className="rounded border border-[#24943E] bg-[#EFFBF1] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#208337] transition-all duration-500">
+                  resolved
+                </span>
+              ) : localStatus === "escalated" ? (
                 <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
                   escalated
                 </span>
               ) : (
                 <span className="rounded border border-[#C8BFF0] bg-[#F2F0FA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#6E56CF] capitalize">
-                  {caseData.status}
+                  {localStatus}
                 </span>
               )}
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              {caseData.status === "escalated" ? (
+              {localStatus === "resolved" ? (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#208337] transition-all duration-500">
+                  Case Resolved
+                </p>
+              ) : localStatus === "escalated" ? (
                 <>
                   <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
                     <AlertTriangle className="h-3 w-3 text-[#E53935]" />
@@ -481,29 +494,43 @@ export function EscalatedCaseModal({
                       type="button"
                       onClick={() => {
                         setApproveContext(true);
-                        const now = new Date();
-                        const ariaTime = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                        approveTimersRef.current.forEach(clearTimeout);
+                        approveTimersRef.current = [];
+
+                        // Step 1: Aria's message immediately
+                        const ariaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                         setInjectedMessages((prev) => [
                           ...prev,
-                          {
-                            id: Date.now(),
-                            role: "agent" as const,
-                            content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
-                            time: ariaTime,
-                          },
+                          { id: Date.now(), role: "agent" as const, content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.", time: ariaTime },
                         ]);
-                        setTimeout(() => {
-                          const replyTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+                        // Step 2: Jordan starts typing after 1.5s
+                        approveTimersRef.current.push(setTimeout(() => setJordanTyping(true), 1500));
+
+                        // Step 3: Jordan's response after 3.5s
+                        approveTimersRef.current.push(setTimeout(() => {
+                          setJordanTyping(false);
+                          const t1 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                           setInjectedMessages((prev) => [
                             ...prev,
-                            {
-                              id: Date.now(),
-                              role: "customer" as const,
-                              content: "\u201cThat\u2019s amazing, thank you!\u201d \u2014 and rates the interaction 5 stars \u2605\u2605\u2605\u2605\u2605",
-                              time: replyTime,
-                            },
+                            { id: Date.now(), role: "customer" as const, content: "That's amazing, thank you!", time: t1 },
                           ]);
-                        }, 2500);
+                        }, 3500));
+
+                        // Step 4: Rating bubble after 4.5s
+                        approveTimersRef.current.push(setTimeout(() => {
+                          const t2 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                          setInjectedMessages((prev) => [
+                            ...prev,
+                            { id: Date.now(), role: "customer" as const, content: "\u2605\u2605\u2605\u2605\u2605  Case resolution rated 5 stars", time: t2 },
+                          ]);
+                        }, 4500));
+
+                        // Step 5: Status → resolved, priority → Low after 5.5s
+                        approveTimersRef.current.push(setTimeout(() => {
+                          setLocalStatus("resolved");
+                          setLocalPriority("Low");
+                        }, 5500));
                       }}
                       className="mt-3 w-full rounded-lg border border-[#6E56CF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
                     >
@@ -671,9 +698,11 @@ export function EscalatedCaseModal({
                     messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
                     isCustomerTyping: false,
                   };
-              const conversation = injectedMessages.length > 0
-                ? { ...baseConversation, messages: [...baseConversation.messages, ...injectedMessages] }
-                : baseConversation;
+              const conversation = {
+                ...baseConversation,
+                messages: injectedMessages.length > 0 ? [...baseConversation.messages, ...injectedMessages] : baseConversation.messages,
+                isCustomerTyping: jordanTyping,
+              };
               return (
                 <ConversationPanel
                   key={caseData.id}
