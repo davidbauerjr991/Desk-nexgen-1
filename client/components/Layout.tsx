@@ -112,6 +112,10 @@ import { toast } from "sonner";
 // The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
 const CURRENT_AGENT_NAME = "David Bauer";
 
+// When a case is transferred, this captures the recipient name so the resolved
+// assignment record shows the correct "Assigned to" instead of the current agent.
+let pendingTransferRecipient: string | null = null;
+
 // Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
 // Prevents the Sofia Martinez (Jacob) escalation from re-firing after Jordan's case resolves.
@@ -2253,6 +2257,10 @@ function CaseMoreOptionsMenu({ onDismiss, iconSize = "md" }: { onDismiss: () => 
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const handleDispositionConfirm = () => {
+    // If this is a transfer, record the recipient so the resolved assignment uses their name.
+    if (disposition?.mode === "transfer" && disposition.targetName) {
+      pendingTransferRecipient = disposition.targetName;
+    }
     setDisposition(null);
     onDismiss();
   };
@@ -8180,12 +8188,13 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: removedAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: CURRENT_AGENT_NAME,
+            assignedTo: pendingTransferRecipient ?? CURRENT_AGENT_NAME,
             staticId: dismissedStaticId,
           },
           ...filtered,
         ];
       });
+      pendingTransferRecipient = null;
     }
 
     if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
@@ -8310,13 +8319,14 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: primaryAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: CURRENT_AGENT_NAME,
+            assignedTo: pendingTransferRecipient ?? CURRENT_AGENT_NAME,
             staticId: dismissedStaticId,
             additionalChannels: additionalChannels.length > 0 ? additionalChannels : undefined,
           },
           ...filtered,
         ];
       });
+      pendingTransferRecipient = null;
     }
 
     // Archive conversation state for ALL channels (primary + siblings)
