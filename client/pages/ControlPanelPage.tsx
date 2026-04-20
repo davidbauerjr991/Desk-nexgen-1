@@ -3411,22 +3411,26 @@ export default function ControlCenterPage() {
     return () => clearTimeout(timer);
   }, [isAgentAvailable]);
 
-  // Second escalation (Nadia Petrov / Payments Bot) — auto-trigger disabled for now, kept for future use.
-  // const escalation2LocalFiredRef = useRef(false);
-  // useEffect(() => {
-  //   if (!persistedState.resolvedIds.has("static-11")) return;
-  //   if (escalation2LocalFiredRef.current) return;
-  //   escalation2LocalFiredRef.current = true;
-  //   const timer = setTimeout(() => {
-  //     setEscalatedOverrides((prev) => {
-  //       const next = new Set([...prev, "static-13"]);
-  //       persistedState.escalatedIds = next;
-  //       return next;
-  //     });
-  //   }, 8_000);
-  //   return () => clearTimeout(timer);
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [bulkResolvedIds]);
+  // Second escalation — Sofia Martinez / Jacob fraud alert.
+  // Fires 8 seconds after Jordan's case (static-11) is marked resolved.
+  const escalation2LocalFiredRef = useRef(false);
+  useEffect(() => {
+    if (!persistedState.resolvedIds.has("static-11")) return;
+    if (escalation2LocalFiredRef.current) return;
+    escalation2LocalFiredRef.current = true;
+    const timer = setTimeout(() => {
+      setEscalatedOverrides((prev) => {
+        const next = new Set([...prev, "static-sofia"]);
+        persistedState.escalatedIds = next;
+        return next;
+      });
+    }, 8_000);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkResolvedIds]);
+
+  // Nadia Petrov / Payments Bot — auto-trigger disabled for now, kept for future use.
+  // setEscalatedOverrides((prev) => new Set([...prev, "static-13"]));
 
 
   // When Review is clicked on an incoming toast, always open the modal.

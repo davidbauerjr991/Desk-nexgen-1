@@ -388,7 +388,7 @@ export const staticAssignments: StaticAssignment[] = [
     assignedTo: null,
   },
   {
-    id: "static-13",
+    id: "static-sofia",
     name: "Sofia Martinez",
     customerId: "CST-12045",
     customerRecordId: "sofia",

@@ -6786,11 +6786,11 @@ export default function Layout({ children }: LayoutProps) {
     escalation2Fired = true;
     const timer = setTimeout(() => {
       setIncomingNotifications((prev) => {
-        if (prev.some((n) => n.id === "escalation-static-13")) return prev;
+        if (prev.some((n) => n.id === "escalation-static-sofia")) return prev;
         return [
           ...prev,
           {
-            id: "escalation-static-13",
+            id: "escalation-static-sofia",
             customerRecordId: "sofia",
             channel: "chat" as const,
             initials: "SM",
@@ -10276,13 +10276,13 @@ export default function Layout({ children }: LayoutProps) {
         <EscalatedCaseModal
           caseData={escalatedToastModal}
           onTakeover={(conversation, localStatus, localPriority) => {
-            // Remove from ControlPanelPage queue on next render
-            pendingQueueRejections.add(escalatedToastModal.id);
-            setEscalatedToastModal(null);
             // Find the static assignment so acceptedStaticsStore stays in sync
             const sa = staticAssignments.find(
               (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
             );
+            // Remove from ControlPanelPage queue on next render — use static ID so the filter matches
+            pendingQueueRejections.add(sa?.id ?? escalatedToastModal.id);
+            setEscalatedToastModal(null);
             // Call acceptIssue directly — ONE navigation to /activity for a clean fade-in
             acceptIssue({
               id: escalatedToastModal.id,
@@ -10328,8 +10328,11 @@ export default function Layout({ children }: LayoutProps) {
           }}
           onResolve={() => {
             // Queue the resolved ID so ControlPanelPage updates its list on next render.
-            // Do NOT close the modal — agent closes it manually after seeing the resolved state.
-            pendingResolvedIds.add(escalatedToastModal.id);
+            // Use the static assignment ID (not the toast notification ID) so escalatedOverrides clears correctly.
+            const sa = staticAssignments.find(
+              (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
+            );
+            pendingResolvedIds.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
             if (escalatedToastModal.customerRecordId === "jordan") setIsJordanResolved(true);
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
