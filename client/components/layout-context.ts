@@ -148,6 +148,8 @@ export interface LayoutContextValue {
   clearPendingMonitorCaseId: () => void;
   pendingTakeoverCaseId: string | null;
   clearPendingTakeoverCaseId: () => void;
+  /** Decrement the escalated rail badge count by 1 (min 0). Call when a case is resolved without going through the active rail. */
+  decrementEscalatedCount: () => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────

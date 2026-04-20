@@ -9086,6 +9086,7 @@ export default function Layout({ children }: LayoutProps) {
       clearPendingMonitorCaseId,
       pendingTakeoverCaseId,
       clearPendingTakeoverCaseId,
+      decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -10268,6 +10269,7 @@ export default function Layout({ children }: LayoutProps) {
             // Queue the resolved ID so ControlPanelPage updates its list on next render.
             // Do NOT close the modal — agent closes it manually after seeing the resolved state.
             pendingResolvedIds.add(escalatedToastModal.id);
+            setEscalatedRailCount((n) => Math.max(0, n - 1));
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
           onClose={() => setEscalatedToastModal(null)}
