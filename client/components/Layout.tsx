@@ -2422,6 +2422,104 @@ function DockedConversationPanel({
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [performAllActionsKey, setPerformAllActionsKey] = useState(0);
 
+  // Sofia resolve-supervisor next step
+  const isSofia = customerRecordId === "sofia";
+  const RESOLVE_SUPERVISOR_STEPS = [
+    "Updating case status to resolved",
+    "Assigning to supervisor queue",
+    "Notifying supervisor — Rachel Kim",
+    "Removing from your active cases",
+  ];
+  const [resolveChecked, setResolveChecked] = useState(false);
+  const [resolveStepIndex, setResolveStepIndex] = useState(0);
+  const [resolveComplete, setResolveComplete] = useState(false);
+  const resolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const sofiaResolveBox = isSofia ? (
+    <div className="px-4 py-3">
+      <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
+        <div className="px-4 pt-3 pb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
+        </div>
+        <div className="px-3 pb-3">
+          <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+            <div className="flex items-center gap-3 px-3 py-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (resolveChecked) return;
+                  setResolveChecked(true);
+                  resolveTimersRef.current.forEach(clearTimeout);
+                  resolveTimersRef.current = [];
+                  RESOLVE_SUPERVISOR_STEPS.forEach((_, i) => {
+                    const t = setTimeout(() => setResolveStepIndex(i + 1), 1000 + i * 1200);
+                    resolveTimersRef.current.push(t);
+                  });
+                  const done = setTimeout(() => {
+                    setResolveComplete(true);
+                    // Remove from rail after brief pause
+                    setTimeout(() => onRemoveAssignment?.("Rachel Kim"), 800);
+                  }, 1000 + RESOLVE_SUPERVISOR_STEPS.length * 1200);
+                  resolveTimersRef.current.push(done);
+                }}
+                className={cn(
+                  "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                  resolveChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                )}
+              >
+                {resolveChecked && <Check className="h-2.5 w-2.5 text-white" />}
+              </button>
+              <span className={cn(
+                "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                resolveComplete && "line-through text-[#9CA3AF]",
+              )}>
+                Update status to resolved and assign to supervisor
+              </span>
+            </div>
+            {resolveChecked && (
+              <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Resolving &amp; transferring...</p>
+                <div className="space-y-2.5">
+                  {RESOLVE_SUPERVISOR_STEPS.map((step, idx) => {
+                    const isComplete = idx < resolveStepIndex;
+                    const isInProgress = idx === resolveStepIndex;
+                    return (
+                      <div key={idx} className="flex items-center gap-2.5">
+                        <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                          {isComplete ? (
+                            <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                              <Check className="h-3.5 w-3.5 text-white" />
+                            </div>
+                          ) : isInProgress ? (
+                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                          ) : (
+                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                          )}
+                        </div>
+                        <span className={cn(
+                          "text-[12px]",
+                          isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                        )}>
+                          {step}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {resolveComplete && (
+                  <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                    <Check className="h-3.5 w-3.5 text-[#208337]" />
+                    <span className="text-[11px] font-semibold text-[#208337]">Case resolved and assigned to Rachel Kim</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
   // Ask Copilot state for summary panel
   const [summaryCopilotQuery, setSummaryCopilotQuery] = useState("");
   const [summarySubmittedQuery, setSummarySubmittedQuery] = useState("");
@@ -2650,6 +2748,7 @@ function DockedConversationPanel({
                     onAcceptAssignment={onAcceptAssignment}
                     isWidePanel={isWidePanel}
                     onAgentTasksChange={setHasAgentTasks}
+                    appendContent={sofiaResolveBox}
                   />
                 )}
               </div>
