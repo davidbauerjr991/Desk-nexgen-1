@@ -5696,11 +5696,12 @@ function IncomingAssignmentCard({
   const ChannelIcon = launchedAssignmentIconMap[item.channel] ?? MessageSquare;
   const channelLabel = conversationChannelOptions.find((o) => o.channel === item.channel)?.label ?? item.channel;
 
-  const aiOverview = getTaskAiOverview(item.customerRecordId, item.name, item.channel);
   const assignmentEntry = getCustomerAssignmentEntry(item.name);
-  const customerContext = staticAssignments.find(
+  const staticAssignment = staticAssignments.find(
     (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId
-  )?.customerContext;
+  );
+  const aiOverview = staticAssignment?.aiOverview ?? getTaskAiOverview(item.customerRecordId, item.name, item.channel);
+  const customerContext = staticAssignment?.customerContext;
 
   return (
     <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
