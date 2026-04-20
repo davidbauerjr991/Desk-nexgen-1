@@ -647,10 +647,8 @@ export function EscalatedCaseModal({
             </div>
           </div>
 
-          {/* Right column: live conversation + AI Next Response card at bottom */}
+          {/* Right column: live conversation */}
           <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-            {/* Conversation panel fills available space */}
-            <div className="flex-1 min-h-0 overflow-hidden">
             {(() => {
               const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
               const baseConversation = caseData.customerRecordId
@@ -664,46 +662,22 @@ export function EscalatedCaseModal({
                     messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
                     isCustomerTyping: false,
                   };
+              const allMessages = [...baseConversation.messages, ...injectedMessages];
               const conversation = {
                 ...baseConversation,
-                messages: injectedMessages.length > 0 ? [...baseConversation.messages, ...injectedMessages] : baseConversation.messages,
+                messages: injectedMessages.length > 0 ? allMessages : baseConversation.messages,
                 isCustomerTyping: jordanTyping,
               };
-              return (
-                <ConversationPanel
-                  key={caseData.id}
-                  draftKey={`escalated-modal-${caseData.id}`}
-                  conversation={conversation}
-                  activeChannel={channel}
-                  openChannels={[channel]}
-                  customerId={caseData.customerRecordId}
-                  showAiPanel={false}
-                  hideTranscript={false}
-                  hideInput={true}
-                  isPendingAcceptance={false}
-                  onSelectChannel={() => {}}
-                  onConversationChange={() => {}}
-                  agentAvatarUrl="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
-                />
-              );
-            })()}
-            </div>
 
-            {/* AI Next Response — inline editable agent bubble at bottom of conversation */}
-            {showQuickActions && aiCommentApproved !== "approved" && (() => {
-              const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-              const baseConv = caseData.customerRecordId
-                ? createConversationState(caseData.customerRecordId, channel)
-                : { messages: [] as ConversationMessage[] };
-              const allMessages = [...baseConv.messages, ...injectedMessages];
-              return (
-                <div className="shrink-0 px-4 pb-3 pt-2 border-t border-[#E4E7EC] bg-white">
-                  {/* Label row */}
+              // Editable AI bubble — rendered inside the conversation scroll area via appendContent
+              const aiNextResponseBubble = showQuickActions && aiCommentApproved !== "approved" ? (
+                <div className="px-4 py-3">
+                  {/* Label */}
                   <div className="flex items-center gap-1.5 mb-2">
                     <Sparkles className="h-3 w-3 text-[#6E56CF]" />
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
                   </div>
-                  {/* Editable bubble — styled like an outgoing agent message */}
+                  {/* Right-aligned editable bubble matching agent message style */}
                   <div className="flex items-start justify-end gap-2">
                     <div className="max-w-[85%] w-full">
                       <div className="rounded-2xl rounded-tr-sm bg-[#6E56CF] px-4 pt-2.5 pb-2">
@@ -714,7 +688,6 @@ export function EscalatedCaseModal({
                           className="w-full resize-none bg-transparent text-[13px] leading-relaxed text-white placeholder:text-white/50 outline-none"
                         />
                       </div>
-                      {/* Actions below the bubble */}
                       {aiCommentApproved === "rejected" ? (
                         <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
                           <Check className="h-3 w-3" />
@@ -726,8 +699,7 @@ export function EscalatedCaseModal({
                             type="button"
                             onClick={() => {
                               setAiCommentApproved("approved");
-                              const now = new Date();
-                              const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                              const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                               const newMessage = { id: Date.now(), role: "agent" as const, content: aiComment, time };
                               setInjectedMessages((prev) => [...prev, newMessage]);
                               setLastApprovedMsgCount(allMessages.length + 1);
@@ -746,7 +718,6 @@ export function EscalatedCaseModal({
                         </div>
                       )}
                     </div>
-                    {/* Agent avatar — matches ConversationPanel agent bubble layout */}
                     <img
                       src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
                       alt="Aria avatar"
@@ -754,6 +725,25 @@ export function EscalatedCaseModal({
                     />
                   </div>
                 </div>
+              ) : undefined;
+
+              return (
+                <ConversationPanel
+                  key={caseData.id}
+                  draftKey={`escalated-modal-${caseData.id}`}
+                  conversation={conversation}
+                  activeChannel={channel}
+                  openChannels={[channel]}
+                  customerId={caseData.customerRecordId}
+                  showAiPanel={false}
+                  hideTranscript={false}
+                  hideInput={true}
+                  isPendingAcceptance={false}
+                  onSelectChannel={() => {}}
+                  onConversationChange={() => {}}
+                  agentAvatarUrl="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                  appendContent={aiNextResponseBubble}
+                />
               );
             })()}
           </div>

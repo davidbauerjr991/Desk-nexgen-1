@@ -61,6 +61,8 @@ interface ConversationPanelProps {
   onAgentTasksChange?: (hasTasks: boolean) => void;
   /** When provided, shows this image as the agent avatar instead of initials on agent messages. */
   agentAvatarUrl?: string;
+  /** Optional content rendered at the very end of the messages scroll area (inside the scroll container). */
+  appendContent?: React.ReactNode;
 }
 
 const conversationFooterMenuItems = [
@@ -1055,6 +1057,7 @@ export default function ConversationPanel({
   isWidePanel = false,
   onAgentTasksChange,
   agentAvatarUrl,
+  appendContent,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -2241,6 +2244,8 @@ export default function ConversationPanel({
                   return nextStepsContent;
                 })()
                 }
+
+                {appendContent}
 
                 {conversation.isCustomerTyping && (
                   <div className="py-3 flex items-start gap-3">
