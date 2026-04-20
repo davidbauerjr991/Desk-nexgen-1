@@ -8,7 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ConversationPanel from "@/components/ConversationPanel";
+import ConversationPanel, { type ConversationMessage } from "@/components/ConversationPanel";
 import { createConversationState } from "@/lib/customer-database";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -353,6 +353,7 @@ export function EscalatedCaseModal({
     "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?"
   );
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -527,7 +528,15 @@ export function EscalatedCaseModal({
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setAiCommentApproved("approved")}
+                        onClick={() => {
+                          setAiCommentApproved("approved");
+                          const now = new Date();
+                          const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                          setInjectedMessages((prev) => [
+                            ...prev,
+                            { id: Date.now(), role: "agent" as const, content: aiComment, time },
+                          ]);
+                        }}
                         className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                       >
                         Approve
@@ -576,7 +585,7 @@ export function EscalatedCaseModal({
             <div className="flex-1 min-h-0 overflow-y-auto">
               {(() => {
                 const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-                const conversation = caseData.customerRecordId
+                const baseConversation = caseData.customerRecordId
                   ? createConversationState(caseData.customerRecordId, channel)
                   : {
                       customerName: caseData.name,
@@ -587,6 +596,9 @@ export function EscalatedCaseModal({
                       messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
                       isCustomerTyping: false,
                     };
+                const conversation = injectedMessages.length > 0
+                  ? { ...baseConversation, messages: [...baseConversation.messages, ...injectedMessages] }
+                  : baseConversation;
                 return (
                   <ConversationPanel
                     key={caseData.id}
