@@ -476,15 +476,33 @@ export function EscalatedCaseModal({
                 <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
                   <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
-                  <label className="mt-3 flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={approveContext}
-                      onChange={(e) => setApproveContext(e.target.checked)}
-                      className="h-3.5 w-3.5 rounded border-[#C8BFF0] accent-[#6E56CF] cursor-pointer"
-                    />
-                    <span className="text-[11px] font-medium text-[#5C46B8]">Approve</span>
-                  </label>
+                  {!approveContext ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApproveContext(true);
+                        const now = new Date();
+                        const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                        setInjectedMessages((prev) => [
+                          ...prev,
+                          {
+                            id: Date.now(),
+                            role: "agent" as const,
+                            content: "Hi Jordan, I can confirm that your CloudMesh Pro v3 port forwarding configuration will be fully backed up before the factory reset. Once the reset is complete and firmware 4.1.2 is installed, I'll restore your rules automatically. You won't lose any of your home office setup. Ready to proceed?",
+                            time,
+                          },
+                        ]);
+                      }}
+                      className="mt-3 w-full rounded-lg border border-[#6E56CF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+                    >
+                      Approve
+                    </button>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-1.5">
+                      <Check className="h-3 w-3 text-[#208337]" />
+                      <span className="text-[11px] font-semibold text-[#208337]">Approved — Aria is responding to Jordan</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -696,15 +714,6 @@ export function EscalatedCaseModal({
 
           {/* Right-side actions */}
           <div className="flex items-center gap-2">
-            {approveContext && (
-              <button
-                type="button"
-                onClick={onResolve}
-                className="rounded-lg bg-[#208337] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#186B2C] transition-colors"
-              >
-                Resolve
-              </button>
-            )}
             <button
               ref={transferBtnRef}
               type="button"
