@@ -24,6 +24,7 @@ import {
   X,
 } from "lucide-react";
 import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/layout-context";
+import { createConversationState } from "@/lib/customer-database";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
@@ -3455,6 +3456,11 @@ export default function ControlCenterPage() {
       return;
     }
 
+    const channel = (a.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+    const initialConversation = a.customerRecordId
+      ? createConversationState(a.customerRecordId, channel)
+      : undefined;
+
     const data: AcceptIssueData = {
       id: a.id,
       name: a.name,
@@ -3466,6 +3472,7 @@ export default function ControlCenterPage() {
       status: statusOverride ?? a.status,
       waitTime: a.waitTime,
       isOutbound: true,
+      initialConversation,
       onCreated: (assignmentId) => {
         acceptedStaticsStore.set(a.id, assignmentId);
         forceUpdate((v) => v + 1);

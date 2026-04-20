@@ -8463,16 +8463,23 @@ export default function Layout({ children }: LayoutProps) {
     if (sa) pendingQueueRejections.add(sa.id);
     // Call acceptIssue directly — ONE navigation to /activity so the page
     // fade-in animation fires cleanly (double navigation via /control-panel breaks it).
+    const customerRecordId = sa?.customerRecordId ?? item.customerRecordId;
+    const channel = (item.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+    const initialConversation = customerRecordId
+      ? createConversationState(customerRecordId, channel)
+      : undefined;
+
     acceptIssue({
       id: sa?.id ?? item.id,
       name: item.name,
       customerId: item.customerId,
-      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
+      customerRecordId,
       channel: item.channel,
       priority: item.priority,
       preview: item.preview,
       status: (item.statusLabel?.toLowerCase() ?? sa?.status ?? "open") as QueueAssignmentStatus, // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
       waitTime: item.time,
+      initialConversation,
       onCreated: sa
         ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
         : undefined,
