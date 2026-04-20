@@ -377,6 +377,17 @@ export function EscalatedCaseModal({
     "The dispute has been filed and you'll receive a confirmation number by email. To protect your account, I'd also like to send you a replacement card — could you confirm your current mailing address so I can get that issued for you right away?"
   );
   const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  // Dispute checkbox state (Sofia only)
+  const DISPUTE_STEPS = [
+    "Verifying account and transaction details",
+    "Filing dispute for $2,159 in unauthorized charges",
+    "Issuing provisional credit to account",
+    "Sending dispute confirmation to Sofia",
+  ];
+  const [disputeChecked, setDisputeChecked] = useState(false);
+  const [disputeStepIndex, setDisputeStepIndex] = useState(0);
+  const [disputeComplete, setDisputeComplete] = useState(false);
+  const disputeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
   const [lastApprovedMsgCount, setLastApprovedMsgCount] = useState<number | null>(null);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
@@ -405,6 +416,7 @@ export function EscalatedCaseModal({
 
   useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
   useEffect(() => () => { approveTimersRef.current.forEach(clearTimeout); }, []);
+  useEffect(() => () => { disputeTimersRef.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -784,6 +796,80 @@ export function EscalatedCaseModal({
                       rows={5}
                       className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
                     />
+
+                    {/* Initiate Dispute checkbox — Sofia only */}
+                    {isSofia && (
+                      <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+                        <div className="flex items-center gap-3 px-3 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (disputeChecked) return;
+                              setDisputeChecked(true);
+                              disputeTimersRef.current.forEach(clearTimeout);
+                              disputeTimersRef.current = [];
+                              DISPUTE_STEPS.forEach((_, i) => {
+                                const t = setTimeout(() => setDisputeStepIndex(i + 1), 1200 + i * 1400);
+                                disputeTimersRef.current.push(t);
+                              });
+                              const done = setTimeout(() => setDisputeComplete(true), 1200 + DISPUTE_STEPS.length * 1400);
+                              disputeTimersRef.current.push(done);
+                            }}
+                            className={cn(
+                              "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                              disputeChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                            )}
+                          >
+                            {disputeChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                          </button>
+                          <span className={cn(
+                            "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                            disputeComplete && "line-through text-[#9CA3AF]",
+                          )}>
+                            Initiate Dispute
+                          </span>
+                        </div>
+                        {disputeChecked && (
+                          <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Filing Dispute...</p>
+                            <div className="space-y-2.5">
+                              {DISPUTE_STEPS.map((step, stepIdx) => {
+                                const isComplete = stepIdx < disputeStepIndex;
+                                const isInProgress = stepIdx === disputeStepIndex;
+                                return (
+                                  <div key={stepIdx} className="flex items-center gap-2.5">
+                                    <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                      {isComplete ? (
+                                        <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                          <Check className="h-3.5 w-3.5 text-white" />
+                                        </div>
+                                      ) : isInProgress ? (
+                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                      ) : (
+                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                      )}
+                                    </div>
+                                    <span className={cn(
+                                      "text-[12px]",
+                                      isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                                    )}>
+                                      {step}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {disputeComplete && (
+                              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                                <Check className="h-3.5 w-3.5 text-[#208337]" />
+                                <span className="text-[11px] font-semibold text-[#208337]">Dispute successfully initiated — reference #FRD-2159-SM</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {aiCommentApproved === "rejected" ? (
                       <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
                         <Check className="h-3 w-3" />
