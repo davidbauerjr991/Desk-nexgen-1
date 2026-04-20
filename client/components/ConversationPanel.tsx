@@ -20,7 +20,7 @@ export type ConversationMessage = {
   content: string;
   time: string;
   channel?: CustomerChannel;
-  sentiment?: "frustrated";
+  sentiment?: "frustrated" | "critical";
   isInternal?: boolean;
   ticket?: CustomerTicket;
 };
@@ -735,7 +735,7 @@ function getDetectedIntent(messages: SharedConversationData["messages"]): string
 }
 
 function getChurnRisk(messages: SharedConversationData["messages"]): { label: string; level: "low" | "medium" | "high" } {
-  const hasFrustration = messages.some((m) => m.sentiment === "frustrated");
+  const hasFrustration = messages.some((m) => m.sentiment === "frustrated" || m.sentiment === "critical");
   const text = messages.map((m) => m.content.toLowerCase()).join(" ");
   const highRiskWords = /\b(cancel|leave|competitor|refund|lawsuit|terrible|unacceptable|never again)\b/;
 
@@ -750,7 +750,7 @@ function getConversationOverview(conversation: SharedConversationData) {
   const latestAgentMessage = [...conversation.messages].reverse().find((message) => message.role === "agent");
   const issueSummary = getSummarySnippet(latestCustomerMessage?.content);
   const priorHelpSummary = getSummarySnippet(latestAgentMessage?.content, 150);
-  const assignmentReason = latestCustomerMessage?.sentiment === "frustrated"
+  const assignmentReason = (latestCustomerMessage?.sentiment === "frustrated" || latestCustomerMessage?.sentiment === "critical")
     ? `${customerFirstName} was routed to this agent because the issue is still unresolved and the customer is showing frustration in the current ${conversation.label.toLowerCase()} thread.`
     : `${customerFirstName} was routed to this agent because the current ${conversation.label.toLowerCase()} thread still needs active ownership to move the issue forward.`;
   const customerIssue = issueSummary
@@ -2066,6 +2066,12 @@ export default function ConversationPanel({
                             <div className={cn("mt-0.5 flex items-center gap-1 text-xs font-medium text-[#A37A00]", isMsgAgent && "justify-end")}>
                               <AlertTriangle className="h-3.5 w-3.5" />
                               Frustrated sentiment detected
+                            </div>
+                          )}
+                          {message.sentiment === "critical" && (
+                            <div className={cn("mt-0.5 flex items-center gap-1 text-xs font-medium text-[#C71D1A]", isMsgAgent && "justify-end")}>
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                              Critical sentiment detected
                             </div>
                           )}
                         </div>

@@ -3359,9 +3359,9 @@ export const customerDatabase: CustomerSeedRecord[] = [
           {
             id: 4,
             role: "customer",
-            content: "I DID NOT MAKE THOSE CHARGES. WHO IS DOING THIS? IS MY MONEY GONE?? I HAVE RENT DUE TOMORROW.",
+            content: "This is outrageous. I've been a customer for 11 years and this is how I find out my account has been robbed?? I want to speak to someone who can actually FIX this right now.",
             time: "9:49 AM",
-            sentiment: "frustrated",
+            sentiment: "critical",
           },
           {
             id: 5,
