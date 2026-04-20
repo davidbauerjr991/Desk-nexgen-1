@@ -364,9 +364,12 @@ export function EscalatedCaseModal({
   const [localStatus, setLocalStatus] = useState(caseData.status);
   const [localPriority, setLocalPriority] = useState(caseData.priority);
   const approveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [aiComment, setAiComment] = useState(
-    "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?"
-  );
+  const [aiComment, setAiComment] = useState(() => {
+    if (caseData.customerRecordId === "sofia") {
+      return "I completely understand, Sofia, and I'm so sorry this has happened. I want to assure you we are taking this seriously. I'm initiating a dispute for both fraudulent transactions right now and will have a resolution specialist on this immediately.";
+    }
+    return "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?";
+  });
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
   const [lastApprovedMsgCount, setLastApprovedMsgCount] = useState<number | null>(null);
@@ -738,8 +741,10 @@ export function EscalatedCaseModal({
                     )}
                   </div>
                   <img
-                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
-                    alt="Aria avatar"
+                    src={caseData.botType === "Jacob"
+                      ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                      : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                    alt={`${caseData.botType ?? "AI"} avatar`}
                     className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
                   />
                 </div>
