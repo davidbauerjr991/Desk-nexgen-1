@@ -358,11 +358,7 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
       "Issue Temporary Credit of $2,159 so Sofia can make her rent payment",
       "Issue Replacement Card to the address on file and block the compromised card",
     ],
-    suggestedActions: [
-      { id: "initiate-dispute", label: "Initiate Dispute" },
-      { id: "issue-temp-credit", label: "Issue Temporary Credit" },
-      { id: "issue-replacement-card", label: "Issue Replacement Card" },
-    ],
+    suggestedActions: [],
   },
 };
 
