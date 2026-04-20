@@ -8172,6 +8172,9 @@ export default function Layout({ children }: LayoutProps) {
         (assignmentStatusesById[assignmentId] as QueueAssignmentStatus | undefined) ??
         (removedAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
         "open";
+      // Capture recipient before state setter — updater runs async so module var would be null by then.
+      const resolvedAssignedTo = pendingTransferRecipient ?? CURRENT_AGENT_NAME;
+      pendingTransferRecipient = null;
       setResolvedAssignments((prev) => {
         // Deduplicate: if we already have a dismissed entry for this static case, replace it
         // rather than appending — prevents multiple supervise→dismiss cycles from piling up.
@@ -8188,13 +8191,12 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: removedAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: pendingTransferRecipient ?? CURRENT_AGENT_NAME,
+            assignedTo: resolvedAssignedTo,
             staticId: dismissedStaticId,
           },
           ...filtered,
         ];
       });
-      pendingTransferRecipient = null;
     }
 
     if (customerReplyTimeoutsRef.current[conversationStateKey] !== undefined) {
@@ -8304,6 +8306,9 @@ export default function Layout({ children }: LayoutProps) {
         (assignmentStatusesById[primaryId] as QueueAssignmentStatus | undefined) ??
         (primaryAssignment.statusLabel?.toLowerCase() as QueueAssignmentStatus | undefined) ??
         "open";
+      // Capture recipient before state setter — updater runs async so module var would be null by then.
+      const resolvedAssignedTo = pendingTransferRecipient ?? CURRENT_AGENT_NAME;
+      pendingTransferRecipient = null;
 
       setResolvedAssignments((prev) => {
         const filtered = dismissedStaticId
@@ -8319,14 +8324,13 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: primaryAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: pendingTransferRecipient ?? CURRENT_AGENT_NAME,
+            assignedTo: resolvedAssignedTo,
             staticId: dismissedStaticId,
             additionalChannels: additionalChannels.length > 0 ? additionalChannels : undefined,
           },
           ...filtered,
         ];
       });
-      pendingTransferRecipient = null;
     }
 
     // Archive conversation state for ALL channels (primary + siblings)
