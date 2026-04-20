@@ -482,16 +482,28 @@ export function EscalatedCaseModal({
                       onClick={() => {
                         setApproveContext(true);
                         const now = new Date();
-                        const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                        const ariaTime = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                         setInjectedMessages((prev) => [
                           ...prev,
                           {
                             id: Date.now(),
                             role: "agent" as const,
                             content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
-                            time,
+                            time: ariaTime,
                           },
                         ]);
+                        setTimeout(() => {
+                          const replyTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                          setInjectedMessages((prev) => [
+                            ...prev,
+                            {
+                              id: Date.now(),
+                              role: "customer" as const,
+                              content: "\u201cThat\u2019s amazing, thank you!\u201d \u2014 and rates the interaction 5 stars \u2605\u2605\u2605\u2605\u2605",
+                              time: replyTime,
+                            },
+                          ]);
+                        }, 2500);
                       }}
                       className="mt-3 w-full rounded-lg border border-[#6E56CF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
                     >
