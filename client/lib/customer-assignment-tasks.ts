@@ -351,6 +351,19 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
       { id: "set-resolved", label: "Set Case to Resolved" },
     ],
   },
+  "sofia martinez": {
+    summary: "Sofia has reported 2 unauthorized transactions totaling $2,159. I've verified the charges are fraudulent and flagged her account. Here are the actions needed to resolve this case — or ask me for more assistance.",
+    nextSteps: [
+      "Initiate Dispute for the 2 unauthorized transactions totaling $2,159",
+      "Issue Temporary Credit of $2,159 so Sofia can make her rent payment",
+      "Issue Replacement Card to the address on file and block the compromised card",
+    ],
+    suggestedActions: [
+      { id: "initiate-dispute", label: "Initiate Dispute" },
+      { id: "issue-temp-credit", label: "Issue Temporary Credit" },
+      { id: "issue-replacement-card", label: "Issue Replacement Card" },
+    ],
+  },
 };
 
 export function getCustomerAssignmentEntry(customerName: string): CustomerAssignmentEntry | null {

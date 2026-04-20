@@ -174,6 +174,9 @@ const TASK_ACTION_TITLES: Record<string, string> = {
   "upgrade-beverage-package": "Upgrading Beverage Package...",
   "confirm-credit-line": "Confirming Credit Line...",
   "set-resolved": "Resolving Case...",
+  "initiate-dispute": "Initiating Dispute...",
+  "issue-temp-credit": "Applying Temporary Credit...",
+  "issue-replacement-card": "Issuing Replacement Card...",
 };
 
 const TASK_STEPS: Record<string, string[]> = {
@@ -218,6 +221,24 @@ const TASK_STEPS: Record<string, string[]> = {
     "Closing conversation thread",
     "Updating case status",
     "Removing from queue",
+  ],
+  "initiate-dispute": [
+    "Verifying account and transaction details",
+    "Filing dispute for $2,159 in unauthorized charges",
+    "Issuing provisional credit to account",
+    "Sending dispute confirmation to customer",
+  ],
+  "issue-temp-credit": [
+    "Verifying account balance",
+    "Applying provisional credit of $2,159",
+    "Logging credit memo to case record",
+    "Notifying customer via email",
+  ],
+  "issue-replacement-card": [
+    "Permanently blocking compromised card",
+    "Generating replacement card number",
+    "Scheduling delivery to address on file",
+    "Sending tracking confirmation to customer",
   ],
 };
 
