@@ -53,6 +53,14 @@ const QUICK_ACTION_OPTIONS = [
   "Send breach notification to customer",
 ];
 
+const POTENTIAL_NEXT_STEPS = [
+  "Back up port forwarding rules to customer account before reset",
+  "Initiate factory reset and confirm each step with Jordan",
+  "Apply firmware update from 4.0.8 to stable release 4.1.2",
+  "Restore saved port forwarding configuration post-reset",
+  "Run connection diagnostics to confirm stability",
+];
+
 // ─── Agent roster & transfer popover ─────────────────────────────────────────
 
 type AgentAvailability = "Available" | "In a Call" | "Away" | "Offline";
@@ -354,6 +362,7 @@ export function EscalatedCaseModal({
   );
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
+  const [lastApprovedMsgCount, setLastApprovedMsgCount] = useState<number | null>(null);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -502,56 +511,83 @@ export function EscalatedCaseModal({
                 />
               )}
 
-              {showQuickActions && (
-                <div className="rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+              {showQuickActions && (() => {
+                // After approval, show potential next steps until the customer responds
+                const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+                const baseConv = caseData.customerRecordId
+                  ? createConversationState(caseData.customerRecordId, channel)
+                  : { messages: [] as ConversationMessage[] };
+                const allMessages = [...baseConv.messages, ...injectedMessages];
+                const customerRespondedAfterApproval =
+                  lastApprovedMsgCount !== null &&
+                  allMessages.some(
+                    (m, idx) => m.role === "customer" && idx >= lastApprovedMsgCount
+                  );
+                const showNextSteps = aiCommentApproved === "approved" && !customerRespondedAfterApproval;
+
+                return showNextSteps ? (
+                  <div className="rounded-xl border border-[#C8BFF0] bg-white p-3 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Potential Next Steps</p>
+                    </div>
+                    <p className="text-[11px] text-[#98A2B3]">Waiting for customer to respond before preparing next AI message.</p>
+                    <ul className="space-y-1.5 pt-0.5">
+                      {POTENTIAL_NEXT_STEPS.map((step, i) => (
+                        <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#6E56CF]" />
+                          {step}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <textarea
-                    value={aiComment}
-                    onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
-                    rows={5}
-                    className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
-                  />
-                  {aiCommentApproved ? (
-                    <div className={cn(
-                      "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium",
-                      aiCommentApproved === "approved"
-                        ? "bg-[#EFFBF1] text-[#208337]"
-                        : "bg-[#FDEAEA] text-[#C71D1A]"
-                    )}>
-                      <Check className="h-3 w-3" />
-                      {aiCommentApproved === "approved" ? "Response approved — AI will send this message" : "Response rejected — AI will await your instruction"}
+                ) : (
+                  <div className="rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
                     </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAiCommentApproved("approved");
-                          const now = new Date();
-                          const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                          setInjectedMessages((prev) => [
-                            ...prev,
-                            { id: Date.now(), role: "agent" as const, content: aiComment, time },
-                          ]);
-                        }}
-                        className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAiCommentApproved("rejected")}
-                        className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                    <textarea
+                      value={aiComment}
+                      onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
+                      rows={5}
+                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                    />
+                    {aiCommentApproved === "rejected" ? (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
+                        <Check className="h-3 w-3" />
+                        Response rejected — AI will await your instruction
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiCommentApproved("approved");
+                            const now = new Date();
+                            const time = now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            setInjectedMessages((prev) => {
+                              const next = [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }];
+                              setLastApprovedMsgCount(allMessages.length + 1);
+                              return next;
+                            });
+                          }}
+                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAiCommentApproved("rejected")}
+                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Ask Copilot — pinned to bottom */}
