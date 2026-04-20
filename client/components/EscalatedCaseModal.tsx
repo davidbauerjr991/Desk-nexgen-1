@@ -382,6 +382,16 @@ export function EscalatedCaseModal({
   );
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
+  // Replacement card shipping speed
+  type ShippingSpeed = "3-5 days" | "overnight" | "one week";
+  const SHIPPING_OPTIONS: { label: string; value: ShippingSpeed; badge: string }[] = [
+    { label: "Standard (3–5 business days)", value: "3-5 days", badge: "Free" },
+    { label: "Overnight delivery", value: "overnight", badge: "Expedited" },
+    { label: "Economy (up to 1 week)", value: "one week", badge: "Economy" },
+  ];
+  const [shippingChecked, setShippingChecked] = useState(false);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingSpeed | null>(null);
+  const [shippingConfirmed, setShippingConfirmed] = useState(false);
   // Dispute checkbox state (Sofia only)
   const DISPUTE_STEPS = [
     "Verifying account and transaction details",
@@ -753,6 +763,98 @@ export function EscalatedCaseModal({
                       rows={4}
                       className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
                     />
+
+                    {/* Replacement card shipping speed */}
+                    <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setShippingChecked((v) => !v)}
+                          className={cn(
+                            "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                            shippingChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                          )}
+                        >
+                          {shippingChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                          shippingConfirmed && "line-through text-[#9CA3AF]",
+                        )}>
+                          Select Replacement Card Shipping Speed
+                        </span>
+                      </div>
+                      {shippingChecked && (
+                        <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2">
+                          <p className="text-[12px] font-semibold text-[#111827] mb-2">Shipping method</p>
+                          {SHIPPING_OPTIONS.map((opt) => {
+                            const isSelected = selectedShipping === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                  if (shippingConfirmed) return;
+                                  setSelectedShipping(opt.value);
+                                  // Update the AI comment to reflect the selected delivery window
+                                  const deliveryText =
+                                    opt.value === "overnight"
+                                      ? "overnight — you'll have it tomorrow"
+                                      : opt.value === "one week"
+                                      ? "within up to one week"
+                                      : "within 3–5 business days";
+                                  setThirdAiComment(
+                                    `Thank you, Sofia. I've confirmed your new replacement card will be sent to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 and should arrive ${deliveryText}. You'll receive a tracking number by email. Your account is fully protected and the provisional credit has been applied. Is there anything else I can help you with today?`
+                                  );
+                                }}
+                                className={cn(
+                                  "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors",
+                                  isSelected
+                                    ? "border-[#6E56CF] bg-[#F2F0FA]"
+                                    : "border-[#E4E7EC] bg-white hover:border-[#6E56CF] hover:bg-[#F9FAFB]",
+                                  shippingConfirmed && "opacity-60 cursor-default",
+                                )}
+                              >
+                                <span className={cn("text-[12px]", isSelected ? "font-semibold text-[#5C46B8]" : "text-[#344054]")}>
+                                  {opt.label}
+                                </span>
+                                <span className={cn(
+                                  "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                                  isSelected
+                                    ? "bg-[#6E56CF] border-[#6E56CF] text-white"
+                                    : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
+                                )}>
+                                  {opt.badge}
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {selectedShipping && !shippingConfirmed && (
+                            <button
+                              type="button"
+                              onClick={() => setShippingConfirmed(true)}
+                              className="mt-1 w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors"
+                            >
+                              Confirm Shipping Speed
+                            </button>
+                          )}
+                          {shippingConfirmed && (
+                            <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                              <Check className="h-3.5 w-3.5 text-[#208337]" />
+                              <span className="text-[11px] font-semibold text-[#208337]">
+                                Shipping confirmed —{" "}
+                                {selectedShipping === "overnight"
+                                  ? "Overnight delivery"
+                                  : selectedShipping === "one week"
+                                  ? "Economy (up to 1 week)"
+                                  : "Standard 3–5 business days"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {thirdAiCommentApproved === "rejected" ? (
                       <div className="flex items-center gap-1.5 rounded-lg bg-[#FDEAEA] px-3 py-2 text-[12px] font-medium text-[#C71D1A]">
                         <Check className="h-3 w-3" />
