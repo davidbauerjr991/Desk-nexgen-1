@@ -5791,11 +5791,13 @@ function IncomingAssignmentCard({
               <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
                 <div className="mb-1.5 flex items-center gap-2">
                   <img
-                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
-                    alt="Aria avatar"
+                    src={item.label === "Jacob"
+                      ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                      : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                    alt={`${item.label ?? "Aria"} avatar`}
                     className="h-5 w-5 rounded-full object-cover shrink-0"
                   />
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Human Assist Request</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">{item.label ?? "Aria"}</p>
                 </div>
                 <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
               </div>
