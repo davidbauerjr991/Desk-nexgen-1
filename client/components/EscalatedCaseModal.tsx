@@ -382,6 +382,11 @@ export function EscalatedCaseModal({
   );
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
+  // Temporary credit state
+  const [creditChecked, setCreditChecked] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("2,159.00");
+  const [creditConfirmed, setCreditConfirmed] = useState(false);
+
   // Replacement card shipping speed
   type ShippingSpeed = "3-5 days" | "overnight" | "one week";
   const SHIPPING_OPTIONS: { label: string; value: ShippingSpeed; badge: string }[] = [
@@ -763,6 +768,75 @@ export function EscalatedCaseModal({
                       rows={4}
                       className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
                     />
+
+                    {/* Temporary credit */}
+                    <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+                      <div className="flex items-center gap-3 px-3 py-2.5">
+                        <button
+                          type="button"
+                          onClick={() => { if (!creditConfirmed) setCreditChecked((v) => !v); }}
+                          className={cn(
+                            "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                            creditChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                          )}
+                        >
+                          {creditChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                          creditConfirmed && "line-through text-[#9CA3AF]",
+                        )}>
+                          Issue Temporary Credit to Account
+                        </span>
+                      </div>
+                      {creditChecked && (
+                        <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2.5">
+                          <p className="text-[12px] font-semibold text-[#111827]">Credit amount</p>
+                          <div className={cn(
+                            "flex items-center gap-2 rounded-lg border bg-white px-3 py-2 transition-colors",
+                            creditConfirmed ? "border-[#E4E7EC] opacity-60" : "border-[#C8BFF0] focus-within:border-[#6E56CF] focus-within:ring-1 focus-within:ring-[#6E56CF]",
+                          )}>
+                            <span className="text-[13px] font-semibold text-[#344054]">$</span>
+                            <input
+                              type="text"
+                              value={creditAmount}
+                              readOnly={creditConfirmed}
+                              onChange={(e) => {
+                                // Only allow numbers, commas, periods
+                                const val = e.target.value.replace(/[^0-9.,]/g, "");
+                                setCreditAmount(val);
+                              }}
+                              className="flex-1 bg-transparent text-[13px] font-semibold text-[#344054] outline-none placeholder:text-[#98A2B3]"
+                              placeholder="0.00"
+                            />
+                            <span className="text-[11px] text-[#98A2B3] shrink-0">USD</span>
+                          </div>
+                          <p className="text-[10px] text-[#98A2B3] leading-relaxed">
+                            Provisional credit will be applied immediately and held pending dispute resolution.
+                          </p>
+                          {!creditConfirmed ? (
+                            <button
+                              type="button"
+                              disabled={!creditAmount.trim()}
+                              onClick={() => {
+                                setCreditConfirmed(true);
+                                setCreditChecked(true);
+                              }}
+                              className="w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              Apply Credit
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                              <Check className="h-3.5 w-3.5 text-[#208337]" />
+                              <span className="text-[11px] font-semibold text-[#208337]">
+                                Temporary credit of ${creditAmount} applied to Sofia's account
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Replacement card shipping speed */}
                     <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
