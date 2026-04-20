@@ -7040,6 +7040,8 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     if (status !== "Available") return;
+    // Auto-assignment toast disabled — kept for future use.
+    return;
     // Count only non-parked active assignments toward the 3-assignment cap.
     const activeCount = visibleAssignmentIds.filter(
       (id) => assignmentStatusesById[id] !== "parked",
@@ -7126,6 +7128,8 @@ export default function Layout({ children }: LayoutProps) {
       autoChatTimerRef.current = null;
     }
     if (status !== "Available") return;
+    // Auto-chat toast disabled — kept for future use.
+    return;
     // Don't show a new chat notification while one is already visible.
     if (incomingChatNotifications.length > 0) return;
 
