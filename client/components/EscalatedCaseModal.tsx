@@ -671,8 +671,8 @@ export function EscalatedCaseModal({
 
               // AI Next Response card — rendered inside the conversation scroll area via appendContent
               const aiNextResponseBubble = showQuickActions && aiCommentApproved !== "approved" ? (
-                <div className="px-4 py-3">
-                  <div className="rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
                       <Sparkles className="h-3 w-3 text-[#6E56CF]" />
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
@@ -713,6 +713,11 @@ export function EscalatedCaseModal({
                       </div>
                     )}
                   </div>
+                  <img
+                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                    alt="Aria avatar"
+                    className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
+                  />
                 </div>
               ) : undefined;
 
