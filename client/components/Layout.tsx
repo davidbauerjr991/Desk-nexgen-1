@@ -10257,6 +10257,10 @@ export default function Layout({ children }: LayoutProps) {
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
           }}
+          onResolve={() => {
+            pendingQueueRejections.add(escalatedToastModal.id);
+            setEscalatedToastModal(null);
+          }}
           onClose={() => setEscalatedToastModal(null)}
         />
       )}

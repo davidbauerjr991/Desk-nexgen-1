@@ -4485,6 +4485,10 @@ export default function ControlCenterPage() {
             rejectIssue(escalatedModalCase.id); // remove from queue
             setEscalatedModalCase(null);
           }}
+          onResolve={() => {
+            rejectIssue(escalatedModalCase.id); // remove from queue
+            setEscalatedModalCase(null);
+          }}
           onClose={() => setEscalatedModalCase(null)}
         />
       )}

@@ -348,6 +348,7 @@ export function EscalatedCaseModal({
   onTakeover: (conversation: import("@/components/ConversationPanel").SharedConversationData) => void;
   onSupervise: () => void;
   onTransfer: () => void;
+  onResolve: () => void;
   onClose: () => void;
 }) {
   const [copilotQuery, setCopilotQuery] = useState("");
@@ -357,6 +358,7 @@ export function EscalatedCaseModal({
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [approveContext, setApproveContext] = useState(false);
   const [aiComment, setAiComment] = useState(
     "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?"
   );
@@ -473,6 +475,15 @@ export function EscalatedCaseModal({
                 <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
                   <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
                   <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
+                  <label className="mt-3 flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={approveContext}
+                      onChange={(e) => setApproveContext(e.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-[#C8BFF0] accent-[#6E56CF] cursor-pointer"
+                    />
+                    <span className="text-[11px] font-medium text-[#5C46B8]">Approve</span>
+                  </label>
                 </div>
               )}
 
@@ -686,6 +697,15 @@ export function EscalatedCaseModal({
 
           {/* Right-side actions */}
           <div className="flex items-center gap-2">
+            {approveContext && (
+              <button
+                type="button"
+                onClick={onResolve}
+                className="rounded-lg bg-[#208337] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#186B2C] transition-colors"
+              >
+                Resolve
+              </button>
+            )}
             <button
               ref={transferBtnRef}
               type="button"
