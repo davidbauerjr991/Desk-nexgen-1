@@ -5698,6 +5698,9 @@ function IncomingAssignmentCard({
 
   const aiOverview = getTaskAiOverview(item.customerRecordId, item.name, item.channel);
   const assignmentEntry = getCustomerAssignmentEntry(item.name);
+  const customerContext = staticAssignments.find(
+    (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId
+  )?.customerContext;
 
   return (
     <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
@@ -5755,6 +5758,14 @@ function IncomingAssignmentCard({
           style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
         >
           <div className="px-4 pb-3 flex flex-col gap-3">
+            {/* Customer Context */}
+            {customerContext && (
+              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+                <p className="text-[12px] leading-5 text-[#344054]">{customerContext}</p>
+              </div>
+            )}
+
             {/* Attempted Resolution — collapsible, white bg matching activity accordion */}
             <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
               <button
