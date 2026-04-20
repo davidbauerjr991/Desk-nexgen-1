@@ -6732,7 +6732,7 @@ export default function Layout({ children }: LayoutProps) {
             initials: "JD",
             name: "Jordan Davis",
             customerId: "CST-11621",
-            label: "Tech Bot",
+            label: "Aria",
             lastUpdated: "11m",
             time: "11m",
             preview: "Router dropping all connections — port forwarding config blocking factory reset",

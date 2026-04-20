@@ -393,7 +393,7 @@ export const staticAssignments: StaticAssignment[] = [
     customerId: "CST-11621",
     customerRecordId: "jordan",
     company: "Residential",
-    botType: "Tech Bot",
+    botType: "Aria",
     caseType: "IT Support",
     agentType: "virtual",
     channel: "chat",

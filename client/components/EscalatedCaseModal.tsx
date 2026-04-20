@@ -648,6 +648,7 @@ export function EscalatedCaseModal({
                   isPendingAcceptance={false}
                   onSelectChannel={() => {}}
                   onConversationChange={() => {}}
+                  agentAvatarUrl="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
                 />
               );
             })()}

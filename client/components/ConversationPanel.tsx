@@ -59,6 +59,8 @@ interface ConversationPanelProps {
   isWidePanel?: boolean;
   /** Called whenever the agentTasks list changes length, so the parent can show/hide the portal slot. */
   onAgentTasksChange?: (hasTasks: boolean) => void;
+  /** When provided, shows this image as the agent avatar instead of initials on agent messages. */
+  agentAvatarUrl?: string;
 }
 
 const conversationFooterMenuItems = [
@@ -1052,6 +1054,7 @@ export default function ConversationPanel({
   onAcceptAssignment,
   isWidePanel = false,
   onAgentTasksChange,
+  agentAvatarUrl,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -2064,9 +2067,17 @@ export default function ConversationPanel({
                           )}
                         </div>
                         {isMsgAgent && (
-                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
-                            {msgInitials}
-                          </div>
+                          agentAvatarUrl ? (
+                            <img
+                              src={agentAvatarUrl}
+                              alt="AI agent avatar"
+                              className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover select-none"
+                            />
+                          ) : (
+                            <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
+                              {msgInitials}
+                            </div>
+                          )
                         )}
                       </div>
                     )}
