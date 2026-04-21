@@ -851,8 +851,7 @@ export function EscalatedCaseModal({
               // Second AI response card (Sofia only) — shown after first is approved
               const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && secondCardReady && secondAiCommentApproved !== "approved";
               const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && thirdCardReady && thirdAiCommentApproved !== "approved";
-              // "Thinking" placeholders — shown between customer reply and AI card appearing
-              const showThinkingSecond = isSofia && showQuickActions && sofiaFirstReplyVisible && !secondCardReady && secondAiCommentApproved !== "approved";
+              // "Thinking" placeholder — shown after Sofia provides her address, before Issue Temp Credit card appears
               const showThinkingThird = isSofia && showQuickActions && sofiaAddressInjected && !thirdCardReady && thirdAiCommentApproved !== "approved";
 
               // Third AI response card (Sofia only) — shown after second is approved and Sofia replies with address
@@ -1434,14 +1433,37 @@ export function EscalatedCaseModal({
                                           sentiment: "frustrated" as const,
                                         },
                                       ]);
-                                      // Step 5: show thinking placeholder, then reveal second AI response card
+                                      // Step 5: after first reply, Sofia proactively sends her mailing address
                                       setSofiaFirstReplyVisible(true);
                                       setSuperviseScrollTrigger((n) => n + 1);
-                                      const thinkTimer = setTimeout(() => {
-                                        setSecondCardReady(true);
+                                      const addressTypingTimer = setTimeout(() => {
+                                        setSofiaTyping(true);
                                         setSuperviseScrollTrigger((n) => n + 1);
-                                      }, 2200);
-                                      disputeTimersRef.current.push(thinkTimer);
+                                        const addressReplyTimer = setTimeout(() => {
+                                          setSofiaTyping(false);
+                                          const addrTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                          setInjectedMessages((prev) => [
+                                            ...prev,
+                                            {
+                                              id: Date.now(),
+                                              role: "customer" as const,
+                                              content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                                              time: addrTime,
+                                              sentiment: "frustrated" as const,
+                                            },
+                                          ]);
+                                          setSofiaAddressInjected(true);
+                                          setSuperviseScrollTrigger((n) => n + 1);
+                                          // Step 6: thinking placeholder then reveal Issue Temp Credit / Replace Card
+                                          const thinkTimer = setTimeout(() => {
+                                            setThirdCardReady(true);
+                                            setSuperviseScrollTrigger((n) => n + 1);
+                                          }, 2200);
+                                          disputeTimersRef.current.push(thinkTimer);
+                                        }, 2000);
+                                        disputeTimersRef.current.push(addressReplyTimer);
+                                      }, 2000);
+                                      disputeTimersRef.current.push(addressTypingTimer);
                                     }, 2500);
                                     disputeTimersRef.current.push(replyTimer);
                                   }, 2000);
@@ -1472,10 +1494,31 @@ export function EscalatedCaseModal({
                                   ]);
                                   setSofiaFirstReplyVisible(true);
                                   setSuperviseScrollTrigger((n) => n + 1);
+                                  // Sofia proactively sends her address, then Issue Temp Credit card loads
                                   approveTimersRef.current.push(setTimeout(() => {
-                                    setSecondCardReady(true);
+                                    setSofiaTyping(true);
                                     setSuperviseScrollTrigger((n) => n + 1);
-                                  }, 2200));
+                                    approveTimersRef.current.push(setTimeout(() => {
+                                      setSofiaTyping(false);
+                                      const addrTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                      setInjectedMessages((prev) => [
+                                        ...prev,
+                                        {
+                                          id: Date.now(),
+                                          role: "customer" as const,
+                                          content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                                          time: addrTime,
+                                          sentiment: "frustrated" as const,
+                                        },
+                                      ]);
+                                      setSofiaAddressInjected(true);
+                                      setSuperviseScrollTrigger((n) => n + 1);
+                                      approveTimersRef.current.push(setTimeout(() => {
+                                        setThirdCardReady(true);
+                                        setSuperviseScrollTrigger((n) => n + 1);
+                                      }, 2200));
+                                    }, 2000));
+                                  }, 2000));
                                 }, 2500));
                               }, 2000));
                             }
@@ -1498,6 +1541,7 @@ export function EscalatedCaseModal({
                             disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
                             setSofiaFirstReplyVisible(false);
+                            setSofiaAddressInjected(false);
                             setSecondCardReady(false);
                             setThirdCardReady(false);
                             setSofiaTyping(false);
@@ -1547,8 +1591,7 @@ export function EscalatedCaseModal({
                     : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
                   appendContent={
                     aiNextResponseBubble ??
-                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble) ??
-                    (showThinkingSecond ? thinkingBubble : secondAiResponseBubble)
+                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble)
                   }
                   scrollToBottomTrigger={superviseScrollTrigger}
                 />
@@ -1569,6 +1612,7 @@ export function EscalatedCaseModal({
               if (!v) {
                 setAiCommentApproved(null);
                 setSofiaFirstReplyVisible(false);
+                setSofiaAddressInjected(false);
                 setSecondCardReady(false);
                 setThirdCardReady(false);
                 setSofiaTyping(false);
