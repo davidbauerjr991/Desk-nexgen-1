@@ -388,6 +388,9 @@ export function EscalatedCaseModal({
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
   // Gate: only show the second AI card after Sofia has replied to the first approved message
   const [sofiaFirstReplyVisible, setSofiaFirstReplyVisible] = useState(false);
+  // Thinking placeholders — true while AI is "composing" the next response after customer replies
+  const [secondCardReady, setSecondCardReady] = useState(false);
+  const [thirdCardReady, setThirdCardReady] = useState(false);
   const [sofiaTyping, setSofiaTyping] = useState(false);
   // Temporary credit state — pre-checked and open by default
   const [creditChecked, setCreditChecked] = useState(true);
@@ -846,8 +849,11 @@ export function EscalatedCaseModal({
               };
 
               // Second AI response card (Sofia only) — shown after first is approved
-              const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && sofiaFirstReplyVisible && secondAiCommentApproved !== "approved";
-              const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && sofiaAddressInjected && thirdAiCommentApproved !== "approved";
+              const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && secondCardReady && secondAiCommentApproved !== "approved";
+              const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && thirdCardReady && thirdAiCommentApproved !== "approved";
+              // "Thinking" placeholders — shown between customer reply and AI card appearing
+              const showThinkingSecond = isSofia && showQuickActions && sofiaFirstReplyVisible && !secondCardReady && secondAiCommentApproved !== "approved";
+              const showThinkingThird = isSofia && showQuickActions && sofiaAddressInjected && !thirdCardReady && thirdAiCommentApproved !== "approved";
 
               // Third AI response card (Sofia only) — shown after second is approved and Sofia replies with address
               const thirdAiResponseBubble = showThirdCard ? (
@@ -1158,6 +1164,11 @@ export function EscalatedCaseModal({
                                     },
                                   ]);
                                   setSuperviseScrollTrigger((n) => n + 1);
+                                  // Show thinking placeholder then reveal third card
+                                  approveTimersRef.current.push(setTimeout(() => {
+                                    setThirdCardReady(true);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                  }, 2200));
                                 }, 2500));
                               }, 2500));
                             }
@@ -1190,6 +1201,33 @@ export function EscalatedCaseModal({
                   />
                 </div>
               ) : undefined;
+
+              // Thinking placeholders — shown while AI is composing after customer replies
+              const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
+              const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+              const thinkingBubble = (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-1 py-1">
+                      <span className="text-[12px] text-[#9CA3AF] italic">Composing response</span>
+                      <span className="flex gap-[3px] items-center ml-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:0ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:300ms]" />
+                      </span>
+                    </div>
+                  </div>
+                  <img
+                    src={caseData.botType === "Jacob" ? jacobAvatar : ariaAvatar}
+                    alt="AI avatar"
+                    className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
+                  />
+                </div>
+              );
 
               // First AI Next Response card — rendered inside the conversation scroll area via appendContent
               // Keep visible while dispute is still animating so the user can see the step progression
@@ -1396,9 +1434,14 @@ export function EscalatedCaseModal({
                                           sentiment: "frustrated" as const,
                                         },
                                       ]);
-                                      // Step 5: reveal second AI response card
+                                      // Step 5: show thinking placeholder, then reveal second AI response card
                                       setSofiaFirstReplyVisible(true);
                                       setSuperviseScrollTrigger((n) => n + 1);
+                                      const thinkTimer = setTimeout(() => {
+                                        setSecondCardReady(true);
+                                        setSuperviseScrollTrigger((n) => n + 1);
+                                      }, 2200);
+                                      disputeTimersRef.current.push(thinkTimer);
                                     }, 2500);
                                     disputeTimersRef.current.push(replyTimer);
                                   }, 2000);
@@ -1429,6 +1472,10 @@ export function EscalatedCaseModal({
                                   ]);
                                   setSofiaFirstReplyVisible(true);
                                   setSuperviseScrollTrigger((n) => n + 1);
+                                  approveTimersRef.current.push(setTimeout(() => {
+                                    setSecondCardReady(true);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                  }, 2200));
                                 }, 2500));
                               }, 2000));
                             }
@@ -1451,6 +1498,8 @@ export function EscalatedCaseModal({
                             disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
                             setSofiaFirstReplyVisible(false);
+                            setSecondCardReady(false);
+                            setThirdCardReady(false);
                             setSofiaTyping(false);
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
@@ -1496,7 +1545,11 @@ export function EscalatedCaseModal({
                   agentAvatarUrl={caseData.botType === "Jacob"
                     ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
                     : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
-                  appendContent={aiNextResponseBubble ?? thirdAiResponseBubble ?? secondAiResponseBubble}
+                  appendContent={
+                    aiNextResponseBubble ??
+                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble) ??
+                    (showThinkingSecond ? thinkingBubble : secondAiResponseBubble)
+                  }
                   scrollToBottomTrigger={superviseScrollTrigger}
                 />
               );
@@ -1516,6 +1569,8 @@ export function EscalatedCaseModal({
               if (!v) {
                 setAiCommentApproved(null);
                 setSofiaFirstReplyVisible(false);
+                setSecondCardReady(false);
+                setThirdCardReady(false);
                 setSofiaTyping(false);
                 setSuperviseScrollTrigger((n) => n + 1);
               }
