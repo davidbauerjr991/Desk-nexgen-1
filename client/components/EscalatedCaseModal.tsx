@@ -870,7 +870,7 @@ export function EscalatedCaseModal({
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Action Authorization</p>
                     </div>
                     {/* Summary */}
-                    <p className="text-[12px] text-[#344054] leading-relaxed bg-white rounded-lg border border-[#C8BFF0] px-3 py-2.5">
+                    <p className="text-[12px] text-[#344054] leading-relaxed px-1">
                       Sofia has confirmed her mailing address. Review the actions below to issue her temporary credit and a replacement card, then approve to proceed.
                     </p>
 
@@ -1280,7 +1280,7 @@ export function EscalatedCaseModal({
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Dispute Authorization</p>
                     </div>
                     {/* Summary context */}
-                    <p className="text-[12px] text-[#344054] leading-relaxed bg-white rounded-lg border border-[#C8BFF0] px-3 py-2.5">
+                    <p className="text-[12px] text-[#344054] leading-relaxed px-1">
                       Sofia is indicating she did not make these charges and would like to initiate a dispute. Please review the steps below and approve to proceed.
                     </p>
 
