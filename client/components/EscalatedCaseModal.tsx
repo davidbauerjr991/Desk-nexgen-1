@@ -385,20 +385,22 @@ export function EscalatedCaseModal({
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
-  // Temporary credit state
-  const [creditChecked, setCreditChecked] = useState(false);
+  // Temporary credit state — pre-checked and open by default
+  const [creditChecked, setCreditChecked] = useState(true);
+  const [creditExpanded, setCreditExpanded] = useState(true);
   const [creditAmount, setCreditAmount] = useState("2,159.00");
   const [creditConfirmed, setCreditConfirmed] = useState(false);
 
-  // Replacement card shipping speed
+  // Replacement card shipping speed — pre-checked, Standard pre-selected, open by default
   type ShippingSpeed = "3-5 days" | "overnight" | "one week";
   const SHIPPING_OPTIONS: { label: string; value: ShippingSpeed; badge: string }[] = [
     { label: "Standard (3–5 business days)", value: "3-5 days", badge: "Free" },
     { label: "Overnight delivery", value: "overnight", badge: "Expedited" },
     { label: "Economy (up to 1 week)", value: "one week", badge: "Economy" },
   ];
-  const [shippingChecked, setShippingChecked] = useState(false);
-  const [selectedShipping, setSelectedShipping] = useState<ShippingSpeed | null>(null);
+  const [shippingChecked, setShippingChecked] = useState(true);
+  const [shippingExpanded, setShippingExpanded] = useState(true);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingSpeed | null>("3-5 days");
   const [shippingConfirmed, setShippingConfirmed] = useState(false);
   // Dispute checkbox state (Sofia only)
   const DISPUTE_STEPS = [
@@ -779,10 +781,17 @@ export function EscalatedCaseModal({
                       <div className="flex items-center gap-3 px-3 py-2.5">
                         <button
                           type="button"
-                          onClick={() => { if (!creditConfirmed) setCreditChecked((v) => !v); }}
+                          disabled={creditConfirmed}
+                          onClick={() => {
+                            if (creditConfirmed) return;
+                            const next = !creditChecked;
+                            setCreditChecked(next);
+                            setCreditExpanded(next);
+                          }}
                           className={cn(
                             "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
                             creditChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                            creditConfirmed && "opacity-60 cursor-not-allowed",
                           )}
                         >
                           {creditChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -793,8 +802,17 @@ export function EscalatedCaseModal({
                         )}>
                           Issue Temporary Credit to Account
                         </span>
+                        {creditChecked && !creditConfirmed && (
+                          <button
+                            type="button"
+                            onClick={() => setCreditExpanded((v) => !v)}
+                            className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                          >
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", creditExpanded && "rotate-180")} />
+                          </button>
+                        )}
                       </div>
-                      {creditChecked && (
+                      {creditChecked && creditExpanded && (
                         <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2.5">
                           <p className="text-[12px] font-semibold text-[#111827]">Credit amount</p>
                           <div className={cn(
@@ -807,7 +825,6 @@ export function EscalatedCaseModal({
                               value={creditAmount}
                               readOnly={creditConfirmed}
                               onChange={(e) => {
-                                // Only allow numbers, commas, periods
                                 const val = e.target.value.replace(/[^0-9.,]/g, "");
                                 setCreditAmount(val);
                               }}
@@ -819,31 +836,7 @@ export function EscalatedCaseModal({
                           <p className="text-[10px] text-[#98A2B3] leading-relaxed">
                             Provisional credit will be applied immediately and held pending dispute resolution.
                           </p>
-                          {!creditConfirmed ? (
-                            <button
-                              type="button"
-                              disabled={!creditAmount.trim()}
-                              onClick={() => {
-                                setCreditConfirmed(true);
-                                setCreditChecked(true);
-                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "agent" as const,
-                                    content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`,
-                                    time: noteTime,
-                                    isInternal: true,
-                                  },
-                                ]);
-                                setSuperviseScrollTrigger((n) => n + 1);
-                              }}
-                              className="w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              Apply Credit
-                            </button>
-                          ) : (
+                          {creditConfirmed && (
                             <div className="flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
                               <Check className="h-3.5 w-3.5 text-[#208337]" />
                               <span className="text-[11px] font-semibold text-[#208337]">
@@ -860,10 +853,17 @@ export function EscalatedCaseModal({
                       <div className="flex items-center gap-3 px-3 py-2.5">
                         <button
                           type="button"
-                          onClick={() => setShippingChecked((v) => !v)}
+                          disabled={shippingConfirmed}
+                          onClick={() => {
+                            if (shippingConfirmed) return;
+                            const next = !shippingChecked;
+                            setShippingChecked(next);
+                            setShippingExpanded(next);
+                          }}
                           className={cn(
                             "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
                             shippingChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                            shippingConfirmed && "opacity-60 cursor-not-allowed",
                           )}
                         >
                           {shippingChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -874,8 +874,17 @@ export function EscalatedCaseModal({
                         )}>
                           Select Replacement Card Shipping Speed
                         </span>
+                        {shippingChecked && !shippingConfirmed && (
+                          <button
+                            type="button"
+                            onClick={() => setShippingExpanded((v) => !v)}
+                            className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                          >
+                            <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", shippingExpanded && "rotate-180")} />
+                          </button>
+                        )}
                       </div>
-                      {shippingChecked && (
+                      {shippingChecked && shippingExpanded && (
                         <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2">
                           <p className="text-[12px] font-semibold text-[#111827] mb-2">Shipping method</p>
                           {SHIPPING_OPTIONS.map((opt) => {
@@ -887,7 +896,6 @@ export function EscalatedCaseModal({
                                 onClick={() => {
                                   if (shippingConfirmed) return;
                                   setSelectedShipping(opt.value);
-                                  // Update the AI comment to reflect the selected delivery window
                                   const deliveryText =
                                     opt.value === "overnight"
                                       ? "overnight — you'll have it tomorrow"
@@ -900,9 +908,7 @@ export function EscalatedCaseModal({
                                 }}
                                 className={cn(
                                   "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors",
-                                  isSelected
-                                    ? "border-[#6E56CF] bg-[#F2F0FA]"
-                                    : "border-[#E4E7EC] bg-white hover:border-[#6E56CF] hover:bg-[#F9FAFB]",
+                                  isSelected ? "border-[#6E56CF] bg-[#F2F0FA]" : "border-[#E4E7EC] bg-white hover:border-[#6E56CF] hover:bg-[#F9FAFB]",
                                   shippingConfirmed && "opacity-60 cursor-default",
                                 )}
                               >
@@ -911,49 +917,19 @@ export function EscalatedCaseModal({
                                 </span>
                                 <span className={cn(
                                   "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                                  isSelected
-                                    ? "bg-[#6E56CF] border-[#6E56CF] text-white"
-                                    : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
+                                  isSelected ? "bg-[#6E56CF] border-[#6E56CF] text-white" : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
                                 )}>
                                   {opt.badge}
                                 </span>
                               </button>
                             );
                           })}
-                          {selectedShipping && !shippingConfirmed && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShippingConfirmed(true);
-                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "agent" as const,
-                                    content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`,
-                                    time: noteTime,
-                                    isInternal: true,
-                                  },
-                                ]);
-                                setSuperviseScrollTrigger((n) => n + 1);
-                              }}
-                              className="mt-1 w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors"
-                            >
-                              Confirm Shipping Speed
-                            </button>
-                          )}
                           {shippingConfirmed && (
                             <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
                               <Check className="h-3.5 w-3.5 text-[#208337]" />
                               <span className="text-[11px] font-semibold text-[#208337]">
                                 Shipping confirmed —{" "}
-                                {selectedShipping === "overnight"
-                                  ? "Overnight delivery"
-                                  : selectedShipping === "one week"
-                                  ? "Economy (up to 1 week)"
-                                  : "Standard 3–5 business days"}
+                                {selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy (up to 1 week)" : "Standard 3–5 business days"}
                               </span>
                             </div>
                           )}
@@ -975,6 +951,19 @@ export function EscalatedCaseModal({
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                             setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: thirdAiComment, time }]);
                             setSuperviseScrollTrigger((n) => n + 1);
+                            // Fire credit internal note if checked
+                            if (creditChecked && !creditConfirmed) {
+                              setCreditConfirmed(true);
+                              const creditNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                              setInjectedMessages((prev) => [...prev, { id: Date.now() + 1, role: "agent" as const, content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`, time: creditNote, isInternal: true }]);
+                            }
+                            // Fire shipping internal note if checked
+                            if (shippingChecked && !shippingConfirmed) {
+                              setShippingConfirmed(true);
+                              const shipNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                              const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
+                              setInjectedMessages((prev) => [...prev, { id: Date.now() + 2, role: "agent" as const, content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`, time: shipNote, isInternal: true }]);
+                            }
                             // Sofia's final reply — 2.5s later
                             approveTimersRef.current.push(setTimeout(() => {
                               const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -997,11 +986,13 @@ export function EscalatedCaseModal({
                         <button
                           type="button"
                           onClick={() => {
-                            // Reset shipping and credit state
-                            setShippingChecked(false);
-                            setSelectedShipping(null);
+                            // Reset shipping and credit back to pre-checked preview state
+                            setShippingChecked(true);
+                            setShippingExpanded(true);
+                            setSelectedShipping("3-5 days");
                             setShippingConfirmed(false);
-                            setCreditChecked(false);
+                            setCreditChecked(true);
+                            setCreditExpanded(true);
                             setCreditAmount("2,159.00");
                             setCreditConfirmed(false);
                             setThirdAiCommentRegenerating(true);
