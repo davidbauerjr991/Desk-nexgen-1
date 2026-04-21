@@ -391,6 +391,9 @@ export function EscalatedCaseModal({
   // Thinking placeholders — true while AI is "composing" the next response after customer replies
   const [secondCardReady, setSecondCardReady] = useState(false);
   const [thirdCardReady, setThirdCardReady] = useState(false);
+  // Third card two-phase split: actions approved → thinking → bot comment
+  const [thirdActionsApproved, setThirdActionsApproved] = useState(false);
+  const [thirdBotCommentReady, setThirdBotCommentReady] = useState(false);
   const [sofiaTyping, setSofiaTyping] = useState(false);
   // Temporary credit state — pre-checked and open by default
   const [creditChecked, setCreditChecked] = useState(true);
@@ -854,20 +857,19 @@ export function EscalatedCaseModal({
               // "Thinking" placeholder — shown after Sofia provides her address, before Issue Temp Credit card appears
               const showThinkingThird = isSofia && showQuickActions && sofiaAddressInjected && !thirdCardReady && aiCommentApproved === "approved" && thirdAiCommentApproved !== "approved";
 
-              // Third AI response card (Sofia only) — shown after second is approved and Sofia replies with address
-              const thirdAiResponseBubble = showThirdCard ? (
+              // ── Third card Phase 1: Action Authorization (credit + shipping) ────────
+              const showThinkingBetweenActions = isSofia && showQuickActions && thirdActionsApproved && !thirdBotCommentReady && thirdAiCommentApproved !== "approved";
+              const thirdActionAuthBubble = showThirdCard && !thirdActionsApproved ? (
                 <div className="px-4 py-3 flex items-start gap-2">
                   <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
                       <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Action Authorization</p>
                     </div>
-                    <textarea
-                      value={thirdAiComment}
-                      onChange={(e) => { setThirdAiComment(e.target.value); setThirdAiCommentApproved(null); }}
-                      rows={4}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
-                    />
+                    {/* Summary */}
+                    <p className="text-[12px] text-[#344054] leading-relaxed bg-white rounded-lg border border-[#C8BFF0] px-3 py-2.5">
+                      Sofia has confirmed her mailing address. Review the actions below to issue her temporary credit and a replacement card, then approve to proceed.
+                    </p>
 
                     {/* Temporary credit */}
                     <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
@@ -1030,6 +1032,74 @@ export function EscalatedCaseModal({
                       )}
                     </div>
 
+                    {/* Phase 1 Approve/Reject */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Fire internal notes for checked actions
+                          if (creditChecked && !creditConfirmed) {
+                            setCreditConfirmed(true);
+                            const creditNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            setInjectedMessages((prev) => [...prev, { id: Date.now() + 1, role: "agent" as const, content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`, time: creditNote, isInternal: true }]);
+                          }
+                          if (shippingChecked && !shippingConfirmed) {
+                            setShippingConfirmed(true);
+                            const shipNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
+                            setInjectedMessages((prev) => [...prev, { id: Date.now() + 2, role: "agent" as const, content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`, time: shipNote, isInternal: true }]);
+                          }
+                          setThirdActionsApproved(true);
+                          setSuperviseScrollTrigger((n) => n + 1);
+                          // Brief thinking pause then reveal bot comment card
+                          approveTimersRef.current.push(setTimeout(() => {
+                            setThirdBotCommentReady(true);
+                            setSuperviseScrollTrigger((n) => n + 1);
+                          }, 2200));
+                        }}
+                        className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Reset actions back to defaults
+                          setShippingChecked(true);
+                          setShippingExpanded(true);
+                          setSelectedShipping("3-5 days");
+                          setShippingConfirmed(false);
+                          setCreditChecked(true);
+                          setCreditExpanded(true);
+                          setCreditAmount("2,159.00");
+                          setCreditConfirmed(false);
+                          setThirdActionsApproved(false);
+                          setThirdBotCommentReady(false);
+                        }}
+                        className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                  <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+                </div>
+              ) : undefined;
+
+              // ── Third card Phase 2: Bot Comment (after actions approved) ─────────
+              const thirdBotCommentBubble = showThirdCard && thirdBotCommentReady && thirdAiCommentApproved !== "approved" ? (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                    </div>
+                    <textarea
+                      value={thirdAiComment}
+                      onChange={(e) => { setThirdAiComment(e.target.value); setThirdAiCommentApproved(null); }}
+                      rows={4}
+                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                    />
                     {thirdAiCommentRegenerating ? (
                       <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
                         <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
@@ -1044,35 +1114,18 @@ export function EscalatedCaseModal({
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                             setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: thirdAiComment, time }]);
                             setSuperviseScrollTrigger((n) => n + 1);
-                            // Fire credit internal note if checked
-                            if (creditChecked && !creditConfirmed) {
-                              setCreditConfirmed(true);
-                              const creditNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                              setInjectedMessages((prev) => [...prev, { id: Date.now() + 1, role: "agent" as const, content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`, time: creditNote, isInternal: true }]);
-                            }
-                            // Fire shipping internal note if checked
-                            if (shippingChecked && !shippingConfirmed) {
-                              setShippingConfirmed(true);
-                              const shipNote = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                              const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
-                              setInjectedMessages((prev) => [...prev, { id: Date.now() + 2, role: "agent" as const, content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`, time: shipNote, isInternal: true }]);
-                            }
-                            // Sofia's final reply — typing indicator then reply
+                            // Sofia's final reply — typing indicator then message
                             approveTimersRef.current.push(setTimeout(() => {
                               setSofiaTyping(true);
                               setSuperviseScrollTrigger((n) => n + 1);
                               approveTimersRef.current.push(setTimeout(() => {
                                 setSofiaTyping(false);
                                 const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "customer" as const,
-                                    content: "thank you. I'm sorry I got so upset. I was just really scared.",
-                                    time: sofiaTime,
-                                  },
-                                ]);
+                                setInjectedMessages((prev) => [...prev, {
+                                  id: Date.now(), role: "customer" as const,
+                                  content: "thank you. I'm sorry I got so upset. I was just really scared.",
+                                  time: sofiaTime,
+                                }]);
                                 setSuperviseScrollTrigger((n) => n + 1);
                               }, 2500));
                             }, 3000));
@@ -1084,18 +1137,9 @@ export function EscalatedCaseModal({
                         <button
                           type="button"
                           onClick={() => {
-                            // Reset shipping and credit back to pre-checked preview state
-                            setShippingChecked(true);
-                            setShippingExpanded(true);
-                            setSelectedShipping("3-5 days");
-                            setShippingConfirmed(false);
-                            setCreditChecked(true);
-                            setCreditExpanded(true);
-                            setCreditAmount("2,159.00");
-                            setCreditConfirmed(false);
                             setThirdAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setThirdAiComment("Sofia, I've escalated this case to our Priority Fraud Team. A dedicated specialist will contact you within the next 2 hours to confirm full resolution. In the meantime, your account has been secured and no further unauthorized transactions can occur. Is there anything else I can do for you right now?");
+                              setThirdAiComment("Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file. Is there anything else I can help you with?");
                               setThirdAiCommentApproved(null);
                               setThirdAiCommentRegenerating(false);
                             }, 1800));
@@ -1107,11 +1151,7 @@ export function EscalatedCaseModal({
                       </div>
                     )}
                   </div>
-                  <img
-                    src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                    alt="Jacob avatar"
-                    className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
-                  />
+                  <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
                 </div>
               ) : undefined;
 
@@ -1618,7 +1658,8 @@ export function EscalatedCaseModal({
                   appendContent={
                     sofiaDisputeAuthCard ??
                     sofiaBotCommentCard ??
-                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble) ??
+                    (showThinkingThird ? thinkingBubble : thirdActionAuthBubble) ??
+                    (showThinkingBetweenActions ? thinkingBubble : thirdBotCommentBubble) ??
                     aiNextResponseBubble
                   }
                   scrollToBottomTrigger={superviseScrollTrigger}
