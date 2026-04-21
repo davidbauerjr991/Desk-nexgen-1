@@ -3535,7 +3535,7 @@ export default function ControlCenterPage() {
       ...a,
       // Override assignedTo with the runtime value — "You" when actively in rail, null otherwise.
       assignedTo: isAssignedToMe ? CURRENT_AGENT_NAME : null,
-      status: bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
+      status: (bulkResolvedIds.has(a.id) || (pendingResolvedSnapshot?.has(a.id) ?? false)) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
       isClosed,
@@ -3646,6 +3646,15 @@ export default function ControlCenterPage() {
   const resolvedNormalised: RowData[] = filteredResolvedAssignments.map((r) => {
     const sa = staticAssignments.find((s) => s.id === r.id) ??
                staticAssignments.find((s) => s.customerRecordId === r.customerRecordId);
+    // If the static ID was queued for resolution (via pendingResolvedIds), override the
+    // status to "resolved" regardless of what was stored in resolvedAssignments. This
+    // prevents a stale closure bug where the auto-dismiss captures an old assignmentStatusesById
+    // and records "escalated" as the dismissedStatus even though the agent resolved it.
+    const staticId = r.staticId ?? sa?.id;
+    const isMarkedResolved =
+      (staticId && (bulkResolvedIds.has(staticId) || (pendingResolvedSnapshot?.has(staticId) ?? false))) ||
+      r.status === "resolved";
+    const effectiveStatus: QueueAssignmentStatus = isMarkedResolved ? "resolved" : r.status as QueueAssignmentStatus;
     return {
       id: r.id,
       name: r.name,
@@ -3657,7 +3666,7 @@ export default function ControlCenterPage() {
       agentType: (sa?.agentType ?? "virtual") as "virtual" | "human",
       channel: r.channel as Channel,
       priority: r.priority as Priority,
-      status: r.status,
+      status: effectiveStatus,
       preview: r.preview,
       waitTime: sa?.waitTime ?? "",
       aiOverview: sa?.aiOverview ?? { actions: [], whyNeeded: "", nextSteps: [] },
