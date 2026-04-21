@@ -7594,6 +7594,8 @@ export default function Layout({ children }: LayoutProps) {
 
   /**
    * Sets the status on ALL visible channels for a customer so status is case-owned.
+   * Also syncs the home-tab escalation banner: any status other than "escalated"
+   * removes the static assignment from escalatedOverrides via pendingResolvedIds.
    */
   const handleCaseStatusChange = (customerRecordId: string, status: QueueAssignmentStatus) => {
     const siblingIds = visibleAssignmentIds.filter(
@@ -7604,6 +7606,14 @@ export default function Layout({ children }: LayoutProps) {
       siblingIds.forEach((id) => { next[id] = status; });
       return next;
     });
+    // When a case is moved out of "escalated" state, remove it from the home-tab
+    // escalation banner by queuing its static ID into pendingResolvedIds.
+    if (status !== "escalated") {
+      const staticId = staticAssignments.find(
+        (a) => a.customerRecordId === customerRecordId,
+      )?.id;
+      if (staticId) pendingResolvedIds.add(staticId);
+    }
   };
 
   /**
