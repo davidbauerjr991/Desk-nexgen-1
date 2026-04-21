@@ -844,6 +844,9 @@ export function EscalatedCaseModal({
                     isCustomerTyping: false,
                   };
               const isSofia = caseData.customerRecordId === "sofia";
+              // Avatar URLs — declared early so all card JSX can reference them
+              const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
+              const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
               const allMessages = [...baseConversation.messages, ...injectedMessages];
               const conversation = {
                 ...baseConversation,
@@ -1241,9 +1244,7 @@ export function EscalatedCaseModal({
                 </div>
               ) : undefined;
 
-              // Thinking placeholders — shown while AI is composing after customer replies
-              const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
-              const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+              // Thinking placeholder — shown while AI is composing after customer replies
               const thinkingBubble = (
                 <div className="px-4 py-3 flex items-start gap-2">
                   <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3">
