@@ -412,9 +412,11 @@ export function EscalatedCaseModal({
   const [disputeChecked, setDisputeChecked] = useState(true); // pre-checked by default
   const [disputeExpanded, setDisputeExpanded] = useState(true); // preview open by default
   const [disputeRunning, setDisputeRunning] = useState(false); // only true after Approve
+  const [disputePaused, setDisputePaused] = useState(false);
   const [disputeStepIndex, setDisputeStepIndex] = useState(0);
   const [disputeComplete, setDisputeComplete] = useState(false);
   const disputeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const disputeStepIndexRef = useRef(0); // mirrors disputeStepIndex for use in closures
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
   const [lastApprovedMsgCount, setLastApprovedMsgCount] = useState<number | null>(null);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
@@ -1150,13 +1152,50 @@ export function EscalatedCaseModal({
                         {/* Steps panel — preview when not running, animated when running */}
                         {disputeChecked && disputeExpanded && (
                           <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
-                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
-                              {disputeRunning ? "Filing Dispute..." : "Steps that will run on Approve"}
-                            </p>
+                            <div className="flex items-center justify-between mb-2.5">
+                              <p className="text-[12px] font-semibold text-[#111827]">
+                                {disputeRunning
+                                  ? disputePaused ? "Dispute paused" : "Filing Dispute..."
+                                  : "Steps that will run on Approve"}
+                              </p>
+                              {/* Pause / Resume button — only shown while running and not complete */}
+                              {disputeRunning && !disputeComplete && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!disputePaused) {
+                                      // Pause: clear remaining timers
+                                      disputeTimersRef.current.forEach(clearTimeout);
+                                      disputeTimersRef.current = [];
+                                      setDisputePaused(true);
+                                    } else {
+                                      // Resume: restart from current step
+                                      setDisputePaused(false);
+                                      const runStep = (disputeTimersRef as any).runStep;
+                                      if (runStep) runStep(disputeStepIndexRef.current);
+                                    }
+                                  }}
+                                  className="flex items-center gap-1 text-[11px] font-semibold text-[#6E56CF] hover:text-[#5C46B8] transition-colors"
+                                >
+                                  {disputePaused ? (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                                      Resume
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                      Pause
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                             <div className="space-y-2.5">
                               {DISPUTE_STEPS.map((step, stepIdx) => {
                                 const isComplete = disputeRunning && stepIdx < disputeStepIndex;
-                                const isInProgress = disputeRunning && stepIdx === disputeStepIndex;
+                                const isInProgress = disputeRunning && !disputePaused && stepIdx === disputeStepIndex;
+                                const isPausedHere = disputeRunning && disputePaused && stepIdx === disputeStepIndex;
                                 return (
                                   <div key={stepIdx} className="flex items-center gap-2.5">
                                     <div className="shrink-0 h-6 w-6 flex items-center justify-center">
@@ -1166,6 +1205,10 @@ export function EscalatedCaseModal({
                                         </div>
                                       ) : isInProgress ? (
                                         <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                      ) : isPausedHere ? (
+                                        <div className="h-6 w-6 rounded-full border-2 border-[#FFB800] bg-[#FFF6E0] flex items-center justify-center">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="#A37A00"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                                        </div>
                                       ) : (
                                         <div className={cn(
                                           "h-6 w-6 rounded-full border-2 flex items-center justify-center",
@@ -1177,7 +1220,10 @@ export function EscalatedCaseModal({
                                     </div>
                                     <span className={cn(
                                       "text-[12px]",
-                                      isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : disputeRunning ? "text-[#9CA3AF]" : "text-[#344054]",
+                                      isComplete ? "text-[#6B7280] line-through"
+                                        : (isInProgress || isPausedHere) ? "text-[#111827] font-medium"
+                                        : disputeRunning ? "text-[#9CA3AF]"
+                                        : "text-[#344054]",
                                     )}>
                                       {step}
                                     </span>
@@ -1216,28 +1262,31 @@ export function EscalatedCaseModal({
                             // Kick off dispute animation if checked
                             if (isSofia && disputeChecked) {
                               setDisputeRunning(true);
+                              setDisputePaused(false);
+                              disputeStepIndexRef.current = 0;
                               disputeTimersRef.current.forEach(clearTimeout);
                               disputeTimersRef.current = [];
-                              DISPUTE_STEPS.forEach((_, i) => {
-                                const t = setTimeout(() => setDisputeStepIndex(i + 1), 800 + i * 1200);
-                                disputeTimersRef.current.push(t);
-                              });
-                              const done = setTimeout(() => {
-                                setDisputeComplete(true);
-                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "agent" as const,
-                                    content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`,
-                                    time: noteTime,
-                                    isInternal: true,
-                                  },
-                                ]);
-                                setSuperviseScrollTrigger((n) => n + 1);
-                              }, 800 + DISPUTE_STEPS.length * 1200);
-                              disputeTimersRef.current.push(done);
+                              const runStep = (fromStep: number) => {
+                                for (let i = fromStep; i < DISPUTE_STEPS.length; i++) {
+                                  const delay = (i - fromStep) * 1200 + 800;
+                                  const t = setTimeout(() => {
+                                    disputeStepIndexRef.current = i + 1;
+                                    setDisputeStepIndex(i + 1);
+                                  }, delay);
+                                  disputeTimersRef.current.push(t);
+                                }
+                                const doneDelay = (DISPUTE_STEPS.length - fromStep) * 1200 + 800;
+                                const done = setTimeout(() => {
+                                  setDisputeComplete(true);
+                                  const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                  setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
+                                  setSuperviseScrollTrigger((n) => n + 1);
+                                }, doneDelay);
+                                disputeTimersRef.current.push(done);
+                              };
+                              // Store runStep on ref so pause/resume can call it
+                              (disputeTimersRef as any).runStep = runStep;
+                              runStep(0);
                             }
                             // Sofia responds 2.5s later — less critical, still stressed
                             if (isSofia) {
@@ -1270,7 +1319,9 @@ export function EscalatedCaseModal({
                             setDisputeChecked(true);
                             setDisputeExpanded(true);
                             setDisputeRunning(false);
+                            setDisputePaused(false);
                             setDisputeStepIndex(0);
+                            disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
