@@ -386,6 +386,8 @@ export function EscalatedCaseModal({
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
+  // Gate: only show the second AI card after Sofia has replied to the first approved message
+  const [sofiaFirstReplyVisible, setSofiaFirstReplyVisible] = useState(false);
   // Temporary credit state — pre-checked and open by default
   const [creditChecked, setCreditChecked] = useState(true);
   const [creditExpanded, setCreditExpanded] = useState(true);
@@ -843,7 +845,7 @@ export function EscalatedCaseModal({
 
               // Second AI response card (Sofia only) — shown after first is approved
               const isSofia = caseData.customerRecordId === "sofia";
-              const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && secondAiCommentApproved !== "approved";
+              const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && sofiaFirstReplyVisible && secondAiCommentApproved !== "approved";
               const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && sofiaAddressInjected && thirdAiCommentApproved !== "approved";
 
               // Third AI response card (Sofia only) — shown after second is approved and Sofia replies with address
@@ -1386,6 +1388,8 @@ export function EscalatedCaseModal({
                                     sentiment: "frustrated" as const,
                                   },
                                 ]);
+                                // Now that Sofia has replied, reveal the second AI response card
+                                setSofiaFirstReplyVisible(true);
                                 setSuperviseScrollTrigger((n) => n + 1);
                               }, 2500));
                             }
@@ -1407,6 +1411,7 @@ export function EscalatedCaseModal({
                             setDisputeStepIndex(0);
                             disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
+                            setSofiaFirstReplyVisible(false);
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
                               setAiComment(isSofia
@@ -1470,6 +1475,7 @@ export function EscalatedCaseModal({
             onClick={() => setShowQuickActions((v) => {
               if (!v) {
                 setAiCommentApproved(null);
+                setSofiaFirstReplyVisible(false);
                 setSuperviseScrollTrigger((n) => n + 1);
               }
               return !v;
