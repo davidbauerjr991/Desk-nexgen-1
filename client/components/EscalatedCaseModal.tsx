@@ -388,6 +388,7 @@ export function EscalatedCaseModal({
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
   // Gate: only show the second AI card after Sofia has replied to the first approved message
   const [sofiaFirstReplyVisible, setSofiaFirstReplyVisible] = useState(false);
+  const [sofiaTyping, setSofiaTyping] = useState(false);
   // Temporary credit state — pre-checked and open by default
   const [creditChecked, setCreditChecked] = useState(true);
   const [creditExpanded, setCreditExpanded] = useState(true);
@@ -836,15 +837,15 @@ export function EscalatedCaseModal({
                     messages: [{ id: 1, role: "customer" as const, content: caseData.preview, time: caseData.waitTime || "now" }],
                     isCustomerTyping: false,
                   };
+              const isSofia = caseData.customerRecordId === "sofia";
               const allMessages = [...baseConversation.messages, ...injectedMessages];
               const conversation = {
                 ...baseConversation,
                 messages: injectedMessages.length > 0 ? allMessages : baseConversation.messages,
-                isCustomerTyping: jordanTyping,
+                isCustomerTyping: isSofia ? sofiaTyping : jordanTyping,
               };
 
               // Second AI response card (Sofia only) — shown after first is approved
-              const isSofia = caseData.customerRecordId === "sofia";
               const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && sofiaFirstReplyVisible && secondAiCommentApproved !== "approved";
               const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && sofiaAddressInjected && thirdAiCommentApproved !== "approved";
 
@@ -1345,7 +1346,7 @@ export function EscalatedCaseModal({
                             setLastApprovedMsgCount(allMessages.length + 1);
                             // Scroll down to reveal second response card (Sofia only)
                             if (isSofia) setSuperviseScrollTrigger((n) => n + 1);
-                            // Kick off dispute animation if checked
+                            // Kick off dispute animation if checked, then sequence Sofia's reply after it completes
                             if (isSofia && disputeChecked) {
                               setDisputeRunning(true);
                               setDisputePaused(false);
@@ -1367,31 +1368,59 @@ export function EscalatedCaseModal({
                                   const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                                   setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
                                   setSuperviseScrollTrigger((n) => n + 1);
+                                  // Step 3: brief pause then Sofia starts typing
+                                  const typingTimer = setTimeout(() => {
+                                    setSofiaTyping(true);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                    // Step 4: Sofia posts her reply
+                                    const replyTimer = setTimeout(() => {
+                                      setSofiaTyping(false);
+                                      const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                      setInjectedMessages((prev) => [
+                                        ...prev,
+                                        {
+                                          id: Date.now(),
+                                          role: "customer" as const,
+                                          content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
+                                          time: sofiaTme,
+                                          sentiment: "frustrated" as const,
+                                        },
+                                      ]);
+                                      // Step 5: reveal second AI response card
+                                      setSofiaFirstReplyVisible(true);
+                                      setSuperviseScrollTrigger((n) => n + 1);
+                                    }, 1800);
+                                    disputeTimersRef.current.push(replyTimer);
+                                  }, 800);
+                                  disputeTimersRef.current.push(typingTimer);
                                 }, doneDelay);
                                 disputeTimersRef.current.push(done);
                               };
                               // Store runStep on ref so pause/resume can call it
                               (disputeTimersRef as any).runStep = runStep;
                               runStep(0);
-                            }
-                            // Sofia responds 2.5s later — less critical, still stressed
-                            if (isSofia) {
+                            } else if (isSofia) {
+                              // No dispute animation — shorter delay then Sofia responds
                               approveTimersRef.current.push(setTimeout(() => {
-                                const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "customer" as const,
-                                    content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
-                                    time: sofiaTme,
-                                    sentiment: "frustrated" as const,
-                                  },
-                                ]);
-                                // Now that Sofia has replied, reveal the second AI response card
-                                setSofiaFirstReplyVisible(true);
+                                setSofiaTyping(true);
                                 setSuperviseScrollTrigger((n) => n + 1);
-                              }, 2500));
+                                approveTimersRef.current.push(setTimeout(() => {
+                                  setSofiaTyping(false);
+                                  const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                  setInjectedMessages((prev) => [
+                                    ...prev,
+                                    {
+                                      id: Date.now(),
+                                      role: "customer" as const,
+                                      content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
+                                      time: sofiaTme,
+                                      sentiment: "frustrated" as const,
+                                    },
+                                  ]);
+                                  setSofiaFirstReplyVisible(true);
+                                  setSuperviseScrollTrigger((n) => n + 1);
+                                }, 1800));
+                              }, 1500));
                             }
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
@@ -1412,6 +1441,7 @@ export function EscalatedCaseModal({
                             disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
                             setSofiaFirstReplyVisible(false);
+                            setSofiaTyping(false);
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
                               setAiComment(isSofia
@@ -1476,6 +1506,7 @@ export function EscalatedCaseModal({
               if (!v) {
                 setAiCommentApproved(null);
                 setSofiaFirstReplyVisible(false);
+                setSofiaTyping(false);
                 setSuperviseScrollTrigger((n) => n + 1);
               }
               return !v;
