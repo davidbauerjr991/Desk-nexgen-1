@@ -1228,24 +1228,23 @@ export function EscalatedCaseModal({
                 </div>
               );
 
-              // First AI Next Response card — rendered inside the conversation scroll area via appendContent
-              // Keep visible while dispute is still animating so the user can see the step progression
-              const aiNextResponseBubble = showQuickActions && (aiCommentApproved !== "approved" || (isSofia && disputeRunning && !disputeComplete)) ? (
+              // ── Sofia: Dispute Authorization Card ─────────────────────────────────
+              // Shows the summary + dispute steps. Agent approves to run the animation.
+              // Bot comment card appears separately after dispute completes.
+              const sofiaDisputeAuthCard = showQuickActions && isSofia && !disputeComplete ? (
                 <div className="px-4 py-3 flex items-start gap-2">
                   <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
                       <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Dispute Authorization</p>
                     </div>
-                    <textarea
-                      value={aiComment}
-                      onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
-                      rows={5}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
-                    />
+                    {/* Summary context */}
+                    <p className="text-[12px] text-[#344054] leading-relaxed bg-white rounded-lg border border-[#C8BFF0] px-3 py-2.5">
+                      Sofia is indicating she did not make these charges and would like to initiate a dispute. Please review the steps below and approve to proceed.
+                    </p>
 
-                    {/* Initiate Dispute checkbox — Sofia only, pre-checked */}
-                    {isSofia && (
+                    {/* Initiate Dispute checkbox — pre-checked */}
+                    {true && (
                       <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
                         <div className="flex items-center gap-3 px-3 py-2.5">
                           {/* Checkbox — uncheck to opt out */}
@@ -1376,25 +1375,15 @@ export function EscalatedCaseModal({
                       </div>
                     )}
 
-                    {aiCommentRegenerating ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
-                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
-                      </div>
-                    ) : aiCommentApproved === "approved" ? null : (
+                    {/* Approve / Reject — hidden while dispute is running */}
+                    {!disputeRunning && (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            setAiCommentApproved("approved");
-                            const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            const newMessage = { id: Date.now(), role: "agent" as const, content: aiComment, time };
-                            setInjectedMessages((prev) => [...prev, newMessage]);
-                            setLastApprovedMsgCount(allMessages.length + 1);
-                            // Scroll down to reveal second response card (Sofia only)
-                            if (isSofia) setSuperviseScrollTrigger((n) => n + 1);
-                            // Kick off dispute animation if checked, then sequence Sofia's reply after it completes
-                            if (isSofia && disputeChecked) {
+                            // Card 1 approve: only kick off the dispute animation, do NOT inject message yet
+                            setSuperviseScrollTrigger((n) => n + 1);
+                            if (disputeChecked) {
                               setDisputeRunning(true);
                               setDisputePaused(false);
                               disputeStepIndexRef.current = 0;
@@ -1415,112 +1404,14 @@ export function EscalatedCaseModal({
                                   const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                                   setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
                                   setSuperviseScrollTrigger((n) => n + 1);
-                                  // Step 3: longer pause so the agent can read the dispute note, then Sofia starts typing
-                                  const typingTimer = setTimeout(() => {
-                                    setSofiaTyping(true);
-                                    setSuperviseScrollTrigger((n) => n + 1);
-                                    // Step 4: Sofia posts her reply
-                                    const replyTimer = setTimeout(() => {
-                                      setSofiaTyping(false);
-                                      const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                      setInjectedMessages((prev) => [
-                                        ...prev,
-                                        {
-                                          id: Date.now(),
-                                          role: "customer" as const,
-                                          content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
-                                          time: sofiaTme,
-                                          sentiment: "frustrated" as const,
-                                        },
-                                      ]);
-                                      // Step 5: after first reply, Sofia proactively sends her mailing address
-                                      setSofiaFirstReplyVisible(true);
-                                      setSuperviseScrollTrigger((n) => n + 1);
-                                      const addressTypingTimer = setTimeout(() => {
-                                        setSofiaTyping(true);
-                                        setSuperviseScrollTrigger((n) => n + 1);
-                                        const addressReplyTimer = setTimeout(() => {
-                                          setSofiaTyping(false);
-                                          const addrTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                          setInjectedMessages((prev) => [
-                                            ...prev,
-                                            {
-                                              id: Date.now(),
-                                              role: "customer" as const,
-                                              content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
-                                              time: addrTime,
-                                              sentiment: "frustrated" as const,
-                                            },
-                                          ]);
-                                          setSofiaAddressInjected(true);
-                                          setSuperviseScrollTrigger((n) => n + 1);
-                                          // Step 6: thinking placeholder then reveal Issue Temp Credit / Replace Card
-                                          const thinkTimer = setTimeout(() => {
-                                            setThirdCardReady(true);
-                                            setSuperviseScrollTrigger((n) => n + 1);
-                                          }, 2200);
-                                          disputeTimersRef.current.push(thinkTimer);
-                                        }, 2000);
-                                        disputeTimersRef.current.push(addressReplyTimer);
-                                      }, 2000);
-                                      disputeTimersRef.current.push(addressTypingTimer);
-                                    }, 2500);
-                                    disputeTimersRef.current.push(replyTimer);
-                                  }, 2000);
-                                  disputeTimersRef.current.push(typingTimer);
                                 }, doneDelay);
                                 disputeTimersRef.current.push(done);
                               };
-                              // Store runStep on ref so pause/resume can call it
                               (disputeTimersRef as any).runStep = runStep;
                               runStep(0);
-                            } else if (isSofia) {
-                              // No dispute animation — delay then Sofia responds
-                              approveTimersRef.current.push(setTimeout(() => {
-                                setSofiaTyping(true);
-                                setSuperviseScrollTrigger((n) => n + 1);
-                                approveTimersRef.current.push(setTimeout(() => {
-                                  setSofiaTyping(false);
-                                  const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                  setInjectedMessages((prev) => [
-                                    ...prev,
-                                    {
-                                      id: Date.now(),
-                                      role: "customer" as const,
-                                      content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
-                                      time: sofiaTme,
-                                      sentiment: "frustrated" as const,
-                                    },
-                                  ]);
-                                  setSofiaFirstReplyVisible(true);
-                                  setSuperviseScrollTrigger((n) => n + 1);
-                                  // Sofia proactively sends her address, then Issue Temp Credit card loads
-                                  approveTimersRef.current.push(setTimeout(() => {
-                                    setSofiaTyping(true);
-                                    setSuperviseScrollTrigger((n) => n + 1);
-                                    approveTimersRef.current.push(setTimeout(() => {
-                                      setSofiaTyping(false);
-                                      const addrTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                      setInjectedMessages((prev) => [
-                                        ...prev,
-                                        {
-                                          id: Date.now(),
-                                          role: "customer" as const,
-                                          content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
-                                          time: addrTime,
-                                          sentiment: "frustrated" as const,
-                                        },
-                                      ]);
-                                      setSofiaAddressInjected(true);
-                                      setSuperviseScrollTrigger((n) => n + 1);
-                                      approveTimersRef.current.push(setTimeout(() => {
-                                        setThirdCardReady(true);
-                                        setSuperviseScrollTrigger((n) => n + 1);
-                                      }, 2200));
-                                    }, 2000));
-                                  }, 2000));
-                                }, 2500));
-                              }, 2000));
+                            } else {
+                              // No dispute — go straight to bot comment card
+                              setDisputeComplete(true);
                             }
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
@@ -1530,7 +1421,6 @@ export function EscalatedCaseModal({
                         <button
                           type="button"
                           onClick={() => {
-                            // Undo dispute actions — reset back to pre-checked preview
                             disputeTimersRef.current.forEach(clearTimeout);
                             disputeTimersRef.current = [];
                             setDisputeChecked(true);
@@ -1540,17 +1430,155 @@ export function EscalatedCaseModal({
                             setDisputeStepIndex(0);
                             disputeStepIndexRef.current = 0;
                             setDisputeComplete(false);
-                            setSofiaFirstReplyVisible(false);
-                            setSofiaAddressInjected(false);
-                            setSecondCardReady(false);
-                            setThirdCardReady(false);
-                            setSofiaTyping(false);
+                          }}
+                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <img
+                    src={jacobAvatar}
+                    alt="Jacob avatar"
+                    className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
+                  />
+                </div>
+              ) : undefined;
+
+              // ── Sofia: Bot Comment Card ──────────────────────────────────────────────
+              // Appears after dispute animation completes. Agent reviews/edits Jacob's message then approves.
+              // Approve injects the message and starts Sofia's reply sequence.
+              const sofiaBotCommentCard = showQuickActions && isSofia && disputeComplete && aiCommentApproved !== "approved" ? (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                    </div>
+                    <textarea
+                      value={aiComment}
+                      onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
+                      rows={5}
+                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                    />
+                    {aiCommentRegenerating ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            // Bot comment approved — inject Jacob's message then start Sofia reply sequence
+                            setAiCommentApproved("approved");
+                            const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }]);
+                            setLastApprovedMsgCount(allMessages.length + 1);
+                            setSuperviseScrollTrigger((n) => n + 1);
+                            // Start Sofia reply chain
+                            approveTimersRef.current.push(setTimeout(() => {
+                              setSofiaTyping(true);
+                              setSuperviseScrollTrigger((n) => n + 1);
+                              approveTimersRef.current.push(setTimeout(() => {
+                                setSofiaTyping(false);
+                                const sofiaTme = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [...prev, {
+                                  id: Date.now(), role: "customer" as const,
+                                  content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
+                                  time: sofiaTme, sentiment: "frustrated" as const,
+                                }]);
+                                setSofiaFirstReplyVisible(true);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                                // Sofia proactively provides her mailing address
+                                approveTimersRef.current.push(setTimeout(() => {
+                                  setSofiaTyping(true);
+                                  setSuperviseScrollTrigger((n) => n + 1);
+                                  approveTimersRef.current.push(setTimeout(() => {
+                                    setSofiaTyping(false);
+                                    const addrTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                    setInjectedMessages((prev) => [...prev, {
+                                      id: Date.now(), role: "customer" as const,
+                                      content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                                      time: addrTime, sentiment: "frustrated" as const,
+                                    }]);
+                                    setSofiaAddressInjected(true);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                    approveTimersRef.current.push(setTimeout(() => {
+                                      setThirdCardReady(true);
+                                      setSuperviseScrollTrigger((n) => n + 1);
+                                    }, 2200));
+                                  }, 2000));
+                                }, 2000));
+                              }, 2500));
+                            }, 2000));
+                          }}
+                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setAiComment(isSofia
-                                ? "Sofia, I understand this is incredibly stressful. Before proceeding, let me pull your complete transaction history from the past 30 days so we can confirm exactly which charges are unauthorized. I'll have the full details ready for you in just a moment."
-                                : "Hi Jordan, I want to make sure we handle this correctly. Before the factory reset, could you confirm your device serial number so I can locate your exact firmware version and prepare the right restoration package?"
-                              );
+                              setAiComment("I completely understand, Sofia, and I'm so sorry this has happened. I want to assure you we are taking this seriously. I'm initiating a dispute for both fraudulent transactions right now and will have a resolution specialist on this immediately.");
+                              setAiCommentApproved(null);
+                              setAiCommentRegenerating(false);
+                            }, 1800));
+                          }}
+                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+                </div>
+              ) : undefined;
+
+              // ── Jordan / non-Sofia: Regular editable card ─────────────────────────
+              const aiNextResponseBubble = showQuickActions && !isSofia && aiCommentApproved !== "approved" ? (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                    </div>
+                    <textarea
+                      value={aiComment}
+                      onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
+                      rows={5}
+                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                    />
+                    {aiCommentRegenerating ? (
+                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      </div>
+                    ) : aiCommentApproved === "approved" ? null : (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiCommentApproved("approved");
+                            const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }]);
+                            setLastApprovedMsgCount(allMessages.length + 1);
+                          }}
+                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiCommentRegenerating(true);
+                            approveTimersRef.current.push(setTimeout(() => {
+                              setAiComment("Hi Jordan, I want to make sure we handle this correctly. Before the factory reset, could you confirm your device serial number so I can locate your exact firmware version and prepare the right restoration package?");
                               setAiCommentApproved(null);
                               setAiCommentRegenerating(false);
                             }, 1800));
@@ -1563,9 +1591,7 @@ export function EscalatedCaseModal({
                     )}
                   </div>
                   <img
-                    src={caseData.botType === "Jacob"
-                      ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                      : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                    src={caseData.botType === "Jacob" ? jacobAvatar : ariaAvatar}
                     alt={`${caseData.botType ?? "AI"} avatar`}
                     className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
                   />
@@ -1590,8 +1616,10 @@ export function EscalatedCaseModal({
                     ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
                     : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
                   appendContent={
-                    aiNextResponseBubble ??
-                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble)
+                    sofiaDisputeAuthCard ??
+                    sofiaBotCommentCard ??
+                    (showThinkingThird ? thinkingBubble : thirdAiResponseBubble) ??
+                    aiNextResponseBubble
                   }
                   scrollToBottomTrigger={superviseScrollTrigger}
                 />
