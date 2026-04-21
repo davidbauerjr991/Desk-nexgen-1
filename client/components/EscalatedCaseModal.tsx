@@ -407,7 +407,9 @@ export function EscalatedCaseModal({
     "Issuing provisional credit to account",
     "Sending dispute confirmation to Sofia",
   ];
-  const [disputeChecked, setDisputeChecked] = useState(false);
+  const [disputeChecked, setDisputeChecked] = useState(true); // pre-checked by default
+  const [disputeExpanded, setDisputeExpanded] = useState(true); // preview open by default
+  const [disputeRunning, setDisputeRunning] = useState(false); // only true after Approve
   const [disputeStepIndex, setDisputeStepIndex] = useState(0);
   const [disputeComplete, setDisputeComplete] = useState(false);
   const disputeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -1088,27 +1090,24 @@ export function EscalatedCaseModal({
                       className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
                     />
 
-                    {/* Initiate Dispute checkbox — Sofia only */}
+                    {/* Initiate Dispute checkbox — Sofia only, pre-checked */}
                     {isSofia && (
                       <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
                         <div className="flex items-center gap-3 px-3 py-2.5">
+                          {/* Checkbox — uncheck to opt out */}
                           <button
                             type="button"
+                            disabled={disputeRunning || disputeComplete}
                             onClick={() => {
-                              if (disputeChecked) return;
-                              setDisputeChecked(true);
-                              disputeTimersRef.current.forEach(clearTimeout);
-                              disputeTimersRef.current = [];
-                              DISPUTE_STEPS.forEach((_, i) => {
-                                const t = setTimeout(() => setDisputeStepIndex(i + 1), 1200 + i * 1400);
-                                disputeTimersRef.current.push(t);
-                              });
-                              const done = setTimeout(() => setDisputeComplete(true), 1200 + DISPUTE_STEPS.length * 1400);
-                              disputeTimersRef.current.push(done);
+                              if (disputeRunning || disputeComplete) return;
+                              const next = !disputeChecked;
+                              setDisputeChecked(next);
+                              setDisputeExpanded(next);
                             }}
                             className={cn(
                               "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
                               disputeChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                              (disputeRunning || disputeComplete) && "opacity-60 cursor-not-allowed",
                             )}
                           >
                             {disputeChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -1119,14 +1118,27 @@ export function EscalatedCaseModal({
                           )}>
                             Initiate Dispute
                           </span>
+                          {/* Expand/collapse toggle — only when checked and not running */}
+                          {disputeChecked && !disputeRunning && !disputeComplete && (
+                            <button
+                              type="button"
+                              onClick={() => setDisputeExpanded((v) => !v)}
+                              className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                            >
+                              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", disputeExpanded && "rotate-180")} />
+                            </button>
+                          )}
                         </div>
-                        {disputeChecked && (
+                        {/* Steps panel — preview when not running, animated when running */}
+                        {disputeChecked && disputeExpanded && (
                           <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
-                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Filing Dispute...</p>
+                            <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">
+                              {disputeRunning ? "Filing Dispute..." : "Steps that will run on Approve"}
+                            </p>
                             <div className="space-y-2.5">
                               {DISPUTE_STEPS.map((step, stepIdx) => {
-                                const isComplete = stepIdx < disputeStepIndex;
-                                const isInProgress = stepIdx === disputeStepIndex;
+                                const isComplete = disputeRunning && stepIdx < disputeStepIndex;
+                                const isInProgress = disputeRunning && stepIdx === disputeStepIndex;
                                 return (
                                   <div key={stepIdx} className="flex items-center gap-2.5">
                                     <div className="shrink-0 h-6 w-6 flex items-center justify-center">
@@ -1137,12 +1149,17 @@ export function EscalatedCaseModal({
                                       ) : isInProgress ? (
                                         <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
                                       ) : (
-                                        <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                        <div className={cn(
+                                          "h-6 w-6 rounded-full border-2 flex items-center justify-center",
+                                          disputeRunning ? "border-[#E5E7EB]" : "border-[#C8BFF0]",
+                                        )}>
+                                          {!disputeRunning && <span className="text-[10px] font-semibold text-[#6E56CF]">{stepIdx + 1}</span>}
+                                        </div>
                                       )}
                                     </div>
                                     <span className={cn(
                                       "text-[12px]",
-                                      isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                                      isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : disputeRunning ? "text-[#9CA3AF]" : "text-[#344054]",
                                     )}>
                                       {step}
                                     </span>
@@ -1178,6 +1195,18 @@ export function EscalatedCaseModal({
                             setLastApprovedMsgCount(allMessages.length + 1);
                             // Scroll down to reveal second response card (Sofia only)
                             if (isSofia) setSuperviseScrollTrigger((n) => n + 1);
+                            // Kick off dispute animation if checked
+                            if (isSofia && disputeChecked) {
+                              setDisputeRunning(true);
+                              disputeTimersRef.current.forEach(clearTimeout);
+                              disputeTimersRef.current = [];
+                              DISPUTE_STEPS.forEach((_, i) => {
+                                const t = setTimeout(() => setDisputeStepIndex(i + 1), 800 + i * 1200);
+                                disputeTimersRef.current.push(t);
+                              });
+                              const done = setTimeout(() => setDisputeComplete(true), 800 + DISPUTE_STEPS.length * 1200);
+                              disputeTimersRef.current.push(done);
+                            }
                             // Sofia responds 2.5s later — less critical, still stressed
                             if (isSofia) {
                               approveTimersRef.current.push(setTimeout(() => {
@@ -1203,10 +1232,12 @@ export function EscalatedCaseModal({
                         <button
                           type="button"
                           onClick={() => {
-                            // Undo dispute actions
+                            // Undo dispute actions — reset back to pre-checked preview
                             disputeTimersRef.current.forEach(clearTimeout);
                             disputeTimersRef.current = [];
-                            setDisputeChecked(false);
+                            setDisputeChecked(true);
+                            setDisputeExpanded(true);
+                            setDisputeRunning(false);
                             setDisputeStepIndex(0);
                             setDisputeComplete(false);
                             setAiCommentRegenerating(true);
