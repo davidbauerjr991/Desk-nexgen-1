@@ -152,6 +152,8 @@ export interface LayoutContextValue {
   decrementEscalatedCount: () => void;
   /** Signal that Jordan's (Aria's) case has been resolved — triggers the second escalation (Sofia / Jacob). */
   onJordanCaseResolved: () => void;
+  /** Signal that Sofia's (Jacob's) case has been resolved — triggers the third escalation (Marcus / Emily). */
+  onSofiaCaseResolved: () => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────

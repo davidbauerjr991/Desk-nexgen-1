@@ -65,6 +65,12 @@ interface ConversationPanelProps {
   appendContent?: React.ReactNode;
   /** Increment this value to force a scroll-to-bottom (e.g. when appendContent is shown). */
   scrollToBottomTrigger?: number;
+  /** When true, hides the AI-generated "Suggested Next Steps" task list entirely. */
+  suppressAgentTasks?: boolean;
+  /** When set, overrides/injects a suggested reply into the AI suggestion panel (used for custom post-action responses). */
+  forcedSuggestedReply?: string | null;
+  /** When set, replaces the auto-generated suggestion carousel variants with these custom cards. */
+  forcedSuggestionVariants?: InlineSuggestion[] | null;
 }
 
 const conversationFooterMenuItems = [
@@ -98,7 +104,7 @@ function isScrolledToBottom(viewport: HTMLDivElement) {
   return viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 24;
 }
 
-type InlineSuggestion = {
+export type InlineSuggestion = {
   summary: string;
   suggestedReply: string;
 };
@@ -260,6 +266,9 @@ function matchCopilotInput(input: string): AgentTask | null {
 }
 
 function getSuggestedAgentTasks(conversation: SharedConversationData, latestCustomerMessage: ConversationMessage | null): AgentTask[] {
+  // Marcus Webb uses a custom resolve box — suppress generic tasks entirely
+  if (conversation.customerName === "Marcus Webb") return [];
+
   // Always use per-customer entry if available
   const entryEarly = latestCustomerMessage ? null : getCustomerAssignmentEntry(conversation.customerName);
   if (entryEarly) return entryEarly.suggestedActions;
@@ -1082,6 +1091,9 @@ export default function ConversationPanel({
   agentAvatarUrl,
   appendContent,
   scrollToBottomTrigger,
+  suppressAgentTasks = false,
+  forcedSuggestedReply,
+  forcedSuggestionVariants,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1168,9 +1180,9 @@ export default function ConversationPanel({
   // when deciding whether the latest turn was from the customer.
   const latestNonInternalMessage = [...conversation.messages].reverse().find((m) => !m.isInternal) ?? null;
   const latestMessageIsCustomer = latestNonInternalMessage?.role === "customer";
-  const suggestionVariants = latestCustomerMessage
-    ? getInlineSuggestionVariants(conversation, latestCustomerMessage)
-    : [];
+  const suggestionVariants = forcedSuggestionVariants && forcedSuggestionVariants.length > 0
+    ? forcedSuggestionVariants
+    : (latestCustomerMessage ? getInlineSuggestionVariants(conversation, latestCustomerMessage) : []);
   const generatedInlineSuggestion = latestCustomerMessage
     ? getSuggestionVariant(suggestionVariants, suggestionRefreshKey)
     : null;
@@ -1760,6 +1772,12 @@ export default function ConversationPanel({
     setIsSuggestionAdded(false);
     setSelectedSuggestionIndex(null);
   }, [postActionSuggestion]);
+
+  // When forcedSuggestedReply prop changes to a non-null value, inject it as the post-action suggestion.
+  useEffect(() => {
+    if (!forcedSuggestedReply) return;
+    setPostActionSuggestion(forcedSuggestedReply);
+  }, [forcedSuggestedReply]);
 
   const handleUseSuggestion = () => {
     if (!activeSuggestedReply || isSuggestionAdded) return;
@@ -2381,7 +2399,7 @@ export default function ConversationPanel({
                     </Accordion>
                   </div>
                 )}
-                {agentTasks.length > 0 && (
+                {agentTasks.length > 0 && !suppressAgentTasks && (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                     <div className="px-4 pt-3 pb-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>

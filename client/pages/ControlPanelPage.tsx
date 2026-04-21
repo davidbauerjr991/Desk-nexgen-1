@@ -2724,6 +2724,7 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
             isPendingAcceptance={false}
             onSelectChannel={() => {}}
             onConversationChange={() => {}}
+            suppressAgentTasks={caseData.customerRecordId === "marcus"}
           />
         </div>
       </div>
@@ -3305,7 +3306,7 @@ let escalationLocalFired = false;
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "assigned" | "queue">(() => persistedState.controlCenterTab as "monitor" | "assigned" | "queue");
@@ -3444,6 +3445,22 @@ export default function ControlCenterPage() {
     setTimeout(() => {
       persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-sofia"]);
       setEscalatedOverrides(new Set(persistedState.escalatedIds));
+    }, 8_000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkResolvedIds]);
+
+  // Third escalation — Marcus Webb / Emily shipping error.
+  // Fires 8 seconds after Sofia's case (static-sofia) is marked resolved.
+  const escalation3LocalFiredRef = useRef(false);
+  useEffect(() => {
+    if (!persistedState.resolvedIds.has("static-sofia")) return;
+    if (escalation3LocalFiredRef.current) return;
+    escalation3LocalFiredRef.current = true;
+    // Do NOT clear on unmount — same reasoning as the first escalation timer.
+    setTimeout(() => {
+      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-marcus"]);
+      setEscalatedOverrides(new Set(persistedState.escalatedIds));
+      onSofiaCaseResolved();
     }, 8_000);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkResolvedIds]);
@@ -3830,6 +3847,13 @@ export default function ControlCenterPage() {
                           <img
                             src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
                             alt="Jacob avatar"
+                            className="h-9 w-9 shrink-0 rounded-full object-cover"
+                          />
+                        )}
+                        {row.botType === "Emily" && (
+                          <img
+                            src="/emily-avatar.jpg"
+                            alt="Emily avatar"
                             className="h-9 w-9 shrink-0 rounded-full object-cover"
                           />
                         )}
@@ -4665,6 +4689,10 @@ export default function ControlCenterPage() {
           caseData={escalatedModalCase}
           onTakeover={(conversation, localStatus, localPriority) => {
             const a = escalatedModalCase as any;
+            // For Marcus's case, pre-populate the reply draft when the agent takes over
+            const takeoverConversation = a.customerRecordId === "marcus"
+              ? { ...conversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
+              : conversation;
             const data: AcceptIssueData = {
               id: a.id,
               name: a.name,
@@ -4675,7 +4703,7 @@ export default function ControlCenterPage() {
               preview: a.preview,
               status: localStatus as QueueAssignmentStatus,
               waitTime: a.waitTime,
-              initialConversation: conversation,
+              initialConversation: takeoverConversation,
               onCreated: (assignmentId) => {
                 acceptedStaticsStore.set(a.id, assignmentId);
                 forceUpdate((v) => v + 1);
@@ -4713,6 +4741,8 @@ export default function ControlCenterPage() {
             decrementEscalatedCount();
             // If this is Jordan's case, trigger the second escalation (Sofia / Jacob)
             if ((escalatedModalCase as any).customerRecordId === "jordan") onJordanCaseResolved();
+            // If this is Sofia's case, trigger the third escalation (Marcus / Emily)
+            if ((escalatedModalCase as any).customerRecordId === "sofia") onSofiaCaseResolved();
             // Mark as resolved (overrides escalated status) — keeps case visible in list as resolved
             setBulkResolvedIds((prev) => {
               const next = new Set([...prev, resolvedId]);

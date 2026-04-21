@@ -364,6 +364,12 @@ export function EscalatedCaseModal({
   const [approveContext, setApproveContext] = useState(false);
   const [showResolvedMessage, setShowResolvedMessage] = useState(false);
   const [jordanTyping, setJordanTyping] = useState(false);
+
+  // Avatar URLs — component-level so all JSX (both columns) can reference them
+  const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
+  const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+  const emilyAvatar = "/emily-avatar.jpg";
+  const botAvatar = caseData.botType === "Jacob" ? jacobAvatar : caseData.botType === "Emily" ? emilyAvatar : ariaAvatar;
   const [localStatus, setLocalStatus] = useState(caseData.status);
   const [localPriority, setLocalPriority] = useState(caseData.priority);
   const approveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -549,9 +555,7 @@ export function EscalatedCaseModal({
                 <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <img
-                      src={caseData.botType === "Jacob"
-                        ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                        : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                      src={botAvatar}
                       alt={`${caseData.botType} avatar`}
                       className="h-9 w-9 rounded-full object-cover shrink-0"
                     />
@@ -597,6 +601,25 @@ export function EscalatedCaseModal({
                       </div>
                     </div>
                   ) : !approveContext && !showQuickActions ? (
+                    caseData.customerRecordId === "marcus" ? (
+                      // Marcus/Emily card — "Take Over" triggers the same action as the footer Takeover button
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+                          const base = caseData.customerRecordId
+                            ? createConversationState(caseData.customerRecordId, channel)
+                            : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
+                          const fullConversation = injectedMessages.length > 0
+                            ? { ...base, messages: [...base.messages, ...injectedMessages] }
+                            : base;
+                          onTakeover(fullConversation, localStatus, localPriority);
+                        }}
+                        className="mt-3 w-full rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5D45B8] transition-colors"
+                      >
+                        Take Over
+                      </button>
+                    ) : (
                     <button
                       type="button"
                       onClick={() => {
@@ -645,6 +668,7 @@ export function EscalatedCaseModal({
                     >
                       Approve
                     </button>
+                    )
                   ) : !showQuickActions ? (
                     <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-1.5">
                       <Check className="h-3 w-3 text-[#208337]" />
@@ -844,9 +868,6 @@ export function EscalatedCaseModal({
                     isCustomerTyping: false,
                   };
               const isSofia = caseData.customerRecordId === "sofia";
-              // Avatar URLs — declared early so all card JSX can reference them
-              const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
-              const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
               const allMessages = [...baseConversation.messages, ...injectedMessages];
               const conversation = {
                 ...baseConversation,
@@ -1262,7 +1283,7 @@ export function EscalatedCaseModal({
                     </div>
                   </div>
                   <img
-                    src={caseData.botType === "Jacob" ? jacobAvatar : ariaAvatar}
+                    src={botAvatar}
                     alt="AI avatar"
                     className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
                   />
@@ -1632,7 +1653,7 @@ export function EscalatedCaseModal({
                     )}
                   </div>
                   <img
-                    src={caseData.botType === "Jacob" ? jacobAvatar : ariaAvatar}
+                    src={botAvatar}
                     alt={`${caseData.botType ?? "AI"} avatar`}
                     className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
                   />
@@ -1653,9 +1674,7 @@ export function EscalatedCaseModal({
                   isPendingAcceptance={false}
                   onSelectChannel={() => {}}
                   onConversationChange={() => {}}
-                  agentAvatarUrl={caseData.botType === "Jacob"
-                    ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                    : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                  agentAvatarUrl={botAvatar}
                   appendContent={
                     sofiaDisputeAuthCard ??
                     sofiaBotCommentCard ??

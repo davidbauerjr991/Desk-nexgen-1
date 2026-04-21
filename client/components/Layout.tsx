@@ -83,7 +83,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import CopilotPopunder, { CopilotContent, type CopilotDragActivation } from "@/components/CopilotPopunder";
-import ConversationPanel, { type ConversationStatus, type SharedConversationData } from "@/components/ConversationPanel";
+import ConversationPanel, { type ConversationStatus, type InlineSuggestion, type SharedConversationData } from "@/components/ConversationPanel";
 import DeskDataTable from "@/components/DeskDataTable";
 import DirectoryPanel from "@/components/DirectoryPanel";
 import AddPanelContent from "@/components/AddPanelContent";
@@ -120,6 +120,8 @@ let pendingTransferRecipient: string | null = null;
 let escalationFired = false;
 // Prevents the Sofia Martinez (Jacob) escalation from re-firing after Jordan's case resolves.
 let escalation2Fired = false;
+// Prevents the Marcus Webb (Emily) escalation from re-firing after Sofia's case resolves.
+let escalation3Fired = false;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -2424,6 +2426,7 @@ function DockedConversationPanel({
 
   // Sofia resolve-supervisor next step
   const isSofia = customerRecordId === "sofia";
+  const isMarcus = customerRecordId === "marcus";
   const RESOLVE_SUPERVISOR_STEPS = [
     "Updating case status to resolved",
     "Assigning to supervisor queue",
@@ -2518,6 +2521,241 @@ function DockedConversationPanel({
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
+  // Marcus resolve-with-options next step
+  const MARCUS_RESOLVE_STEPS = [
+    "Confirming resolution with carrier",
+    "Applying goodwill discount code (20% off)",
+    "Updating default shipping address to Austin",
+    "Sending confirmation to Marcus",
+  ];
+  // selectedOption = what the radio shows; resolveOption = locked in when Perform Task is clicked
+  const [marcusSelectedOption, setMarcusSelectedOption] = useState<1 | 2 | 3 | null>(null);
+  const [marcusResolveOption, setMarcusResolveOption] = useState<1 | 2 | 3 | null>(null);
+  const [marcusGoodwillChecked, setMarcusGoodwillChecked] = useState(false);
+  const [marcusResolveStepIndex, setMarcusResolveStepIndex] = useState(0);
+  const [marcusResolveComplete, setMarcusResolveComplete] = useState(false);
+  const [marcusResolveDismissed, setMarcusResolveDismissed] = useState(false);
+  const [marcusForcedReply, setMarcusForcedReply] = useState<string | null>(null);
+  const [marcusForcedVariants, setMarcusForcedVariants] = useState<InlineSuggestion[] | null>(null);
+  const marcusResolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function handleMarcusPerformTask() {
+    if (marcusSelectedOption === null || marcusResolveOption !== null) return;
+    const chosenOption = marcusSelectedOption;
+    setMarcusResolveOption(chosenOption);
+    // Keep the case open — do NOT resolve status or remove from rail
+    marcusResolveTimersRef.current.forEach(clearTimeout);
+    marcusResolveTimersRef.current = [];
+    MARCUS_RESOLVE_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setMarcusResolveStepIndex(i + 1), 1000 + i * 1200);
+      marcusResolveTimersRef.current.push(t);
+    });
+    const done = setTimeout(() => {
+      setMarcusResolveComplete(true);
+      // Inject an internal note into the conversation documenting the action taken
+      const optionLabels: Record<1 | 2 | 3, string> = {
+        1: "Overnight reship to 2847 Ridgewood Ave, Austin, TX arranged",
+        2: "Full refund issued — Marcus free to reorder at his convenience",
+        3: "Carrier intercept requested to redirect Denver package to Austin address",
+      };
+      const goodwillNote = marcusGoodwillChecked ? " Goodwill discount code CARE20 (20%) applied to account." : "";
+      const noteContent = `[Internal Note] Resolution actioned for order #WB-88214: ${optionLabels[chosenOption]}.${goodwillNote}`;
+      const dateStr = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      onConversationChange({
+        ...conversation,
+        messages: [
+          ...conversation.messages,
+          {
+            id: Date.now(),
+            role: "agent" as const,
+            content: noteContent,
+            time: dateStr,
+            isInternal: true,
+          },
+        ],
+      });
+      // Update the Suggested Responses carousel with option-specific reply variants for the agent to send
+      const goodwillLine = marcusGoodwillChecked ? " I've also applied a 20% discount code (CARE20) to your account as a goodwill gesture." : "";
+      const variantsByOption: Record<1 | 2 | 3, { summary: string; suggestedReply: string }[]> = {
+        1: [
+          {
+            summary: "Confirm the overnight reship to the correct Austin address and set delivery expectation.",
+            suggestedReply: `Great news, Marcus — I've arranged an overnight reship of order #WB-88214 to your Austin address at 2847 Ridgewood Ave. You should receive it by tomorrow.${goodwillLine}`,
+          },
+          {
+            summary: "Acknowledge the shipping error, confirm the reship, and reassure the customer.",
+            suggestedReply: `I'm sorry for the mix-up on the address, Marcus. I've gone ahead and set up an overnight reship to 2847 Ridgewood Ave, Austin — you'll have it by tomorrow.${goodwillLine}`,
+          },
+          {
+            summary: "Lead with the resolution and confirm the corrected delivery timeline.",
+            suggestedReply: `Your replacement shipment is on its way to the right address, Marcus. I've arranged overnight delivery to 2847 Ridgewood Ave, Austin, so you should have it by tomorrow.${goodwillLine}`,
+          },
+        ],
+        2: [
+          {
+            summary: "Confirm the full refund has been processed and give the expected timeline.",
+            suggestedReply: `Marcus, I've processed a full refund for order #WB-88214. You should see it back in your account within 3–5 business days.${goodwillLine}`,
+          },
+          {
+            summary: "Apologise for the inconvenience, confirm the refund, and offer to help reorder.",
+            suggestedReply: `I'm sorry for the trouble with this order, Marcus. I've issued a full refund for #WB-88214 — it will appear within 3–5 business days. Feel free to reorder whenever you're ready.${goodwillLine}`,
+          },
+          {
+            summary: "Lead with the refund confirmation and set clear expectations on timing.",
+            suggestedReply: `Your full refund for order #WB-88214 has been issued, Marcus. Expect it to hit your account within 3–5 business days.${goodwillLine}`,
+          },
+        ],
+        3: [
+          {
+            summary: "Confirm the carrier intercept request has been submitted and set timeline expectations.",
+            suggestedReply: `I've submitted a carrier intercept request to redirect your package to 2847 Ridgewood Ave, Austin. These typically take 24–48 hours to confirm — I'll keep you updated as soon as I hear back.`,
+          },
+          {
+            summary: "Reassure the customer the intercept is in motion and commit to a follow-up.",
+            suggestedReply: `Good news — I've initiated a carrier intercept to redirect your order to the correct Austin address. It usually takes 24–48 hours to confirm, and I'll follow up the moment I have an update.`,
+          },
+          {
+            summary: "Acknowledge the error, confirm the intercept action, and set realistic expectations.",
+            suggestedReply: `I'm on it, Marcus. I've contacted the carrier to intercept the package and redirect it to 2847 Ridgewood Ave, Austin. I'll reach out within 24–48 hours to confirm the outcome.`,
+          },
+        ],
+      };
+      const chosenVariants = variantsByOption[chosenOption];
+      setMarcusForcedReply(chosenVariants[0].suggestedReply);
+      setMarcusForcedVariants(chosenVariants);
+      // Close the suggested next step box after a brief pause so the agent sees the success state
+      setTimeout(() => setMarcusResolveDismissed(true), 1200);
+    }, 1000 + MARCUS_RESOLVE_STEPS.length * 1200);
+    marcusResolveTimersRef.current.push(done);
+  }
+
+  const marcusOptionLabels: Record<1 | 2 | 3, string> = {
+    1: "Reship overnight to Austin address (2847 Ridgewood Ave)",
+    2: "Issue full refund — let Marcus reorder at his convenience",
+    3: "Attempt carrier intercept to redirect Denver package",
+  };
+
+  const marcusResolveBox = isMarcus && !marcusResolveDismissed ? (
+    <div className="px-4 py-3">
+      <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
+        <div className="px-4 pt-3 pb-2">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
+        </div>
+        <div className="px-3 pb-3 flex flex-col gap-2">
+          {([1, 2, 3] as const).map((option) => (
+            <div key={option} className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+              <div className="flex items-center gap-3 px-3 py-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (marcusResolveOption !== null) return;
+                    setMarcusSelectedOption(option);
+                  }}
+                  className={cn(
+                    "shrink-0 h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-colors",
+                    marcusSelectedOption === option
+                      ? "border-[#6E56CF] bg-[#6E56CF]"
+                      : marcusResolveOption !== null
+                        ? "border-[#E5E7EB] bg-white opacity-40 cursor-not-allowed"
+                        : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                  )}
+                >
+                  {marcusSelectedOption === option && <div className="h-2 w-2 rounded-full bg-white" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <span className={cn(
+                    "block text-[12px] font-semibold text-[#344054]",
+                    marcusResolveOption !== null && marcusResolveOption !== option && "opacity-40",
+                  )}>
+                    Option {option}
+                  </span>
+                  <span className={cn(
+                    "block text-[13px] leading-5 text-[#111827] transition-colors",
+                    marcusResolveComplete && marcusResolveOption === option && "line-through text-[#9CA3AF]",
+                    marcusResolveOption !== null && marcusResolveOption !== option && "opacity-40",
+                  )}>
+                    {marcusOptionLabels[option]}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Goodwill gesture — independently checkable */}
+          <button
+            type="button"
+            onClick={() => { if (marcusResolveOption === null) setMarcusGoodwillChecked((v) => !v); }}
+            className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-2.5 flex items-start gap-2 text-left w-full"
+          >
+            <div className="shrink-0 mt-0.5">
+              <div className={cn(
+                "h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                marcusGoodwillChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white",
+              )}>
+                {marcusGoodwillChecked && <Check className="h-2.5 w-2.5 text-white" />}
+              </div>
+            </div>
+            <div>
+              <span className="block text-[11px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Goodwill Gesture</span>
+              <span className="text-[13px] leading-5 text-[#344054]">Apply 20% discount code on next order (CARE20) — apologize for the address caching error</span>
+            </div>
+          </button>
+
+          {/* Perform Task button — visible once an option is selected, hidden once task is running */}
+          {marcusSelectedOption !== null && marcusResolveOption === null && (
+            <button
+              type="button"
+              onClick={handleMarcusPerformTask}
+              className="w-full rounded-xl bg-[#6E56CF] hover:bg-[#5D45B8] active:bg-[#4E3AA0] text-white text-[13px] font-semibold py-2.5 px-4 transition-colors"
+            >
+              Perform Task
+            </button>
+          )}
+
+          {/* Progress steps — only visible after Perform Task is clicked */}
+          {marcusResolveOption !== null && (
+            <div className="rounded-xl border border-black/[0.05] bg-white px-3 pb-3 pt-2.5">
+              <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Resolving...</p>
+              <div className="space-y-2.5">
+                {MARCUS_RESOLVE_STEPS.map((step, idx) => {
+                  const isComplete = idx < marcusResolveStepIndex;
+                  const isInProgress = idx === marcusResolveStepIndex;
+                  return (
+                    <div key={idx} className="flex items-center gap-2.5">
+                      <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                        {isComplete ? (
+                          <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                            <Check className="h-3.5 w-3.5 text-white" />
+                          </div>
+                        ) : isInProgress ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                        ) : (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[12px]",
+                        isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                      )}>
+                        {step}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {marcusResolveComplete && (
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-[#208337]" />
+                  <span className="text-[11px] font-semibold text-[#208337]">Action complete — internal note added to case</span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2751,7 +2989,10 @@ function DockedConversationPanel({
                     onAcceptAssignment={onAcceptAssignment}
                     isWidePanel={isWidePanel}
                     onAgentTasksChange={setHasAgentTasks}
-                    appendContent={sofiaResolveBox}
+                    suppressAgentTasks={isMarcus}
+                    appendContent={sofiaResolveBox ?? marcusResolveBox}
+                    forcedSuggestedReply={isMarcus ? marcusForcedReply : null}
+                    forcedSuggestionVariants={isMarcus ? marcusForcedVariants : null}
                   />
                 )}
               </div>
@@ -3082,6 +3323,9 @@ function DockedConversationPanel({
                           onAcceptAssignment={onAcceptAssignment}
                           isWidePanel={false}
                           onAgentTasksChange={setHasAgentTasks}
+                          suppressAgentTasks={isMarcus}
+                          forcedSuggestedReply={isMarcus ? marcusForcedReply : null}
+                          forcedSuggestionVariants={isMarcus ? marcusForcedVariants : null}
                         />
                       )
                     ) : summaryTab === "history" ? (
@@ -5835,6 +6079,13 @@ function IncomingAssignmentCard({
               className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
             />
           )}
+          {(item.label ?? "Service Bot") === "Emily" && (
+            <img
+              src="/emily-avatar.jpg"
+              alt="Emily avatar"
+              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+            />
+          )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
@@ -5892,13 +6143,21 @@ function IncomingAssignmentCard({
             {customerContext && (
               <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
                 <div className="mb-1.5 flex items-center gap-2">
-                  <img
-                    src={item.label === "Jacob"
-                      ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                      : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
-                    alt={`${item.label ?? "Aria"} avatar`}
-                    className="h-5 w-5 rounded-full object-cover shrink-0"
-                  />
+                  {item.label === "Emily" ? (
+                    <img
+                      src="/emily-avatar.jpg"
+                      alt="Emily avatar"
+                      className="h-5 w-5 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <img
+                      src={item.label === "Jacob"
+                        ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                        : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                      alt={`${item.label ?? "Aria"} avatar`}
+                      className="h-5 w-5 rounded-full object-cover shrink-0"
+                    />
+                  )}
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">{item.label ?? "Aria"}</p>
                 </div>
                 <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
@@ -6859,6 +7118,8 @@ export default function Layout({ children }: LayoutProps) {
     if (escalationFired) return; // already queued or fired — do not repeat
     escalationFired = true;
     const timer = setTimeout(() => {
+      // Don't show toast if the case has already been taken over (already in the active rail)
+      if (visibleAssignmentIdsRef.current.includes("static-11")) return;
       setIncomingNotifications((prev) => {
         if (prev.some((n) => n.id === "escalation-static-11")) return prev; // already in list
         return [
@@ -6898,6 +7159,8 @@ export default function Layout({ children }: LayoutProps) {
     if (escalation2Fired) return;
     escalation2Fired = true;
     const timer = setTimeout(() => {
+      // Don't show toast if the case has already been taken over (already in the active rail)
+      if (visibleAssignmentIdsRef.current.includes("static-sofia")) return;
       setIncomingNotifications((prev) => {
         if (prev.some((n) => n.id === "escalation-static-sofia")) return prev;
         return [
@@ -6928,6 +7191,50 @@ export default function Layout({ children }: LayoutProps) {
     }, 8_000);
     return () => clearTimeout(timer);
   }, [isJordanResolved]);
+
+  // Third escalation — Marcus Webb / Emily shipping error.
+  // Fires 8 seconds after Sofia's case is marked resolved.
+  const [isSofiaResolved, setIsSofiaResolved] = useState(false);
+  useEffect(() => {
+    if (!isSofiaResolved) return;
+    if (escalation3Fired) return;
+    escalation3Fired = true;
+    const timer = setTimeout(() => {
+      // Don't show toast if the case has already been taken over (already in the active rail)
+      if (visibleAssignmentIdsRef.current.includes("static-marcus")) return;
+      // Also suppress if a notification for this customer is already being dismissed
+      // (e.g. agent took over via ControlPanel path before this timer fired)
+      if (visibleAssignmentIdsRef.current.some((id) => id.includes("marcus"))) return;
+      setIncomingNotifications((prev) => {
+        if (prev.some((n) => n.id === "escalation-static-marcus")) return prev;
+        return [
+          ...prev,
+          {
+            id: "escalation-static-marcus",
+            customerRecordId: "marcus",
+            channel: "chat" as const,
+            initials: "MW",
+            name: "Marcus Webb",
+            customerId: "CST-13317",
+            label: "Emily",
+            lastUpdated: "6m",
+            time: "6m",
+            preview: "Order shipped to wrong address - request for Human Agent",
+            statusLabel: "Escalated",
+            priority: "Critical",
+            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+            badgeColor: "#E32926",
+            icon: MessageCircle,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+      });
+      setEscalatedRailCount((n) => n + 1);
+    }, 8_000);
+    return () => clearTimeout(timer);
+  }, [isSofiaResolved]);
 
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
@@ -7626,6 +7933,7 @@ export default function Layout({ children }: LayoutProps) {
     // Remove escalation alert from home tab for known escalated cases
     if (customerRecordId === "sofia") pendingResolvedIds.add("static-sofia");
     if (customerRecordId === "jordan") pendingResolvedIds.add("static-11");
+    if (customerRecordId === "marcus") pendingResolvedIds.add("static-marcus");
     handleRemoveGroupedAssignments(siblingIds, transferRecipient);
   };
 
@@ -8583,9 +8891,13 @@ export default function Layout({ children }: LayoutProps) {
     // fade-in animation fires cleanly (double navigation via /control-panel breaks it).
     const customerRecordId = sa?.customerRecordId ?? item.customerRecordId;
     const channel = (item.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-    const initialConversation = customerRecordId
+    const baseConversation = customerRecordId
       ? createConversationState(customerRecordId, channel)
       : undefined;
+    // For Marcus's case, pre-populate the reply draft when the agent takes over
+    const initialConversation = customerRecordId === "marcus" && baseConversation
+      ? { ...baseConversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
+      : baseConversation;
 
     acceptIssue({
       id: sa?.id ?? item.id,
@@ -9266,6 +9578,7 @@ export default function Layout({ children }: LayoutProps) {
       clearPendingTakeoverCaseId,
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       onJordanCaseResolved: () => setIsJordanResolved(true),
+      onSofiaCaseResolved: () => setIsSofiaResolved(true),
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -10401,6 +10714,10 @@ export default function Layout({ children }: LayoutProps) {
             // Remove from ControlPanelPage queue on next render — use static ID so the filter matches
             pendingQueueRejections.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedToastModal(null);
+            // For Marcus's case, pre-populate the reply draft when the agent takes over
+            const takeoverConversation = escalatedToastModal.customerRecordId === "marcus"
+              ? { ...conversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
+              : conversation;
             // Call acceptIssue directly — ONE navigation to /activity for a clean fade-in
             acceptIssue({
               id: escalatedToastModal.id,
@@ -10412,7 +10729,7 @@ export default function Layout({ children }: LayoutProps) {
               preview: escalatedToastModal.preview,
               status: localStatus as QueueAssignmentStatus,
               waitTime: escalatedToastModal.waitTime,
-              initialConversation: conversation,
+              initialConversation: takeoverConversation,
               onCreated: sa
                 ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
                 : undefined,

@@ -24,7 +24,8 @@ export type CaseType =
   | "Subscription Upgrade"
   | "Scheduling"
   | "General Inquiry"
-  | "IT Support";
+  | "IT Support"
+  | "Order Issue";
 
 export interface StaticAssignment {
   id: string;
@@ -383,6 +384,39 @@ export const staticAssignments: StaticAssignment[] = [
         "Review the available pricing options under the current framework",
         "Clarify contract terms and address any questions Derek has",
         "Secure a signed renewal before the contract lapses",
+      ],
+    },
+    assignedTo: null,
+  },
+  {
+    id: "static-marcus",
+    name: "Marcus Webb",
+    customerId: "CST-13317",
+    customerRecordId: "marcus",
+    company: "E-Commerce",
+    botType: "Emily",
+    caseType: "Order Issue",
+    agentType: "virtual",
+    channel: "chat",
+    priority: "Critical",
+    status: "pending",
+    preview: "Order shipped to wrong address - request for Human Agent",
+    waitTime: "6m",
+    customerContext: "Marcus and I have been speaking about order #WB-88214 — a Charcoal Merino Sweater ($129) that was shipped to his old address in Denver instead of his current address in Austin. He needs the item before the weekend and has requested to speak to a human.",
+    aiOverview: {
+      actions: [
+        "Pulled order #WB-88214 and confirmed shipment to 419 Elm St, Denver, CO 80203 — Marcus's previous address, not his current Austin address.",
+        "Verified Marcus updated his address in profile 14 months ago; shipping label used a cached address that did not propagate before the cutoff window.",
+        "Reviewed 14 lifetime orders — zero prior complaints or return requests. Long-standing loyal customer.",
+        "Presented Marcus with three preliminary resolution paths and escalated for agent authorization given shipment is already in transit.",
+      ],
+      whyNeeded:
+        "Marcus's order was shipped to the wrong address due to a system-side caching error. The package is already in transit and Marcus needs the item before the weekend. Resolving this requires human authorization to issue an overnight reship, process a refund, or attempt a carrier intercept — all of which exceed automated authorization limits.",
+      nextSteps: [
+        "Choose resolution: Option 1 — reship overnight to Austin address; Option 2 — refund and let Marcus reorder; Option 3 — attempt carrier intercept to redirect the Denver package",
+        "Apply a goodwill gesture (20% discount code) for the inconvenience caused by our address caching error",
+        "Update Marcus's default shipping address to ensure the Austin address is set as primary going forward",
+        "Confirm resolution choice with Marcus and provide tracking or refund confirmation",
       ],
     },
     assignedTo: null,
