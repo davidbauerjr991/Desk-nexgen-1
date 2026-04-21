@@ -734,7 +734,7 @@ export function EscalatedCaseModal({
                   onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Attempted Resolution</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Case Overview</p>
                   <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
                 </button>
                 <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>

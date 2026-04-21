@@ -2887,7 +2887,7 @@ function DockedConversationPanel({
                           className="flex w-full items-center justify-between px-4 py-3 text-left"
                         >
                           <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
-                            Attempted Resolution
+                            Case Overview
                           </p>
                           <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
                         </button>
@@ -3223,7 +3223,7 @@ function DockedConversationPanel({
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
                         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
-                          Attempted Resolution
+                          Case Overview
                         </p>
                         <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
                       </button>
@@ -5910,7 +5910,7 @@ function IncomingAssignmentCard({
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left"
               >
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
-                  Attempted Resolution
+                  Case Overview
                 </p>
                 <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
               </button>
