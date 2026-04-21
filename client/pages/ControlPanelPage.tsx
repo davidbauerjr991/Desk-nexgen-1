@@ -3375,6 +3375,29 @@ export default function ControlCenterPage() {
       return next;
     });
   }
+
+  // Poll for resolved IDs added while this page is already mounted (e.g. agent resolves
+  // a case from the active conversation without navigating away from Home).
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pendingResolvedIds.size === 0) return;
+      const snapshot = new Set(pendingResolvedIds);
+      pendingResolvedIds.clear();
+      setBulkResolvedIds((prev) => {
+        const next = new Set([...prev, ...snapshot]);
+        persistedState.resolvedIds = next;
+        return next;
+      });
+      setEscalatedOverrides((prev) => {
+        const next = new Set(prev);
+        snapshot.forEach((id) => next.delete(id));
+        persistedState.escalatedIds = next;
+        return next;
+      });
+    }, 300);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
