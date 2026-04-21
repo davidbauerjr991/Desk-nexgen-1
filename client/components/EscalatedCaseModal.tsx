@@ -826,6 +826,18 @@ export function EscalatedCaseModal({
                               onClick={() => {
                                 setCreditConfirmed(true);
                                 setCreditChecked(true);
+                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    role: "agent" as const,
+                                    content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`,
+                                    time: noteTime,
+                                    isInternal: true,
+                                  },
+                                ]);
+                                setSuperviseScrollTrigger((n) => n + 1);
                               }}
                               className="w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             >
@@ -911,7 +923,22 @@ export function EscalatedCaseModal({
                           {selectedShipping && !shippingConfirmed && (
                             <button
                               type="button"
-                              onClick={() => setShippingConfirmed(true)}
+                              onClick={() => {
+                                setShippingConfirmed(true);
+                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
+                                setInjectedMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    role: "agent" as const,
+                                    content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`,
+                                    time: noteTime,
+                                    isInternal: true,
+                                  },
+                                ]);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                              }}
                               className="mt-1 w-full rounded-lg bg-[#0B9A8A] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#087A6E] transition-colors"
                             >
                               Confirm Shipping Speed
@@ -1204,7 +1231,21 @@ export function EscalatedCaseModal({
                                 const t = setTimeout(() => setDisputeStepIndex(i + 1), 800 + i * 1200);
                                 disputeTimersRef.current.push(t);
                               });
-                              const done = setTimeout(() => setDisputeComplete(true), 800 + DISPUTE_STEPS.length * 1200);
+                              const done = setTimeout(() => {
+                                setDisputeComplete(true);
+                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    role: "agent" as const,
+                                    content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`,
+                                    time: noteTime,
+                                    isInternal: true,
+                                  },
+                                ]);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                              }, 800 + DISPUTE_STEPS.length * 1200);
                               disputeTimersRef.current.push(done);
                             }
                             // Sofia responds 2.5s later — less critical, still stressed
