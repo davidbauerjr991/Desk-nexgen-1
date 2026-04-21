@@ -850,9 +850,9 @@ export function EscalatedCaseModal({
 
               // Second AI response card (Sofia only) — shown after first is approved
               const showSecondCard = isSofia && showQuickActions && aiCommentApproved === "approved" && secondCardReady && secondAiCommentApproved !== "approved";
-              const showThirdCard = isSofia && showQuickActions && secondAiCommentApproved === "approved" && thirdCardReady && thirdAiCommentApproved !== "approved";
+              const showThirdCard = isSofia && showQuickActions && thirdCardReady && thirdAiCommentApproved !== "approved";
               // "Thinking" placeholder — shown after Sofia provides her address, before Issue Temp Credit card appears
-              const showThinkingThird = isSofia && showQuickActions && sofiaAddressInjected && !thirdCardReady && thirdAiCommentApproved !== "approved";
+              const showThinkingThird = isSofia && showQuickActions && sofiaAddressInjected && !thirdCardReady && aiCommentApproved === "approved" && thirdAiCommentApproved !== "approved";
 
               // Third AI response card (Sofia only) — shown after second is approved and Sofia replies with address
               const thirdAiResponseBubble = showThirdCard ? (
