@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ConversationPanel, { type ConversationMessage } from "@/components/ConversationPanel";
-import { createConversationState } from "@/lib/customer-database";
+import { createConversationState, getCustomerRecord } from "@/lib/customer-database";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -358,6 +358,7 @@ export function EscalatedCaseModal({
   const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [superviseScrollTrigger, setSuperviseScrollTrigger] = useState(0);
   const [approveContext, setApproveContext] = useState(false);
@@ -643,6 +644,88 @@ export function EscalatedCaseModal({
                   ) : null}
                 </div>
               )}
+
+              {/* Customer Profile Card */}
+              {(() => {
+                const rec = caseData.customerRecordId ? getCustomerRecord(caseData.customerRecordId) : null;
+                if (!rec) return null;
+                const initials = caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
+                const profile = rec.profile;
+                return (
+                  <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomerProfileOpen((v) => !v)}
+                      className="flex w-full items-center justify-between px-4 py-3 text-left"
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Profile</p>
+                      <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCustomerProfileOpen && "rotate-180")} />
+                    </button>
+                    <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                      <div className="overflow-hidden">
+                        <div className="px-4 pb-4 space-y-3">
+                          {/* Identity */}
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8]">
+                                {initials}
+                              </div>
+                              <div>
+                                <p className="text-[13px] font-semibold text-[#111827] leading-tight">{caseData.name}</p>
+                                <p className="text-[11px] text-[#667085] leading-snug">{profile.department} · {profile.tenureYears} yr{profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                              <p className="text-[13px] font-semibold text-[#111827]">{profile.totalAUM}</p>
+                            </div>
+                          </div>
+                          {/* Stats */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                              <p className="mb-1 text-[10px] text-[#667085]">Fraud Risk Score</p>
+                              <p className={cn("text-[15px] font-bold leading-none mb-1.5", profile.fraudRiskScore >= 70 ? "text-[#E32926]" : profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                                {profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                              </p>
+                              <div className="h-1.5 rounded-full bg-[#E4E7EC] overflow-hidden">
+                                <div
+                                  className={cn("h-full rounded-full", profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                  style={{ width: `${profile.fraudRiskScore}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                              <p className="mb-1 text-[10px] text-[#667085]">Prior Disputes</p>
+                              <p className="text-[15px] font-bold leading-none text-[#111827]">{profile.priorDisputeCount === 0 ? "None" : profile.priorDisputeCount}</p>
+                              <p className={cn("mt-1 text-[10px]", profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085]")}>
+                                Card: {profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                              </p>
+                            </div>
+                          </div>
+                          {/* Tags */}
+                          {profile.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {profile.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                                    tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border-[#C8BFF0]" :
+                                    tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border-[#24943E]" :
+                                    "bg-[#F4F3FF] text-[#5925DC] border-[#D9D6FE]",
+                                  )}
+                                >
+                                  {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Attempted Resolution accordion */}
               <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
