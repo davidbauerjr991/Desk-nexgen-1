@@ -2449,6 +2449,9 @@ function DockedConversationPanel({
                 onClick={() => {
                   if (resolveChecked) return;
                   setResolveChecked(true);
+                  // Immediately update status badge to "resolved" and clear home tab escalation alert
+                  onAssignmentStatusChange?.("resolved");
+                  pendingResolvedIds.add("static-sofia");
                   resolveTimersRef.current.forEach(clearTimeout);
                   resolveTimersRef.current = [];
                   RESOLVE_SUPERVISOR_STEPS.forEach((_, i) => {
