@@ -1096,7 +1096,8 @@ export function EscalatedCaseModal({
               ) : undefined;
 
               // First AI Next Response card — rendered inside the conversation scroll area via appendContent
-              const aiNextResponseBubble = showQuickActions && aiCommentApproved !== "approved" ? (
+              // Keep visible while dispute is still animating so the user can see the step progression
+              const aiNextResponseBubble = showQuickActions && (aiCommentApproved !== "approved" || (isSofia && disputeRunning && !disputeComplete)) ? (
                 <div className="px-4 py-3 flex items-start gap-2">
                   <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
@@ -1247,7 +1248,7 @@ export function EscalatedCaseModal({
                         <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
                         <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
                       </div>
-                    ) : (
+                    ) : aiCommentApproved === "approved" ? null : (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
