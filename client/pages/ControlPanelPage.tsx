@@ -3744,7 +3744,12 @@ export default function ControlCenterPage() {
     open: baseRows.filter((a) => a.status === "open").length + filteredResolvedAssignments.filter((r) => r.status === "open").length,
     pending: baseRows.filter((a) => a.status === "pending").length + filteredResolvedAssignments.filter((r) => r.status === "pending").length,
     resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.filter((r) => r.status === "resolved").length,
-    escalated: baseRows.filter((a) => a.status === "escalated").length + filteredResolvedAssignments.filter((r) => r.status === "escalated").length,
+    // Uses resolvedNormalised (effectiveStatus) rather than filteredResolvedAssignments (raw r.status)
+    // so the count stays in sync with the escalated banner, which also reads resolvedNormalised.
+    // Without this, a stale-closure bug causes dismissed cases to be stored with r.status="escalated"
+    // even after the status was programmatically set to "resolved" before dismissal, making the
+    // count show 1 while the banner correctly shows 0.
+    escalated: baseRows.filter((a) => a.status === "escalated").length + resolvedNormalised.filter((r) => r.status === "escalated").length,
   };
   const totalTasks = tabCounts.open + tabCounts.pending + tabCounts.resolved + tabCounts.escalated;
 
@@ -4045,7 +4050,7 @@ export default function ControlCenterPage() {
         // 3. Resolved/dismissed cases still attributed to this agent (shown in queue via resolvedNormalised)
         //    but NOT transferred to someone else.
         const staticAssigned = staticNormalised.filter(
-          (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id),
+          (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id) && !rejectedIds.has(r.id),
         );
         const liveAssigned = liveNormalised.filter(
           (r) => r.isAccepted && !r.isParkedFromToast,
@@ -4687,7 +4692,19 @@ export default function ControlCenterPage() {
             setEscalatedModalCase(null);
           }}
           onTransfer={() => {
-            rejectIssue(escalatedModalCase.id); // remove from queue
+            const id = escalatedModalCase.id;
+            // Remove from queue / Assigned tab
+            rejectIssue(id);
+            // De-escalate — remove from overrides so it no longer shows in the escalated banner
+            if (escalatedOverrides.has(id)) {
+              setEscalatedOverrides((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                persistedState.escalatedIds = next;
+                return next;
+              });
+              decrementEscalatedCount();
+            }
             setEscalatedModalCase(null);
           }}
           onResolve={() => {
