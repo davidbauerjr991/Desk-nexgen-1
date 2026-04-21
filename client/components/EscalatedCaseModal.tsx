@@ -1052,20 +1052,25 @@ export function EscalatedCaseModal({
                               const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
                               setInjectedMessages((prev) => [...prev, { id: Date.now() + 2, role: "agent" as const, content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`, time: shipNote, isInternal: true }]);
                             }
-                            // Sofia's final reply — 2.5s later
+                            // Sofia's final reply — typing indicator then reply
                             approveTimersRef.current.push(setTimeout(() => {
-                              const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                              setInjectedMessages((prev) => [
-                                ...prev,
-                                {
-                                  id: Date.now(),
-                                  role: "customer" as const,
-                                  content: "thank you. I'm sorry I got so upset. I was just really scared.",
-                                  time: sofiaTime,
-                                },
-                              ]);
+                              setSofiaTyping(true);
                               setSuperviseScrollTrigger((n) => n + 1);
-                            }, 2500));
+                              approveTimersRef.current.push(setTimeout(() => {
+                                setSofiaTyping(false);
+                                const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [
+                                  ...prev,
+                                  {
+                                    id: Date.now(),
+                                    role: "customer" as const,
+                                    content: "thank you. I'm sorry I got so upset. I was just really scared.",
+                                    time: sofiaTime,
+                                  },
+                                ]);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                              }, 2500));
+                            }, 3000));
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
                         >
@@ -1133,22 +1138,27 @@ export function EscalatedCaseModal({
                             const newMessage = { id: Date.now(), role: "agent" as const, content: secondAiComment, time };
                             setInjectedMessages((prev) => [...prev, newMessage]);
                             setSuperviseScrollTrigger((n) => n + 1);
-                            // Sofia replies with her mailing address 2.5s later
+                            // Sofia replies with her mailing address — typing indicator then reply
                             if (!sofiaAddressInjected) {
                               setSofiaAddressInjected(true);
                               approveTimersRef.current.push(setTimeout(() => {
-                                const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                setInjectedMessages((prev) => [
-                                  ...prev,
-                                  {
-                                    id: Date.now(),
-                                    role: "customer" as const,
-                                    content: "Of course. It's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
-                                    time: sofiaTime,
-                                    sentiment: "frustrated" as const,
-                                  },
-                                ]);
+                                setSofiaTyping(true);
                                 setSuperviseScrollTrigger((n) => n + 1);
+                                approveTimersRef.current.push(setTimeout(() => {
+                                  setSofiaTyping(false);
+                                  const sofiaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                  setInjectedMessages((prev) => [
+                                    ...prev,
+                                    {
+                                      id: Date.now(),
+                                      role: "customer" as const,
+                                      content: "Of course. It's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                                      time: sofiaTime,
+                                      sentiment: "frustrated" as const,
+                                    },
+                                  ]);
+                                  setSuperviseScrollTrigger((n) => n + 1);
+                                }, 2500));
                               }, 2500));
                             }
                           }}
@@ -1368,7 +1378,7 @@ export function EscalatedCaseModal({
                                   const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
                                   setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
                                   setSuperviseScrollTrigger((n) => n + 1);
-                                  // Step 3: brief pause then Sofia starts typing
+                                  // Step 3: longer pause so the agent can read the dispute note, then Sofia starts typing
                                   const typingTimer = setTimeout(() => {
                                     setSofiaTyping(true);
                                     setSuperviseScrollTrigger((n) => n + 1);
@@ -1389,9 +1399,9 @@ export function EscalatedCaseModal({
                                       // Step 5: reveal second AI response card
                                       setSofiaFirstReplyVisible(true);
                                       setSuperviseScrollTrigger((n) => n + 1);
-                                    }, 1800);
+                                    }, 2500);
                                     disputeTimersRef.current.push(replyTimer);
-                                  }, 800);
+                                  }, 2000);
                                   disputeTimersRef.current.push(typingTimer);
                                 }, doneDelay);
                                 disputeTimersRef.current.push(done);
@@ -1400,7 +1410,7 @@ export function EscalatedCaseModal({
                               (disputeTimersRef as any).runStep = runStep;
                               runStep(0);
                             } else if (isSofia) {
-                              // No dispute animation — shorter delay then Sofia responds
+                              // No dispute animation — delay then Sofia responds
                               approveTimersRef.current.push(setTimeout(() => {
                                 setSofiaTyping(true);
                                 setSuperviseScrollTrigger((n) => n + 1);
@@ -1419,8 +1429,8 @@ export function EscalatedCaseModal({
                                   ]);
                                   setSofiaFirstReplyVisible(true);
                                   setSuperviseScrollTrigger((n) => n + 1);
-                                }, 1800));
-                              }, 1500));
+                                }, 2500));
+                              }, 2000));
                             }
                           }}
                           className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
