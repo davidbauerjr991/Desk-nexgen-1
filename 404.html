@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting…</title>
+    <script>
+      // GitHub Pages serves this 404.html for any unknown path.
+      // We encode the intended path into the query string so index.html
+      // can restore it via history.replaceState before React Router boots.
+      var l = window.location;
+      l.replace(
+        l.protocol + "//" + l.hostname + (l.port ? ":" + l.port : "") +
+        l.pathname.split("/").slice(0, 2).join("/") + // keep /Desk-nexgen-1
+        "/?p=" + encodeURIComponent(l.pathname.slice(l.pathname.indexOf("/", 1)) + l.search) +
+        (l.hash ? "&h=" + encodeURIComponent(l.hash) : "")
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
