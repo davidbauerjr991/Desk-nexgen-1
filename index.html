@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hello world project</title>
+    <script>
+      // Restore path encoded by 404.html (GitHub Pages deep-link redirect).
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var p = params.get("p");
+        if (p) {
+          var h = params.get("h") || "";
+          params.delete("p");
+          params.delete("h");
+          var qs = params.toString();
+          window.history.replaceState(
+            null, null,
+            p + (qs ? "?" + qs : "") + h
+          );
+        }
+      })();
+    </script>
   </head>
 
   <body>
