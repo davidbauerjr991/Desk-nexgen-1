@@ -56,7 +56,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner position="bottom-right" />
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           {/* Default → login */}
           <Route path="/"      element={<Navigate to="/login" replace />} />
