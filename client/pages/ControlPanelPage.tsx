@@ -28,6 +28,7 @@ import { getCustomerRecord, createConversationState } from "@/lib/customer-datab
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
+import { getEscalationStart } from "@/lib/escalation-timers";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import DeskDataTable from "@/components/DeskDataTable";
@@ -43,6 +44,26 @@ const DESK_PAGE_TABS: Array<{ id: DeskPageTab; label: string }> = [
   { id: "accounts",        label: "Accounts"        },
   { id: "contact-history", label: "Contact History" },
 ];
+
+// ─── Escalation live timer ────────────────────────────────────────────────────
+function EscalationTimer({ customerId }: { customerId?: string }) {
+  const startRef = useRef(customerId ? getEscalationStart(customerId) : Date.now());
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - startRef.current) / 1000));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+  const chip = elapsed >= 60
+    ? "border-[#E32926] text-[#E32926]"
+    : elapsed >= 30
+    ? "border-[#FFB800] text-[#FFB800]"
+    : "border-[#98A2B3] text-[#98A2B3]";
+  return <span className={`rounded border bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${chip}`}>{mm}:{ss}</span>;
+}
 
 // ─── Lookups ──────────────────────────────────────────────────────────────────
 
@@ -3860,10 +3881,10 @@ export default function ControlCenterPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[13px] font-semibold text-[#1D2939]">{row.botType}</span>
-                            <span className="text-[11px] text-[#98A2B3]">{row.waitTime}</span>
                             <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-                              {row.priority}
+                              Escalated
                             </span>
+                            <EscalationTimer customerId={row.customerRecordId} />
                           </div>
                           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{row.preview}</p>
                         </div>

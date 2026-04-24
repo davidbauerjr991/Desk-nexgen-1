@@ -71,6 +71,8 @@ interface ConversationPanelProps {
   forcedSuggestedReply?: string | null;
   /** When set, replaces the auto-generated suggestion carousel variants with these custom cards. */
   forcedSuggestionVariants?: InlineSuggestion[] | null;
+  /** Extra padding (px) added to the top of the scroll area — used to clear floating tab bars. */
+  scrollTopPadding?: number;
 }
 
 const conversationFooterMenuItems = [
@@ -1094,6 +1096,7 @@ export default function ConversationPanel({
   suppressAgentTasks = false,
   forcedSuggestedReply,
   forcedSuggestionVariants,
+  scrollTopPadding = 0,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1900,9 +1903,9 @@ export default function ConversationPanel({
         {/* Conversation view — hidden on copilot tab when narrow */}
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
-          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6">
-            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-3xl" : "w-full")}>
-            <div className="text-center">
+          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={scrollTopPadding ? { paddingTop: scrollTopPadding } : undefined}>
+            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-[1280px]" : "w-full")}>
+            <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
               </span>

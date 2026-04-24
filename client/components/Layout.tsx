@@ -59,6 +59,7 @@ import {
   Sun,
   Volume2,
   X,
+  UserX,
   MoreVertical,
 } from "lucide-react";
 
@@ -107,6 +108,7 @@ import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
 import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
+import { getEscalationStart, recordEscalationStart } from "@/lib/escalation-timers";
 import { toast } from "sonner";
 
 // The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
@@ -2251,7 +2253,7 @@ function DispositionPopover({
 
 // ─── More-options dropdown for the active-case panel header ──────────────────
 
-function CaseMoreOptionsMenu({ onDismiss, onClose, iconSize = "md" }: { onDismiss: (transferRecipient?: string) => void; onClose?: () => void; iconSize?: "sm" | "md" }) {
+function CaseMoreOptionsMenu({ onDismiss, onClose, iconSize = "md" }: { onDismiss: (transferRecipient?: string | null) => void; onClose?: () => void; iconSize?: "sm" | "md" }) {
   const { openChatPopover } = useLayoutContext();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
@@ -2285,6 +2287,15 @@ function CaseMoreOptionsMenu({ onDismiss, onClose, iconSize = "md" }: { onDismis
           >
             <X className="h-4 w-4" />
             Dismiss
+          </DropdownMenuItem>
+
+          {/* Dismiss and Unassign — dismisses and clears agent assignment */}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer text-[#C71D1A] focus:text-[#C71D1A] focus:bg-[#FEF2F2]"
+            onClick={() => { setDropdownOpen(false); onDismiss(null); }}
+          >
+            <UserX className="h-4 w-4" />
+            Dismiss and Unassign
           </DropdownMenuItem>
 
           {/* Transfer — opens agent picker, then disposition */}
@@ -2413,7 +2424,7 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
-  const [summaryTab, setSummaryTab] = useState<"overview" | "history" | "conversation">("overview");
+  const [summaryTab, setSummaryTab] = useState<CustomerChannel | "history" | "conversation">(activeChannel);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
@@ -2789,10 +2800,30 @@ function DockedConversationPanel({
     summaryCopilotTimersRef.current.push(doneTimer);
   }
 
-  // Reset the summary tab to overview whenever the customer changes.
+  // Reset the summary tab to the active channel whenever the customer changes.
   useEffect(() => {
-    setSummaryTab("overview");
+    setSummaryTab(activeChannel);
   }, [customerRecordId]);
+
+  // Keep the active tab in sync when the left rail changes the active channel.
+  // Preserve "history" when switching between existing channels, but switch
+  // to the new channel when a brand-new one is opened.
+  const prevOpenChannelsLengthRef = useRef(openChannels.length);
+  useEffect(() => {
+    const newChannelAdded = openChannels.length > prevOpenChannelsLengthRef.current;
+    prevOpenChannelsLengthRef.current = openChannels.length;
+    setSummaryTab((prev) => (prev === "history" && !newChannelAdded ? "history" : activeChannel));
+  }, [activeChannel, openChannels.length]);
+
+  // If the channel currently shown in the tab bar is removed from the rail,
+  // fall back to the first remaining channel (or history if none left).
+  useEffect(() => {
+    setSummaryTab((prev) => {
+      if (prev === "history" || prev === "conversation") return prev;
+      if (openChannels.includes(prev as CustomerChannel)) return prev;
+      return openChannels[0] ?? "history";
+    });
+  }, [openChannels]);
 
   // When the panel is opened for a reviewed assignment, auto-expand the summary.
   useEffect(() => {
@@ -2800,6 +2831,18 @@ function DockedConversationPanel({
       setIsHandoffSummaryOpen(true);
     }
   }, [initialSummaryOpen]);
+
+  // Auto-collapse the summary panel 15 seconds after a case is taken over.
+  useEffect(() => {
+    if (!isHandoffSummaryOpen) return;
+    const timer = setTimeout(() => {
+      setIsHandoffSummaryOpen(false);
+      onSummaryClose?.();
+    }, 15_000);
+    return () => clearTimeout(timer);
+  // Re-arms only when switching to a different customer — not on every manual toggle.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerRecordId]);
 
   // Clean up perform-actions timer on unmount
   useEffect(() => {
@@ -2826,7 +2869,7 @@ function DockedConversationPanel({
   // Reset conversation tab when panel is no longer narrow
   useEffect(() => {
     if (!isNarrowPanel && summaryTab === "conversation") {
-      setSummaryTab("overview");
+      setSummaryTab(activeChannel);
     }
   }, [isNarrowPanel, summaryTab]);
 
@@ -2921,7 +2964,12 @@ function DockedConversationPanel({
                             type="button"
                             onMouseDown={(e) => e.stopPropagation()}
                             onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
-                            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+                            className={cn(
+                              "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors",
+                              isHandoffSummaryOpen
+                                ? "bg-[#6E56CF] text-white hover:bg-[#5C46B8]"
+                                : "text-[#6E56CF] hover:bg-[#F2F0FA]",
+                            )}
                             aria-label={isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
                           >
                             <PanelLeft className="h-4 w-4" />
@@ -2934,11 +2982,56 @@ function DockedConversationPanel({
                   <div className="min-w-0">
                     <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
                   </div>
-                  <CustomerContactDropdown
-                    onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
-                    onOpenChannel={onOpenChannel}
-                    isCallDisabled={isCallDisabled}
-                  />
+                  {/* Channel + history tabs in header */}
+                  {!isNarrowPanel && (
+                    <div className="inline-flex items-center gap-0.5 rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] px-1 py-1 border border-black/[0.08] dark:border-white/[0.08]">
+                      {([...openChannels, "history" as const]).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => {
+                            setSummaryTab(tab);
+                            if (tab !== "history") onSelectChannel(tab as CustomerChannel);
+                          }}
+                          className={cn(
+                            "rounded-lg px-3 py-1 text-[12px] font-medium transition-all duration-150",
+                            summaryTab === tab
+                              ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
+                              : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+                          )}
+                        >
+                          {tab === "history" ? "Customer History" : tab === "sms" ? "SMS" : tab === "whatsapp" ? "WhatsApp" : tab === "email" ? "Email" : tab === "voice" ? "Voice" : "Chat"}
+                        </button>
+                      ))}
+                      {/* + New Channel as icon button at end of tabs */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="flex h-6 w-6 items-center justify-center rounded-lg text-[#667085] hover:bg-white hover:text-[#344054] transition-all duration-150"
+                            aria-label="Add channel"
+                          >
+                            <Plus className="h-3.5 w-3.5 stroke-[2]" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44 rounded-2xl border border-black/10 bg-white p-1 shadow-[0_18px_50px_rgba(15,23,42,0.14)]">
+                          <DropdownMenuItem onClick={(e) => onOpenCall(e.currentTarget.getBoundingClientRect())} disabled={isCallDisabled} className="rounded-xl px-3 py-2 text-sm text-[#111827]">
+                            <Phone className="mr-2 h-4 w-4" /> Call
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onOpenChannel("email")} className="rounded-xl px-3 py-2 text-sm text-[#111827]">
+                            <Mail className="mr-2 h-4 w-4" /> Email
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onOpenChannel("sms")} className="rounded-xl px-3 py-2 text-sm text-[#111827]">
+                            <MessageSquare className="mr-2 h-4 w-4" /> SMS
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onOpenChannel("whatsapp")} className="rounded-xl px-3 py-2 text-sm text-[#111827]">
+                            <WhatsAppIcon className="mr-2 h-4 w-4" /> WhatsApp
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </div>
                 {/* Right side: status chip + close */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -2961,9 +3054,51 @@ function DockedConversationPanel({
             {/* Content area — flex-row when wide (>=991px) to show persistent sidebar */}
             <div className={cn("relative min-h-0 flex-1 flex overflow-hidden", isWidePanel ? "flex-row-reverse" : "flex-col")}>
 
-              {/* Main conversation / task summary — hidden when conversation is the active sidebar tab */}
+              {/* Main conversation / customer history — tab bar above toggles content */}
               <div className={cn("min-h-0 flex-1 overflow-hidden flex flex-col", isNarrowPanel && "hidden")}>
-                {showTaskSummary ? (
+                {summaryTab === "history" ? (
+                  /* Customer History timeline */
+                  (() => {
+                    const historyItems: CustomerHistoryItem[] = customerRecord?.customerHistory ?? [];
+                    return (
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {historyItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+                            <p className="text-[12px] font-medium text-[#344054] dark:text-[#CBD5E1]">No history yet</p>
+                            <p className="text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">Past interactions will appear here.</p>
+                          </div>
+                        ) : (
+                          <div className="pt-1 px-4">
+                            <div className="relative">
+                              <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
+                              <div className="space-y-5 pl-6">
+                                {historyItems.map((item: CustomerHistoryItem) => (
+                                  <div key={item.id} className="relative">
+                                    <span className={cn(
+                                      "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
+                                      item.dot === "purple" ? "bg-[#6E56CF]" :
+                                      item.dot === "orange" ? "bg-[#F59E0B]" :
+                                      item.dot === "red"    ? "bg-[#E32926]" :
+                                      item.dot === "green"  ? "bg-[#208337]" :
+                                      "bg-[#D0D5DD]",
+                                    )} />
+                                    <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
+                                      <div className="flex items-start justify-between gap-2 mb-1">
+                                        <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
+                                        <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
+                                      </div>
+                                      <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : showTaskSummary ? (
                   <TaskSummaryView
                     assignment={{
                       customerRecordId,
@@ -3022,7 +3157,7 @@ function DockedConversationPanel({
                                 : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
                             )}
                           >
-                            {tab === "overview" ? "Overview" : "Customer History"}
+                            {tab === "overview" ? (activeChannel === "sms" ? "SMS" : activeChannel === "whatsapp" ? "WhatsApp" : activeChannel === "email" ? "Email" : activeChannel === "voice" ? "Voice" : "Chat") : "Customer History"}
                           </button>
                         ))}
                       </div>
@@ -3263,110 +3398,18 @@ function DockedConversationPanel({
                 </>
               )}
 
-              {/* Summary sidebar — persistent, becomes full-width when Conversation tab is active below 728px */}
-              {isHandoffSummaryOpen && (
-                <div
-                  className={cn(
-                    "flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26] transition-[width] duration-300",
-                    isNarrowPanel ? "w-full" : "w-[350px]",
-                  )}
-                >
-                  {/* Tab bar */}
-                  <div className="shrink-0 px-4 pt-4 pb-0">
-                    <div className="inline-flex items-center rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] p-1 gap-0.5 w-full">
-                      {(isNarrowPanel
-                        ? (["overview", "history", "conversation"] as const)
-                        : (["overview", "history"] as const)
-                      ).map((tab) => (
-                        <button
-                          key={tab}
-                          type="button"
-                          onClick={() => setSummaryTab(tab as "overview" | "history" | "conversation")}
-                          className={cn(
-                            "flex-1 rounded-lg px-3 py-1.5 text-[12px] font-medium capitalize transition-all duration-150",
-                            summaryTab === tab
-                              ? "bg-white dark:bg-[#1C2A3A] text-[#101828] dark:text-[#E2E8F0] shadow-sm"
-                              : "text-[#667085] dark:text-[#8898AB] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
-                          )}
-                        >
-                          {tab === "overview" ? "Overview" : tab === "history" ? "Customer History" : "Conversation"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={cn("flex-1", summaryTab === "conversation" ? "overflow-hidden min-h-0" : "overflow-y-auto p-4 space-y-3")}>
-                    {summaryTab === "conversation" ? (
-                      showTaskSummary ? (
-                        <TaskSummaryView
-                          assignment={{
-                            customerRecordId,
-                            name: conversation.customerName,
-                            channel: activeChannel,
-                          } as QueuePreviewItem}
-                        />
-                      ) : (
-                        <ConversationPanel
-                          conversation={conversation}
-                          openChannels={openChannels}
-                          activeChannel={activeChannel}
-                          customerId={customerRecordId}
-                          draftKey={`summary-conv-${conversation.label}-${conversation.customerName}`}
-                          onConversationChange={onConversationChange}
-                          onSelectChannel={onSelectChannel}
-                          onOpenDeskPanel={onOpenDeskPanel}
-                          onResolveAssignment={onResolveAssignment}
-                          showAiPanel={false}
-                          hideTranscript={hideTranscript}
-                          performAllActionsKey={performAllActionsKey}
-                          isPendingAcceptance={isPendingAcceptance}
-                          onAcceptAssignment={onAcceptAssignment}
-                          isWidePanel={false}
-                          onAgentTasksChange={setHasAgentTasks}
-                          suppressAgentTasks={isMarcus}
-                          forcedSuggestedReply={isMarcus ? marcusForcedReply : null}
-                          forcedSuggestionVariants={isMarcus ? marcusForcedVariants : null}
-                        />
-                      )
-                    ) : summaryTab === "history" ? (
-                      /* Customer History timeline (wide) */
-                      (() => {
-                        const historyItems: CustomerHistoryItem[] = customerRecord?.customerHistory ?? [];
-                        return historyItems.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
-                            <p className="text-[12px] font-medium text-[#344054] dark:text-[#CBD5E1]">No history yet</p>
-                            <p className="text-[11px] text-[#98A2B3] dark:text-[#4E6A85]">Past interactions will appear here.</p>
-                          </div>
-                        ) : (
-                          <div className="pt-1">
-                            <div className="relative">
-                              <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-[#E4E7EC] dark:bg-[#1B3A52]" />
-                              <div className="space-y-5 pl-6">
-                                {historyItems.map((item: CustomerHistoryItem) => (
-                                  <div key={item.id} className="relative">
-                                    <span className={cn(
-                                      "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
-                                      item.dot === "purple" ? "bg-[#6E56CF]" :
-                                      item.dot === "orange" ? "bg-[#F59E0B]" :
-                                      item.dot === "red"    ? "bg-[#E32926]" :
-                                      item.dot === "green"  ? "bg-[#208337]" :
-                                      "bg-[#D0D5DD]",
-                                    )} />
-                                    <div className="rounded-xl border border-[#E4E7EC] bg-[#F9FAFB] dark:border-[#1B3A52] dark:bg-[#0F1629] px-3 py-2.5">
-                                      <div className="flex items-start justify-between gap-2 mb-1">
-                                        <p className="text-[12px] font-semibold text-[#111827] dark:text-white leading-snug">{item.title}</p>
-                                        <p className="shrink-0 text-[10px] text-[#98A2B3] dark:text-[#8BACC4] whitespace-nowrap mt-0.5">{item.timestamp}</p>
-                                      </div>
-                                      <p className="text-[11px] leading-relaxed text-[#667085] dark:text-[#8BACC4]">{item.detail}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()
-                    ) : (<>
+              {/* Summary sidebar — animated slide open/close */}
+              <div
+                className={cn(
+                  "flex-shrink-0 border-r border-border flex flex-col bg-card dark:bg-[#0C1A26] overflow-hidden transition-[width,opacity] duration-300 ease-in-out",
+                  isHandoffSummaryOpen
+                    ? isNarrowPanel ? "w-full opacity-100" : "w-[350px] opacity-100"
+                    : "w-0 opacity-0 border-r-0",
+                )}
+              >
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 min-w-[350px]">
+                    {/* Always-visible overview content: Customer Profile / Context / Case Overview */}
+                    {(<>
 
                     {/* Customer Profile — collapsible */}
                     <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
@@ -3540,8 +3583,7 @@ function DockedConversationPanel({
 
                   </>)}
                   </div>
-                  {summaryTab === "overview" && (
-                    <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
+                  <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
                       <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
                         <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
                         <input
@@ -3557,9 +3599,7 @@ function DockedConversationPanel({
                         </button>
                       </div>
                     </div>
-                  )}
                 </div>
-              )}
             </div>
           </>
         )}
@@ -5999,6 +6039,26 @@ function IncomingTransferPopover({
   );
 }
 
+// ─── Escalation live timer ────────────────────────────────────────────────────
+function EscalationTimer({ customerId }: { customerId?: string }) {
+  const startRef = useRef(customerId ? getEscalationStart(customerId) : Date.now());
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - startRef.current) / 1000));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+  const chip = elapsed >= 60
+    ? "border-[#E32926] text-[#E32926]"
+    : elapsed >= 30
+    ? "border-[#FFB800] text-[#FFB800]"
+    : "border-[#98A2B3] text-[#98A2B3]";
+  return <span className={`rounded border bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${chip}`}>{mm}:{ss}</span>;
+}
+
 // ── Persistent incoming-assignment notification (bottom-right) ───────────────
 function IncomingAssignmentCard({
   item,
@@ -6091,15 +6151,15 @@ function IncomingAssignmentCard({
               <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
                 {item.label ?? "Service Bot"}
               </span>
-              <span className="text-[11px] text-[#98A2B3]">{item.time}</span>
               <span className={cn(
                 "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
                 item.statusLabel === "Escalated"
                   ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
                   : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
               )}>
-                {item.priority}
+                {item.statusLabel === "Escalated" ? "Escalated" : item.priority}
               </span>
+              {item.statusLabel === "Escalated" ? <EscalationTimer customerId={item.customerRecordId} /> : <span className="text-[11px] text-[#98A2B3]">{item.time}</span>}
             </div>
             <p className="mt-1 text-[12px] leading-[1.4] text-[#475467] dark:text-[#94A3B8] line-clamp-2">
               {item.preview}
@@ -7143,6 +7203,7 @@ export default function Layout({ children }: LayoutProps) {
             isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            escalatedAt: getEscalationStart("jordan"),
           },
         ];
       });
@@ -7184,6 +7245,7 @@ export default function Layout({ children }: LayoutProps) {
             isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            escalatedAt: getEscalationStart("sofia"),
           },
         ];
       });
@@ -7228,6 +7290,7 @@ export default function Layout({ children }: LayoutProps) {
             isActive: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            escalatedAt: getEscalationStart("marcus"),
           },
         ];
       });
@@ -7650,7 +7713,13 @@ export default function Layout({ children }: LayoutProps) {
     [assignmentItemsById, visibleAssignmentIds],
   );
   const activeConversationChannel = selectedAssignment.channel;
-  const activeConversationTabs = [selectedAssignment.channel];
+  // Collect all channels open for this customer — order is stable (matches visibleAssignments order).
+  const activeConversationTabs = useMemo(() => {
+    const channels = visibleAssignments
+      .filter((a) => a.customerRecordId === selectedAssignment.customerRecordId)
+      .map((a) => a.channel);
+    return [...new Set(channels)] as CustomerChannel[];
+  }, [visibleAssignments, selectedAssignment.customerRecordId]);
   const activeConversationStateKey = useMemo(
     () => getConversationStateKey(selectedAssignment.id),
     [selectedAssignment.id],
@@ -8566,7 +8635,7 @@ export default function Layout({ children }: LayoutProps) {
     setIsCallPopunderOpen(true);
   };
 
-  const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"], transferRecipient?: string) => {
+  const handleRemoveVisibleAssignment = (assignmentId: QueuePreviewItem["id"], transferRecipient?: string | null) => {
     const removedAssignment = assignmentItemsById[assignmentId];
     const conversationStateKey = getConversationStateKey(assignmentId);
     setCompletedTodayCount((n) => n + 1);
@@ -8614,7 +8683,7 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: removedAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: transferRecipient ?? CURRENT_AGENT_NAME,
+            assignedTo: transferRecipient === null ? null : (transferRecipient ?? CURRENT_AGENT_NAME),
             staticId: dismissedStaticId,
           },
           ...filtered,
@@ -8678,7 +8747,7 @@ export default function Layout({ children }: LayoutProps) {
    * sibling channel state inside ONE ResolvedAssignment so the agent can restore
    * all channels when they re-open the case.
    */
-  const handleRemoveGroupedAssignments = (assignmentIds: string[], transferRecipient?: string) => {
+  const handleRemoveGroupedAssignments = (assignmentIds: string[], transferRecipient?: string | null) => {
     if (assignmentIds.length === 0) return;
     if (assignmentIds.length === 1) {
       handleRemoveVisibleAssignment(assignmentIds[0], transferRecipient);
@@ -8739,7 +8808,7 @@ export default function Layout({ children }: LayoutProps) {
             resolvedAt: Date.now(),
             customerRecordId: primaryAssignment.customerRecordId,
             status: dismissedStatus,
-            assignedTo: transferRecipient ?? CURRENT_AGENT_NAME,
+            assignedTo: transferRecipient === null ? null : (transferRecipient ?? CURRENT_AGENT_NAME),
             staticId: dismissedStaticId,
             additionalChannels: additionalChannels.length > 0 ? additionalChannels : undefined,
           },
@@ -8875,6 +8944,7 @@ export default function Layout({ children }: LayoutProps) {
       customerContext: sa?.customerContext,
       aiOverview: sa?.aiOverview ?? { actions: [] },
       status: effectiveStatus,
+      escalatedAt: item.escalatedAt,
     });
   };
 
@@ -10185,7 +10255,18 @@ export default function Layout({ children }: LayoutProps) {
               canvasContent={children}
               isFullWidth={isCanvasMergedIntoCombinedPanel}
               onConversationChange={handleConversationStateChange}
-              onSelectChannel={setActiveConversationChannel}
+              onSelectChannel={(channel) => {
+                const target = visibleAssignments.find(
+                  (a) => a.customerRecordId === selectedAssignment.customerRecordId && a.channel === channel,
+                );
+                if (target) {
+                  // If the left panel is currently closed, keep it closed for the new channel tab
+                  if (closedSummaryIds.has(selectedAssignment.id)) {
+                    setClosedSummaryIds((prev) => new Set([...prev, target.id]));
+                  }
+                  setSelectedAssignmentId(target.id);
+                }
+              }}
               onOpenDeskPanel={openDeskPanel}
               onResolveAssignment={handleResolveAssignment}
               onTabChange={(tab) => {
@@ -10212,10 +10293,26 @@ export default function Layout({ children }: LayoutProps) {
                 activeChannel={activeConversationChannel}
                 customerRecordId={selectedAssignment.customerRecordId}
                 onConversationChange={handleConversationStateChange}
-                onSelectChannel={setActiveConversationChannel}
+                onSelectChannel={(channel) => {
+                const target = visibleAssignments.find(
+                  (a) => a.customerRecordId === selectedAssignment.customerRecordId && a.channel === channel,
+                );
+                if (target) {
+                  // If the left panel is currently closed, keep it closed for the new channel tab
+                  if (closedSummaryIds.has(selectedAssignment.id)) {
+                    setClosedSummaryIds((prev) => new Set([...prev, target.id]));
+                  }
+                  setSelectedAssignmentId(target.id);
+                }
+              }}
                 onOpenDeskPanel={openDeskPanel}
                 onOpenCall={layoutContextValue.toggleCallPopunder}
-                onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
+                onOpenChannel={(channel) => {
+                  const newAssignment = openCustomerConversation(selectedAssignment.customerRecordId, channel);
+                  if (newAssignment && closedSummaryIds.has(selectedAssignment.id)) {
+                    setClosedSummaryIds((prev) => new Set([...prev, newAssignment.id]));
+                  }
+                }}
                 onOpenCustomerInfo={openCustomerInfoIconPopover}
                 onOpenNotes={openNotesIconPopover}
                 onConversationStatusChange={handleConversationStatusChange}
@@ -10340,7 +10437,18 @@ export default function Layout({ children }: LayoutProps) {
               activeChannel={activeConversationChannel}
               customerRecordId={selectedAssignment.customerRecordId}
               onConversationChange={handleConversationStateChange}
-              onSelectChannel={setActiveConversationChannel}
+              onSelectChannel={(channel) => {
+                const target = visibleAssignments.find(
+                  (a) => a.customerRecordId === selectedAssignment.customerRecordId && a.channel === channel,
+                );
+                if (target) {
+                  // If the left panel is currently closed, keep it closed for the new channel tab
+                  if (closedSummaryIds.has(selectedAssignment.id)) {
+                    setClosedSummaryIds((prev) => new Set([...prev, target.id]));
+                  }
+                  setSelectedAssignmentId(target.id);
+                }
+              }}
               onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}

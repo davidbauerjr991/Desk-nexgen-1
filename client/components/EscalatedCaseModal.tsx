@@ -10,6 +10,27 @@ import {
 import { cn } from "@/lib/utils";
 import ConversationPanel, { type ConversationMessage } from "@/components/ConversationPanel";
 import { createConversationState, getCustomerRecord } from "@/lib/customer-database";
+import { getEscalationStart } from "@/lib/escalation-timers";
+
+// ─── Escalation live timer ────────────────────────────────────────────────────
+function EscalationTimer({ customerId }: { customerId?: string }) {
+  const startRef = useRef(customerId ? getEscalationStart(customerId) : Date.now());
+  const [elapsed, setElapsed] = useState(() => Math.floor((Date.now() - startRef.current) / 1000));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  const mm = String(Math.floor(elapsed / 60)).padStart(2, "0");
+  const ss = String(elapsed % 60).padStart(2, "0");
+  const chip = elapsed >= 60
+    ? "border-[#E32926] text-[#E32926]"
+    : elapsed >= 30
+    ? "border-[#FFB800] text-[#FFB800]"
+    : "border-[#98A2B3] text-[#98A2B3]";
+  return <span className={`rounded border bg-white px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums ${chip}`}>{mm}:{ss}</span>;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +47,8 @@ export type EscalatedCaseModalData = {
   customerContext?: string;
   aiOverview: { actions: string[] };
   status: string;
+  /** Timestamp (ms) when the escalation first appeared — keeps the modal timer in sync with the toast. */
+  escalatedAt?: number;
 };
 
 // ─── Priority styles ──────────────────────────────────────────────────────────
@@ -478,27 +501,27 @@ export function EscalatedCaseModal({
       />
 
       {/* Modal */}
-      <div className="animate-modal-fade-in relative z-10 flex flex-col w-[90vw] max-w-[1200px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
+      <div className="animate-modal-fade-in relative z-10 flex flex-col w-[90vw] max-w-[1280px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
 
         {/* ── Full-width header ── */}
         <div className="shrink-0 border-b border-border px-5 pt-3 pb-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 flex-wrap min-w-0">
               <span className="text-[14px] font-bold text-[#101828]">{caseData.name}</span>
-              <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none transition-all duration-500", priorityStyles[localPriority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
-                {localPriority}
-              </span>
               {localStatus === "resolved" ? (
                 <span className="rounded border border-[#24943E] bg-[#EFFBF1] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#208337] transition-all duration-500">
                   resolved
                 </span>
               ) : localStatus === "escalated" ? (
-                <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-                  escalated
-                </span>
+                <>
+                  <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
+                    escalated
+                  </span>
+                  <EscalationTimer customerId={caseData.customerRecordId} />
+                </>
               ) : (
-                <span className="rounded border border-[#C8BFF0] bg-[#F2F0FA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#6E56CF] capitalize">
-                  {localStatus}
+                <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none transition-all duration-500", priorityStyles[localPriority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
+                  {localPriority}
                 </span>
               )}
             </div>

@@ -43,7 +43,7 @@ export function VoiceGuidancePanel() {
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(true);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="rounded-xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
         <button
           type="button"

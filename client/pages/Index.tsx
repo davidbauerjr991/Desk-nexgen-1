@@ -171,7 +171,7 @@ export default function Index() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           {/* Desktop: Summary on left, Conversation on right */}
           <div className="hidden min-[800px]:flex w-full min-h-0 flex-1 gap-4 overflow-hidden">
-            {/* Summary column (left) - using NotesPanel */}
+            {/* Customer profile column (left) */}
             <div className="w-[380px] h-full overflow-hidden flex-shrink-0">
               <NotesPanel customerId={selectedAssignment.customerRecordId} />
             </div>

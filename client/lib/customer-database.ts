@@ -3895,6 +3895,20 @@ export function createConversationState(customerId: string, channel: CustomerCha
 
   const conversation = customer.conversations[channel];
 
+  // Graceful fallback for customers that don't have a template for this channel.
+  if (!conversation) {
+    const label = channel === "sms" ? "SMS" : channel.charAt(0).toUpperCase() + channel.slice(1);
+    return {
+      customerName: customer.name,
+      label,
+      timelineLabel: `${label} · New conversation`,
+      status: "open",
+      draft: "",
+      messages: [],
+      isCustomerTyping: false,
+    };
+  }
+
   return {
     customerName: customer.name,
     label: conversation.label,

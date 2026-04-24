@@ -41,6 +41,8 @@ export type QueuePreviewItem = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Timestamp (ms) when this notification was first shown — used to sync the live escalation timer. */
+  escalatedAt?: number;
 };
 
 export type ResolvedAssignment = {
