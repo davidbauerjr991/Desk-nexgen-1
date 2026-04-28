@@ -49,7 +49,7 @@ export const seedNotifications: AppNotification[] = [
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<NotificationType, { label: string; Icon: typeof Bell; iconClass: string }> = {
-  new_assignment: { label: "New Case",        Icon: UserPlus,     iconClass: "text-[#6E56CF] bg-[#E0DBF5] dark:bg-[#2D1F5E]" },
+  new_assignment: { label: "New Case",        Icon: UserPlus,     iconClass: "text-[#166CCA] bg-[#C5DEF5] dark:bg-[#0C3D7A]" },
   new_chat:       { label: "New Chat",        Icon: MessageSquare,iconClass: "text-[#059669] bg-[#ECFDF5] dark:bg-[#0A2E1A]" },
   escalation:     { label: "Escalation",      Icon: AlertTriangle,iconClass: "text-[#A37A00] bg-[#FFF6E0] dark:bg-[#2A2000]" },
   call_missed:    { label: "Missed Call",     Icon: Phone,        iconClass: "text-[#E32926] bg-[#FDEAEA] dark:bg-[#2E0D0D]" },
@@ -125,7 +125,7 @@ function NotificationRow({
 
       {/* Unread dot */}
       {!notification.read && (
-        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6E56CF]" />
+        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#166CCA]" />
       )}
     </div>
   );
@@ -242,7 +242,7 @@ export default function NotificationsPopoverContent({
           <GripHorizontal className="h-4 w-4 shrink-0 text-[#7A7A7A]" />
           <h3 className="text-sm font-semibold text-[#333333]">Notifications</h3>
           {notifications.length > 0 && (
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#F2F0FA] px-1.5 text-[11px] font-semibold text-[#6E56CF]">
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#EBF4FD] px-1.5 text-[11px] font-semibold text-[#166CCA]">
               {notifications.length}
             </span>
           )}

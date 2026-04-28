@@ -173,7 +173,7 @@ function AnimatedSubtext() {
     >
       {displayed}
       {phase === "typing" && charIndex < currentText.length && (
-        <span className="inline-block w-[2px] h-[0.9em] bg-[#6E56CF] ml-[1px] align-middle animate-pulse" />
+        <span className="inline-block w-[2px] h-[0.9em] bg-[#166CCA] ml-[1px] align-middle animate-pulse" />
       )}
     </p>
   );
@@ -184,7 +184,7 @@ function AnimatedSubtext() {
 function Spinner() {
   return (
     <svg
-      className="h-4 w-4 animate-spin text-[#6E56CF]"
+      className="h-4 w-4 animate-spin text-[#166CCA]"
       viewBox="0 0 24 24"
       fill="none"
     >
@@ -226,7 +226,7 @@ function ThinkingView({
         </div>
 
         {/* Thinking card */}
-        <div className="rounded-xl border border-black/8 dark:border-white/8 bg-[#F4F3F8] dark:bg-[#15122A] px-4 py-4">
+        <div className="rounded-xl border border-black/8 dark:border-white/8 bg-[#EBF4FD] dark:bg-[#0B2040] px-4 py-4">
           <div className="space-y-4">
             {steps.map((step, i) => {
               const isDone = i < completedCount;
@@ -244,7 +244,7 @@ function ThinkingView({
                   {/* Icon */}
                   <div className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
                     {isDone ? (
-                      <svg viewBox="0 0 16 16" className="h-4 w-4 text-[#6E56CF]" fill="none">
+                      <svg viewBox="0 0 16 16" className="h-4 w-4 text-[#166CCA]" fill="none">
                         <path
                           d="M3 8.5L6.5 12L13 5"
                           stroke="currentColor"
@@ -260,7 +260,7 @@ function ThinkingView({
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#C8BFF0] leading-snug">
+                    <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#BFDBFE] leading-snug">
                       {step.title}
                     </p>
                     {isDone && step.description && (
@@ -325,8 +325,8 @@ function ResponseView({
           </button>
 
           {reasoningOpen && (
-            <div className="rounded-xl border border-[#6E56CF]/20 dark:border-[#6E56CF]/30 bg-[#F5F3FF] dark:bg-[#1C1A2E] px-4 py-3">
-              <p className="text-[13px] leading-relaxed text-[#5B4199] dark:text-[#C8BFF0]">
+            <div className="rounded-xl border border-[#166CCA]/20 dark:border-[#166CCA]/30 bg-[#EBF4FD] dark:bg-[#0B1E35] px-4 py-3">
+              <p className="text-[13px] leading-relaxed text-[#1260B0] dark:text-[#BFDBFE]">
                 {response.reasoning}
               </p>
             </div>
@@ -367,10 +367,10 @@ function ChatInput({
 }) {
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3">
-      <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-2 focus-within:border-[#6E56CF]/40 focus-within:bg-white transition-colors">
+      <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-2 focus-within:border-[#166CCA]/40 focus-within:bg-white transition-colors">
         <button
           type="button"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:text-[#6E56CF] transition-colors"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:text-[#166CCA] transition-colors"
           aria-label="Attach"
         >
           <Plus className="h-4 w-4" />
@@ -392,7 +392,7 @@ function ChatInput({
           <button
             type="button"
             onClick={() => onSend()}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] text-white transition-colors hover:bg-[#5C46B8]"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#166CCA] text-white transition-colors hover:bg-[#1260B0]"
             aria-label="Send"
           >
             <Send className="h-3.5 w-3.5" />
@@ -400,7 +400,7 @@ function ChatInput({
         ) : (
           <button
             type="button"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:text-[#6E56CF] transition-colors"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] hover:text-[#166CCA] transition-colors"
             aria-label="Voice input"
           >
             <Mic className="h-4 w-4" />
@@ -484,8 +484,8 @@ export function CopilotContent() {
     return (
       <>
         <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-8 min-h-0 overflow-y-auto">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#6E56CF]/10">
-            <Sparkles className="h-8 w-8 text-[#6E56CF]" strokeWidth={1.5} />
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#166CCA]/10">
+            <Sparkles className="h-8 w-8 text-[#166CCA]" strokeWidth={1.5} />
           </div>
 
           <div className="text-center space-y-2">
@@ -501,7 +501,7 @@ export function CopilotContent() {
                 key={pill}
                 type="button"
                 onClick={() => startChat(pill)}
-                className="w-full rounded-full border border-black/10 dark:border-white/10 bg-[#F8F8F9] dark:bg-[#1C2A3A] px-4 py-2.5 text-left text-sm text-[#1D2939] dark:text-[#CBD5E1] transition-colors hover:bg-[#F0EDFC] dark:hover:bg-[#1C1A2E] hover:border-[#6E56CF]/30 hover:text-[#6E56CF] dark:hover:text-[#C8BFF0]"
+                className="w-full rounded-full border border-black/10 dark:border-white/10 bg-[#F8F8F9] dark:bg-[#1C2A3A] px-4 py-2.5 text-left text-sm text-[#1D2939] dark:text-[#CBD5E1] transition-colors hover:bg-[#EBF4FD] dark:hover:bg-[#0B1E35] hover:border-[#166CCA]/30 hover:text-[#166CCA] dark:hover:text-[#BFDBFE]"
               >
                 {pill}
               </button>
@@ -643,7 +643,7 @@ export default function CopilotPopunder({
           <div className="flex items-center gap-1" onMouseDown={(e) => e.stopPropagation()}>
             <button
               type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F0EDFC] hover:text-[#6E56CF]"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#EBF4FD] hover:text-[#166CCA]"
               aria-label="New chat"
               title="New chat"
             >
@@ -651,7 +651,7 @@ export default function CopilotPopunder({
             </button>
             <button
               type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F0EDFC] hover:text-[#6E56CF]"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#EBF4FD] hover:text-[#166CCA]"
               aria-label="Chat history"
               title="Chat history"
             >

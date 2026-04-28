@@ -266,7 +266,7 @@ function getPriorityTone(priority: CustomerTicket["priority"]) {
     case "High":
       return "bg-[#FFB800]";
     case "Medium":
-      return "bg-[#6E56CF]";
+      return "bg-[#166CCA]";
     default:
       return "bg-[#208337]";
   }
@@ -289,7 +289,7 @@ function getStatusBadgeClasses(status: CustomerTicket["status"]) {
     case "Duplicate":
       return "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]";
     case "De-Escalated":
-      return "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]";
+      return "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]";
     default:
       return "border-[#24943E] bg-[#EFFBF1] text-[#208337]";
   }
@@ -389,9 +389,9 @@ function NoteItem({ note }: { note: CustomerNote }) {
     .toUpperCase();
 
   return (
-    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA]">
+    <div className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#BFDBFE] hover:bg-[#EBF4FD]">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#6E56CF]">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9] text-[11px] font-semibold text-[#166CCA]">
           {initials}
         </div>
 
@@ -433,7 +433,7 @@ function TicketRecordView({ ticket }: { ticket: CustomerTicket }) {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6E56CF]">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#166CCA]">
                     <Ticket className="h-3.5 w-3.5" />
                     {ticket.id}
                   </span>
@@ -620,7 +620,7 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search tickets, status, agents, or subjects"
-            className="h-9 border-black/10 bg-white pl-9 text-xs text-[#111827] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#C8BFF0]"
+            className="h-9 border-black/10 bg-white pl-9 text-xs text-[#111827] placeholder:text-[#9CA3AF] focus-visible:ring-1 focus-visible:ring-[#BFDBFE]"
           />
         </div>
 
@@ -659,7 +659,7 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
                     type="button"
                     aria-label={`Resize ${column.label}`}
                     onMouseDown={(event) => handleResizeStart(event, column.key)}
-                    className="absolute inset-y-0 right-0 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[#C8BFF0]/60 focus-visible:outline-none"
+                    className="absolute inset-y-0 right-0 w-2 cursor-col-resize bg-transparent transition-colors hover:bg-[#BFDBFE]/60 focus-visible:outline-none"
                   />
                 </th>
               ))}
@@ -885,7 +885,7 @@ export default function NotesPanel({
                   className={cn(
                     "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === tab
-                      ? "text-[#6E56CF] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E56CF]"
+                      ? "text-[#166CCA] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#166CCA]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
@@ -924,7 +924,7 @@ export default function NotesPanel({
                   className={cn(
                     "relative ml-1 flex items-center gap-2 whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === ticket.id
-                      ? "text-[#6E56CF] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#6E56CF]"
+                      ? "text-[#166CCA] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#166CCA]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
@@ -1002,7 +1002,7 @@ export default function NotesPanel({
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-3 pb-2">
               {isComposerOpen && (
-                <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+                <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                   <div className="text-[12px] font-semibold leading-5 text-[#333333]">New Note</div>
                   <div className="mt-1 flex items-center gap-2 text-[12px] leading-5 text-[#6B7280]">
                     <span className="font-medium text-[#333333]">{DEFAULT_NOTE_AGENT.name}</span>
@@ -1013,7 +1013,7 @@ export default function NotesPanel({
                     value={noteDraft}
                     onChange={(event) => setNoteDraft(event.target.value)}
                     placeholder="Add a note"
-                    className="mt-3 min-h-[112px] resize-none border-black/10 bg-white text-sm text-[#333333] placeholder:text-[#9CA3AF] focus-visible:border-[#C9B8FF] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#C8BFF0]"
+                    className="mt-3 min-h-[112px] resize-none border-black/10 bg-white text-sm text-[#333333] placeholder:text-[#9CA3AF] focus-visible:border-[#BFDBFE] focus-visible:ring-0 focus-visible:shadow-[inset_0_0_0_1px_#BFDBFE]"
                   />
                   <div className="mt-3 flex items-center justify-end gap-2">
                     <Button type="button" variant="outline" className="h-8 rounded-lg px-3" onClick={handleCancelNote}>
@@ -1021,7 +1021,7 @@ export default function NotesPanel({
                     </Button>
                     <Button
                       type="button"
-                      className="h-8 rounded-lg bg-[#6E56CF] px-3 hover:bg-[#5C46B8] disabled:bg-[#C8BFF0] dark:disabled:bg-[#2D1F5E] dark:disabled:text-[#7A6BAD]"
+                      className="h-8 rounded-lg bg-[#166CCA] px-3 hover:bg-[#1260B0] disabled:bg-[#BFDBFE] dark:disabled:bg-[#0C3D7A] dark:disabled:text-[#4B96DA]"
                       onClick={handleSaveNote}
                       disabled={!noteDraft.trim()}
                     >

@@ -34,7 +34,7 @@ const alexInteractions: RecentInteractionItem[] = [
     customerName: "Alex Kowalski",
     customerId: "CST-10482",
     channel: "CXoneSMS_1-833-457-8421",
-    statusColor: "bg-[#6E56CF]",
+    statusColor: "bg-[#166CCA]",
   },
   {
     id: 2,
@@ -147,9 +147,9 @@ function InteractionTypeIcon({
   const colorClass = isEmail
     ? "text-[#E83E8C]"
     : isVoice
-      ? "text-[#6E56CF]"
+      ? "text-[#166CCA]"
       : isAiAgent
-        ? "text-[#6E56CF]"
+        ? "text-[#166CCA]"
         : "text-[#208337]";
   const DirectionIcon = direction === "inbound" ? ArrowDown : ArrowUp;
   const BaseIcon = isEmail ? Mail : isVoice ? Phone : isAiAgent ? Bot : MessageSquare;
@@ -180,7 +180,7 @@ function InteractionRow({
           onOpen(interaction);
         }
       }}
-      className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30"
+      className="rounded-xl border border-black/[0.06] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-[#BFDBFE] hover:bg-[#EBF4FD] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#166CCA]/30"
     >
       <div className="flex items-start gap-3">
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F8F8F9]">
@@ -211,7 +211,7 @@ function InteractionRow({
 
             <button
               type="button"
-              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#E0DBF5] hover:text-[#6E56CF]"
+              className="-mr-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-[#9CA3AF] transition-colors hover:bg-[#C5DEF5] hover:text-[#166CCA]"
               aria-label="Interaction options"
               onClick={(event) => event.stopPropagation()}
               onMouseDown={(event) => event.stopPropagation()}
@@ -287,8 +287,8 @@ export default function RecentInteractionsPanel({
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
                   isActive
-                    ? "border-[#C8BFF0] bg-[#E0DBF5] text-[#6E56CF]"
-                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#C8BFF0] hover:text-[#6E56CF]",
+                    ? "border-[#BFDBFE] bg-[#C5DEF5] text-[#166CCA]"
+                    : "border-black/10 bg-white text-[#6B7280] hover:border-[#BFDBFE] hover:text-[#166CCA]",
                 )}
               >
                 {chip.label}

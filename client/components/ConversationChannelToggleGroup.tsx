@@ -84,8 +84,8 @@ export default function ConversationChannelToggleGroup({
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => onSelectChannel(channel)}
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-[#5B5B5B] transition-colors hover:border-[#C8BFF0] hover:text-[#6E56CF]",
-              isActive && "border-[#C8BFF0] bg-[#E0DBF5] text-[#6E56CF]",
+              "flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white text-[#5B5B5B] transition-colors hover:border-[#BFDBFE] hover:text-[#166CCA]",
+              isActive && "border-[#BFDBFE] bg-[#C5DEF5] text-[#166CCA]",
               buttonClassName,
             )}
           >

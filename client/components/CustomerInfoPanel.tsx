@@ -59,7 +59,7 @@ function TextInput({ placeholder }: { placeholder?: string }) {
     <input
       type="text"
       placeholder={placeholder}
-      className="w-full rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] placeholder:text-transparent focus:border-[#6E56CF] focus:outline-none focus:ring-1 focus:ring-[#6E56CF]/30"
+      className="w-full rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] placeholder:text-transparent focus:border-[#166CCA] focus:outline-none focus:ring-1 focus:ring-[#166CCA]/30"
     />
   );
 }
@@ -67,7 +67,7 @@ function TextInput({ placeholder }: { placeholder?: string }) {
 function SelectInput() {
   return (
     <div className="relative w-full">
-      <select className="w-full appearance-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#6E56CF] focus:outline-none focus:ring-1 focus:ring-[#6E56CF]/30 pr-7">
+      <select className="w-full appearance-none rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333] focus:border-[#166CCA] focus:outline-none focus:ring-1 focus:ring-[#166CCA]/30 pr-7">
         <option value=""></option>
       </select>
       <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[#9CA3AF]">

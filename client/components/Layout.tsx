@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutContext,
   useLayoutContext,
@@ -107,7 +107,7 @@ import {
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
 import { getEscalationStart, recordEscalationStart } from "@/lib/escalation-timers";
 import { toast } from "sonner";
 
@@ -165,7 +165,7 @@ const statusOptions: Array<{
 ];
 
 const initialWorkspaceOptions: WorkspaceOption[] = [
-  { id: "control-panel", name: "Control Center", description: "", routePath: "/control-panel" },
+  { id: "control-panel", name: "Control Center", description: "", routePath: "/control-center" },
   { id: "review", name: "Activity", description: "", routePath: "/activity" },
   { id: "wem", name: "WEM", description: "", routePath: "/wem" },
   { id: "schedule", name: "Schedule", description: "", routePath: "/schedule" },
@@ -290,14 +290,14 @@ const priorityRankMap: Record<string, number> = {
 const priorityClassNameMap: Record<string, string> = {
   critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
   high:     "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
-  medium:   "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+  medium:   "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]",
   low:      "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
 };
 
 const priorityBadgeColorMap: Record<string, string> = {
   critical: "bg-[#E32926]",
   high:     "bg-[#FFB800]",
-  medium:   "bg-[#6E56CF]",
+  medium:   "bg-[#166CCA]",
   low:      "bg-[#208337]",
 };
 
@@ -526,14 +526,14 @@ function createRecentInteractionAssignment(
 const priorityDotClassNameMap: Record<string, string> = {
   critical: "bg-[#E32926]",
   high: "bg-[#FFB800]",
-  medium: "bg-[#6E56CF]",
+  medium: "bg-[#166CCA]",
   low: "bg-[#208337]",
 };
 
 const priorityIconClassNameMap: Record<string, string> = {
   critical: "text-[#E32926]",
   high: "text-[#FFB800]",
-  medium: "text-[#6E56CF]",
+  medium: "text-[#166CCA]",
   low: "text-[#208337]",
 };
 
@@ -1248,7 +1248,7 @@ function CustomerContactDropdown({
           size="sm"
           aria-label="Add New Channel"
           onMouseDown={(event) => event.stopPropagation()}
-          className="h-8 rounded-full border-[#6E56CF] px-3 text-[#6E56CF] hover:bg-[#6E56CF]/5 hover:text-[#6E56CF]"
+          className="h-8 rounded-full border-[#166CCA] px-3 text-[#166CCA] hover:bg-[#166CCA]/5 hover:text-[#166CCA]"
         >
           <Plus className="mr-1.5 h-3.5 w-3.5 stroke-[2]" />
           New Channel
@@ -1531,7 +1531,7 @@ function CallControlsPopunder({
         {mode === "setup" ? (
           <>
             {isJoiningCall ? (
-              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] px-4 py-3.5">
+              <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] px-4 py-3.5">
                 <p className="text-[13px] leading-relaxed text-[#1D2939]">
                   You are about to join a call on hold with{" "}
                   <span className="font-semibold">{joiningCallCustomerName}</span>.
@@ -1562,7 +1562,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.mic}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#6E56CF] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
+                <div className="h-full rounded-full bg-[#166CCA] transition-[width] duration-300" style={{ width: `${audioLevels.mic}%` }} />
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-1 text-sm text-[#333333]">
@@ -1573,7 +1573,7 @@ function CallControlsPopunder({
                 <span className="text-xs text-[#7A7A7A]">{audioLevels.speaker}%</span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-black/10">
-                <div className="h-full rounded-full bg-[#6E56CF] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
+                <div className="h-full rounded-full bg-[#166CCA] transition-[width] duration-300" style={{ width: `${audioLevels.speaker}%` }} />
               </div>
 
               <Button
@@ -1597,7 +1597,7 @@ function CallControlsPopunder({
           </>
         ) : mode === "connecting" ? (
           <div className="rounded-xl border border-black/10 bg-[#F8F8F9] px-3 py-4 text-center">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#E0DBF5] text-[#6E56CF] animate-pulse">
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#C5DEF5] text-[#166CCA] animate-pulse">
               <Phone className="h-5 w-5" />
             </div>
             <div className="mt-3 text-sm font-semibold text-[#333333]">Connecting your call…</div>
@@ -1882,14 +1882,14 @@ function TaskSummaryView({
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5">
       <div className="grid grid-cols-2 gap-4">
         {/* AI Actions Taken */}
-        <div className="rounded-lg border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#6E56CF] dark:text-[#AB99EA]">
+        <div className="rounded-lg border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#166CCA] dark:text-[#4B96DA]">
             AI Actions Taken
           </p>
           <ul className="space-y-2">
             {overview.actions.map((action, i) => (
               <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed dark:text-[#CBD5E1]">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#6E56CF] dark:bg-[#244D68]" />
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#166CCA] dark:bg-[#244D68]" />
                 {action}
               </li>
             ))}
@@ -1976,10 +1976,10 @@ function CaseTransferPopover({
             type="button"
             onClick={() => { setTab(t); setAssigned(null); }}
             className={cn("relative flex-1 py-2.5 text-[11px] font-medium transition-colors",
-              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
+              tab === t ? "text-[#166CCA]" : "text-[#667085] hover:text-[#344054]")}
           >
             {t}
-            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />}
           </button>
         ))}
       </div>
@@ -1993,15 +1993,15 @@ function CaseTransferPopover({
               type="button"
               onClick={() => handleAssignDept(dept.id, dept.name)}
               className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]")}
+                isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]")}
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[15px]">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EBF4FD] text-[15px]">
                 {dept.icon}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{dept.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{dept.description}</p>
               </div>
@@ -2023,7 +2023,7 @@ function CaseTransferPopover({
                   disabled={isDisabled}
                   onClick={() => handleAssignAgent(agent.id, agent.name)}
                   className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                    isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                    isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]",
                     isDisabled && "opacity-40 cursor-not-allowed")}
                 >
                   <div className="relative shrink-0">
@@ -2035,7 +2035,7 @@ function CaseTransferPopover({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                      {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                      {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                     </div>
                     <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
                   </div>
@@ -2057,16 +2057,16 @@ function CaseTransferPopover({
                   disabled={isDisabled}
                   onClick={() => handleAssignAgent(bot.id, bot.name)}
                   className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                    isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                    isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]",
                     isDisabled && "opacity-40 cursor-not-allowed")}
                 >
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[14px]">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#EBF4FD] text-[14px]">
                     {bot.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[12px] font-semibold text-[#1D2939] truncate">{bot.name}</p>
-                      {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                      {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                     </div>
                     <p className="text-[10px] text-[#98A2B3]">Virtual agent</p>
                   </div>
@@ -2087,7 +2087,7 @@ function CaseTransferPopover({
               disabled={isDisabled}
               onClick={() => handleAssignAgent(sup.id, sup.name)}
               className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]",
                 isDisabled && "opacity-40 cursor-not-allowed")}
             >
               <div className="relative shrink-0">
@@ -2099,7 +2099,7 @@ function CaseTransferPopover({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{sup.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{sup.skills.join(" · ")}</p>
               </div>
@@ -2198,7 +2198,7 @@ function DispositionPopover({
                 className={cn(
                   "w-full px-3 py-2 text-left text-[12px] transition-colors",
                   disposition === code
-                    ? "bg-[#F2F0FA] text-[#6E56CF] font-semibold"
+                    ? "bg-[#EBF4FD] text-[#166CCA] font-semibold"
                     : "text-[#344054] hover:bg-[#F9FAFB]",
                 )}
               >
@@ -2240,7 +2240,7 @@ function DispositionPopover({
             "h-7 px-3 rounded-md text-[11px] font-semibold transition-colors",
             mode === "dismiss"
               ? "bg-[#C71D1A] text-white hover:bg-[#A81714] disabled:opacity-40 disabled:cursor-not-allowed"
-              : "bg-[#6E56CF] text-white hover:bg-[#5B45B0] disabled:opacity-40 disabled:cursor-not-allowed",
+              : "bg-[#166CCA] text-white hover:bg-[#1260B0] disabled:opacity-40 disabled:cursor-not-allowed",
           )}
         >
           {actionLabel}
@@ -2375,7 +2375,7 @@ function DockedConversationPanel({
   equalSplitWidth,
   hideTranscript = false,
   showTaskSummary = false,
-  initialSummaryOpen = true,
+  initialSummaryOpen = false,
   onSummaryClose,
   isPendingAcceptance = false,
   onAcceptAssignment,
@@ -2383,6 +2383,9 @@ function DockedConversationPanel({
   assignmentStatus,
   onAssignmentStatusChange,
   onRemoveAssignment,
+  caseOverviewOpenTrigger = 0,
+  activeCaseTransferredItem = null,
+  onDismissActiveCaseToast,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -2416,24 +2419,43 @@ function DockedConversationPanel({
   assignmentStatus?: QueueAssignmentStatus;
   onAssignmentStatusChange?: (status: QueueAssignmentStatus) => void;
   onRemoveAssignment?: (transferRecipient?: string) => void;
+  /** Increment this to force the Case Overview accordion open (e.g. when a toast is dismissed). */
+  caseOverviewOpenTrigger?: number;
+  /** When set, renders the transferred handoff card as an overlay at the top-left of this panel. */
+  activeCaseTransferredItem?: QueuePreviewItem | null;
+  /** Called when the agent dismisses the active-case overlay toast. */
+  onDismissActiveCaseToast?: () => void;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
-  const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
+  const [isAiPanelVisible, setIsAiPanelVisible] = useState(false);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
+  const [toastDismissTrigger, setToastDismissTrigger] = useState(0);
   const [summaryTab, setSummaryTab] = useState<CustomerChannel | "history" | "conversation">(activeChannel);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
   const customerRecord = getCustomerRecord(customerRecordId);
   const [isWidePanel, setIsWidePanel] = useState(false);
+  const [panelHeight, setPanelHeight] = useState(0);
+  const [panelBounds, setPanelBounds] = useState<{ left: number; top: number; width: number; height: number; headerBottom: number } | null>(null);
   const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
   const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [performAllActionsKey, setPerformAllActionsKey] = useState(0);
+
+  // When a toast is dismissed while this panel is active, open the summary sidebar
+  // and ensure the Case Overview accordion is expanded.
+  useEffect(() => {
+    if (caseOverviewOpenTrigger > 0) {
+      setIsHandoffSummaryOpen(true);
+      setIsAttemptedResolutionOpen(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseOverviewOpenTrigger]);
 
   // Sofia resolve-supervisor next step
   const isSofia = customerRecordId === "sofia";
@@ -2481,7 +2503,7 @@ function DockedConversationPanel({
                 }}
                 className={cn(
                   "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                  resolveChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                  resolveChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                 )}
               >
                 {resolveChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -2670,10 +2692,10 @@ function DockedConversationPanel({
                   className={cn(
                     "shrink-0 h-[18px] w-[18px] rounded-full border-2 flex items-center justify-center transition-colors",
                     marcusSelectedOption === option
-                      ? "border-[#6E56CF] bg-[#6E56CF]"
+                      ? "border-[#166CCA] bg-[#166CCA]"
                       : marcusResolveOption !== null
                         ? "border-[#E5E7EB] bg-white opacity-40 cursor-not-allowed"
-                        : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                        : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                   )}
                 >
                   {marcusSelectedOption === option && <div className="h-2 w-2 rounded-full bg-white" />}
@@ -2701,18 +2723,18 @@ function DockedConversationPanel({
           <button
             type="button"
             onClick={() => { if (marcusResolveOption === null) setMarcusGoodwillChecked((v) => !v); }}
-            className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-2.5 flex items-start gap-2 text-left w-full"
+            className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-2.5 flex items-start gap-2 text-left w-full"
           >
             <div className="shrink-0 mt-0.5">
               <div className={cn(
                 "h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                marcusGoodwillChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white",
+                marcusGoodwillChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white",
               )}>
                 {marcusGoodwillChecked && <Check className="h-2.5 w-2.5 text-white" />}
               </div>
             </div>
             <div>
-              <span className="block text-[11px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Goodwill Gesture</span>
+              <span className="block text-[11px] font-semibold uppercase tracking-widest text-[#1260B0] mb-0.5">Goodwill Gesture</span>
               <span className="text-[13px] leading-5 text-[#344054]">Apply 20% discount code on next order (CARE20) — apologize for the address caching error</span>
             </div>
           </button>
@@ -2722,7 +2744,7 @@ function DockedConversationPanel({
             <button
               type="button"
               onClick={handleMarcusPerformTask}
-              className="w-full rounded-xl bg-[#6E56CF] hover:bg-[#5D45B8] active:bg-[#4E3AA0] text-white text-[13px] font-semibold py-2.5 px-4 transition-colors"
+              className="w-full rounded-xl bg-[#166CCA] hover:bg-[#1260B0] active:bg-[#0D4F9A] text-white text-[13px] font-semibold py-2.5 px-4 transition-colors"
             >
               Perform Task
             </button>
@@ -2832,18 +2854,6 @@ function DockedConversationPanel({
     }
   }, [initialSummaryOpen]);
 
-  // Auto-collapse the summary panel 15 seconds after a case is taken over.
-  useEffect(() => {
-    if (!isHandoffSummaryOpen) return;
-    const timer = setTimeout(() => {
-      setIsHandoffSummaryOpen(false);
-      onSummaryClose?.();
-    }, 15_000);
-    return () => clearTimeout(timer);
-  // Re-arms only when switching to a different customer — not on every manual toggle.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customerRecordId]);
-
   // Clean up perform-actions timer on unmount
   useEffect(() => {
     return () => {
@@ -2858,13 +2868,61 @@ function DockedConversationPanel({
     const el = panelContainerRef.current;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? el.offsetWidth;
+      const rect = entries[0]?.contentRect;
+      const width = rect?.width ?? el.offsetWidth;
+      const height = rect?.height ?? el.offsetHeight;
       setIsNarrowPanel(width < 728);
       setIsWidePanel(true);
+      setPanelHeight(height);
     });
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  // Track panel bounding rect so the toast portal can be positioned with `fixed` coords,
+  // allowing it to appear above the ConversationPanel footer portal (z-index 10000).
+  // Re-runs when `isOpen` changes.
+  // Timing trap avoided: on initial open the panel runs a 500ms CSS entrance animation
+  // (-translate-x-4 → translate-x-0). getBoundingClientRect() during that animation returns
+  // the in-flight translated position, causing the toast to jump once the animation settles.
+  // Fix: delay the first measurement by 520ms so panelBounds is only ever set at the final
+  // resting position — the toast's own slide-in-from-left animation then plays from the
+  // correct location with no jump.
+  useLayoutEffect(() => {
+    const el = panelContainerRef.current;
+    if (!el || !isOpen) {
+      setPanelBounds(null);
+      return;
+    }
+    // `settled` gates every update path — ResizeObserver and transitionend can fire
+    // during the 500ms entrance animation and would set stale in-flight coords.
+    // Nothing is stored until the timeout fires at 520ms (just past the animation).
+    let settled = false;
+    const update = () => {
+      if (!settled) return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0) {
+        const headerEl = el.querySelector("[data-conversation-panel-header]");
+        const headerBottom = headerEl
+          ? headerEl.getBoundingClientRect().bottom
+          : r.top + 64; // fallback if header not yet in DOM
+        setPanelBounds({ left: r.left, top: r.top, width: r.width, height: r.height, headerBottom });
+      }
+    };
+    const timer = setTimeout(() => { settled = true; update(); }, 520);
+    el.addEventListener("transitionend", update);
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener("transitionend", update);
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [isOpen]);
 
   // Reset conversation tab when panel is no longer narrow
   useEffect(() => {
@@ -2963,12 +3021,21 @@ function DockedConversationPanel({
                           <button
                             type="button"
                             onMouseDown={(e) => e.stopPropagation()}
-                            onClick={() => { const next = !isHandoffSummaryOpen; setIsHandoffSummaryOpen(next); if (!next) onSummaryClose?.(); }}
+                            onClick={() => {
+                              const next = !isHandoffSummaryOpen;
+                              setIsHandoffSummaryOpen(next);
+                              if (!next) { onSummaryClose?.(); }
+                              // If the top-left toast is showing and we're opening the summary,
+                              // animate the toast out simultaneously.
+                              if (next && activeCaseTransferredItem) {
+                                setToastDismissTrigger((n) => n + 1);
+                              }
+                            }}
                             className={cn(
                               "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors",
                               isHandoffSummaryOpen
-                                ? "bg-[#6E56CF] text-white hover:bg-[#5C46B8]"
-                                : "text-[#6E56CF] hover:bg-[#F2F0FA]",
+                                ? "bg-[#166CCA] text-white hover:bg-[#1260B0]"
+                                : "text-[#166CCA] hover:bg-[#EBF4FD]",
                             )}
                             aria-label={isHandoffSummaryOpen ? "Hide Summary" : "Show Summary"}
                           >
@@ -3076,7 +3143,7 @@ function DockedConversationPanel({
                                   <div key={item.id} className="relative">
                                     <span className={cn(
                                       "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
-                                      item.dot === "purple" ? "bg-[#6E56CF]" :
+                                      item.dot === "purple" ? "bg-[#166CCA]" :
                                       item.dot === "orange" ? "bg-[#F59E0B]" :
                                       item.dot === "red"    ? "bg-[#E32926]" :
                                       item.dot === "green"  ? "bg-[#208337]" :
@@ -3166,16 +3233,16 @@ function DockedConversationPanel({
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {summaryTab === "overview" ? (<>
                         {/* Customer Profile — collapsible */}
-                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setIsCustomerProfileOpen((v) => !v)}
                           className="flex w-full items-center justify-between px-4 py-3 text-left"
                         >
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">
                             Customer Profile
                           </p>
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isCustomerProfileOpen && "rotate-180")} />
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200 dark:text-[#4B96DA]", isCustomerProfileOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
@@ -3183,7 +3250,7 @@ function DockedConversationPanel({
                               {/* Identity row */}
                               <div className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8] dark:bg-[#2D1F5E] dark:text-[#AB99EA]">
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0] dark:bg-[#0C3D7A] dark:text-[#4B96DA]">
                                     {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                                   </div>
                                   <div>
@@ -3199,7 +3266,7 @@ function DockedConversationPanel({
                               {/* Stats row */}
                               <div className="grid grid-cols-2 gap-2">
                                 {/* Fraud Risk Score */}
-                                <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                <div className="rounded-lg bg-white/60 border border-[#BFDBFE]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
                                   <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Fraud Risk Score</p>
                                   <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
                                     {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
@@ -3212,7 +3279,7 @@ function DockedConversationPanel({
                                   </div>
                                 </div>
                                 {/* Prior Disputes */}
-                                <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                                <div className="rounded-lg bg-white/60 border border-[#BFDBFE]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
                                   <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Prior Disputes</p>
                                   <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
                                   <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#8BACC4]")}>
@@ -3228,9 +3295,9 @@ function DockedConversationPanel({
                                       key={tag}
                                       className={cn(
                                         "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                                        tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
+                                        tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border border-[#BFDBFE] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
                                         tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
-                                        "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
+                                        "bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE] dark:bg-[#0B2040] dark:text-[#4B96DA]",
                                       )}
                                     >
                                       {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
@@ -3247,28 +3314,28 @@ function DockedConversationPanel({
                         const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
                         const customerContext = sa?.customerContext;
                         return customerContext ? (
-                          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Context</p>
+                          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Context</p>
                             <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
                           </div>
                         ) : (
-                          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Issue</p>
+                          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Issue</p>
                             <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
                           </div>
                         );
                       })()}
                       {/* Section 2: Collapsible Attempted Resolution */}
-                      <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                           className="flex w-full items-center justify-between px-4 py-3 text-left"
                         >
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">
                             Case Overview
                           </p>
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200 dark:text-[#4B96DA]", isAttemptedResolutionOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
@@ -3282,7 +3349,7 @@ function DockedConversationPanel({
                                       <ul className="space-y-2">
                                         {actions.map((action, i) => (
                                           <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
-                                            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0] dark:bg-[#244D68]" />
                                             {action}
                                           </li>
                                         ))}
@@ -3302,27 +3369,27 @@ function DockedConversationPanel({
 
                       {/* Copilot response card */}
                       {summaryCopilotPhase !== "idle" && (
-                        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                        <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                           <button type="button" onClick={() => setIsSummaryCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
                             <div className="flex items-center gap-2">
-                              <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                              <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot Response</p>
                               {summaryCopilotPhase === "thinking" && (
                                 <span className="flex items-center gap-1">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-                                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                                  <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
                                 </span>
                               )}
                             </div>
-                            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
+                            <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
                           </button>
                           <div className={cn("grid transition-all duration-200 ease-out", isSummaryCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                             <div className="overflow-hidden">
                               <div className="px-4 pb-4 space-y-3">
                                 <p className="text-[11px] text-[#98A2B3] italic">"{summarySubmittedQuery}"</p>
                                 {summaryCopilotPhase === "done" && (
-                                  <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                                  <div className="rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                                     <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
                                       Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
                                     </p>
@@ -3354,7 +3421,7 @@ function DockedConversationPanel({
                                       {/* Dot */}
                                       <span className={cn(
                                         "absolute -left-6 top-1 h-4 w-4 rounded-full border-2 border-white dark:border-[#0C1A26]",
-                                        item.dot === "purple" ? "bg-[#6E56CF]" :
+                                        item.dot === "purple" ? "bg-[#166CCA]" :
                                         item.dot === "orange" ? "bg-[#F59E0B]" :
                                         item.dot === "red"    ? "bg-[#E32926]" :
                                         item.dot === "green"  ? "bg-[#208337]" :
@@ -3378,8 +3445,8 @@ function DockedConversationPanel({
                     </div>
                     {summaryTab === "overview" && (
                       <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
-                        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                        <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+                          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
                           <input
                             type="text"
                             value={summaryCopilotQuery}
@@ -3388,7 +3455,7 @@ function DockedConversationPanel({
                             placeholder="Ask Copilot about this Case"
                             className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
                           />
-                          <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                          <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                           </button>
                         </div>
@@ -3412,16 +3479,16 @@ function DockedConversationPanel({
                     {(<>
 
                     {/* Customer Profile — collapsible */}
-                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setIsCustomerProfileOpen((v) => !v)}
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">
                           Customer Profile
                         </p>
-                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isCustomerProfileOpen && "rotate-180")} />
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200 dark:text-[#4B96DA]", isCustomerProfileOpen && "rotate-180")} />
                       </button>
                       <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                         <div className="overflow-hidden">
@@ -3429,7 +3496,7 @@ function DockedConversationPanel({
                             {/* Identity row */}
                             <div className="flex items-center justify-between gap-3">
                               <div className="flex items-center gap-2.5">
-                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8] dark:bg-[#2D1F5E] dark:text-[#AB99EA]">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0] dark:bg-[#0C3D7A] dark:text-[#4B96DA]">
                                   {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
                                 </div>
                                 <div>
@@ -3445,7 +3512,7 @@ function DockedConversationPanel({
                             {/* Stats row */}
                             <div className="grid grid-cols-2 gap-2">
                               {/* Fraud Risk Score */}
-                              <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                              <div className="rounded-lg bg-white/60 border border-[#BFDBFE]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
                                 <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Fraud Risk Score</p>
                                 <p className={cn("text-[15px] font-bold leading-none mb-1.5", customerRecord.profile.fraudRiskScore >= 70 ? "text-[#E32926]" : customerRecord.profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
                                   {customerRecord.profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
@@ -3458,7 +3525,7 @@ function DockedConversationPanel({
                                 </div>
                               </div>
                               {/* Prior Disputes */}
-                              <div className="rounded-lg bg-white/60 border border-[#C8BFF0]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
+                              <div className="rounded-lg bg-white/60 border border-[#BFDBFE]/60 p-2.5 dark:bg-[#0C1A26] dark:border-[#1B3A52]">
                                 <p className="mb-1 text-[10px] text-[#667085] dark:text-[#8BACC4]">Prior Disputes</p>
                                 <p className="text-[15px] font-bold leading-none text-[#111827] dark:text-white">{customerRecord.profile.priorDisputeCount === 0 ? "None" : customerRecord.profile.priorDisputeCount}</p>
                                 <p className={cn("mt-1 text-[10px]", customerRecord.profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085] dark:text-[#8BACC4]")}>
@@ -3474,9 +3541,9 @@ function DockedConversationPanel({
                                     key={tag}
                                     className={cn(
                                       "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                                      tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border border-[#C8BFF0] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
+                                      tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border border-[#BFDBFE] dark:bg-[#1B3A52] dark:text-[#4BADD6]" :
                                       tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E] dark:bg-[#0A1F0D] dark:text-[#208337]" :
-                                      "bg-[#F4F3FF] text-[#5925DC] border border-[#D9D6FE] dark:bg-[#1A1040] dark:text-[#7A5AF8]",
+                                      "bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE] dark:bg-[#0B2040] dark:text-[#4B96DA]",
                                     )}
                                   >
                                     {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
@@ -3493,29 +3560,29 @@ function DockedConversationPanel({
                       const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
                       const customerContext = sa?.customerContext;
                       return customerContext ? (
-                        <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Context</p>
+                        <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Context</p>
                           <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
-                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">Customer Issue</p>
+                        <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Issue</p>
                           <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
                         </div>
                       );
                     })()}
 
                     {/* Section 2: Collapsible Attempted Resolution */}
-                    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                         className="flex w-full items-center justify-between px-4 py-3 text-left"
                       >
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#AB99EA]">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">
                           Case Overview
                         </p>
-                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#AB99EA]", isAttemptedResolutionOpen && "rotate-180")} />
+                        <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200 dark:text-[#4B96DA]", isAttemptedResolutionOpen && "rotate-180")} />
                       </button>
                       <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                         <div className="overflow-hidden">
@@ -3529,7 +3596,7 @@ function DockedConversationPanel({
                                     <ul className="space-y-2">
                                       {actions.map((action, i) => (
                                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
-                                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0] dark:bg-[#244D68]" />
                                           {action}
                                         </li>
                                       ))}
@@ -3549,27 +3616,27 @@ function DockedConversationPanel({
 
                     {/* Copilot response card */}
                     {summaryCopilotPhase !== "idle" && (
-                      <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                      <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                         <button type="button" onClick={() => setIsSummaryCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
                           <div className="flex items-center gap-2">
-                            <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                            <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot Response</p>
                             {summaryCopilotPhase === "thinking" && (
                               <span className="flex items-center gap-1">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
                               </span>
                             )}
                           </div>
-                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isSummaryCopilotOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isSummaryCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                           <div className="overflow-hidden">
                             <div className="px-4 pb-4 space-y-3">
                               <p className="text-[11px] text-[#98A2B3] italic">"{summarySubmittedQuery}"</p>
                               {summaryCopilotPhase === "done" && (
-                                <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                                <div className="rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                                   <p className="text-[12px] text-[#344054] dark:text-[#CBD5E1] leading-relaxed">
                                     Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
                                   </p>
@@ -3584,8 +3651,8 @@ function DockedConversationPanel({
                   </>)}
                   </div>
                   <div className="shrink-0 border-t border-[#E4E7EC] dark:border-[#1B3A52] bg-card dark:bg-[#0C1A26] px-4 py-3">
-                      <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+                      <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
                         <input
                           type="text"
                           value={summaryCopilotQuery}
@@ -3594,7 +3661,7 @@ function DockedConversationPanel({
                           placeholder="Ask Copilot about this Case"
                           className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
                         />
-                        <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+                        <button type="button" onClick={handleSummaryCopilotSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
                           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                         </button>
                       </div>
@@ -3605,6 +3672,39 @@ function DockedConversationPanel({
         )}
       </div>
 
+      {/* Active-case transferred toast — rendered via createPortal to document.body so its
+          z-index (10002) beats the ConversationPanel footer portal (z-index 60 / 10000).
+          Positioned with `fixed` coords derived from panelBounds so it visually sits
+          at top-3 left-3 of the conversation panel, relative to its measured rect. */}
+      {activeCaseTransferredItem && isOpen && panelBounds && panelBounds.width > 0 && createPortal(
+        <div
+          className="pointer-events-none"
+          style={{
+            position: "fixed",
+            left: panelBounds.left + 12,
+            top: panelBounds.headerBottom + 12,
+            width: 380,
+            maxWidth: panelBounds.width - 24,
+            zIndex: 10002,
+          }}
+        >
+          <div className="pointer-events-auto">
+            <IncomingAssignmentCard
+              item={activeCaseTransferredItem}
+              onMonitor={() => {}}
+              onTakeover={() => {}}
+              onTransfer={() => {}}
+              onDismiss={() => onDismissActiveCaseToast?.()}
+              isInline
+              dismissDirection="left"
+              inlinePanelHeight={panelBounds.height}
+              inlineHeaderOffset={panelBounds.headerBottom - panelBounds.top}
+              dismissTrigger={toastDismissTrigger}
+            />
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
@@ -4412,7 +4512,7 @@ function DeskCanvasPopunder({
               type="button"
               onMouseDown={(event) => event.stopPropagation()}
               onClick={() => { setInlineCustomerId(null); setInlineAddOpen(false); }}
-              className="flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[#6E56CF] transition-colors hover:text-[#0A5E92]"
+              className="flex items-center gap-1.5 rounded-lg text-sm font-semibold text-[#166CCA] transition-colors hover:text-[#0A5E92]"
               aria-label="Back to desk"
             >
               <ChevronLeft className="h-4 w-4 shrink-0" />
@@ -4543,7 +4643,7 @@ function ConversationPopunder({
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
-  const [isAiPanelVisible, setIsAiPanelVisible] = useState(true);
+  const [isAiPanelVisible, setIsAiPanelVisible] = useState(false);
   const shouldStackHeaderActions = size.width < 800;
   const isVeryNarrow = size.width < 640;
 
@@ -4884,7 +4984,7 @@ function HeaderIconButton({
         aria-pressed={isActive}
         className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
           isActive
-            ? "text-[#6E56CF] hover:bg-[#E0DBF5]"
+            ? "text-[#166CCA] hover:bg-[#C5DEF5]"
             : "text-[#7A7A7A] hover:bg-white/70 hover:text-[#333333]"
         }`}
       >
@@ -4974,7 +5074,7 @@ function QueueAssignmentCard({
   const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
     critical: { idle: "#E53935", active: "#E32926", stripe: "#E32926", shadow: "rgba(240,68,56,0.14)" },
     high:     { idle: "#FECDA7", active: "#FFB800", stripe: "#FFB800", shadow: "rgba(247,144,9,0.14)" },
-    medium:   { idle: "#C8BFF0", active: "#6E56CF", stripe: "#6E56CF", shadow: "rgba(108,0,255,0.14)" },
+    medium:   { idle: "#BFDBFE", active: "#166CCA", stripe: "#166CCA", shadow: "rgba(22,108,202,0.14)" },
     low:      { idle: "#24943E", active: "#208337", stripe: "#208337", shadow: "rgba(54,157,63,0.14)" },
   };
   const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
@@ -4991,7 +5091,7 @@ function QueueAssignmentCard({
         }
       }}
       className={cn(
-        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30",
+        "group relative flex w-full items-start gap-3 overflow-hidden rounded-[8px] border bg-white px-4 py-4 text-left shadow-[0_6px_18px_rgba(15,23,42,0.08)] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#166CCA]/30",
         !item.isActive && "hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(15,23,42,0.12)]",
         className,
       )}
@@ -5437,7 +5537,7 @@ function AddNewAssignmentFlowPopover({
                   onClick={() => handleCustomerSelect(customer.id)}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
                 >
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] text-[11px] font-bold text-[#6E56CF]">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EBF4FD] text-[11px] font-bold text-[#166CCA]">
                     {customer.initials}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -5616,7 +5716,7 @@ function GroupedQueueCard({
   const priorityBorderColors: Record<string, { idle: string; active: string; stripe: string; shadow: string }> = {
     critical: { idle: "#E53935", active: "#E32926", stripe: "#E32926", shadow: "rgba(240,68,56,0.14)" },
     high:     { idle: "#FECDA7", active: "#FFB800", stripe: "#FFB800", shadow: "rgba(247,144,9,0.14)" },
-    medium:   { idle: "#C8BFF0", active: "#6E56CF", stripe: "#6E56CF", shadow: "rgba(108,0,255,0.14)" },
+    medium:   { idle: "#BFDBFE", active: "#166CCA", stripe: "#166CCA", shadow: "rgba(22,108,202,0.14)" },
     low:      { idle: "#24943E", active: "#208337", stripe: "#208337", shadow: "rgba(54,157,63,0.14)" },
   };
   const pc = priorityBorderColors[priorityKey] ?? priorityBorderColors.medium;
@@ -5727,8 +5827,8 @@ function GroupedQueueCard({
                 }
               }}
               className={cn(
-                "flex w-full cursor-pointer flex-col gap-1.5 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6E56CF]/30",
-                isChannelActive ? "bg-[#F2F0FA]" : "hover:bg-[#F8F8F9]",
+                "flex w-full cursor-pointer flex-col gap-1.5 px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#166CCA]/30",
+                isChannelActive ? "bg-[#EBF4FD]" : "hover:bg-[#F8F8F9]",
               )}
             >
               {/* Channel badge + timestamp + trash */}
@@ -5801,14 +5901,14 @@ function GroupedQueueCard({
                   <button
                     type="button"
                     onClick={() => acceptPendingAssignment(item.id)}
-                    className="flex-1 rounded-md bg-[#6E56CF] py-1.5 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                    className="flex-1 rounded-md bg-[#166CCA] py-1.5 text-[11px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                   >
                     Accept
                   </button>
                   <button
                     type="button"
                     onClick={() => reviewPendingAssignment(item.id)}
-                    className="flex-1 rounded-md border border-[#6E56CF] py-1.5 text-[11px] font-semibold text-[#6E56CF] hover:bg-[#6E56CF]/10 transition-colors"
+                    className="flex-1 rounded-md border border-[#166CCA] py-1.5 text-[11px] font-semibold text-[#166CCA] hover:bg-[#166CCA]/10 transition-colors"
                   >
                     Review
                   </button>
@@ -5968,10 +6068,10 @@ function IncomingTransferPopover({
             type="button"
             onClick={() => { setTab(t); setAssigned(null); }}
             className={cn("relative flex-1 py-2.5 text-[11px] font-medium transition-colors",
-              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]")}
+              tab === t ? "text-[#166CCA]" : "text-[#667085] hover:text-[#344054]")}
           >
             {t}
-            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />}
           </button>
         ))}
       </div>
@@ -5985,15 +6085,15 @@ function IncomingTransferPopover({
                 type="button"
                 onClick={() => handleAssignDept(dept)}
                 className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                  isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]")}
+                  isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]")}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F5F3FF] text-[15px]">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EBF4FD] text-[15px]">
                   {dept.icon}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-[12px] font-semibold text-[#1D2939] truncate">{dept.name}</p>
-                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                   </div>
                   <p className="text-[10px] text-[#98A2B3] truncate">{dept.description}</p>
                 </div>
@@ -6012,7 +6112,7 @@ function IncomingTransferPopover({
                 disabled={isDisabled}
                 onClick={() => handleAssignAgent(agent)}
                 className={cn("w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                  isAssigned ? "bg-[#F2F0FA] dark:bg-[#2A1F4A]" : "hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]",
+                  isAssigned ? "bg-[#EBF4FD] dark:bg-[#0C2A4A]" : "hover:bg-[#F9FAFB] dark:hover:bg-[#1C2536]",
                   isDisabled && "opacity-40 cursor-not-allowed")}
               >
                 <div className="relative shrink-0">
@@ -6024,7 +6124,7 @@ function IncomingTransferPopover({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-[12px] font-semibold text-[#1D2939] dark:text-[#E2E8F0] truncate">{agent.name}</p>
-                    {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                    {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                   </div>
                   <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
                 </div>
@@ -6066,16 +6166,41 @@ function IncomingAssignmentCard({
   onTakeover,
   onTransfer,
   onDismiss,
+  onApprove,
+  onApproveResolved,
+  isInline = false,
+  dismissDirection = "down",
+  inlinePanelHeight = 0,
+  inlineHeaderOffset = 0,
+  dismissTrigger = 0,
 }: {
   item: QueuePreviewItem;
   onMonitor: (item: QueuePreviewItem) => void;
   onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
   onDismiss: (item: QueuePreviewItem) => void;
+  onApprove?: (item: QueuePreviewItem) => void;
+  onApproveResolved?: (item: QueuePreviewItem) => void;
+  /** When true, suppresses auto-minimize timer. Use for the active-case top-left overlay. */
+  isInline?: boolean;
+  /** Direction the card slides when dismissed. Defaults to "down" (bottom-right stack behaviour). */
+  dismissDirection?: "down" | "left";
+  /** Measured height of the panel container. Used to cap the inline scroll area so the card
+   *  never overflows the conversation panel. 0 = unconstrained (falls back to viewport calc). */
+  inlinePanelHeight?: number;
+  /** Distance (px) from panel top to header bottom. Combined with inlinePanelHeight to compute
+   *  the exact scroll area budget so the card stays within the panel. */
+  inlineHeaderOffset?: number;
+  /** Increment this to programmatically trigger the dismiss animation (e.g. when the summary
+   *  panel toggle is clicked while the toast is visible). */
+  dismissTrigger?: number;
 }) {
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(item.statusLabel === "transferred");
+  const [approvePhase, setApprovePhase] = useState<"idle" | "approving" | "resolved">("idle");
+  const approveToastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [showTransfer, setShowTransfer] = useState(false);
-  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(false);
+  const [isToastProfileOpen, setIsToastProfileOpen] = useState(false);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -6084,6 +6209,50 @@ function IncomingAssignmentCard({
   const [isCopilotOpen, setIsCopilotOpen] = useState(true);
   const [isReasoningOpen, setIsReasoningOpen] = useState(false);
   const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const cardRef = useRef<HTMLDivElement>(null);
+  /** Timer that auto-collapses the case summary accordion after takeover. Cancelled on user interaction. */
+  const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Smoothly slides the card down and fades it out by writing directly to the DOM element,
+   * then calls onDismiss once the transition has finished.
+   * Writing styles directly (rather than via React state) avoids any re-render that would
+   * restart or conflict with the existing entry animation.
+   */
+  const handleDismiss = useCallback(() => {
+    const el = cardRef.current;
+    if (!el) { onDismiss(item); return; }
+    el.style.transition = "opacity 200ms ease-in, transform 200ms ease-in";
+    el.style.opacity = "0";
+    el.style.transform = dismissDirection === "left" ? "translateX(-32px)" : "translateY(20px)";
+    setTimeout(() => onDismiss(item), 210);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onDismiss, item.id, dismissDirection]);
+
+  // Programmatic dismiss — e.g. summary panel toggle opens while toast is visible.
+  // Skips the initial render (dismissTrigger=0).
+  useEffect(() => {
+    if (dismissTrigger > 0) handleDismiss();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dismissTrigger]);
+
+  // Cleanup approve timers on unmount
+  useEffect(() => () => { approveToastTimersRef.current.forEach(clearTimeout); }, []);
+
+  // Auto-collapse (not dismiss) the case summary 10 s after takeover.
+  // Cancelled if the agent interacts with any interior accordion.
+  // Disabled for the inline top-left overlay — agent controls it manually there.
+  useEffect(() => {
+    if (item.statusLabel !== "transferred") return;
+    if (isInline) return;
+    const t = setTimeout(() => {
+      setSummaryOpen(false);
+      autoMinimizeTimerRef.current = null;
+    }, 10_000);
+    autoMinimizeTimerRef.current = t;
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.statusLabel, isInline]);
 
   const REASONING_STEPS = [
     "Reviewing case history and prior customer interactions...",
@@ -6121,45 +6290,78 @@ function IncomingAssignmentCard({
   const customerContext = staticAssignment?.customerContext;
 
   return (
-    <div className="pointer-events-auto w-full rounded-2xl border border-[#E32926]/20 bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden">
-      {/* Header — matches escalated alert style: BotName · waitTime · Priority badge */}
+    <div
+      ref={cardRef}
+      className={cn(
+        "pointer-events-auto w-full rounded-2xl bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in duration-300 overflow-hidden border transition-colors",
+        isInline ? "slide-in-from-left-3" : "slide-in-from-bottom-3",
+        (approvePhase === "resolved" || item.statusLabel === "resolved" || item.statusLabel === "transferred")
+          ? "border-[#24943E]/30"
+          : "border-[#E32926]/20",
+      )}
+    >
+      {/* Header */}
       <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3">
         <div className="flex items-start gap-2.5 flex-1 min-w-0">
-          {(item.label ?? "Service Bot") === "Aria" && (
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
-              alt="Aria avatar"
-              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
-            />
-          )}
-          {(item.label ?? "Service Bot") === "Jacob" && (
-            <img
-              src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-              alt="Jacob avatar"
-              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
-            />
-          )}
-          {(item.label ?? "Service Bot") === "Emily" && (
-            <img
-              src="/emily-avatar.jpg"
-              alt="Emily avatar"
-              className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
-            />
+          {isInline ? (
+            // Inline (top-left overlay): show customer initials avatar
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#1260B0] flex items-center justify-center mt-0.5">
+              <span className="text-[13px] font-semibold text-white leading-none">
+                {item.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+          ) : (
+            <>
+              {(item.label ?? "Service Bot") === "Aria" && (
+                <img
+                  src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                  alt="Aria avatar"
+                  className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+                />
+              )}
+              {(item.label ?? "Service Bot") === "Jacob" && (
+                <img
+                  src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                  alt="Jacob avatar"
+                  className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+                />
+              )}
+              {(item.label ?? "Service Bot") === "Emily" && (
+                <img
+                  src="/emily-avatar.jpg"
+                  alt="Emily avatar"
+                  className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
+                />
+              )}
+            </>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">
-                {item.label ?? "Service Bot"}
+                {isInline ? item.name : (item.label ?? "Service Bot")}
               </span>
-              <span className={cn(
-                "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
-                item.statusLabel === "Escalated"
-                  ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
-                  : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
-              )}>
-                {item.statusLabel === "Escalated" ? "Escalated" : item.priority}
-              </span>
-              {item.statusLabel === "Escalated" ? <EscalationTimer customerId={item.customerRecordId} /> : <span className="text-[11px] text-[#98A2B3]">{item.time}</span>}
+              {(() => {
+                const isResolved = approvePhase === "resolved" || item.statusLabel === "resolved";
+                const isTransferred = item.statusLabel === "transferred";
+                return (
+                  <>
+                    <span className={cn(
+                      "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
+                      isResolved
+                        ? "border-[#24943E] bg-[#EFFBF1] text-[#208337]"
+                        : isTransferred
+                        ? "border-[#24943E] bg-[#EFFBF1] text-[#208337]"
+                        : item.statusLabel === "Escalated"
+                        ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+                        : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+                    )}>
+                      {isResolved ? "Resolved" : isTransferred ? "Live" : item.statusLabel === "Escalated" ? "Escalated" : item.priority}
+                    </span>
+                    {!isResolved && !isTransferred && item.statusLabel === "Escalated" && <EscalationTimer customerId={item.customerRecordId} />}
+                    {!isResolved && !isTransferred && item.statusLabel !== "Escalated" && <span className="text-[11px] text-[#98A2B3]">{item.time}</span>}
+                  </>
+                );
+              })()}
             </div>
             <p className="mt-1 text-[12px] leading-[1.4] text-[#475467] dark:text-[#94A3B8] line-clamp-2">
               {item.preview}
@@ -6168,7 +6370,7 @@ function IncomingAssignmentCard({
         </div>
         <button
           type="button"
-          onClick={() => onDismiss(item)}
+          onClick={handleDismiss}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
           aria-label="Dismiss notification"
         >
@@ -6180,7 +6382,14 @@ function IncomingAssignmentCard({
       <div className="border-t border-black/[0.06]">
         <button
           type="button"
-          onClick={() => setSummaryOpen((v) => !v)}
+          onClick={() => {
+            // Cancel auto-minimize: agent is actively using the accordion
+            if (autoMinimizeTimerRef.current !== null) {
+              clearTimeout(autoMinimizeTimerRef.current);
+              autoMinimizeTimerRef.current = null;
+            }
+            setSummaryOpen((v) => !v);
+          }}
           className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
         >
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#667085]">
@@ -6196,45 +6405,235 @@ function IncomingAssignmentCard({
 
         <div
           className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
+          style={{ maxHeight: summaryOpen ? "calc(100vh - 180px)" : "0px", opacity: summaryOpen ? 1 : 0 }}
         >
-          <div className="px-4 pb-3 flex flex-col gap-3">
-            {/* Human Assist Request */}
-            {customerContext && (
-              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
-                <div className="mb-1.5 flex items-center gap-2">
-                  {item.label === "Emily" ? (
-                    <img
-                      src="/emily-avatar.jpg"
-                      alt="Emily avatar"
-                      className="h-5 w-5 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <img
-                      src={item.label === "Jacob"
-                        ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                        : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
-                      alt={`${item.label ?? "Aria"} avatar`}
-                      className="h-5 w-5 rounded-full object-cover shrink-0"
-                    />
-                  )}
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">{item.label ?? "Aria"}</p>
+          <div
+            className="overflow-y-auto"
+            style={{
+              maxHeight: isInline && inlinePanelHeight > 0 && inlineHeaderOffset > 0
+                ? Math.max(120, inlinePanelHeight - inlineHeaderOffset - 12 - 90 - 40 - 12)
+                : "calc(100vh - 180px)",
+            }}
+          >
+            <div className="px-4 pb-3 flex flex-col gap-3">
+            {/* Human Assist Request / Approval flow */}
+            {(customerContext || item.statusLabel === "transferred") && (
+              item.statusLabel === "transferred" ? (
+                /* ── Transferred: handoff confirmation card ── */
+                <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 animate-in fade-in duration-300">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    {item.label === "Emily" ? (
+                      <img src="/emily-avatar.jpg" alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <img
+                        src={item.label === "Jacob"
+                          ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                          : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                        alt={`${item.label ?? "Aria"} avatar`}
+                        className="h-5 w-5 rounded-full object-cover shrink-0"
+                      />
+                    )}
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#166744]">{item.label ?? "Aria"}</p>
+                  </div>
+                  <p className="text-[13px] font-medium leading-5 text-[#166744]">
+                    I have transferred the assignment. You are now live with customer {item.name}.
+                  </p>
+                  <div className="mt-3 flex items-center justify-between rounded-lg border border-[#24943E] bg-white px-3 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#208337]">Status</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-[#208337]" />
+                      <span className="text-[12px] font-semibold text-[#208337]">Live</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
-              </div>
+              ) : approvePhase === "resolved" ? (
+                /* ── Resolved: full card replacement ── */
+                <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3 animate-in fade-in duration-300">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <img
+                      src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                      alt="Aria avatar"
+                      className="h-5 w-5 rounded-full object-cover shrink-0"
+                    />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{item.label ?? "Aria"}</p>
+                  </div>
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                    Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+                  </p>
+                  <div className="mt-3 flex items-center justify-between rounded-lg border border-[#24943E] bg-white px-3 py-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#208337]">Case Status</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-[#208337]" />
+                      <span className="text-[12px] font-semibold text-[#208337]">Resolved</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#208337" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ── Idle / Approving: original card with confidence meter ── */
+                <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    {item.label === "Emily" ? (
+                      <img src="/emily-avatar.jpg" alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <img
+                        src={item.label === "Jacob"
+                          ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                          : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                        alt={`${item.label ?? "Aria"} avatar`}
+                        className="h-5 w-5 rounded-full object-cover shrink-0"
+                      />
+                    )}
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{item.label ?? "Aria"}</p>
+                  </div>
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
+
+                  {/* AI Confidence + Approve / Approving state — driven by aiConfidence in static assignment */}
+                  {item.statusLabel === "Escalated" && item.aiConfidence !== undefined && (
+                    approvePhase === "approving" ? (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-[13px] font-medium text-[#344054]">Approving request</span>
+                        <span className="flex items-center gap-0.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
+                            <span className="text-[12px] font-bold text-[#166CCA]">{item.aiConfidence}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                            <div className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA]" style={{ width: `${item.aiConfidence}%` }} />
+                          </div>
+                          {item.aiConfidenceReason && (
+                            <p className="text-[10px] text-[#98A2B3] leading-relaxed">{item.aiConfidenceReason}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            approveToastTimersRef.current.forEach(clearTimeout);
+                            approveToastTimersRef.current = [];
+                            setApprovePhase("approving");
+                            approveToastTimersRef.current.push(
+                              setTimeout(() => {
+                                setApprovePhase("resolved");
+                                onApproveResolved?.(item);
+                              }, 2800)
+                            );
+                          }}
+                          className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
+                        >
+                          Approve
+                        </button>
+                      </>
+                    )
+                  )}
+                </div>
+              )
             )}
 
+            {/* Customer Profile — collapsible, starts collapsed */}
+            {(() => {
+              const toastCustomerRecord = getCustomerRecord(item.customerRecordId);
+              if (!toastCustomerRecord) return null;
+              const { profile } = toastCustomerRecord;
+              return (
+                <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setIsToastProfileOpen((v) => !v)}
+                    className="flex w-full items-center justify-between px-3 py-2.5 text-left"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isToastProfileOpen && "rotate-180")} />
+                  </button>
+                  <div className={cn("grid transition-all duration-200 ease-out", isToastProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className="overflow-hidden">
+                      <div className="px-3 pb-3 space-y-2.5">
+                        {/* Identity row */}
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
+                              {item.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-semibold text-[#111827] leading-tight">{item.name}</p>
+                              <p className="text-[11px] text-[#667085] leading-snug">{profile.department} · {profile.tenureYears} yr{profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                            </div>
+                          </div>
+                          {profile.totalAUM && (
+                            <div className="text-right shrink-0">
+                              <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                              <p className="text-[13px] font-semibold text-[#111827]">{profile.totalAUM}</p>
+                            </div>
+                          )}
+                        </div>
+                        {/* Stats row */}
+                        {(profile.fraudRiskScore !== null || profile.priorDisputeCount !== null) && (
+                          <div className="grid grid-cols-2 gap-2">
+                            {profile.fraudRiskScore !== null && (
+                              <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                                <p className="mb-1 text-[10px] text-[#667085]">Fraud Risk Score</p>
+                                <p className={cn("text-[15px] font-bold leading-none mb-1.5",
+                                  profile.fraudRiskScore >= 70 ? "text-[#E32926]" : profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]",
+                                )}>
+                                  {profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                                </p>
+                                <div className="h-1.5 rounded-full bg-[#E4E7EC] overflow-hidden">
+                                  <div
+                                    className={cn("h-full rounded-full", profile.fraudRiskScore >= 70 ? "bg-[#E32926]" : profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                                    style={{ width: `${profile.fraudRiskScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                            {profile.priorDisputeCount !== null && (
+                              <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                                <p className="mb-1 text-[10px] text-[#667085]">Prior Disputes</p>
+                                <p className="text-[15px] font-bold leading-none text-[#111827]">{profile.priorDisputeCount === 0 ? "None" : profile.priorDisputeCount}</p>
+                                <p className={cn("mt-1 text-[10px]", profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085]")}>
+                                  Card: {profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {/* Tags */}
+                        {profile.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {profile.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center rounded-full border border-[#E4E7EC] bg-[#F9FAFB] px-2.5 py-0.5 text-[11px] font-medium text-[#344054]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Attempted Resolution — collapsible, white bg matching activity accordion */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+            <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
                   Case Overview
                 </p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
@@ -6242,7 +6641,7 @@ function IncomingAssignmentCard({
                     <ul className="space-y-1.5">
                       {aiOverview.actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] leading-snug text-[#344054]">
-                          <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#5C46B8]" />
+                          <span className="mt-[3px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#1260B0]" />
                           {action}
                         </li>
                       ))}
@@ -6254,24 +6653,24 @@ function IncomingAssignmentCard({
 
             {/* Copilot response card — appears after submission */}
             {copilotPhase !== "idle" && (
-              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+              <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setIsCopilotOpen((v) => !v)}
                   className="flex w-full items-center justify-between px-3 py-2.5 text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                    <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot Response</p>
                     {copilotPhase === "thinking" && (
                       <span className="flex items-center gap-0.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
                       </span>
                     )}
                   </div>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
                 </button>
                 <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                   <div className="overflow-hidden">
@@ -6289,7 +6688,7 @@ function IncomingAssignmentCard({
                           </button>
                           <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                             <div className="overflow-hidden">
-                              <div className="pt-1.5 space-y-1 border-l-2 border-[#E4DAFF] ml-1 pl-2.5">
+                              <div className="pt-1.5 space-y-1 border-l-2 border-[#C5DEF5] ml-1 pl-2.5">
                                 {REASONING_STEPS.slice(0, copilotReasoningVisible).map((step, i) => (
                                   <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>
                                 ))}
@@ -6299,7 +6698,7 @@ function IncomingAssignmentCard({
                         </div>
                       )}
                       {copilotPhase === "done" && (
-                        <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
+                        <div className="rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
                           <p className="text-[12px] text-[#344054] leading-relaxed">
                             Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
                           </p>
@@ -6312,8 +6711,8 @@ function IncomingAssignmentCard({
             )}
 
             {/* Ask Copilot input */}
-            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
               <input
                 type="text"
                 value={copilotQuery}
@@ -6322,31 +6721,34 @@ function IncomingAssignmentCard({
                 placeholder="Ask Copilot about this Case"
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
               />
-              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
           </div>
         </div>
-      </div>
+          </div>
+        </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
-        <button
-          type="button"
-          onClick={() => onMonitor(item)}
-          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
-        >
-          Review
-        </button>
-        <button
-          type="button"
-          onClick={() => onTakeover(item)}
-          className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
-        >
-          Takeover
-        </button>
-      </div>
+      {/* Actions — hidden after takeover (toast is in "transferred" / auto-dismiss state) */}
+      {item.statusLabel !== "transferred" && (
+        <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => onMonitor(item)}
+            className="flex-1 rounded-lg border border-[#D0D5DD] bg-white py-1.5 text-[12px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+          >
+            Review
+          </button>
+          <button
+            type="button"
+            onClick={() => onTakeover(item)}
+            className="flex-1 rounded-lg bg-[#166CCA] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#1260B0]"
+          >
+            Takeover
+          </button>
+        </div>
+      )}
 
     </div>
   );
@@ -6364,7 +6766,7 @@ function IncomingAgentChatCard({
   onDismiss: (notif: AgentChatNotification) => void;
 }) {
   return (
-    <div className="pointer-events-auto w-full overflow-hidden rounded-2xl border border-[#6E56CF]/20 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300">
+    <div className="pointer-events-auto w-full overflow-hidden rounded-2xl border border-[#166CCA]/20 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300">
 
 
       {/* Header */}
@@ -6379,7 +6781,7 @@ function IncomingAgentChatCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-[13px] font-semibold text-[#1D2939] leading-none">{notif.agentName}</span>
-            <span className="rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] leading-none">
+            <span className="rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2 py-0.5 text-[10px] font-semibold text-[#166CCA] leading-none">
               {notif.agentRole}
             </span>
           </div>
@@ -6397,7 +6799,7 @@ function IncomingAgentChatCard({
       {/* Message preview */}
       <div className="mx-4 mb-3 rounded-xl bg-[#F8F8F9] px-3 py-2.5">
         <div className="flex items-start gap-2">
-          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+          <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
           <p className="text-[12px] leading-[1.5] text-[#344054]">{notif.message}</p>
         </div>
       </div>
@@ -6414,7 +6816,7 @@ function IncomingAgentChatCard({
         <button
           type="button"
           onClick={() => onOpen(notif)}
-          className="flex-1 rounded-lg bg-[#6E56CF] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#5C46B8]"
+          className="flex-1 rounded-lg bg-[#166CCA] py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#1260B0]"
         >
           Open Chat
         </button>
@@ -6445,6 +6847,8 @@ function NotificationStack({
   onTakeover,
   onTransfer,
   onDismiss,
+  onApprove,
+  onApproveResolved,
   onChatOpen,
   onChatDismiss,
 }: {
@@ -6454,12 +6858,32 @@ function NotificationStack({
   onTakeover: (item: QueuePreviewItem) => void;
   onTransfer: (item: QueuePreviewItem) => void;
   onDismiss: (item: QueuePreviewItem) => void;
+  onApprove?: (item: QueuePreviewItem) => void;
+  onApproveResolved?: (item: QueuePreviewItem) => void;
   onChatOpen: (notif: AgentChatNotification) => void;
   onChatDismiss: (notif: AgentChatNotification) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track actual rendered card heights so expanded positions are accurate
+  // even when a card's content is taller than the static NOTIF_CARD_HEIGHT estimate.
+  const [cardHeights, setCardHeights] = useState<Record<string, number>>({});
+  const observerRefs = useRef<Map<string, ResizeObserver>>(new Map());
+  const assignCardRef = useCallback((key: string) => (el: HTMLDivElement | null) => {
+    observerRefs.current.get(key)?.disconnect();
+    if (!el) { observerRefs.current.delete(key); return; }
+    const ro = new ResizeObserver(([entry]) => {
+      const h = Math.round(
+        entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height,
+      );
+      setCardHeights((prev) => (prev[key] === h ? prev : { ...prev, [key]: h }));
+    });
+    ro.observe(el);
+    observerRefs.current.set(key, ro);
+  }, []);
+  useEffect(() => () => { observerRefs.current.forEach((ro) => ro.disconnect()); }, []);
 
   type StackItem =
     | { type: "assignment"; key: string; assignmentData: QueuePreviewItem }
@@ -6487,15 +6911,30 @@ function NotificationStack({
     leaveTimerRef.current = setTimeout(() => { setIsExpanded(false); setHoveredKey(null); }, 250);
   };
 
-  // Pre-compute each card's translateY in expanded mode.
-  // Index 0 (case) stays at the bottom (translateY=0); higher-indexed cards stack above it.
-  const expandedTranslateY = defaultOrder.map((_, i) => {
+  // Compute each card's translateY in expanded mode using actual measured heights
+  // (falling back to the static estimate until the ResizeObserver fires).
+  const rawExpandedTranslateY = defaultOrder.map((_, i) => {
     let offset = 0;
     for (let j = 0; j < i; j++) {
-      offset += NOTIF_CARD_HEIGHT[defaultOrder[j].type] + NOTIF_CARD_GAP;
+      const h = cardHeights[defaultOrder[j].key] ?? NOTIF_CARD_HEIGHT[defaultOrder[j].type];
+      offset += h + NOTIF_CARD_GAP;
     }
     return -offset;
   });
+
+  // Clamp: if the topmost card would extend above the top of the viewport (minus a 20px
+  // margin), shift the entire stack down just enough to keep it on-screen.
+  const VIEWPORT_MARGIN_PX = 20; // min gap from viewport top
+  const BOTTOM_ANCHOR_PX   = 20; // bottom-5 = 20px from viewport bottom
+  const topIdx = defaultOrder.length - 1;
+  const topCardHeight =
+    cardHeights[defaultOrder[topIdx]?.key] ??
+    NOTIF_CARD_HEIGHT[defaultOrder[topIdx]?.type ?? "assignment"];
+  const topCardTranslateY = rawExpandedTranslateY[topIdx] ?? 0;
+  const maxAllowedUp =
+    window.innerHeight - BOTTOM_ANCHOR_PX - VIEWPORT_MARGIN_PX - topCardHeight;
+  const clampShift = Math.max(0, -topCardTranslateY - maxAllowedUp);
+  const expandedTranslateY = rawExpandedTranslateY.map((y) => y + clampShift);
 
   const renderCard = (item: StackItem) =>
     item.type === "assignment" ? (
@@ -6505,6 +6944,8 @@ function NotificationStack({
         onTakeover={onTakeover}
         onTransfer={onTransfer}
         onDismiss={onDismiss}
+        onApprove={onApprove}
+        onApproveResolved={onApproveResolved}
       />
     ) : (
       <IncomingAgentChatCard
@@ -6548,6 +6989,7 @@ function NotificationStack({
         return (
           <div
             key={item.key}
+            ref={assignCardRef(item.key)}
             className="pointer-events-auto absolute bottom-0 left-0 right-0"
             style={{
               transform: `translateY(${translateY}px) scale(${scale})`,
@@ -6606,7 +7048,7 @@ function LeftQueueRail({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isOnControlCenter = location.pathname === "/control-panel";
+  const isOnControlCenter = location.pathname === "/control-center";
   const toggleLeftRailOpen = onToggle;
   const {
     closeFloatingAppSpacePanel,
@@ -6625,7 +7067,7 @@ function LeftQueueRail({
 
   // If the agent is on a top-level nav page (Desk / Inbox / Schedule / Settings), the
   // assignment icon should not appear "active" — the nav destination is the focus.
-  const isOnNavPage = ["/control-panel", "/inbox", "/schedule", "/settings"].includes(location.pathname);
+  const isOnNavPage = ["/control-center", "/queue", "/schedule", "/settings"].includes(location.pathname);
 
   const visibleQueuePreviewItems = useMemo(() => {
     const nextItems = visibleAssignments.map((item) => ({
@@ -6734,9 +7176,9 @@ function LeftQueueRail({
                   const pcCollapsed = ({
                     critical: { border: "rgba(240,68,56,0.15)", shadow: "rgba(240,68,56,0.12)", accent: "#E32926" },
                     high:     { border: "rgba(247,144,9,0.15)",  shadow: "rgba(247,144,9,0.12)",  accent: "#FFB800" },
-                    medium:   { border: "rgba(108,0,255,0.15)",  shadow: "rgba(108,0,255,0.12)",  accent: "#6E56CF" },
+                    medium:   { border: "rgba(22,108,202,0.15)",  shadow: "rgba(22,108,202,0.12)",  accent: "#166CCA" },
                     low:      { border: "rgba(54,157,63,0.15)",  shadow: "rgba(54,157,63,0.12)",  accent: "#208337" },
-                  } as Record<string, { border: string; shadow: string; accent: string }>)[priorityKey] ?? { border: "rgba(108,0,255,0.15)", shadow: "rgba(108,0,255,0.12)", accent: "#6E56CF" };
+                  } as Record<string, { border: string; shadow: string; accent: string }>)[priorityKey] ?? { border: "rgba(22,108,202,0.15)", shadow: "rgba(22,108,202,0.12)", accent: "#166CCA" };
 
                   const groupId = group.customerRecordId;
                   const isCardEngaged =
@@ -6847,8 +7289,8 @@ function LeftQueueRail({
             <TooltipProvider delayDuration={300}>
               <div className="flex w-full flex-col items-center gap-1 pt-2 pb-2">
                 {([
-                  { icon: Monitor,       path: "/control-panel", label: "Control Center" },
-                  { icon: Inbox,         path: "/inbox",         label: "Inbox"          },
+                  { icon: Monitor,       path: "/control-center", label: "Control Center" },
+                  { icon: Inbox,         path: "/queue",         label: "Queue"          },
                   { icon: CalendarCheck, path: "/schedule",      label: "Schedule"       },
                   { icon: Settings,      path: "/settings",      label: "Settings"       },
                 ] as const).map(({ icon: Icon, path, label }) => {
@@ -6866,7 +7308,7 @@ function LeftQueueRail({
                             className={cn(
                               "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
                               isActive
-                                ? "bg-[#6E56CF] text-white"
+                                ? "bg-[#166CCA] text-white"
                                 : "text-[#667085] dark:text-[#8898AB] hover:bg-[#EBEBEC] dark:hover:bg-[#1C2536] hover:text-[#1D2939] dark:hover:text-[#CBD5E1]",
                             )}
                           >
@@ -6955,8 +7397,8 @@ function LeftQueueRail({
             <div className="shrink-0 px-3 pb-3 pt-2">
               <nav className="space-y-0.5">
                 {[
-                  { label: "Control Center", icon: Monitor, path: "/control-panel" },
-                  { label: "Inbox",    icon: Inbox,         path: "/inbox"         },
+                  { label: "Control Center", icon: Monitor, path: "/control-center" },
+                  { label: "Queue",    icon: Inbox,         path: "/queue"         },
                   { label: "Schedule", icon: CalendarCheck, path: "/schedule"      },
                   { label: "Settings", icon: Settings,      path: "/settings"      },
                 ].map(({ label, icon: Icon, path }) => {
@@ -6970,7 +7412,7 @@ function LeftQueueRail({
                       className={cn(
                         "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                         isActive
-                          ? "bg-[#6E56CF] text-white"
+                          ? "bg-[#166CCA] text-white"
                           : "text-[#444444] dark:text-[#CBD5E1] hover:bg-[#EBEBEC] dark:hover:bg-[#1C2536] hover:text-[#1D2939] dark:hover:text-white",
                       )}
                     >
@@ -7155,6 +7597,8 @@ export default function Layout({ children }: LayoutProps) {
   };
   const [isLeftRailOpen, setIsLeftRailOpen] = useState(false);
   const [incomingNotifications, setIncomingNotifications] = useState<QueuePreviewItem[]>([]);
+  /** Increment to imperatively expand the Case Overview accordion in the active DockedConversationPanel. */
+  const [caseOverviewOpenTrigger, setCaseOverviewOpenTrigger] = useState(0);
 
   const [pendingMonitorCaseId, setPendingMonitorCaseId] = useState<string | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -7204,6 +7648,8 @@ export default function Layout({ children }: LayoutProps) {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             escalatedAt: getEscalationStart("jordan"),
+            aiConfidence: staticAssignments.find((s) => s.id === "static-11")?.aiConfidence,
+            aiConfidenceReason: staticAssignments.find((s) => s.id === "static-11")?.aiConfidenceReason,
           },
         ];
       });
@@ -7246,6 +7692,8 @@ export default function Layout({ children }: LayoutProps) {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             escalatedAt: getEscalationStart("sofia"),
+            aiConfidence: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidence,
+            aiConfidenceReason: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidenceReason,
           },
         ];
       });
@@ -7255,7 +7703,8 @@ export default function Layout({ children }: LayoutProps) {
   }, [isJordanResolved]);
 
   // Third escalation — Marcus Webb / Emily shipping error.
-  // Fires 8 seconds after Sofia's case is marked resolved.
+  // ControlPanelPage already waits 8 s before calling onSofiaCaseResolved(), so
+  // we fire the toast immediately here to stay in sync with the home-tab alert.
   const [isSofiaResolved, setIsSofiaResolved] = useState(false);
   useEffect(() => {
     if (!isSofiaResolved) return;
@@ -7295,7 +7744,7 @@ export default function Layout({ children }: LayoutProps) {
         ];
       });
       setEscalatedRailCount((n) => n + 1);
-    }, 8_000);
+    }, 0);
     return () => clearTimeout(timer);
   }, [isSofiaResolved]);
 
@@ -7627,7 +8076,7 @@ export default function Layout({ children }: LayoutProps) {
       agentName: "Sarah Kim",
       agentRole: "Senior Agent",
       agentInitials: "SK",
-      agentAvatarColor: "#6E56CF",
+      agentAvatarColor: "#166CCA",
       message: "Let me know when you're free to review Case 271",
       time: "2:14 PM",
     },
@@ -7708,6 +8157,14 @@ export default function Layout({ children }: LayoutProps) {
       initialSelectedAssignment,
     [assignmentItemsById, selectedAssignmentId],
   );
+
+  // The "transferred" notification for the currently-active case is shown as a fixed portal
+  // at top-3 left-3 (mirrors NotificationStack pattern) rather than in the bottom-right stack.
+  // Must be declared after selectedAssignment to avoid temporal dead zone.
+  const activeCaseTransferredItem = incomingNotifications.find(
+    (n) => n.statusLabel === "transferred" && n.customerRecordId === selectedAssignment.customerRecordId,
+  ) ?? null;
+
   const visibleAssignments = useMemo(
     () => visibleAssignmentIds.map((assignmentId) => assignmentItemsById[assignmentId]).filter(Boolean) as QueuePreviewItem[],
     [assignmentItemsById, visibleAssignmentIds],
@@ -7737,7 +8194,7 @@ export default function Layout({ children }: LayoutProps) {
   const railAssignments = visibleAssignments.filter((a) => assignmentStatusesById[a.id] !== "parked");
   useEffect(() => {
     if (railAssignments.length === 0 && isActivityRoute) {
-      navigate("/control-panel");
+      navigate("/control-center");
     }
   }, [railAssignments.length, isActivityRoute, navigate]);
 
@@ -8920,13 +9377,124 @@ export default function Layout({ children }: LayoutProps) {
   const removeIncoming = (assignmentId: string) =>
     setIncomingNotifications((prev) => prev.filter((n) => n.id !== assignmentId));
 
-  /** Dismiss the escalation toast that belongs to a given customer (if any). */
+  /** Dismiss the escalation toast that belongs to a given customer (if any).
+   * Preserves "transferred" notifications — those should stay visible after takeover. */
   const dismissIncomingByCustomer = (customerRecordId: string) =>
-    setIncomingNotifications((prev) => prev.filter((n) => n.customerRecordId !== customerRecordId));
+    setIncomingNotifications((prev) =>
+      prev.filter((n) => n.customerRecordId !== customerRecordId || n.statusLabel === "transferred"),
+    );
+
+  /**
+   * Always shows a "transferred" handoff toast for the given item, regardless of whether
+   * the original toast was visible or has already been dismissed.
+   * Removes any existing notification for the same customer first to avoid duplicates,
+   * then pushes a fresh one with statusLabel "transferred".
+   *
+   * Accepts minimal data and builds a full QueuePreviewItem with sensible defaults.
+   */
+  const pushTransferredToast = useCallback((data: {
+    name: string;
+    customerRecordId: string;
+    customerId?: string;
+    id?: string;
+    channel: AssignmentChannel;
+    label?: string;
+    priority?: string;
+    preview?: string;
+  }) => {
+    // Compute initials from name: first letter of first word + first letter of second word
+    const parts = data.name.split(" ").filter(p => p.length > 0);
+    const initials = (parts[0]?.[0] ?? "").toUpperCase() + (parts[1]?.[0] ?? "").toUpperCase();
+
+    setIncomingNotifications((prev) => {
+      const filtered = prev.filter((n) => n.customerRecordId !== data.customerRecordId);
+      const id = data.id ?? `transferred-${data.customerRecordId}-${Date.now()}`;
+      const now = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      const dateStr = new Date().toLocaleDateString([], { month: "short", day: "numeric" });
+
+      const fullItem: QueuePreviewItem = {
+        id,
+        customerRecordId: data.customerRecordId,
+        customerId: data.customerId ?? "",
+        channel: data.channel,
+        name: data.name,
+        initials,
+        label: data.label,
+        priority: data.priority ?? "Medium",
+        preview: data.preview ?? "",
+        lastUpdated: dateStr,
+        time: now,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        icon: MessageCircle,
+        badgeColor: "#E32926",
+        priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+        statusLabel: "transferred",
+      };
+
+      return [...filtered, fullItem];
+    });
+  }, []);
+
+  /**
+   * Ref that caches the original QueuePreviewItem when the agent opens the review modal
+   * (which removes it from incomingNotifications). Used to rebuild the transferred toast
+   * when takeover happens via the modal.
+   */
+  const pendingTransferItemRef = useRef<QueuePreviewItem | null>(null);
+
+  /** Called when the agent approves from the toast and the animation fully resolves. */
+  const resolveIncomingByApprove = (item: QueuePreviewItem) => {
+    const sa = staticAssignments.find(
+      (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+    );
+    // Mark resolved in the shared queue-state so ControlPanelPage updates on next render
+    pendingResolvedIds.add(sa?.id ?? item.id);
+    setEscalatedRailCount((n) => Math.max(0, n - 1));
+    // Advance the escalation chain for each known customer record
+    if (item.customerRecordId === "jordan") setIsJordanResolved(true);
+    if (item.customerRecordId === "sofia") setIsSofiaResolved(true);
+    // Flip the item's statusLabel in the notification list so the toast header
+    // immediately reflects the resolved state without needing to dismiss first
+    setIncomingNotifications((prev) =>
+      prev.map((n) => n.id === item.id ? { ...n, statusLabel: "resolved" } : n)
+    );
+  };
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
+    // Cache the original item so that if the agent takes over via the modal we can
+    // push a transferred toast (the notification is removed from the list below).
+    pendingTransferItemRef.current = item;
     removeIncoming(item.id);
     // Always open the monitor modal on the current page — no navigation required
+    const sa = staticAssignments.find(
+      (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+    );
+    // If the case was already resolved via toast Approve, open the modal in resolved state
+    const effectiveStatus = item.statusLabel === "resolved" ? "resolved"
+      : item.statusLabel === "Escalated" ? "escalated"
+      : (sa?.status ?? "open");
+    setEscalatedToastModal({
+      id: sa?.id ?? item.id,
+      name: item.name,
+      customerId: item.customerId,
+      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
+      channel: item.channel,
+      priority: item.priority,
+      botType: sa?.botType ?? "Service Bot",
+      waitTime: item.time,
+      preview: item.preview,
+      customerContext: sa?.customerContext,
+      aiOverview: sa?.aiOverview ?? { actions: [] },
+      status: effectiveStatus,
+      escalatedAt: item.escalatedAt,
+    });
+  };
+
+  // Approve directly from the toast — opens the modal with autoApprove so the sequence plays immediately
+  const approveIncomingAssignment = (item: QueuePreviewItem) => {
+    removeIncoming(item.id);
     const sa = staticAssignments.find(
       (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
     );
@@ -8945,11 +9513,13 @@ export default function Layout({ children }: LayoutProps) {
       aiOverview: sa?.aiOverview ?? { actions: [] },
       status: effectiveStatus,
       escalatedAt: item.escalatedAt,
+      autoApprove: true,
     });
   };
 
   const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
-    removeIncoming(item.id);
+    // Always show the handoff toast — even if the original toast was already dismissed.
+    pushTransferredToast(item);
     // Find the matching static assignment so acceptedStaticsStore is kept in sync
     const sa = staticAssignments.find(
       (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
@@ -8958,7 +9528,7 @@ export default function Layout({ children }: LayoutProps) {
     // (prevents double-entry when the live resolved assignment appears in resolvedNormalised).
     if (sa) pendingQueueRejections.add(sa.id);
     // Call acceptIssue directly — ONE navigation to /activity so the page
-    // fade-in animation fires cleanly (double navigation via /control-panel breaks it).
+    // fade-in animation fires cleanly (double navigation via /control-center breaks it).
     const customerRecordId = sa?.customerRecordId ?? item.customerRecordId;
     const channel = (item.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
     const baseConversation = customerRecordId
@@ -9047,7 +9617,14 @@ export default function Layout({ children }: LayoutProps) {
     };
 
     const conversationStateKey = getConversationStateKey(newItem.id);
-    const conversationState = data.initialConversation ?? createCustomConversationState(data.name, data.channel, data.preview);
+    // Check the module-level handoff store first — this is written synchronously by
+    // TakeoverButton.handleConfirm before the navigation fires, so it is always up-to-date
+    // regardless of React state batching. Clear after reading so it is only applied once.
+    const pendingHandoff = data.customerRecordId
+      ? pendingHandoffConversations.get(data.customerRecordId)
+      : undefined;
+    if (pendingHandoff && data.customerRecordId) pendingHandoffConversations.delete(data.customerRecordId);
+    const conversationState = pendingHandoff ?? data.initialConversation ?? createCustomConversationState(data.name, data.channel, data.preview);
 
     setAssignmentItemsById((current) => ({ ...current, [newItem.id]: newItem }));
     setVisibleAssignmentIds((current) => [newItem.id, ...current]);
@@ -9649,6 +10226,7 @@ export default function Layout({ children }: LayoutProps) {
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       onJordanCaseResolved: () => setIsJordanResolved(true),
       onSofiaCaseResolved: () => setIsSofiaResolved(true),
+      pushTransferredToast,
       isConversationPanelOpen,
       isConversationPopunderOpen,
       activeConversationChannel,
@@ -9721,6 +10299,16 @@ export default function Layout({ children }: LayoutProps) {
       openCustomerConversation,
       openRecentInteractionAssignment,
       setConversationState: handleConversationStateChange,
+      setConversationStateForAssignment: (assignmentId: string, conversation: SharedConversationData) => {
+        const key = getConversationStateKey(assignmentId);
+        // Also check the module-level handoff store — in case the caller passed
+        // the override but the pendingHandoffConversations store has a fresher copy
+        // (written synchronously by TakeoverButton just before this is called).
+        const customerRecordId = assignmentItemsById[assignmentId]?.customerRecordId;
+        const pendingHandoff = customerRecordId ? pendingHandoffConversations.get(customerRecordId) : undefined;
+        if (pendingHandoff && customerRecordId) pendingHandoffConversations.delete(customerRecordId);
+        setConversationStatesByKey((current) => ({ ...current, [key]: pendingHandoff ?? conversation }));
+      },
       closeRightPanel: () => {
         setDeskPanelSelection(null);
         setActiveRightPanel(null);
@@ -9881,7 +10469,7 @@ export default function Layout({ children }: LayoutProps) {
               onClick={() => setIsLeftRailOpen((v) => !v)}
               aria-label={isLeftRailOpen ? "Collapse cases rail" : "Expand cases rail"}
               aria-pressed={isLeftRailOpen}
-              className="flex h-10 w-[30px] items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#6E56CF]"
+              className="flex h-10 w-[30px] items-center justify-center rounded-xl text-[#333333] transition-colors hover:text-[#166CCA]"
             >
               <PanelLeft className="h-4 w-4" />
             </button>
@@ -9933,7 +10521,7 @@ export default function Layout({ children }: LayoutProps) {
                         }}
                         className="flex w-full min-w-0 items-start gap-3 rounded-xl px-3 py-3 text-left hover:bg-[#F8F8F9] transition-colors"
                       >
-                        <span className={cn("mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full", isActiveWorkspace ? "bg-[#6E56CF]" : "bg-black/10")} />
+                        <span className={cn("mt-1 h-2.5 w-2.5 flex-shrink-0 rounded-full", isActiveWorkspace ? "bg-[#166CCA]" : "bg-black/10")} />
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-semibold text-[#333333]">{workspace.name}</div>
                           {workspace.description ? (
@@ -10083,8 +10671,8 @@ export default function Layout({ children }: LayoutProps) {
               onClick={() => isCopilotViewPopunderOpen ? setIsCopilotViewPopunderOpen(false) : openHeaderAppPanel("copilot")}
               className={`flex h-7 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors ${
                 isCopilotViewPopunderOpen
-                  ? "border-[#6E56CF]/30 bg-[#6E56CF] text-white hover:bg-[#5C46B8]"
-                  : "border-[#6E56CF]/25 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#E0DBF5]"
+                  ? "border-[#166CCA]/30 bg-[#166CCA] text-white hover:bg-[#1260B0]"
+                  : "border-[#166CCA]/25 bg-[#EBF4FD] text-[#166CCA] hover:bg-[#C5DEF5]"
               }`}
             >
               <Sparkles className="h-3.5 w-3.5 shrink-0" />
@@ -10099,7 +10687,7 @@ export default function Layout({ children }: LayoutProps) {
           >
             <button
               type="button"
-              className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#E0DBF5] focus:outline-none"
+              className="flex min-h-8 items-center gap-2 rounded-lg border border-black/10 bg-white px-3 py-1 text-[#333333] transition-colors hover:bg-[#C5DEF5] focus:outline-none"
             >
               <span className="relative shrink-0" aria-hidden="true">
                 <img
@@ -10214,8 +10802,8 @@ export default function Layout({ children }: LayoutProps) {
                   <rect x="15" y="13" width="18" height="2.5" rx="1.25" fill="#D0D5DD"/>
                   <rect x="15" y="19" width="13" height="2" rx="1" fill="#E4E7EC"/>
                   <rect x="15" y="24" width="16" height="2" rx="1" fill="#E4E7EC"/>
-                  <circle cx="35" cy="34" r="8" fill="#F2F0FA" stroke="#C8BFF0" strokeWidth="1.5"/>
-                  <path d="M32 34l2 2 4-4" stroke="#6E56CF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="35" cy="34" r="8" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="1.5"/>
+                  <path d="M32 34l2 2 4-4" stroke="#166CCA" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div>
@@ -10224,9 +10812,9 @@ export default function Layout({ children }: LayoutProps) {
                   You're all caught up. New assignments will appear here automatically when they become available.
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-3.5 py-1.5">
+              <div className="flex items-center gap-1.5 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-3.5 py-1.5">
                 <span className="h-2 w-2 rounded-full bg-[#208337] animate-pulse" />
-                <span className="text-[12px] font-medium text-[#6E56CF]">Listening for new assignments</span>
+                <span className="text-[12px] font-medium text-[#166CCA]">Listening for new assignments</span>
               </div>
             </div>
           </div>
@@ -10327,7 +10915,7 @@ export default function Layout({ children }: LayoutProps) {
                 isCallDisabled={status === "In a Call" || status !== "Available"}
                 onClose={closeConversationPanel}
                 showTrailingGap={false}
-                initialSummaryOpen={!closedSummaryIds.has(selectedAssignment.id)}
+                initialSummaryOpen={false}
                 onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
                 isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
                 onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
@@ -10370,6 +10958,11 @@ export default function Layout({ children }: LayoutProps) {
                       y: event.clientY - nextPosition.y,
                     },
                   });
+                }}
+                caseOverviewOpenTrigger={caseOverviewOpenTrigger}
+                activeCaseTransferredItem={activeCaseTransferredItem}
+                onDismissActiveCaseToast={() => {
+                  if (activeCaseTransferredItem) removeIncoming(activeCaseTransferredItem.id);
                 }}
               />
             ) : null}
@@ -10467,7 +11060,7 @@ export default function Layout({ children }: LayoutProps) {
               onClose={closeConversationPanel}
               showTrailingGap={isDeskCustomerInfoVisible || shouldCombineDockedCustomerAndDeskPanels || isMainCanvasVisible}
               showTaskSummary={taskSummaryIds.has(selectedAssignment.id)}
-              initialSummaryOpen={!closedSummaryIds.has(selectedAssignment.id)}
+              initialSummaryOpen={false}
                 onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
               isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
               onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
@@ -10509,6 +11102,11 @@ export default function Layout({ children }: LayoutProps) {
                     y: event.clientY - nextPosition.y,
                   },
                 });
+              }}
+              caseOverviewOpenTrigger={caseOverviewOpenTrigger}
+              activeCaseTransferredItem={activeCaseTransferredItem}
+              onDismissActiveCaseToast={() => {
+                if (activeCaseTransferredItem) removeIncoming(activeCaseTransferredItem.id);
               }}
             />
             <DockedCustomerInfoPanel
@@ -10800,15 +11398,20 @@ export default function Layout({ children }: LayoutProps) {
       )}
 
       <NotificationStack
-        assignmentItems={incomingNotifications}
+        assignmentItems={incomingNotifications.filter((n) => n.statusLabel !== "transferred")}
         chatItems={incomingChatNotifications}
         onMonitor={monitorIncomingAssignment}
         onTakeover={takeoverIncomingAssignment}
         onTransfer={transferIncomingAssignment}
-        onDismiss={(item) => removeIncoming(item.id)}
+        onDismiss={(item) => {
+          removeIncoming(item.id);
+        }}
+        onApprove={approveIncomingAssignment}
+        onApproveResolved={resolveIncomingByApprove}
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
       />
+
 
       {/* Global escalated case modal — renders on any page without navigating away */}
       {escalatedToastModal && (
@@ -10822,6 +11425,25 @@ export default function Layout({ children }: LayoutProps) {
             // Remove from ControlPanelPage queue on next render — use static ID so the filter matches
             pendingQueueRejections.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedToastModal(null);
+            // Always show the handoff toast — use the cached item if available (preserves
+            // all icon/badge fields), otherwise reconstruct from the modal data + static assignment.
+            const cachedItem = pendingTransferItemRef.current;
+            if (cachedItem?.customerRecordId === escalatedToastModal.customerRecordId) {
+              pushTransferredToast(cachedItem);
+              pendingTransferItemRef.current = null;
+            } else {
+              // Reconstruct a minimal QueuePreviewItem from what we have
+              pushTransferredToast({
+                id: escalatedToastModal.id,
+                name: escalatedToastModal.name,
+                customerId: escalatedToastModal.customerId,
+                customerRecordId: escalatedToastModal.customerRecordId ?? "",
+                channel: escalatedToastModal.channel as AssignmentChannel,
+                label: escalatedToastModal.botType ?? "Service Bot",
+                priority: escalatedToastModal.priority,
+                preview: escalatedToastModal.preview,
+              });
+            }
             // For Marcus's case, pre-populate the reply draft when the agent takes over
             const takeoverConversation = escalatedToastModal.customerRecordId === "marcus"
               ? { ...conversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
@@ -11020,7 +11642,7 @@ export default function Layout({ children }: LayoutProps) {
                         onClick={() => setTrendSlide(i)}
                         className={cn(
                           "rounded-full transition-all duration-200",
-                          i === trendSlide ? "h-1.5 w-5 bg-[#6E56CF]" : "h-1.5 w-1.5 bg-[#D0D5DD] dark:bg-[#2A3448] hover:bg-[#C8BFF0]"
+                          i === trendSlide ? "h-1.5 w-5 bg-[#166CCA]" : "h-1.5 w-1.5 bg-[#D0D5DD] dark:bg-[#2A3448] hover:bg-[#BFDBFE]"
                         )}
                       />
                     ))}
@@ -11037,7 +11659,7 @@ export default function Layout({ children }: LayoutProps) {
                   setStatus("Available");
                   setStatusStartedAt(Date.now());
                 })}
-                className="flex-1 rounded-xl bg-[#6E56CF] py-2.5 text-[14px] font-semibold text-white shadow-[0_1px_3px_rgba(108,0,255,0.20)] hover:bg-[#5C46B8] active:bg-[#4A369F] transition-colors"
+                className="flex-1 rounded-xl bg-[#166CCA] py-2.5 text-[14px] font-semibold text-white shadow-[0_1px_3px_rgba(22,108,202,0.20)] hover:bg-[#1260B0] active:bg-[#0D4F9A] transition-colors"
               >
                 Go Available
               </button>

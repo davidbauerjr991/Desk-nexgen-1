@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, AudioLines, Bot, Check, ChevronDown, ChevronLeft, ChevronRight, Loader2, MoreHorizontal, NotebookPen, Paperclip, Pause, Play, Plus, Send, SlidersHorizontal, Ticket, Trash2, X } from "lucide-react";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -23,6 +24,12 @@ export type ConversationMessage = {
   sentiment?: "frustrated" | "critical";
   isInternal?: boolean;
   ticket?: CustomerTicket;
+  /**
+   * When set, identifies the bot (e.g. "Jacob", "Aria", "Emily") that originally sent
+   * this message before a human agent took over. The bot's avatar is shown instead of
+   * the human agent's avatar.
+   */
+  author?: string;
 };
 
 export type ConversationStatus = "open" | "pending";
@@ -141,8 +148,8 @@ const MESSAGE_TAG_DEFS = [
   {
     id: "share",
     label: "Share",
-    activeClass: "bg-[#F9F5FF] text-[#6941C6] border-[#E9D7FE]",
-    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#F9F5FF] hover:text-[#6941C6] hover:border-[#E9D7FE]",
+    activeClass: "bg-[#F9F5FF] text-[#1260B0] border-[#E9D7FE]",
+    ghostClass: "bg-white text-[#98A2B3] border-[#E4E7EC] hover:bg-[#F9F5FF] hover:text-[#1260B0] hover:border-[#E9D7FE]",
   },
 ] as const;
 
@@ -842,7 +849,7 @@ function getTicketPriorityDotClassName(priority: CustomerTicket["priority"]) {
     case "Low":
       return "bg-[#208337]";
     case "Medium":
-      return "bg-[#6E56CF]";
+      return "bg-[#166CCA]";
     case "High":
       return "bg-[#FFB800]";
     default:
@@ -886,7 +893,7 @@ function InlineTicketRecord({
       >
         <div className="flex w-full items-start justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6E56CF]">
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#166CCA]">
               <Ticket className="h-3 w-3" />
               {ticket.id}
             </span>
@@ -1100,7 +1107,9 @@ export default function ConversationPanel({
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
-  const agentFullName = customerRecord?.overview.assignedAgent ?? "Agent";
+  // Always show Jeff Comstock as the agent — the logged-in user is always JC regardless
+  // of which agent the customer database has listed as the assigned agent.
+  const agentFullName = "Jeff Comstock";
 
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
@@ -1114,11 +1123,15 @@ export default function ConversationPanel({
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [narrowTab, setNarrowTab] = useState<"conversation" | "copilot">("conversation");
   const [footerHeight, setFooterHeight] = useState(0);
+  // Tracks the bounding rect of the container so the portalled footer can be
+  // positioned correctly with position:fixed (escaping stacking-context isolation).
+  const [containerBounds, setContainerBounds] = useState<{ left: number; width: number; bottom: number } | null>(null);
 
   const previousMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
+  const [isInputHovered, setIsInputHovered] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [suggestionRefreshKey, setSuggestionRefreshKey] = useState(0);
   const [suggestionEditPrompt, setSuggestionEditPrompt] = useState("");
@@ -1182,7 +1195,14 @@ export default function ConversationPanel({
   // Internal notes are agent-side records, not real conversation turns — ignore them
   // when deciding whether the latest turn was from the customer.
   const latestNonInternalMessage = [...conversation.messages].reverse().find((m) => !m.isInternal) ?? null;
-  const latestMessageIsCustomer = latestNonInternalMessage?.role === "customer";
+  // Suggestions should appear when:
+  //   a) the latest turn is from the customer, OR
+  //   b) the latest turn is a bot-authored handoff message (author field set) — this happens
+  //      immediately after a takeover, and the human agent still needs to compose their first reply.
+  // Suppress suggestions only when the human agent themselves sent the most recent message.
+  const latestMessageIsCustomer =
+    latestNonInternalMessage?.role === "customer" ||
+    (latestNonInternalMessage?.role === "agent" && !!latestNonInternalMessage?.author);
   const suggestionVariants = forcedSuggestionVariants && forcedSuggestionVariants.length > 0
     ? forcedSuggestionVariants
     : (latestCustomerMessage ? getInlineSuggestionVariants(conversation, latestCustomerMessage) : []);
@@ -1196,6 +1216,8 @@ export default function ConversationPanel({
     latestCustomerMessage !== null &&
     (inlineSuggestion !== null || !!postActionSuggestion) &&
     !conversation.isCustomerTyping;
+  // True when the suggestion tray is actually visible above the input
+  const showingSuggestions = shouldShowSuggestion && isDraftFocused;
   const suggestionActions = useMemo(() => {
     if (!inlineSuggestion || !latestCustomerMessage || !customerId) {
       return [] as SuggestionAction[];
@@ -1246,6 +1268,27 @@ export default function ConversationPanel({
     });
     observer.observe(container);
     return () => observer.disconnect();
+  }, []);
+
+  // Track container bounds so the portalled footer can be placed correctly with position:fixed.
+  // We use useLayoutEffect to update synchronously before paint to avoid position flicker.
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const update = () => {
+      const rect = container.getBoundingClientRect();
+      setContainerBounds({ left: rect.left, width: rect.width, bottom: rect.bottom });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(container);
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
   }, []);
 
   // Track footer height so the overlay stops exactly where the footer begins.
@@ -1864,6 +1907,7 @@ export default function ConversationPanel({
 
     setDraft("");
     onConversationChange?.(nextConversation, replyChannel);
+    textareaRef.current?.blur();
   };
 
   return (
@@ -1880,20 +1924,20 @@ export default function ConversationPanel({
                 onClick={() => setNarrowTab(tab)}
                 className={cn(
                   "relative flex items-center gap-1.5 px-5 py-2.5 text-[13px] font-medium capitalize transition-colors",
-                  narrowTab === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
+                  narrowTab === tab ? "text-[#166CCA]" : "text-[#7A7A7A] hover:text-[#333333]",
                 )}
               >
                 {tab}
                 {tab === "copilot" && aiNewCount > 0 && (
                   <span className={cn(
                     "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold",
-                    narrowTab === "copilot" ? "bg-[#F2F0FA] text-[#6E56CF]" : "bg-[#F2F4F7] text-[#667085]",
+                    narrowTab === "copilot" ? "bg-[#EBF4FD] text-[#166CCA]" : "bg-[#F2F4F7] text-[#667085]",
                   )}>
                     {aiNewCount}
                   </span>
                 )}
                 {narrowTab === tab && (
-                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />
                 )}
               </button>
             ))}
@@ -1903,8 +1947,8 @@ export default function ConversationPanel({
         {/* Conversation view — hidden on copilot tab when narrow */}
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
-          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={scrollTopPadding ? { paddingTop: scrollTopPadding } : undefined}>
-            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-[1280px]" : "w-full")}>
+          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
+            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-[1024px]" : "w-full")}>
             <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -2004,8 +2048,21 @@ export default function ConversationPanel({
                   const appliedTags = messageTags[message.id] ?? [];
                   const isMsgAgent = message.role === "agent";
                   const isMsgLatest = message.id === latestNonInternalMessage?.id;
-                  const msgName = isMsgAgent ? agentFullName : conversation.customerName;
-                  const msgInitials = msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                  // Bot messages have message.author set to the bot's name (e.g. "Jacob", "Aria", "Emily").
+                  // These use the bot's avatar rather than the human agent's avatar.
+                  const isBotMessage = isMsgAgent && !!message.author;
+                  const BOT_AVATARS: Record<string, string> = {
+                    Aria: "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200",
+                    Jacob: "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200",
+                    Emily: "/emily-avatar.jpg",
+                  };
+                  const effectiveAvatarUrl = isBotMessage
+                    ? (BOT_AVATARS[message.author!] ?? null)
+                    : agentAvatarUrl ?? null;
+                  const msgName = isMsgAgent && !isBotMessage ? agentFullName : conversation.customerName;
+                  const msgInitials = isBotMessage
+                    ? (message.author ?? "").slice(0, 2).toUpperCase()
+                    : msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                   return (
                   <div
                     key={message.id}
@@ -2061,7 +2118,7 @@ export default function ConversationPanel({
                     {!message.isInternal && (
                       <div className={cn("group/msg flex items-start gap-2.5 py-1", isMsgAgent && "justify-end")}>
                         {!isMsgAgent && (
-                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+                          <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#EBF4FD] border border-[#BFDBFE] flex items-center justify-center text-[10px] font-bold text-[#166CCA] select-none">
                             {msgInitials}
                           </div>
                         )}
@@ -2071,8 +2128,8 @@ export default function ConversationPanel({
                             <div className={cn(
                               "px-4 pt-2.5 pb-2",
                               isMsgAgent
-                                ? "rounded-2xl rounded-tr-sm bg-[#6E56CF]"
-                                : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isMsgLatest && "ring-2 ring-[#6E56CF]/30"),
+                                ? "rounded-2xl rounded-tr-sm bg-[#166CCA]"
+                                : cn("rounded-2xl rounded-tl-sm bg-[#F2F4F7]", isMsgLatest && "ring-2 ring-[#166CCA]/30"),
                             )}>
                               <p className={cn("text-[13px] leading-relaxed", isMsgAgent ? "text-white" : "text-[#344054]")}>
                                 {message.content}
@@ -2132,14 +2189,14 @@ export default function ConversationPanel({
                           )}
                         </div>
                         {isMsgAgent && (
-                          agentAvatarUrl ? (
+                          effectiveAvatarUrl ? (
                             <img
-                              src={agentAvatarUrl}
-                              alt="AI agent avatar"
+                              src={effectiveAvatarUrl}
+                              alt={isBotMessage ? `${message.author} avatar` : "Agent avatar"}
                               className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover select-none"
                             />
                           ) : (
-                            <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#E0DBF5] flex items-center justify-center text-[10px] font-bold text-[#5C46B8] select-none">
+                            <div className="shrink-0 mt-0.5 h-7 w-7 rounded-full bg-[#C5DEF5] flex items-center justify-center text-[10px] font-bold text-[#1260B0] select-none">
                               {msgInitials}
                             </div>
                           )
@@ -2181,7 +2238,7 @@ export default function ConversationPanel({
                                 onClick={() => handleToggleTaskCheck(task.id)}
                                 className={cn(
                                   "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                                  isChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                                  isChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                                 )}
                               >
                                 {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -2268,7 +2325,7 @@ export default function ConversationPanel({
                         <button
                           type="button"
                           onClick={handlePerformAllActions}
-                          className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Perform All Actions
                         </button>
@@ -2278,7 +2335,7 @@ export default function ConversationPanel({
                     <div className="border-t border-black/[0.06] px-3 py-2.5">
                       <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                         {inlineActionThinking ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#6E56CF]" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#166CCA]" />
                         ) : (
                           <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
                         )}
@@ -2295,7 +2352,7 @@ export default function ConversationPanel({
                           type="button"
                           onClick={handleInlineActionSubmit}
                           disabled={!inlineActionInput.trim() || inlineActionThinking}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EBF4FD] text-[#166CCA] transition-colors hover:bg-[#C5DEF5] disabled:pointer-events-none disabled:opacity-40"
                         >
                           <Send className="h-3 w-3" />
                         </button>
@@ -2315,7 +2372,7 @@ export default function ConversationPanel({
                     {(() => {
                       const initials = conversation.customerName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
                       return (
-                        <div className="mt-0.5 shrink-0 h-7 w-7 rounded-full bg-[#F2F0FA] border border-[#C8BFF0] flex items-center justify-center text-[10px] font-bold text-[#6E56CF] select-none">
+                        <div className="mt-0.5 shrink-0 h-7 w-7 rounded-full bg-[#EBF4FD] border border-[#BFDBFE] flex items-center justify-center text-[10px] font-bold text-[#166CCA] select-none">
                           {initials}
                         </div>
                       );
@@ -2339,18 +2396,6 @@ export default function ConversationPanel({
           </div>
         </div>
 
-        {!isVoiceChannel && !isEmailChannel && newMessagesCount > 0 && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center px-6">
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleJumpToLatest}
-              className="pointer-events-auto rounded-full bg-[#111827] px-4 text-white shadow-lg hover:bg-[#1F2937]"
-            >
-              {newMessagesCount} new {newMessagesCount === 1 ? "message" : "messages"}
-            </Button>
-          </div>
-        )}
       </div>
         )} {/* end conversation view conditional */}
 
@@ -2386,7 +2431,7 @@ export default function ConversationPanel({
                                   "h-9 rounded-lg px-4",
                                   isSuggestionAdded
                                     ? "bg-[#EFFBF1] text-[#208337] hover:bg-[#EFFBF1]"
-                                    : "bg-[#6E56CF] text-white hover:bg-[#0A5E92]",
+                                    : "bg-[#166CCA] text-white hover:bg-[#0A5E92]",
                                 )}
                                 onClick={handleUseSuggestion}
                                 disabled={isSuggestionAdded}
@@ -2432,7 +2477,7 @@ export default function ConversationPanel({
                                 onClick={() => handleToggleTaskCheck(task.id)}
                                 className={cn(
                                   "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                                  isChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                                  isChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                                 )}
                               >
                                 {isChecked && <Check className="h-2.5 w-2.5 text-white" />}
@@ -2521,7 +2566,7 @@ export default function ConversationPanel({
                         <button
                           type="button"
                           onClick={handlePerformAllActions}
-                          className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Perform All Actions
                         </button>
@@ -2531,7 +2576,7 @@ export default function ConversationPanel({
                     <div className="border-t border-black/[0.06] px-3 py-2.5">
                       <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                         {inlineActionThinking ? (
-                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#6E56CF]" />
+                          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-[#166CCA]" />
                         ) : (
                           <Bot className="h-3.5 w-3.5 shrink-0 text-[#AAAAAA]" />
                         )}
@@ -2548,7 +2593,7 @@ export default function ConversationPanel({
                           type="button"
                           onClick={handleInlineActionSubmit}
                           disabled={!inlineActionInput.trim() || inlineActionThinking}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#EBF4FD] text-[#166CCA] transition-colors hover:bg-[#C5DEF5] disabled:pointer-events-none disabled:opacity-40"
                         >
                           <Send className="h-3 w-3" />
                         </button>
@@ -2574,7 +2619,7 @@ export default function ConversationPanel({
             <div className="shrink-0 border-t border-black/[0.06] p-3">
               <div className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
                 {copilotThinking ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#6E56CF]" />
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-[#166CCA]" />
                 ) : (
                   <Bot className="h-4 w-4 shrink-0 text-[#AAAAAA]" />
                 )}
@@ -2591,7 +2636,7 @@ export default function ConversationPanel({
                   type="button"
                   onClick={handleCopilotSubmit}
                   disabled={!copilotInput.trim() || copilotThinking}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F2F0FA] text-[#6E56CF] transition-colors hover:bg-[#E0DBF5] disabled:pointer-events-none disabled:opacity-40"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EBF4FD] text-[#166CCA] transition-colors hover:bg-[#C5DEF5] disabled:pointer-events-none disabled:opacity-40"
                 >
                   <Send className="h-3.5 w-3.5" />
                 </button>
@@ -2600,12 +2645,51 @@ export default function ConversationPanel({
           </div>
         )}
 
-      {!hideInput && !isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
-        <>
-          {/* Live response input — relative so suggestion cards can overlay above it */}
-          <div ref={footerRef} className="relative z-[60] shrink-0 border-t border-border bg-background px-4 py-3">
+      {/* "N new messages" chip — portalled so it escapes stacking context and always sits
+          above the portalled footer. z-[10001] keeps it above the focused footer (10000). */}
+      {!isVoiceChannel && !isEmailChannel && newMessagesCount > 0 && containerBounds && createPortal(
+        <div
+          className="pointer-events-none flex justify-center px-6"
+          style={{
+            position: "fixed",
+            left: containerBounds.left,
+            width: containerBounds.width,
+            bottom: window.innerHeight - containerBounds.bottom + 96,
+            zIndex: 10001,
+          }}
+        >
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleJumpToLatest}
+            className="pointer-events-auto rounded-full bg-[#111827] px-4 text-white shadow-lg hover:bg-[#1F2937]"
+          >
+            {newMessagesCount} new {newMessagesCount === 1 ? "message" : "messages"}
+          </Button>
+        </div>,
+        document.body,
+      )}
 
-            {/* Suggested response cards — absolutely positioned above the input, only visible when input is focused */}
+      {!hideInput && !isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && containerBounds && createPortal(
+        <>
+          {/* Live response input — portalled to document.body to escape parent stacking context */}
+          <div
+            ref={footerRef}
+            style={{
+              position: "fixed",
+              left: containerBounds.left,
+              width: containerBounds.width,
+              bottom: window.innerHeight - containerBounds.bottom,
+              zIndex: isDraftFocused ? 10000 : 60,
+            }}
+          >
+            <div className="mx-auto w-full max-w-[1100px] px-[36px] pb-[36px]">
+              {/* When suggestions are visible, wrap everything in a single white card */}
+              <div className={cn(
+                showingSuggestions && "overflow-hidden rounded-2xl bg-white shadow-[0_-8px_32px_rgba(16,24,40,0.12),0_4px_16px_rgba(16,24,40,0.06)]",
+              )}>
+
+            {/* Suggested response cards — rendered in-flow above the input when focused */}
             {shouldShowSuggestion && suggestionVariants.length > 0 && isDraftFocused && (() => {
               const PAGE_SIZE = 3;
               const capped = suggestionVariants.slice(0, 9);
@@ -2613,7 +2697,7 @@ export default function ConversationPanel({
               const safePage = Math.min(suggestionPage, totalPages - 1);
               const pageVariants = capped.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
               return (
-                <div className="animate-suggestion-panel-enter absolute bottom-full left-0 right-0 overflow-hidden border-t border-border bg-[#FAFAFA] shadow-[0_-4px_12px_rgba(16,24,40,0.06)]">
+                <div className="animate-suggestion-panel-enter overflow-hidden">
                   {/* Header row with prev/next controls */}
                   <div className="flex items-center justify-between px-4 pt-2.5 pb-1.5">
                     <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#98A2B3]">
@@ -2674,12 +2758,12 @@ export default function ConversationPanel({
                           className={cn(
                             "relative min-w-0 flex-1 rounded-xl border p-3 text-left text-[13px] leading-5 transition-colors",
                             isSelected
-                              ? "border-[#6E56CF] bg-[#F2F0FA] text-[#00457A] shadow-[inset_0_0_0_1px_#6E56CF]"
+                              ? "border-[#166CCA] bg-[#EBF4FD] text-[#00457A] shadow-[inset_0_0_0_1px_#166CCA]"
                               : "border-[#24943E] bg-[#EFFBF1] text-[#25403B] hover:bg-[#EFFBF1]",
                           )}
                         >
                           {isSelected && (
-                            <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF]">
+                            <span className="absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#166CCA]">
                               <Check className="h-2.5 w-2.5 text-white stroke-[2.5]" />
                             </span>
                           )}
@@ -2691,12 +2775,25 @@ export default function ConversationPanel({
                 </div>
               );
             })()}
+            {/* Padding around the pill when it's inside the white suggestion container */}
+            <div className={cn(showingSuggestions && "px-3 pb-3 pt-2")}>
             <div
+              onMouseEnter={() => setIsInputHovered(true)}
+              onMouseLeave={() => setIsInputHovered(false)}
               className={cn(
-                "flex items-center gap-2 rounded-2xl bg-white px-3 py-2.5 transition-[border-color,box-shadow]",
-                isDraftFocused
-                  ? "border border-[#6E56CF]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08)]"
-                  : "border border-black/10 shadow-[0_1px_2px_rgba(16,24,40,0.04)]",
+                "flex items-center gap-2 rounded-2xl px-3 py-2.5 transition-[border-color,background-color,box-shadow]",
+                isInputHovered || isDraftFocused ? "bg-white" : "bg-white/90",
+                showingSuggestions
+                  ? isDraftFocused
+                    ? "border border-[#166CCA]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08)]"
+                    : isInputHovered
+                      ? "border border-black/[0.14]"
+                      : "border border-black/[0.06]"
+                  : isDraftFocused
+                    ? "border border-[#166CCA]/40 shadow-[0_0_0_3px_rgba(0,109,173,0.08),0_-6px_24px_rgba(16,24,40,0.10),0_4px_12px_rgba(16,24,40,0.06)]"
+                    : isInputHovered
+                      ? "border border-black/[0.14] shadow-[0_-6px_24px_rgba(16,24,40,0.10),0_4px_12px_rgba(16,24,40,0.06)]"
+                      : "border border-black/[0.06] shadow-[0_-6px_24px_rgba(16,24,40,0.10),0_4px_12px_rgba(16,24,40,0.06)]",
               )}
             >
               {/* + add menu */}
@@ -2789,12 +2886,15 @@ export default function ConversationPanel({
                 </button>
               )}
 
-              {/* Send button — inside input */}
+              {/* Send button — inside input.
+                  onMouseDown prevents the textarea blur so the DOM doesn't shift before onClick fires.
+                  This ensures a single click sends even when the suggestion panel is open. */}
               <Button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSend()}
                 className={cn(
-                  "h-8 w-8 shrink-0 rounded-full bg-[#6E56CF] text-white hover:bg-[#0A5E92]",
+                  "h-8 w-8 shrink-0 rounded-full bg-[#166CCA] text-white hover:bg-[#0A5E92]",
                   !hasDraft && "cursor-not-allowed bg-[#D1D5DB] hover:bg-[#D1D5DB]",
                 )}
                 size="icon"
@@ -2803,9 +2903,13 @@ export default function ConversationPanel({
               >
                 <Send className="h-3.5 w-3.5" />
               </Button>
-            </div>
-          </div>
-        </>
+            </div>{/* end input pill */}
+            </div>{/* end pill padding wrapper */}
+              </div>{/* end white suggestion container */}
+            </div>{/* end centering wrapper */}
+          </div>{/* end footerRef */}
+        </>,
+        document.body,
       )}
       </div>
 

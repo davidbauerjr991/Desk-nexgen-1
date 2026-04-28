@@ -126,7 +126,7 @@ function CustomerFilterDropdown({
       <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
         <span className="text-[12px] font-semibold text-[#333333]">Filter</span>
         {totalActive > 0 && (
-          <button type="button" onClick={onClearAll} className="text-[11px] font-medium text-[#6E56CF] hover:underline">
+          <button type="button" onClick={onClearAll} className="text-[11px] font-medium text-[#166CCA] hover:underline">
             Clear all
           </button>
         )}
@@ -140,7 +140,7 @@ function CustomerFilterDropdown({
                 type="checkbox"
                 checked={activeFilters.agent.includes(agent)}
                 onChange={() => onToggle(agent)}
-                className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#6E56CF]"
+                className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#166CCA]"
               />
               <span className="text-[12px] text-[#344054]">{agent}</span>
             </label>
@@ -164,12 +164,12 @@ function DirectoryTabBar({ active, onChange }: { active: DirectoryTab; onChange:
           onClick={() => onChange(tab)}
           className={cn(
             "relative px-4 py-3 text-[12px] font-medium whitespace-nowrap transition-colors",
-            active === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
+            active === tab ? "text-[#166CCA]" : "text-[#7A7A7A] hover:text-[#333333]",
           )}
         >
           {tab}
           {active === tab && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
+            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />
           )}
         </button>
       ))}
@@ -334,14 +334,14 @@ export default function DirectoryPanel({
                   className={cn(
                     "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                     activeFilterCount > 0
-                      ? "border-[#6E56CF] bg-[#F2F0FA] text-[#6E56CF]"
+                      ? "border-[#166CCA] bg-[#EBF4FD] text-[#166CCA]"
                       : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
                   )}
                 >
                   <SlidersHorizontal className="h-3.5 w-3.5" />
                   Filter
                   {activeFilterCount > 0 && (
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[10px] font-bold text-white">
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#166CCA] text-[10px] font-bold text-white">
                       {activeFilterCount}
                     </span>
                   )}
@@ -371,7 +371,7 @@ export default function DirectoryPanel({
               {activeChips.map(({ value }) => (
                 <span
                   key={value}
-                  className="inline-flex items-center gap-1 rounded-full bg-[#F2F0FA] px-2.5 py-1 text-[11px] font-medium text-[#6E56CF]"
+                  className="inline-flex items-center gap-1 rounded-full bg-[#EBF4FD] px-2.5 py-1 text-[11px] font-medium text-[#166CCA]"
                 >
                   {value}
                   <button
@@ -381,7 +381,7 @@ export default function DirectoryPanel({
                         agent: prev.agent.filter((v) => v !== value),
                       }))
                     }
-                    className="ml-0.5 text-[#6E56CF] opacity-70 hover:opacity-100"
+                    className="ml-0.5 text-[#166CCA] opacity-70 hover:opacity-100"
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>
@@ -422,7 +422,7 @@ export default function DirectoryPanel({
                     className={cn(
                       "rounded-xl border bg-white p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all",
                       isSelected
-                        ? "border-[#6E56CF] shadow-[0_4px_16px_rgba(0,109,173,0.12)]"
+                        ? "border-[#166CCA] shadow-[0_4px_16px_rgba(0,109,173,0.12)]"
                         : "border-black/10 hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]",
                     )}
                   >
@@ -535,8 +535,8 @@ export default function DirectoryPanel({
                     className="rounded-xl border border-black/10 dark:border-white/8 bg-white dark:bg-[#0F1629] p-3.5 shadow-[0_2px_8px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-px hover:shadow-[0_4px_12px_rgba(15,23,42,0.08)]"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2F0FA] dark:bg-[#1C1A2E]">
-                        <Users className="h-4 w-4 text-[#6E56CF]" />
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EBF4FD] dark:bg-[#0B1E35]">
+                        <Users className="h-4 w-4 text-[#166CCA]" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-semibold text-[#1D2939] dark:text-[#E2E8F0]">{team.name}</p>

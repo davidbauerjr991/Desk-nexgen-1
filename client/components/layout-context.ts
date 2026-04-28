@@ -43,6 +43,10 @@ export type QueuePreviewItem = {
   updatedAt: string;
   /** Timestamp (ms) when this notification was first shown — used to sync the live escalation timer. */
   escalatedAt?: number;
+  /** When set, the toast shows the AI Confidence meter and Approve button. */
+  aiConfidence?: number;
+  /** Reason shown beneath the confidence bar. */
+  aiConfidenceReason?: string;
 };
 
 export type ResolvedAssignment = {
@@ -122,6 +126,8 @@ export interface LayoutContextValue {
   openCustomerConversation: (customerRecordId: string, channel: AssignmentChannel) => void;
   openRecentInteractionAssignment: (interaction: RecentInteractionItem) => void;
   setConversationState: (conversation: SharedConversationData) => void;
+  /** Update the stored conversation for a specific assignment ID (not just the selected one). */
+  setConversationStateForAssignment: (assignmentId: string, conversation: SharedConversationData) => void;
   closeRightPanel: () => void;
   resolvedAssignments: ResolvedAssignment[];
   selectAssignment: (assignmentId: QueuePreviewItem["id"]) => void;
@@ -156,6 +162,17 @@ export interface LayoutContextValue {
   onJordanCaseResolved: () => void;
   /** Signal that Sofia's (Jacob's) case has been resolved — triggers the third escalation (Marcus / Emily). */
   onSofiaCaseResolved: () => void;
+  /** Always shows a "transferred" handoff toast for the given item, even if the original toast was already dismissed. */
+  pushTransferredToast: (item: {
+    name: string;
+    customerRecordId: string;
+    customerId?: string;
+    id?: string;
+    channel: AssignmentChannel;
+    label?: string;
+    priority?: string;
+    preview?: string;
+  }) => void;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────

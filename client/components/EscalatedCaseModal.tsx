@@ -49,6 +49,8 @@ export type EscalatedCaseModalData = {
   status: string;
   /** Timestamp (ms) when the escalation first appeared — keeps the modal timer in sync with the toast. */
   escalatedAt?: number;
+  /** When true the modal auto-fires the approve sequence immediately on open */
+  autoApprove?: boolean;
 };
 
 // ─── Priority styles ──────────────────────────────────────────────────────────
@@ -56,7 +58,7 @@ export type EscalatedCaseModalData = {
 const priorityStyles: Record<string, string> = {
   Critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
   High:     "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
-  Medium:   "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+  Medium:   "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]",
   Low:      "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
 };
 
@@ -202,11 +204,11 @@ function TransferPopover({ priority, preview, triggerRect, onClose, onAssign }: 
             onClick={() => setTab(t)}
             className={cn(
               "relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
-              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]",
+              tab === t ? "text-[#166CCA]" : "text-[#667085] hover:text-[#344054]",
             )}
           >
             {t}
-            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />}
+            {tab === t && <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />}
           </button>
         ))}
       </div>
@@ -222,7 +224,7 @@ function TransferPopover({ priority, preview, triggerRect, onClose, onAssign }: 
               onClick={() => handleAssign(agent)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]",
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
@@ -235,7 +237,7 @@ function TransferPopover({ priority, preview, triggerRect, onClose, onAssign }: 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
               </div>
@@ -270,28 +272,28 @@ function CopilotResponseCard({
   const [isReasoningOpen, setIsReasoningOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+    <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
       <button
         type="button"
         onClick={onToggle}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
+          <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
             Copilot Response
           </p>
           {phase === "thinking" && (
             <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
             </span>
           )}
         </div>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200",
+            "h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200",
             isOpen && "rotate-180",
           )}
         />
@@ -329,7 +331,7 @@ function CopilotResponseCard({
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                    <div className="pt-2 space-y-1.5 border-l-2 border-[#C5DEF5] ml-1 pl-3">
                       {COPILOT_REASONING_STEPS.slice(0, reasoningVisible).map((step, i) => (
                         <div
                           key={i}
@@ -345,7 +347,7 @@ function CopilotResponseCard({
             )}
 
             {phase === "done" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                 <p className="text-[12px] text-[#344054] leading-relaxed">
                   Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
                 </p>
@@ -396,22 +398,16 @@ export function EscalatedCaseModal({
   const [localStatus, setLocalStatus] = useState(caseData.status);
   const [localPriority, setLocalPriority] = useState(caseData.priority);
   const approveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const [aiComment, setAiComment] = useState(() => {
-    if (caseData.customerRecordId === "sofia") {
-      return "I completely understand, Sofia, and I'm so sorry this has happened. I want to assure you we are taking this seriously. I'm initiating a dispute for both fraudulent transactions right now and will have a resolution specialist on this immediately.";
-    }
-    return "Hi Jordan, before proceeding with the factory reset I can back up your current port forwarding configuration to your account. Once the reset is complete, I'll restore those rules automatically so your home office setup is preserved. Shall I go ahead and save your config now?";
-  });
+  // Load scripted responses from the customer database so content is data-driven.
+  // Falls back to empty strings if no escalationResponses are defined for this customer.
+  const dbResponses = getCustomerRecord(caseData.customerRecordId)?.escalationResponses ?? [];
+  const [aiComment, setAiComment] = useState(dbResponses[0] ?? "");
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [aiCommentRegenerating, setAiCommentRegenerating] = useState(false);
-  const [secondAiComment, setSecondAiComment] = useState(
-    "The dispute has been filed and you'll receive a confirmation number by email. To protect your account, I'd also like to send you a replacement card — could you confirm your current mailing address so I can get that issued for you right away?"
-  );
+  const [secondAiComment, setSecondAiComment] = useState(dbResponses[1] ?? "");
   const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [secondAiCommentRegenerating, setSecondAiCommentRegenerating] = useState(false);
-  const [thirdAiComment, setThirdAiComment] = useState(
-    "Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file. Is there anything else I can help you with?"
-  );
+  const [thirdAiComment, setThirdAiComment] = useState(dbResponses[2] ?? "");
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
   const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
@@ -485,6 +481,42 @@ export function EscalatedCaseModal({
   useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
   useEffect(() => () => { approveTimersRef.current.forEach(clearTimeout); }, []);
   useEffect(() => () => { disputeTimersRef.current.forEach(clearTimeout); }, []);
+
+  // Shared approve logic — called by the Approve button in the modal AND by autoApprove on mount
+  function triggerApprove() {
+    setApproveContext(true);
+    approveTimersRef.current.forEach(clearTimeout);
+    approveTimersRef.current = [];
+    const ariaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    setInjectedMessages((prev) => [
+      ...prev,
+      { id: Date.now(), role: "agent" as const, author: caseData.botType, content: dbResponses[0] ?? "", time: ariaTime },
+    ]);
+    approveTimersRef.current.push(setTimeout(() => setJordanTyping(true), 1500));
+    approveTimersRef.current.push(setTimeout(() => {
+      setJordanTyping(false);
+      const t1 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "customer" as const, content: "That's amazing, thank you!", time: t1 }]);
+    }, 3500));
+    approveTimersRef.current.push(setTimeout(() => {
+      const t2 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "customer" as const, content: "\u2605\u2605\u2605\u2605\u2605  Case resolution rated 5 stars", time: t2 }]);
+    }, 4500));
+    approveTimersRef.current.push(setTimeout(() => {
+      setLocalStatus("resolved");
+      setLocalPriority("Low");
+      setShowResolvedMessage(true);
+      onResolve();
+    }, 5500));
+  }
+
+  // Auto-approve on open when triggered from the toast
+  useEffect(() => {
+    if (caseData.autoApprove && caseData.customerRecordId === "jordan") {
+      triggerApprove();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -575,14 +607,14 @@ export function EscalatedCaseModal({
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
               {/* Human Assist Request */}
               {caseData.customerContext && (
-                <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
+                <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <img
                       src={botAvatar}
                       alt={`${caseData.botType} avatar`}
                       className="h-9 w-9 rounded-full object-cover shrink-0"
                     />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">{caseData.botType}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{caseData.botType}</p>
                   </div>
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">
                     {showResolvedMessage
@@ -592,16 +624,16 @@ export function EscalatedCaseModal({
 
                   {/* Confidence meter — hidden once resolved or when supervising */}
                   {!approveContext && !showResolvedMessage && !showQuickActions && (
-                    <div className="mt-3 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 space-y-1.5">
+                    <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
                         </div>
-                        <span className="text-[12px] font-bold text-[#6E56CF]">94%</span>
+                        <span className="text-[12px] font-bold text-[#166CCA]">94%</span>
                       </div>
                       <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#6E56CF] to-[#8B72E0] transition-all duration-700"
+                          className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-700"
                           style={{ width: "94%" }}
                         />
                       </div>
@@ -638,56 +670,15 @@ export function EscalatedCaseModal({
                             : base;
                           onTakeover(fullConversation, localStatus, localPriority);
                         }}
-                        className="mt-3 w-full rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5D45B8] transition-colors"
+                        className="mt-3 w-full rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                       >
                         Take Over
                       </button>
                     ) : (
                     <button
                       type="button"
-                      onClick={() => {
-                        setApproveContext(true);
-                        approveTimersRef.current.forEach(clearTimeout);
-                        approveTimersRef.current = [];
-
-                        // Step 1: Aria's message immediately
-                        const ariaTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                        setInjectedMessages((prev) => [
-                          ...prev,
-                          { id: Date.now(), role: "agent" as const, content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.", time: ariaTime },
-                        ]);
-
-                        // Step 2: Jordan starts typing after 1.5s
-                        approveTimersRef.current.push(setTimeout(() => setJordanTyping(true), 1500));
-
-                        // Step 3: Jordan's response after 3.5s
-                        approveTimersRef.current.push(setTimeout(() => {
-                          setJordanTyping(false);
-                          const t1 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                          setInjectedMessages((prev) => [
-                            ...prev,
-                            { id: Date.now(), role: "customer" as const, content: "That's amazing, thank you!", time: t1 },
-                          ]);
-                        }, 3500));
-
-                        // Step 4: Rating bubble after 4.5s
-                        approveTimersRef.current.push(setTimeout(() => {
-                          const t2 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                          setInjectedMessages((prev) => [
-                            ...prev,
-                            { id: Date.now(), role: "customer" as const, content: "\u2605\u2605\u2605\u2605\u2605  Case resolution rated 5 stars", time: t2 },
-                          ]);
-                        }, 4500));
-
-                        // Step 5: Status → resolved, priority → Low after 5.5s
-                        approveTimersRef.current.push(setTimeout(() => {
-                          setLocalStatus("resolved");
-                          setLocalPriority("Low");
-                          setShowResolvedMessage(true);
-                          onResolve();
-                        }, 5500));
-                      }}
-                      className="mt-3 w-full rounded-lg border border-[#6E56CF] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+                      onClick={triggerApprove}
+                      className="mt-3 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
                     >
                       Approve
                     </button>
@@ -708,14 +699,14 @@ export function EscalatedCaseModal({
                 const initials = caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
                 const profile = rec.profile;
                 return (
-                  <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+                  <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setIsCustomerProfileOpen((v) => !v)}
                       className="flex w-full items-center justify-between px-4 py-3 text-left"
                     >
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Profile</p>
-                      <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCustomerProfileOpen && "rotate-180")} />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                      <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isCustomerProfileOpen && "rotate-180")} />
                     </button>
                     <div className={cn("grid transition-all duration-200 ease-out", isCustomerProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                       <div className="overflow-hidden">
@@ -723,7 +714,7 @@ export function EscalatedCaseModal({
                           {/* Identity */}
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[13px] font-bold text-[#5C46B8]">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
                                 {initials}
                               </div>
                               <div>
@@ -766,9 +757,9 @@ export function EscalatedCaseModal({
                                   key={tag}
                                   className={cn(
                                     "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
-                                    tag === "Premier" ? "bg-[#F2F0FA] text-[#5C46B8] border-[#C8BFF0]" :
+                                    tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border-[#BFDBFE]" :
                                     tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border-[#24943E]" :
-                                    "bg-[#F4F3FF] text-[#5925DC] border-[#D9D6FE]",
+                                    "bg-[#EBF4FD] text-[#166CCA] border-[#BFDBFE]",
                                   )}
                                 >
                                   {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
@@ -784,21 +775,21 @@ export function EscalatedCaseModal({
               })()}
 
               {/* Attempted Resolution accordion */}
-              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+              <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                   className="flex w-full items-center justify-between px-4 py-3 text-left"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Case Overview</p>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Case Overview</p>
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
                 </button>
                 <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                   <div className="overflow-hidden">
                     <ul className="px-4 pb-4 space-y-2">
                       {caseData.aiOverview.actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0]" />
                           {action}
                         </li>
                       ))}
@@ -830,16 +821,16 @@ export function EscalatedCaseModal({
                   allMessages.some((m, idx) => m.role === "customer" && idx >= lastApprovedMsgCount);
                 if (customerRespondedAfterApproval) return null;
                 return (
-                  <div className="rounded-xl border border-[#C8BFF0] bg-white p-3 space-y-2">
+                  <div className="rounded-xl border border-[#BFDBFE] bg-white p-3 space-y-2">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Potential Next Steps</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Potential Next Steps</p>
                     </div>
                     <p className="text-[11px] text-[#98A2B3]">Waiting for customer to respond before preparing next AI message.</p>
                     <ul className="space-y-1.5 pt-0.5">
                       {POTENTIAL_NEXT_STEPS.map((step, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#6E56CF]" />
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#166CCA]" />
                           {step}
                         </li>
                       ))}
@@ -851,8 +842,8 @@ export function EscalatedCaseModal({
 
             {/* Ask Copilot — pinned to bottom */}
             <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
-              <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+              <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+                <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
                 <input
                   type="text"
                   value={copilotQuery}
@@ -864,7 +855,7 @@ export function EscalatedCaseModal({
                 <button
                   type="button"
                   onClick={handleCopilotSubmit}
-                  className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors"
+                  className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"/>
@@ -908,10 +899,10 @@ export function EscalatedCaseModal({
               const showThinkingBetweenActions = isSofia && showQuickActions && thirdActionsApproved && !thirdBotCommentReady && thirdAiCommentApproved !== "approved";
               const thirdActionAuthBubble = showThirdCard && !thirdActionsApproved ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Action Authorization</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Action Authorization</p>
                     </div>
                     {/* Summary */}
                     <p className="text-[12px] text-[#344054] leading-relaxed px-1">
@@ -932,7 +923,7 @@ export function EscalatedCaseModal({
                           }}
                           className={cn(
                             "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                            creditChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                            creditChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                             creditConfirmed && "opacity-60 cursor-not-allowed",
                           )}
                         >
@@ -948,7 +939,7 @@ export function EscalatedCaseModal({
                           <button
                             type="button"
                             onClick={() => setCreditExpanded((v) => !v)}
-                            className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                            className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors"
                           >
                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", creditExpanded && "rotate-180")} />
                           </button>
@@ -959,7 +950,7 @@ export function EscalatedCaseModal({
                           <p className="text-[12px] font-semibold text-[#111827]">Credit amount</p>
                           <div className={cn(
                             "flex items-center gap-2 rounded-lg border bg-white px-3 py-2 transition-colors",
-                            creditConfirmed ? "border-[#E4E7EC] opacity-60" : "border-[#C8BFF0] focus-within:border-[#6E56CF] focus-within:ring-1 focus-within:ring-[#6E56CF]",
+                            creditConfirmed ? "border-[#E4E7EC] opacity-60" : "border-[#BFDBFE] focus-within:border-[#166CCA] focus-within:ring-1 focus-within:ring-[#166CCA]",
                           )}>
                             <span className="text-[13px] font-semibold text-[#344054]">$</span>
                             <input
@@ -1004,7 +995,7 @@ export function EscalatedCaseModal({
                           }}
                           className={cn(
                             "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                            shippingChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                            shippingChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                             shippingConfirmed && "opacity-60 cursor-not-allowed",
                           )}
                         >
@@ -1020,7 +1011,7 @@ export function EscalatedCaseModal({
                           <button
                             type="button"
                             onClick={() => setShippingExpanded((v) => !v)}
-                            className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                            className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors"
                           >
                             <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", shippingExpanded && "rotate-180")} />
                           </button>
@@ -1050,16 +1041,16 @@ export function EscalatedCaseModal({
                                 }}
                                 className={cn(
                                   "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors",
-                                  isSelected ? "border-[#6E56CF] bg-[#F2F0FA]" : "border-[#E4E7EC] bg-white hover:border-[#6E56CF] hover:bg-[#F9FAFB]",
+                                  isSelected ? "border-[#166CCA] bg-[#EBF4FD]" : "border-[#E4E7EC] bg-white hover:border-[#166CCA] hover:bg-[#F9FAFB]",
                                   shippingConfirmed && "opacity-60 cursor-default",
                                 )}
                               >
-                                <span className={cn("text-[12px]", isSelected ? "font-semibold text-[#5C46B8]" : "text-[#344054]")}>
+                                <span className={cn("text-[12px]", isSelected ? "font-semibold text-[#1260B0]" : "text-[#344054]")}>
                                   {opt.label}
                                 </span>
                                 <span className={cn(
                                   "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
-                                  isSelected ? "bg-[#6E56CF] border-[#6E56CF] text-white" : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
+                                  isSelected ? "bg-[#166CCA] border-[#166CCA] text-white" : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
                                 )}>
                                   {opt.badge}
                                 </span>
@@ -1104,7 +1095,7 @@ export function EscalatedCaseModal({
                             setSuperviseScrollTrigger((n) => n + 1);
                           }, 2200));
                         }}
-                        className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                        className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                       >
                         Approve
                       </button>
@@ -1136,21 +1127,21 @@ export function EscalatedCaseModal({
               // ── Third card Phase 2: Bot Comment (after actions approved) ─────────
               const thirdBotCommentBubble = showThirdCard && thirdBotCommentReady && thirdAiCommentApproved !== "approved" ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
                     </div>
                     <textarea
                       value={thirdAiComment}
                       onChange={(e) => { setThirdAiComment(e.target.value); setThirdAiCommentApproved(null); }}
                       rows={4}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                      className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
                     />
                     {thirdAiCommentRegenerating ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
-                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -1159,7 +1150,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setThirdAiCommentApproved("approved");
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: thirdAiComment, time }]);
+                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, author: caseData.botType, content: thirdAiComment, time }]);
                             setSuperviseScrollTrigger((n) => n + 1);
                             // Sofia's final reply — typing indicator then message
                             approveTimersRef.current.push(setTimeout(() => {
@@ -1177,7 +1168,7 @@ export function EscalatedCaseModal({
                               }, 2500));
                             }, 3000));
                           }}
-                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Approve
                         </button>
@@ -1186,7 +1177,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setThirdAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setThirdAiComment("Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file. Is there anything else I can help you with?");
+                              setThirdAiComment(dbResponses[2] ?? "");
                               setThirdAiCommentApproved(null);
                               setThirdAiCommentRegenerating(false);
                             }, 1800));
@@ -1204,21 +1195,21 @@ export function EscalatedCaseModal({
 
               const secondAiResponseBubble = showSecondCard ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
                     </div>
                     <textarea
                       value={secondAiComment}
                       onChange={(e) => { setSecondAiComment(e.target.value); setSecondAiCommentApproved(null); }}
                       rows={4}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                      className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
                     />
                     {secondAiCommentRegenerating ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
-                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -1227,7 +1218,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setSecondAiCommentApproved("approved");
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            const newMessage = { id: Date.now(), role: "agent" as const, content: secondAiComment, time };
+                            const newMessage = { id: Date.now(), role: "agent" as const, author: caseData.botType, content: secondAiComment, time };
                             setInjectedMessages((prev) => [...prev, newMessage]);
                             setSuperviseScrollTrigger((n) => n + 1);
                             // Sofia replies with her mailing address — typing indicator then reply
@@ -1259,7 +1250,7 @@ export function EscalatedCaseModal({
                               }, 2500));
                             }
                           }}
-                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Approve
                         </button>
@@ -1268,7 +1259,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setSecondAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setSecondAiComment("Sofia, to verify your identity before issuing the replacement card, could you please confirm your date of birth and the billing zip code on file? I want to make sure the new card reaches the right person.");
+                              setSecondAiComment(dbResponses[1] ?? "");
                               setSecondAiCommentApproved(null);
                               setSecondAiCommentRegenerating(false);
                             }, 1800));
@@ -1291,10 +1282,10 @@ export function EscalatedCaseModal({
               // Thinking placeholder — shown while AI is composing after customer replies
               const thinkingBubble = (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
                     </div>
                     <div className="flex items-center gap-1.5 px-1 py-1">
                       <span className="text-[12px] text-[#9CA3AF] italic">Composing response</span>
@@ -1318,10 +1309,10 @@ export function EscalatedCaseModal({
               // Bot comment card appears separately after dispute completes.
               const sofiaDisputeAuthCard = showQuickActions && isSofia && !disputeComplete ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Dispute Authorization</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Dispute Authorization</p>
                     </div>
                     {/* Summary context */}
                     <p className="text-[12px] text-[#344054] leading-relaxed px-1">
@@ -1344,7 +1335,7 @@ export function EscalatedCaseModal({
                             }}
                             className={cn(
                               "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
-                              disputeChecked ? "border-[#6E56CF] bg-[#6E56CF]" : "border-[#D0D5DD] bg-white hover:border-[#6E56CF]",
+                              disputeChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
                               (disputeRunning || disputeComplete) && "opacity-60 cursor-not-allowed",
                             )}
                           >
@@ -1361,7 +1352,7 @@ export function EscalatedCaseModal({
                             <button
                               type="button"
                               onClick={() => setDisputeExpanded((v) => !v)}
-                              className="shrink-0 text-[#98A2B3] hover:text-[#6E56CF] transition-colors"
+                              className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors"
                             >
                               <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", disputeExpanded && "rotate-180")} />
                             </button>
@@ -1393,7 +1384,7 @@ export function EscalatedCaseModal({
                                       if (runStep) runStep(disputeStepIndexRef.current);
                                     }
                                   }}
-                                  className="flex items-center gap-1 text-[11px] font-semibold text-[#6E56CF] hover:text-[#5C46B8] transition-colors"
+                                  className="flex items-center gap-1 text-[11px] font-semibold text-[#166CCA] hover:text-[#1260B0] transition-colors"
                                 >
                                   {disputePaused ? (
                                     <>
@@ -1430,9 +1421,9 @@ export function EscalatedCaseModal({
                                       ) : (
                                         <div className={cn(
                                           "h-6 w-6 rounded-full border-2 flex items-center justify-center",
-                                          disputeRunning ? "border-[#E5E7EB]" : "border-[#C8BFF0]",
+                                          disputeRunning ? "border-[#E5E7EB]" : "border-[#BFDBFE]",
                                         )}>
-                                          {!disputeRunning && <span className="text-[10px] font-semibold text-[#6E56CF]">{stepIdx + 1}</span>}
+                                          {!disputeRunning && <span className="text-[10px] font-semibold text-[#166CCA]">{stepIdx + 1}</span>}
                                         </div>
                                       )}
                                     </div>
@@ -1499,7 +1490,7 @@ export function EscalatedCaseModal({
                               setDisputeComplete(true);
                             }
                           }}
-                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Approve
                         </button>
@@ -1536,31 +1527,31 @@ export function EscalatedCaseModal({
               // Approve injects the message and starts Sofia's reply sequence.
               const sofiaBotCommentCard = showQuickActions && isSofia && disputeComplete && aiCommentApproved !== "approved" ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
                     </div>
                     <textarea
                       value={aiComment}
                       onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
                       rows={5}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                      className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
                     />
                     {aiCommentRegenerating ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
-                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => {
-                            // Bot comment approved — inject Jacob's message then start Sofia reply sequence
+                            // Bot comment approved — inject bot's message then start Sofia reply sequence
                             setAiCommentApproved("approved");
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }]);
+                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, author: caseData.botType, content: aiComment, time }]);
                             setLastApprovedMsgCount(allMessages.length + 1);
                             setSuperviseScrollTrigger((n) => n + 1);
                             // Start Sofia reply chain
@@ -1600,7 +1591,7 @@ export function EscalatedCaseModal({
                               }, 2500));
                             }, 2000));
                           }}
-                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Approve
                         </button>
@@ -1609,7 +1600,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setAiComment("I completely understand, Sofia, and I'm so sorry this has happened. I want to assure you we are taking this seriously. I'm initiating a dispute for both fraudulent transactions right now and will have a resolution specialist on this immediately.");
+                              setAiComment(dbResponses[0] ?? "");
                               setAiCommentApproved(null);
                               setAiCommentRegenerating(false);
                             }, 1800));
@@ -1628,21 +1619,21 @@ export function EscalatedCaseModal({
               // ── Jordan / non-Sofia: Regular editable card ─────────────────────────
               const aiNextResponseBubble = showQuickActions && !isSofia && aiCommentApproved !== "approved" ? (
                 <div className="px-4 py-3 flex items-start gap-2">
-                  <div className="flex-1 rounded-xl border border-[#6E56CF] bg-[#F2F0FA] p-3 space-y-2.5">
+                  <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-[#6E56CF]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">AI Next Response</p>
+                      <Sparkles className="h-3 w-3 text-[#166CCA]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
                     </div>
                     <textarea
                       value={aiComment}
                       onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
                       rows={5}
-                      className="w-full resize-none rounded-lg border border-[#C8BFF0] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#6E56CF] focus:ring-1 focus:ring-[#6E56CF] transition-colors"
+                      className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
                     />
                     {aiCommentRegenerating ? (
-                      <div className="flex items-center gap-2 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2">
-                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#C8BFF0] border-t-[#6E56CF] animate-spin shrink-0" />
-                        <span className="text-[12px] text-[#5C46B8] font-medium">Regenerating response…</span>
+                      <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+                        <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+                        <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
                       </div>
                     ) : aiCommentApproved === "approved" ? null : (
                       <div className="flex items-center gap-2">
@@ -1651,10 +1642,10 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setAiCommentApproved("approved");
                             const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: aiComment, time }]);
+                            setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, author: caseData.botType, content: aiComment, time }]);
                             setLastApprovedMsgCount(allMessages.length + 1);
                           }}
-                          className="flex-1 rounded-lg bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
                         >
                           Approve
                         </button>
@@ -1663,7 +1654,7 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setAiComment("Hi Jordan, I want to make sure we handle this correctly. Before the factory reset, could you confirm your device serial number so I can locate your exact firmware version and prepare the right restoration package?");
+                              setAiComment(dbResponses[0] ?? "");
                               setAiCommentApproved(null);
                               setAiCommentRegenerating(false);
                             }, 1800));
@@ -1737,7 +1728,7 @@ export function EscalatedCaseModal({
             <div
               className={cn(
                 "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none",
-                showQuickActions ? "bg-[#6E56CF]" : "bg-[#D0D5DD]",
+                showQuickActions ? "bg-[#166CCA]" : "bg-[#D0D5DD]",
               )}
             >
               <span
@@ -1747,7 +1738,7 @@ export function EscalatedCaseModal({
                 )}
               />
             </div>
-            <span className={cn("text-[12px] font-medium", showQuickActions ? "text-[#5C46B8]" : "text-[#344054]")}>
+            <span className={cn("text-[12px] font-medium", showQuickActions ? "text-[#1260B0]" : "text-[#344054]")}>
               Supervise
             </span>
           </button>

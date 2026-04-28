@@ -143,7 +143,7 @@ export default function AddPanelContent() {
         {isViewingSavedRecord && savedRecord ? (
           <div className="space-y-5">
             <div className="rounded-2xl border border-[#D8E5EE] bg-[#F7FBFE] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#6E56CF]">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#166CCA]">
                 {addNewTypeLabel[savedRecord.type]} record
               </p>
               <h3 className="mt-2 text-lg font-semibold tracking-tight text-[#1F2937]">{savedRecord.title}</h3>
@@ -172,7 +172,7 @@ export default function AddPanelContent() {
                   setIsViewingSavedRecord(false);
                 }}
               >
-                <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#6E56CF]/30 focus:ring-offset-0 focus:border-[#6E56CF]">
+                <SelectTrigger className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] focus:ring-1 focus:ring-[#166CCA]/30 focus:ring-offset-0 focus:border-[#166CCA]">
                   <SelectValue placeholder="Select item type" />
                 </SelectTrigger>
                 <SelectContent className="z-[80] rounded border border-[#E5E7EB] bg-white">
@@ -197,7 +197,7 @@ export default function AddPanelContent() {
                         setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                       }
                       placeholder={field.placeholder}
-                      className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E56CF] focus-visible:ring-1 focus-visible:ring-[#6E56CF]/30"
+                      className="min-h-[96px] rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#166CCA] focus-visible:ring-1 focus-visible:ring-[#166CCA]/30"
                     />
                   ) : (
                     <Input
@@ -206,7 +206,7 @@ export default function AddPanelContent() {
                         setFormValues((current) => ({ ...current, [field.key]: event.target.value }))
                       }
                       placeholder={field.placeholder}
-                      className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#6E56CF] focus-visible:ring-1 focus-visible:ring-[#6E56CF]/30"
+                      className="h-9 rounded border border-[#E5E7EB] bg-[#F8F8F9] px-2.5 py-1.5 text-sm text-[#333333] placeholder:text-transparent focus-visible:border-[#166CCA] focus-visible:ring-1 focus-visible:ring-[#166CCA]/30"
                     />
                   )}
                 </div>
@@ -224,7 +224,7 @@ export default function AddPanelContent() {
             </Button>
             <Button
               type="button"
-              className="rounded-xl bg-[#6E56CF] hover:bg-[#0A5E92]"
+              className="rounded-xl bg-[#166CCA] hover:bg-[#0A5E92]"
               onClick={() => {
                 setSelectedType(savedRecord?.type ?? "customer");
                 clearForm();
@@ -240,7 +240,7 @@ export default function AddPanelContent() {
             </Button>
             <Button
               type="button"
-              className="rounded-xl bg-[#6E56CF] hover:bg-[#0A5E92] disabled:bg-[#C8BFF0] disabled:text-white"
+              className="rounded-xl bg-[#166CCA] hover:bg-[#0A5E92] disabled:bg-[#BFDBFE] disabled:text-white"
               onClick={handleSave}
               disabled={isSaveDisabled}
             >

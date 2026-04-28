@@ -66,7 +66,7 @@ export default function LoginPage() {
     });
 
     setTimeout(() => {
-      navigate("/control-panel");
+      navigate("/control-center");
     }, LAUNCH_DELAY);
   };
 
@@ -140,7 +140,7 @@ export default function LoginPage() {
               onClick={() => setDarkMode((v) => !v)}
               className={cn(
                 "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
-                darkMode ? "bg-[#6E56CF]" : "bg-[#D0D5DD]",
+                darkMode ? "bg-[#166CCA]" : "bg-[#D0D5DD]",
               )}
             >
               <span
@@ -170,7 +170,7 @@ export default function LoginPage() {
                     className={cn(
                       "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors duration-150",
                       checked
-                        ? "border-[#6E56CF] bg-[#6E56CF]"
+                        ? "border-[#166CCA] bg-[#166CCA]"
                         : darkMode ? "border-[#475569] bg-transparent" : "border-[#D0D5DD] bg-white",
                     )}
                   >
@@ -203,8 +203,8 @@ export default function LoginPage() {
                 "w-full rounded-lg border px-3 py-2 text-[13px] outline-none transition-colors",
                 "placeholder:text-[#98A2B3]",
                 darkMode
-                  ? "border-[#334155] bg-[#1E293B] text-white focus:border-[#6E56CF]"
-                  : "border-[#D0D5DD] bg-white text-[#101828] focus:border-[#6E56CF]",
+                  ? "border-[#334155] bg-[#1E293B] text-white focus:border-[#166CCA]"
+                  : "border-[#D0D5DD] bg-white text-[#101828] focus:border-[#166CCA]",
               )}
             />
           </div>
@@ -221,7 +221,7 @@ export default function LoginPage() {
               phase === "loading"
                 ? cn("cursor-default border bg-transparent",
                     darkMode ? "border-[#334155] text-[#475569]" : "border-[#E4E7EC] text-[#98A2B3]")
-                : "bg-[#6E56CF] text-white shadow-[0_1px_3px_rgba(110,86,207,0.20)] hover:bg-[#5C46B8] active:bg-[#4A369F]",
+                : "bg-[#166CCA] text-white shadow-[0_1px_3px_rgba(22,108,202,0.20)] hover:bg-[#1260B0] active:bg-[#0D4F9A]",
             )}
           >
             {phase === "loading" ? "Launching Agent Workspace" : "Launch Agent Workspace"}
@@ -236,7 +236,7 @@ export default function LoginPage() {
               className={cn(
                 "flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors duration-150",
                 savePrefs
-                  ? "border-[#6E56CF] bg-[#6E56CF]"
+                  ? "border-[#166CCA] bg-[#166CCA]"
                   : darkMode ? "border-[#475569] bg-transparent" : "border-[#D0D5DD] bg-white",
               )}
             >
@@ -257,7 +257,7 @@ export default function LoginPage() {
           "overflow-hidden transition-all duration-500 ease-out",
           phase === "loading" ? "max-h-[200px] opacity-100 mt-4" : "max-h-0 opacity-0 mt-0",
         )}>
-          <div className="mx-5 border-l-2 border-[#6E56CF] pl-4">
+          <div className="mx-5 border-l-2 border-[#166CCA] pl-4">
             <p className={cn("mb-2.5 text-[12px] font-bold", darkMode ? "text-white" : "text-[#101828]")}>
               Compiling Experience
             </p>
@@ -269,7 +269,7 @@ export default function LoginPage() {
                     {state === "done" ? (
                       <CheckCircle2 className="shrink-0 text-[#208337]" style={{ width: 18, height: 18 }} />
                     ) : state === "loading" ? (
-                      <Loader2 className="shrink-0 animate-spin text-[#6E56CF]" style={{ width: 18, height: 18 }} />
+                      <Loader2 className="shrink-0 animate-spin text-[#166CCA]" style={{ width: 18, height: 18 }} />
                     ) : (
                       <span className={cn("h-[18px] w-[18px] shrink-0 rounded-full border-2", darkMode ? "border-[#334155]" : "border-[#E4E7EC]")} />
                     )}

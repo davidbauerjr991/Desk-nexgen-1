@@ -7,11 +7,11 @@ export function VoiceAIGuidanceCard() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-3">
+    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3">
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#6E56CF]"
+        className="flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#166CCA]"
       >
         <Sparkles className="h-3.5 w-3.5 shrink-0" />
         <span className="flex-1 text-left">Guidance</span>

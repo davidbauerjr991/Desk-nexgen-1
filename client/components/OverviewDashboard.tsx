@@ -124,7 +124,7 @@ function TimelineCard({ customerId }: { customerId: string }) {
                   "absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-white shadow-sm",
                   item.tone === "critical" && "bg-[#E32926]",
                   item.tone === "warning" && "bg-[#FFB800]",
-                  item.tone === "info" && "bg-[#6E56CF]",
+                  item.tone === "info" && "bg-[#166CCA]",
                   item.tone === "default" && "bg-[#CBD5E1]",
                 )}
               />
@@ -151,12 +151,12 @@ function TicketsCard() {
           {recentTickets.map((ticket) => (
             <div
               key={ticket.id}
-              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#C8BFF0] hover:bg-[#F2F0FA]"
+              className="rounded-xl border border-black/[0.06] bg-[#FCFCFD] px-4 py-3 transition-colors hover:border-[#BFDBFE] hover:bg-[#EBF4FD]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#6E56CF]">{ticket.id}</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#166CCA]">{ticket.id}</span>
                     <span
                       className={cn(
                         "rounded-full border px-2.5 py-0.5 text-[10px] font-medium",

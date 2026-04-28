@@ -23,11 +23,12 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
-import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment } from "@/components/layout-context";
+import { useLayoutContext, type QueueAssignmentStatus, type AcceptIssueData, type ResolvedAssignment, type AssignmentChannel } from "@/components/layout-context";
 import { getCustomerRecord, createConversationState } from "@/lib/customer-database";
+import type { SharedConversationData } from "@/components/ConversationPanel";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
 import { getEscalationStart } from "@/lib/escalation-timers";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -67,10 +68,13 @@ function EscalationTimer({ customerId }: { customerId?: string }) {
 
 // ─── Lookups ──────────────────────────────────────────────────────────────────
 
+// The name of the currently logged-in agent.
+const CURRENT_AGENT_NAME = "Jeff Comstock";
+
 const priorityStyles: Record<Priority, string> = {
   Critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
   High:     "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]",
-  Medium:   "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+  Medium:   "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]",
   Low:      "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
 };
 
@@ -1591,12 +1595,12 @@ function RejectPopover({
             onClick={() => setTab(t)}
             className={cn(
               "relative flex-1 py-2.5 text-[12px] font-medium transition-colors",
-              tab === t ? "text-[#6E56CF]" : "text-[#667085] hover:text-[#344054]",
+              tab === t ? "text-[#166CCA]" : "text-[#667085] hover:text-[#344054]",
             )}
           >
             {t}
             {tab === t && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />
             )}
           </button>
         ))}
@@ -1615,7 +1619,7 @@ function RejectPopover({
               onClick={() => handleAssign(agent)}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors",
-                isAssigned ? "bg-[#F2F0FA]" : "hover:bg-[#F9FAFB]",
+                isAssigned ? "bg-[#EBF4FD]" : "hover:bg-[#F9FAFB]",
                 isDisabled && "opacity-40 cursor-not-allowed",
               )}
             >
@@ -1628,7 +1632,7 @@ function RejectPopover({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-[12px] font-semibold text-[#1D2939] truncate">{agent.name}</p>
-                  {isAssigned && <span className="text-[10px] font-semibold text-[#6E56CF]">Transferred</span>}
+                  {isAssigned && <span className="text-[10px] font-semibold text-[#166CCA]">Transferred</span>}
                 </div>
                 <p className="text-[10px] text-[#98A2B3] truncate">{agent.skills.join(" · ")}</p>
               </div>
@@ -1674,7 +1678,7 @@ function CopilotResponseCard({
   const [isReasoningOpen, setIsReasoningOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+    <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
       {/* Header */}
       <button
         type="button"
@@ -1682,21 +1686,21 @@ function CopilotResponseCard({
         className="flex w-full items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">
+          <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
             Copilot Response
           </p>
           {phase === "thinking" && (
             <span className="flex items-center gap-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
             </span>
           )}
         </div>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200",
+            "h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200",
             isOpen && "rotate-180",
           )}
         />
@@ -1737,7 +1741,7 @@ function CopilotResponseCard({
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                    <div className="pt-2 space-y-1.5 border-l-2 border-[#C5DEF5] ml-1 pl-3">
                       {COPILOT_REASONING_STEPS.slice(0, reasoningVisible).map((step, i) => (
                         <div
                           key={i}
@@ -1754,7 +1758,7 @@ function CopilotResponseCard({
 
             {/* Final response */}
             {phase === "done" && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-400 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                 <p className="text-[12px] text-[#344054] leading-relaxed">
                   Based on the case analysis, the customer's issue appears to stem from an account configuration mismatch. The previous resolution attempts addressed symptoms but not the root cause. I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.
                 </p>
@@ -1768,6 +1772,192 @@ function CopilotResponseCard({
 }
 
 // ─── Row component ────────────────────────────────────────────────────────────
+
+// ─── TakeoverPopover ─────────────────────────────────────────────────────────
+
+function TakeoverPopover({
+  botType,
+  customerName,
+  triggerRect,
+  onClose,
+  onConfirm,
+}: {
+  botType: string;
+  customerName: string;
+  triggerRect: DOMRect;
+  onClose: () => void;
+  onConfirm: (reason: string, alertBot: boolean) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [alertBot, setAlertBot] = useState(true);
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const POPOVER_WIDTH = 320;
+  const ESTIMATED_HEIGHT = 260;
+  const { left, top, transform } = getSmartPopoverPosition(triggerRect, POPOVER_WIDTH, ESTIMATED_HEIGHT);
+
+  return createPortal(
+    <div
+      ref={ref}
+      className="fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      style={{ left, top, width: POPOVER_WIDTH, transform }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div>
+          <p className="text-[12px] font-semibold text-[#1D2939]">Take over conversation</p>
+          <p className="text-[11px] text-[#667085] mt-0.5">Currently handled by <span className="font-medium text-[#344054]">{botType}</span></p>
+        </div>
+        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors ml-3 shrink-0">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="px-4 py-3 space-y-3">
+        {/* Alert checkbox */}
+        <label className="flex items-start gap-2.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={alertBot}
+            onChange={(e) => setAlertBot(e.target.checked)}
+            className="mt-0.5 h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#166CCA] cursor-pointer shrink-0"
+          />
+          <span className="text-[12px] text-[#344054] leading-snug">
+            Notify <span className="font-medium">{botType}</span> that you are taking over
+          </span>
+        </label>
+
+        {/* Reason textarea */}
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Reason for taking over (optional)"
+          rows={3}
+          className="w-full resize-none rounded-lg border border-[#D0D5DD] px-3 py-2 text-[12px] text-[#344054] placeholder:text-[#98A2B3] focus:border-[#166CCA] focus:outline-none focus:ring-1 focus:ring-[#166CCA]/20 transition-colors"
+        />
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 border-t border-border bg-[#F9FAFB] px-4 py-2.5">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onConfirm(reason, alertBot)}
+          className="rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+        >
+          Confirm Takeover
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ─── TakeoverButton ───────────────────────────────────────────────────────────
+// Shows the TakeoverPopover. On confirm it builds the handoff-stamped initial
+// conversation synchronously (before acceptIssue is called) so the correct
+// messages are stored from the very first render — avoiding the navigate() race.
+
+function TakeoverButton({
+  botType,
+  customerName,
+  customerRecordId,
+  channel,
+  onTakeover,
+  className,
+}: {
+  botType: string;
+  customerName: string;
+  customerRecordId: string;
+  channel: string;
+  onTakeover: (handoffConversation: SharedConversationData) => void;
+  className?: string;
+}) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [showPopover, setShowPopover] = useState(false);
+  const [triggerRect, setTriggerRect] = useState<DOMRect | null>(null);
+
+  const buildHandoffConversation = (): SharedConversationData => {
+    const convChannel = (channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+    const seed = customerRecordId
+      ? createConversationState(customerRecordId, convChannel)
+      : { customerName, label: botType, timelineLabel: "", status: "open" as const, draft: "", messages: [] };
+    const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const firstName = customerName.split(" ")[0];
+    return {
+      ...seed,
+      messages: [
+        // Stamp every prior agent message with the bot's name so it renders as the bot, not JC
+        ...seed.messages.map((msg) =>
+          msg.role === "agent" && !msg.author ? { ...msg, author: botType } : msg
+        ),
+        // Handoff notice authored by the bot
+        {
+          id: Date.now(),
+          role: "agent" as const,
+          author: botType,
+          content: `${firstName}, I'm transferring you now to ${CURRENT_AGENT_NAME}, a human specialist who will take it from here.`,
+          time,
+        },
+      ],
+    };
+  };
+
+  const handleConfirm = (_reason: string, _alertBot: boolean) => {
+    setShowPopover(false);
+    const handoff = buildHandoffConversation();
+    // Write to the module-level store BEFORE calling onTakeover.
+    // Layout.tsx reads this in both acceptIssue (new assignment path) and
+    // setConversationStateForAssignment (already-open path), so it is applied
+    // regardless of React state batching or navigation timing.
+    if (customerRecordId) pendingHandoffConversations.set(customerRecordId, handoff);
+    onTakeover(handoff);
+  };
+
+  return (
+    <>
+      {showPopover && triggerRect && (
+        <TakeoverPopover
+          botType={botType}
+          customerName={customerName}
+          triggerRect={triggerRect}
+          onClose={() => setShowPopover(false)}
+          onConfirm={handleConfirm}
+        />
+      )}
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          const rect = buttonRef.current?.getBoundingClientRect();
+          if (rect) { setTriggerRect(rect); setShowPopover(true); }
+        }}
+        className={className ?? "rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"}
+      >
+        Takeover
+      </button>
+    </>
+  );
+}
+
+// ─── IssueRow ─────────────────────────────────────────────────────────────────
 
 function IssueRow({
   id,
@@ -1794,6 +1984,7 @@ function IssueRow({
   onReopen,
   onMonitor,
   onSupervise,
+  onTakeoverAccept,
   isMonitored = false,
   isSelected = false,
   onSelect,
@@ -1822,11 +2013,12 @@ function IssueRow({
   onReopen: () => void;
   onMonitor: () => void;
   onSupervise: () => void;
+  onTakeoverAccept: (handoffConversation: SharedConversationData) => void;
   isMonitored?: boolean;
   isSelected?: boolean;
   onSelect?: (id: string | null) => void;
 }) {
-  const { selectAssignment } = useLayoutContext();
+  const { selectAssignment, pushTransferredToast } = useLayoutContext();
   const navigate = useNavigate();
   const [showReject, setShowReject] = useState(false);
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
@@ -1877,15 +2069,15 @@ function IssueRow({
   }, [isMonitored]);
 
   return (
-    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#F2F0FA] dark:bg-[#1B1040]" : status === "escalated" ? "bg-[#FEF2F2]" : isSelected && "bg-[#F2F4F7]")}>
-      {(isMonitored || isSelected || status === "escalated") && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full z-[1]", isMonitored ? "bg-[#6E56CF]" : status === "escalated" ? "bg-[#E53935]" : "bg-[#6E56CF]/50")} />}
+    <div ref={rowRef} className={cn("group/row border-b border-border last:border-b-0 relative", isMonitored ? "bg-[#EBF4FD] dark:bg-[#0B1E35]" : status === "escalated" ? "bg-[#FEF2F2]" : isSelected && "bg-[#F2F4F7]")}>
+      {(isMonitored || isSelected || status === "escalated") && <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-r-full z-[1]", isMonitored ? "bg-[#166CCA]" : status === "escalated" ? "bg-[#E53935]" : "bg-[#166CCA]/50")} />}
       {/* Header row — accordion toggle + hover-reveal action buttons */}
       <div
         role="button"
         tabIndex={0}
         onClick={() => onSelect?.(id)}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect?.(id); } }}
-        className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#6E56CF]/30", isMonitored ? "hover:bg-[#E8E3F8] dark:hover:bg-[#231550]" : status === "escalated" ? "hover:bg-[#FEE2E2]" : "hover:bg-[#F9FAFB]")}
+        className={cn("relative w-full text-left flex items-center gap-3 px-5 py-4 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#166CCA]/30", isMonitored ? "hover:bg-[#D5E9F8] dark:hover:bg-[#0C2A4A]" : status === "escalated" ? "hover:bg-[#FEE2E2]" : "hover:bg-[#F9FAFB]")}
       >
         {(isLive || (isAccepted && !isClosed)) && !isParkedFromToast && (
           <div className="shrink-0 relative flex h-2 w-2">
@@ -1900,14 +2092,14 @@ function IssueRow({
               "rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none",
               status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E] dark:border-[#1E4A1E] dark:bg-[#0A2010] dark:text-[#4CAF50]",
               status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085] dark:border-[#2A3448] dark:bg-[#151F30] dark:text-[#8898AB]",
-              status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF] dark:border-[#2D1F5E] dark:bg-[#1C1A2E] dark:text-[#C8BFF0]",
+              status === "resolved"  && "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA] dark:border-[#0C3D7A] dark:bg-[#0B1E35] dark:text-[#BFDBFE]",
               status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A] dark:border-[#6B1A1A] dark:bg-[#2E0D0D] dark:text-[#F87171]",
             )}>
               {status}
             </span>
             {assignedTo && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2 py-0.5 text-[10px] font-semibold text-[#166CCA]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA]" />
                 Assigned — {assignedTo}
               </span>
             )}
@@ -1915,7 +2107,7 @@ function IssueRow({
           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{preview}</p>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] text-[#98A2B3]">
             {assignedTo ? (
-              <span className="font-medium text-[#6E56CF]">{assignedTo}</span>
+              <span className="font-medium text-[#166CCA]">{assignedTo}</span>
             ) : (
               <span>{botType}</span>
             )}
@@ -1954,7 +2146,7 @@ function IssueRow({
                   navigate("/activity");
                 }
               }}
-              className="rounded-md border border-[#C8BFF0] bg-[#F2F0FA] px-3 py-1 text-[11px] font-semibold text-[#6E56CF] hover:bg-[#DAEEFA] transition-colors"
+              className="rounded-md border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-1 text-[11px] font-semibold text-[#166CCA] hover:bg-[#DAEEFA] transition-colors"
             >
               In Progress
             </button>
@@ -1982,20 +2174,24 @@ function IssueRow({
               >
                 Monitor
               </button>
-              <button
-                type="button"
-                onClick={() => isAccepted ? onReopen() : onAccept()}
-                className="rounded-md bg-[#6E56CF] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-              >
-                Takeover
-              </button>
+              <TakeoverButton
+                botType={botType}
+                customerName={name}
+                customerRecordId={customerRecordId ?? ""}
+                channel={channel}
+                onTakeover={(handoffConversation) => {
+                  pushTransferredToast({ id, name, customerId, customerRecordId: customerRecordId ?? "", channel: channel as AssignmentChannel, label: botType, priority, preview });
+                  onTakeoverAccept(handoffConversation);
+                }}
+                className="rounded-md bg-[#166CCA] px-3 py-1 text-[11px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+              />
             </>
           )}
         </div>
 
         <ChevronRight className={cn(
           "h-4 w-4 shrink-0 text-[#98A2B3] transition-colors duration-200",
-          isSelected && "text-[#6E56CF]",
+          isSelected && "text-[#166CCA]",
         )} />
       </div>
     </div>
@@ -2086,14 +2282,14 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
         <div className="overflow-hidden">
           <div className="px-5 pb-4 pt-2 space-y-3">
             {/* Attempted Resolution — collapsible */}
-            <div className="rounded-xl border border-[#C8BFF0] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+            <div className="rounded-xl border border-[#BFDBFE] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
               <button
                 type="button"
                 onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
                 className="flex w-full items-center justify-between px-4 py-3 text-left"
               >
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] dark:text-[#5C46B8]">Case Overview</p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200 dark:text-[#5C46B8]", isAttemptedResolutionOpen && "rotate-180")} />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#1260B0]">Case Overview</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200 dark:text-[#1260B0]", isAttemptedResolutionOpen && "rotate-180")} />
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
@@ -2101,9 +2297,9 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                     {/* Customer Context card */}
                     {resolvedCustomerContext && (
                       <div className="flex items-start gap-2.5 rounded-lg bg-[#EEF0FF] px-3 py-2.5">
-                        <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#5C46B8]" />
+                        <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#1260B0]" />
                         <div>
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8] mb-0.5">Customer Context</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] mb-0.5">Customer Context</p>
                           <p className="text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">{resolvedCustomerContext}</p>
                         </div>
                       </div>
@@ -2111,7 +2307,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                     <ul className="space-y-2">
                       {aiOverview.actions.map((action, i) => (
                         <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] dark:text-[#4E7D96] leading-relaxed">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8] dark:bg-[#244D68]" />
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0] dark:bg-[#244D68]" />
                           {action}
                         </li>
                       ))}
@@ -2132,8 +2328,8 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
               />
             )}
             {/* Ask Copilot input */}
-            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white dark:bg-[#0C1A26] dark:border-[#1B3A52] px-3 py-2">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white dark:bg-[#0C1A26] dark:border-[#1B3A52] px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
               <input
                 type="text"
                 value={copilotQuery}
@@ -2142,7 +2338,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
                 placeholder="Ask Copilot about this Case"
                 className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] dark:text-[#94A3B8] placeholder:text-[#98A2B3] outline-none"
               />
-              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
@@ -2173,7 +2369,7 @@ function ResolvedIssueRow({ item, onTransfer, onOpen }: {
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onOpen(); }}
-                className="rounded-md bg-[#6E56CF] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
+                className="rounded-md bg-[#166CCA] px-3.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
               >
                 Takeover
               </button>
@@ -2197,6 +2393,8 @@ type RowData = StaticAssignment & {
   onReopen: () => void;
   onMonitor: () => void;
   onSupervise: () => void;
+  /** Takeover-specific accept: uses the pre-stamped handoff conversation as initialConversation. */
+  onTakeoverAccept: (handoffConversation: SharedConversationData) => void;
 };
 
 // ─── BulkResponseModal ────────────────────────────────────────────────────────
@@ -2245,8 +2443,8 @@ function BulkResponseModal({
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#F2F4F7]">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F2F0FA]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6E56CF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EBF4FD]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#166CCA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </div>
             <div>
               <p className="text-[15px] font-semibold text-[#101828]">Bulk Response</p>
@@ -2270,17 +2468,17 @@ function BulkResponseModal({
 
           {/* AI Suggested Response */}
           <div className="px-6 pb-3">
-            <div className="rounded-xl border border-[#C8BFF0] bg-[#F5F3FF] px-4 py-3">
+            <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] px-4 py-3">
               <div className="flex items-center gap-2 mb-2.5">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF]">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#166CCA]">
                   <Sparkles className="h-3.5 w-3.5 text-white" />
                 </div>
-                <p className="text-[13px] font-semibold text-[#5C46B8]">AI Suggested Response</p>
+                <p className="text-[13px] font-semibold text-[#1260B0]">AI Suggested Response</p>
               </div>
-              <div className="rounded-lg bg-white border border-[#C8BFF0] px-3 py-2.5">
+              <div className="rounded-lg bg-white border border-[#BFDBFE] px-3 py-2.5">
                 <p className="text-[12px] text-[#344054] leading-relaxed">{aiResponse}</p>
               </div>
-              <button type="button" onClick={() => setResponse(aiResponse)} className="mt-2 text-[11px] font-medium text-[#6E56CF] hover:underline">
+              <button type="button" onClick={() => setResponse(aiResponse)} className="mt-2 text-[11px] font-medium text-[#166CCA] hover:underline">
                 Use this response →
               </button>
             </div>
@@ -2320,7 +2518,7 @@ function BulkResponseModal({
                 { key: "inApp", label: "In-App Notification" },
               ] as const).map(({ key, label: lbl }) => (
                 <label key={key} className="flex items-center gap-1.5 cursor-pointer select-none">
-                  <input type="checkbox" checked={channels[key]} onChange={() => toggleChannel(key)} className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#6E56CF] cursor-pointer" />
+                  <input type="checkbox" checked={channels[key]} onChange={() => toggleChannel(key)} className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#166CCA] cursor-pointer" />
                   <span className="text-[12px] text-[#344054]">{lbl}</span>
                 </label>
               ))}
@@ -2336,7 +2534,7 @@ function BulkResponseModal({
             disabled={sent || !response.trim()}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-colors",
-              sent ? "bg-[#12B76A]" : "bg-[#6E56CF] hover:bg-[#5C46B8] disabled:opacity-50 disabled:cursor-not-allowed",
+              sent ? "bg-[#12B76A]" : "bg-[#166CCA] hover:bg-[#1260B0] disabled:opacity-50 disabled:cursor-not-allowed",
             )}
           >
             {sent ? (
@@ -2365,6 +2563,7 @@ const CARD_COPILOT_STEPS = [
 ];
 
 function QueueCard({ caseData }: { caseData: RowData }) {
+  const { pushTransferredToast } = useLayoutContext();
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
@@ -2406,13 +2605,13 @@ function QueueCard({ caseData }: { caseData: RowData }) {
               caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
               caseData.status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
               caseData.status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
-              caseData.status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+              caseData.status === "resolved"  && "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]",
             )}>
               {caseData.status}
             </span>
             {caseData.assignedTo && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2 py-0.5 text-[10px] font-semibold text-[#166CCA]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA]" />
                 Assigned — {caseData.assignedTo}
               </span>
             )}
@@ -2460,13 +2659,17 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             >
               Monitor
             </button>
-            <button
-              type="button"
-              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
-              className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-            >
-              Takeover
-            </button>
+            <TakeoverButton
+              botType={caseData.botType}
+              customerName={caseData.name}
+              customerRecordId={caseData.customerRecordId ?? ""}
+              channel={caseData.channel}
+              onTakeover={(handoffConversation) => {
+                pushTransferredToast({ id: caseData.id, name: caseData.name, customerId: caseData.customerId, customerRecordId: caseData.customerRecordId ?? "", channel: caseData.channel as AssignmentChannel, label: caseData.botType, priority: caseData.priority, preview: caseData.preview });
+                caseData.onTakeoverAccept(handoffConversation);
+              }}
+              className="rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            />
           </div>
         )}
       </div>
@@ -2475,28 +2678,28 @@ function QueueCard({ caseData }: { caseData: RowData }) {
       <div className="flex-1 px-4 py-4 space-y-3 overflow-hidden">
         {/* Customer Context */}
         {caseData.customerContext && (
-          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Context</p>
             <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
           </div>
         )}
 
         {/* Attempted Resolution */}
-        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+        <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
           <button
             type="button"
             onClick={() => setIsResolutionOpen((v) => !v)}
             className="flex w-full items-center justify-between px-4 py-3 text-left"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Case Overview</p>
-            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Case Overview</p>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
           </button>
           <div className={cn("grid transition-all duration-200 ease-out", isResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
             <div className="overflow-hidden">
               <ul className="px-4 pb-4 space-y-2">
                 {caseData.aiOverview.actions.map((action, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0]" />
                     {action}
                   </li>
                 ))}
@@ -2507,20 +2710,20 @@ function QueueCard({ caseData }: { caseData: RowData }) {
 
         {/* Copilot response */}
         {copilotPhase !== "idle" && (
-          <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+          <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
             <button type="button" onClick={() => setIsCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
+                <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot Response</p>
                 {copilotPhase === "thinking" && (
                   <span className="flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
                   </span>
                 )}
               </div>
-              <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+              <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
             </button>
             <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
               <div className="overflow-hidden px-4 pb-4 space-y-2">
@@ -2532,7 +2735,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
                       <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isReasoningOpen && "rotate-180")} />
                     </button>
                     <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-                      <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                      <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#C5DEF5] ml-1 pl-3">
                         {CARD_COPILOT_STEPS.slice(0, reasoningVisible).map((step, i) => (
                           <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>
                         ))}
@@ -2541,7 +2744,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
                   </div>
                 )}
                 {copilotPhase === "done" && (
-                  <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                  <div className="rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                     <p className="text-[12px] text-[#344054] leading-relaxed">Based on the case analysis, I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.</p>
                   </div>
                 )}
@@ -2553,8 +2756,8 @@ function QueueCard({ caseData }: { caseData: RowData }) {
 
       {/* Ask Copilot — pinned to bottom of card */}
       <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
-        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+        <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
           <input
             type="text"
             value={copilotQuery}
@@ -2563,7 +2766,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             placeholder="Ask Copilot about this Case"
             className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
           />
-          <button type="button" onClick={handleSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+          <button type="button" onClick={handleSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -2575,6 +2778,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
 // ─── MonitorCard — full monitor-mode card for carousel ───────────────────────
 
 function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: boolean }) {
+  const { pushTransferredToast } = useLayoutContext();
   const [isResolutionOpen, setIsResolutionOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -2605,7 +2809,7 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
   return (
     <div className={cn(
       "flex flex-col h-full rounded-2xl border shadow-md overflow-hidden bg-white transition-all duration-300",
-      isActive ? "shadow-[0_8px_32px_rgba(110,86,207,0.14)] border-[#C8BFF0]" : "opacity-60 border-border",
+      isActive ? "shadow-[0_8px_32px_rgba(22,108,202,0.14)] border-[#BFDBFE]" : "opacity-60 border-border",
       caseData.status === "escalated" && isActive && "border-[#E53935]/30 shadow-[0_8px_32px_rgba(229,57,53,0.12)]",
     )}>
       {/* Card header */}
@@ -2621,11 +2825,11 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
               caseData.status === "escalated" && "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
               caseData.status === "open"      && "border-[#B9E0B4] bg-[#F0FAF0] text-[#1E7B1E]",
               caseData.status === "pending"   && "border-[#D0D5DD] bg-[#F9FAFB] text-[#667085]",
-              caseData.status === "resolved"  && "border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF]",
+              caseData.status === "resolved"  && "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]",
             )}>{caseData.status}</span>
             {caseData.assignedTo && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2 py-0.5 text-[10px] font-semibold text-[#166CCA]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA]" />
                 Assigned — {caseData.assignedTo}
               </span>
             )}
@@ -2639,13 +2843,17 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
               >
                 Monitor
               </button>
-              <button
-                type="button"
-                onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
+              <TakeoverButton
+                botType={caseData.botType}
+                customerName={caseData.name}
+                customerRecordId={caseData.customerRecordId ?? ""}
+                channel={caseData.channel}
+                onTakeover={(handoffConversation) => {
+                  pushTransferredToast({ id: caseData.id, name: caseData.name, customerId: caseData.customerId, customerRecordId: caseData.customerRecordId ?? "", channel: caseData.channel as AssignmentChannel, label: caseData.botType, priority: caseData.priority, preview: caseData.preview });
+                  caseData.onTakeoverAccept(handoffConversation);
+                }}
                 className="rounded-md bg-[#E53935] px-4 py-1.5 text-[11px] font-semibold text-white hover:bg-[#C71D1A] transition-colors"
-              >
-                Takeover
-              </button>
+              />
             </div>
           )}
         </div>
@@ -2661,22 +2869,22 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
         <div className="flex flex-col w-[320px] shrink-0 border-r border-border overflow-hidden">
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {caseData.customerContext && (
-              <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+              <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Context</p>
                 <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
               </div>
             )}
-            <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+            <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
               <button type="button" onClick={() => setIsResolutionOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Case Overview</p>
-                <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Case Overview</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isResolutionOpen && "rotate-180")} />
               </button>
               <div className={cn("grid transition-all duration-200 ease-out", isResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                 <div className="overflow-hidden">
                   <ul className="px-4 pb-4 space-y-2">
                     {caseData.aiOverview.actions.map((action, i) => (
                       <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />{action}
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0]" />{action}
                       </li>
                     ))}
                   </ul>
@@ -2684,14 +2892,14 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
               </div>
             </div>
             {copilotPhase !== "idle" && (
-              <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+              <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                 <button type="button" onClick={() => setIsCopilotOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="h-3.5 w-3.5 text-[#6E56CF]" />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Copilot Response</p>
-                    {copilotPhase === "thinking" && <span className="flex gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:0ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:150ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF] animate-bounce [animation-delay:300ms]"/></span>}
+                    <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot Response</p>
+                    {copilotPhase === "thinking" && <span className="flex gap-1"><span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]"/><span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]"/></span>}
                   </div>
-                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
+                  <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isCopilotOpen && "rotate-180")} />
                 </button>
                 <div className={cn("grid transition-all duration-200 ease-out", isCopilotOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
                   <div className="overflow-hidden px-4 pb-4 space-y-2">
@@ -2703,14 +2911,14 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
                           <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", isReasoningOpen && "rotate-180")} />
                         </button>
                         <div className={cn("grid transition-all duration-200 ease-out", isReasoningOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-                          <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#E4DAFF] ml-1 pl-3">
+                          <div className="overflow-hidden pt-2 space-y-1.5 border-l-2 border-[#C5DEF5] ml-1 pl-3">
                             {CARD_COPILOT_STEPS.slice(0, reasoningVisible).map((step, i) => <div key={i} className="text-[11px] text-[#98A2B3]">{step}</div>)}
                           </div>
                         </div>
                       </div>
                     )}
                     {copilotPhase === "done" && (
-                      <div className="rounded-lg bg-[#F2F0FA] border border-[#C8BFF0] px-3 py-2.5">
+                      <div className="rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5">
                         <p className="text-[12px] text-[#344054] leading-relaxed">Based on the case analysis, I recommend verifying the account settings directly, issuing a service credit for the disruption, and scheduling a follow-up within 48 hours to confirm resolution.</p>
                       </div>
                     )}
@@ -2720,10 +2928,10 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
             )}
           </div>
           <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
-            <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+            <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
               <input type="text" value={copilotQuery} onChange={(e) => setCopilotQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }} placeholder="Ask Copilot about this Case" className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none" />
-              <button type="button" onClick={handleSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+              <button type="button" onClick={handleSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
@@ -2779,7 +2987,7 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
       <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center px-8 h-full">
         <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           {/* Beach chair / relaxing agent */}
-          <circle cx="60" cy="60" r="56" fill="#F2F0FA" stroke="#C8BFF0" strokeWidth="2"/>
+          <circle cx="60" cy="60" r="56" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="2"/>
           {/* Sun */}
           <circle cx="60" cy="38" r="12" fill="#FFD166"/>
           {/* Rays */}
@@ -2792,19 +3000,19 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
               stroke="#FFD166" strokeWidth="2" strokeLinecap="round"/>
           ))}
           {/* Hammock rope left */}
-          <path d="M28 70 Q60 82 92 70" stroke="#A78BFA" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+          <path d="M28 70 Q60 82 92 70" stroke="#4B96DA" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
           {/* Hammock body */}
-          <path d="M28 70 Q60 90 92 70" stroke="#7C3AED" strokeWidth="0" fill="#C4B5FD" fillOpacity="0.5"/>
-          <path d="M28 70 Q60 90 92 70 Q60 82 28 70Z" fill="#C4B5FD"/>
+          <path d="M28 70 Q60 90 92 70" stroke="#7C3AED" strokeWidth="0" fill="#BFDBFE" fillOpacity="0.5"/>
+          <path d="M28 70 Q60 90 92 70 Q60 82 28 70Z" fill="#BFDBFE"/>
           {/* Person head */}
           <circle cx="80" cy="66" r="7" fill="#FDDCB5"/>
           {/* Zzz */}
-          <text x="88" y="58" fontSize="10" fill="#6E56CF" fontWeight="bold" fontFamily="sans-serif">z</text>
-          <text x="93" y="52" fontSize="8" fill="#A78BFA" fontWeight="bold" fontFamily="sans-serif">z</text>
-          <text x="97" y="47" fontSize="6" fill="#C4B5FD" fontWeight="bold" fontFamily="sans-serif">z</text>
+          <text x="88" y="58" fontSize="10" fill="#166CCA" fontWeight="bold" fontFamily="sans-serif">z</text>
+          <text x="93" y="52" fontSize="8" fill="#4B96DA" fontWeight="bold" fontFamily="sans-serif">z</text>
+          <text x="97" y="47" fontSize="6" fill="#BFDBFE" fontWeight="bold" fontFamily="sans-serif">z</text>
           {/* Legs */}
-          <line x1="34" y1="70" x2="28" y2="82" stroke="#6E56CF" strokeWidth="2.5" strokeLinecap="round"/>
-          <line x1="92" y1="70" x2="98" y2="82" stroke="#6E56CF" strokeWidth="2.5" strokeLinecap="round"/>
+          <line x1="34" y1="70" x2="28" y2="82" stroke="#166CCA" strokeWidth="2.5" strokeLinecap="round"/>
+          <line x1="92" y1="70" x2="98" y2="82" stroke="#166CCA" strokeWidth="2.5" strokeLinecap="round"/>
         </svg>
         <div>
           <p className="text-[15px] font-semibold text-[#344054]">Queue's clear — enjoy the break!</p>
@@ -2889,7 +3097,7 @@ function QueueCarouselView({ rows, index, onIndexChange }: {
             aria-label={`Go to card ${i + 1}`}
             className={cn(
               "rounded-full transition-all duration-300",
-              i === index ? "w-5 h-1.5 bg-[#6E56CF]" : "w-1.5 h-1.5 bg-[#D0D5DD] hover:bg-[#98A2B3]",
+              i === index ? "w-5 h-1.5 bg-[#166CCA]" : "w-1.5 h-1.5 bg-[#D0D5DD] hover:bg-[#98A2B3]",
             )}
           />
         ))}
@@ -2920,6 +3128,7 @@ function QueueCardView({ rows }: { rows: RowData[] }) {
 // ─── CaseDetailPanel — right-side panel that opens when a row is clicked ────────
 
 function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: () => void }) {
+  const { pushTransferredToast } = useLayoutContext();
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
@@ -2964,8 +3173,8 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
               <p className="text-[14px] font-semibold text-[#333333] dark:text-white leading-snug">{caseData.name}</p>
               {caseData.assignedTo && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+                <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-2 py-0.5 text-[10px] font-semibold text-[#166CCA]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA]" />
                   Assigned — {caseData.assignedTo}
                 </span>
               )}
@@ -3014,13 +3223,17 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             >
               Monitor
             </button>
-            <button
-              type="button"
-              onClick={() => caseData.isAccepted ? caseData.onReopen() : caseData.onAccept()}
-              className="rounded-md bg-[#6E56CF] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#5C46B8] transition-colors"
-            >
-              Takeover
-            </button>
+            <TakeoverButton
+              botType={caseData.botType}
+              customerName={caseData.name}
+              customerRecordId={caseData.customerRecordId ?? ""}
+              channel={caseData.channel}
+              onTakeover={(handoffConversation) => {
+                pushTransferredToast({ id: caseData.id, name: caseData.name, customerId: caseData.customerId, customerRecordId: caseData.customerRecordId ?? "", channel: caseData.channel as AssignmentChannel, label: caseData.botType, priority: caseData.priority, preview: caseData.preview });
+                caseData.onTakeoverAccept(handoffConversation);
+              }}
+              className="rounded-md bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            />
           </div>
         )}
       </div>
@@ -3036,16 +3249,18 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
           <span className="text-[#D0D5DD]">·</span>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Priority</span>
-            <span className={cn("text-[11px] font-semibold", caseData.priority === "Critical" && "text-[#C71D1A]", caseData.priority === "High" && "text-[#A37A00]", caseData.priority === "Medium" && "text-[#6E56CF]", caseData.priority === "Low" && "text-[#208337]")}>{caseData.priority}</span>
+            <span className={cn("text-[11px] font-semibold", caseData.priority === "Critical" && "text-[#C71D1A]", caseData.priority === "High" && "text-[#A37A00]", caseData.priority === "Medium" && "text-[#166CCA]", caseData.priority === "Low" && "text-[#208337]")}>{caseData.priority}</span>
           </div>
           <span className="text-[#D0D5DD]">·</span>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-[#98A2B3]">Assigned To</span>
             {caseData.assignedTo ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#6E56CF]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#6E56CF]" />
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#166CCA]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA]" />
                 {caseData.assignedTo}
               </span>
+            ) : caseData.botType ? (
+              <span className="text-[11px] font-medium text-[#475467]">{caseData.botType}</span>
             ) : (
               <span className="text-[11px] text-[#98A2B3]">Unassigned</span>
             )}
@@ -3054,28 +3269,28 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
 
         {/* Customer Context */}
         {caseData.customerContext && (
-          <div className="rounded-xl border border-[#C8BFF0] bg-[#F2F0FA] p-4">
-            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Customer Context</p>
+          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Context</p>
             <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
           </div>
         )}
 
         {/* Attempted Resolution */}
-        <div className="rounded-xl border border-[#C8BFF0] bg-white overflow-hidden">
+        <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
           <button
             type="button"
             onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
             className="flex w-full items-center justify-between px-4 py-3 text-left"
           >
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#5C46B8]">Case Overview</p>
-            <ChevronDown className={cn("h-3.5 w-3.5 text-[#5C46B8] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Case Overview</p>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isAttemptedResolutionOpen && "rotate-180")} />
           </button>
           <div className={cn("grid transition-all duration-200 ease-out", isAttemptedResolutionOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
             <div className="overflow-hidden">
               <ul className="px-4 pb-4 space-y-2">
                 {caseData.aiOverview.actions.map((action, i) => (
                   <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#5C46B8]" />
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0]" />
                     {action}
                   </li>
                 ))}
@@ -3098,8 +3313,8 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
 
       {/* Ask Copilot — fixed at bottom */}
       <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
-        <div className="flex items-center gap-2 rounded-lg border border-[#C8BFF0] bg-white px-3 py-2">
-          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#6E56CF]" />
+        <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
           <input
             type="text"
             value={copilotQuery}
@@ -3108,7 +3323,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             placeholder="Ask Copilot about this Case"
             className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
           />
-          <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#6E56CF] hover:text-[#5C46B8] transition-colors">
+          <button type="button" onClick={handleCopilotSubmit} className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
@@ -3148,14 +3363,14 @@ function IssueGroup({
         />
       )}
       {/* Group header */}
-      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50 z-[1]" />}
+      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#166CCA]/50 z-[1]" />}
         <button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
           className="flex flex-1 items-center gap-2 text-left min-w-0"
         >
           <span className="text-[11px] font-semibold text-[#344054]">{label}</span>
-          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
+          <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#C5DEF5] px-1.5 text-[9px] font-bold text-[#166CCA]">
             {items.length}
           </span>
         </button>
@@ -3163,7 +3378,7 @@ function IssueGroup({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); setShowBulkModal(true); }}
-            className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#6E56CF] hover:bg-[#F2F0FA] transition-colors"
+            className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
             Respond to all
@@ -3234,20 +3449,20 @@ function CustomerGroup({
       )}
 
       {/* Customer group header */}
-      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#6E56CF]/50 z-[1]" />}
+      <div className={cn("relative flex w-full items-center justify-between px-5 py-2.5 bg-[#F9FAFB] hover:bg-[#F2F4F7] transition-colors", hasSelected && "pl-[22px]")}>        {hasSelected && <div className="absolute left-0 inset-y-0 w-[3px] rounded-r-full bg-[#166CCA]/50 z-[1]" />}
         <button
           type="button"
           onClick={() => setIsOpen((v) => !v)}
           className="flex flex-1 items-center gap-2.5 text-left min-w-0"
         >
           {/* Avatar */}
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#E0DBF5] text-[9px] font-bold text-[#5C46B8]">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[9px] font-bold text-[#1260B0]">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[12px] font-semibold text-[#344054] truncate">{displayName}</span>
-              <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#E4DAFF] px-1.5 text-[9px] font-bold text-[#6E56CF]">
+              <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#C5DEF5] px-1.5 text-[9px] font-bold text-[#166CCA]">
                 {items.length}
               </span>
               <span className="text-[10px] text-[#98A2B3] font-mono">{customerId}</span>
@@ -3295,11 +3510,6 @@ function CustomerGroup({
   );
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-// The name of the currently logged-in agent — shown in the queue subhead when a case is assigned to them.
-const CURRENT_AGENT_NAME = "Jeff Comstock";
-
 // ─── Persistent state store (survives navigation away and back) ───────────────
 // Stored at module scope so it outlives component unmount/remount cycles.
 const persistedState = {
@@ -3317,7 +3527,7 @@ const persistedState = {
   // Tracks which static case IDs have been manually resolved via the modal.
   resolvedIds: new Set<string>(),
   // Top-level tab inside the Control Center (Review vs Queue).
-  controlCenterTab: "monitor" as "monitor" | "queue",
+  controlCenterTab: "monitor" as "monitor" | "assigned" | "queue",
 };
 
 // Ensures the local escalation-override timer fires at most once per session,
@@ -3326,11 +3536,16 @@ let escalationLocalFired = false;
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ControlCenterPage() {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved } = useLayoutContext();
+export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-panel" } = {}) {
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved, pushTransferredToast, setConversationStateForAssignment } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
-  const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "assigned" | "queue">(() => persistedState.controlCenterTab as "monitor" | "assigned" | "queue");
+  const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "assigned" | "queue">(() => {
+    if (mode === "inbox") return "queue";
+    const saved = persistedState.controlCenterTab;
+    // "queue" no longer exists as a tab on the control-panel page — fall back to "monitor"
+    return (saved === "queue" ? "monitor" : saved) as "monitor" | "assigned";
+  });
   const [issueTab, setIssueTab] = useState<IssueTab>(() => persistedState.issueTab);
   const [priorityFilters, setPriorityFilters] = useState<Set<Priority>>(() => new Set(persistedState.priorityFilters));
   const [channelFilters, setChannelFilters] = useState<Set<ChannelFilterValue>>(() => new Set(persistedState.channelFilters));
@@ -3505,21 +3720,26 @@ export default function ControlCenterPage() {
 
   const rejectIssue = (id: string) => setRejectedIds((prev) => new Set([...prev, id]));
 
-  const handleAcceptStatic = (a: StaticAssignment, statusOverride?: QueueAssignmentStatus) => {
+  const handleAcceptStatic = (a: StaticAssignment, statusOverride?: QueueAssignmentStatus, initialConversationOverride?: SharedConversationData) => {
     // If this case is already open in the rail, just navigate to it — don't create a duplicate channel.
     const existingAssignmentId = acceptedStaticsStore.get(a.id);
     const isAlreadyOpen = !!existingAssignmentId && visibleAssignments.some((v) => v.id === existingAssignmentId);
     if (isAlreadyOpen) {
       if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
+      // If a handoff conversation was supplied (e.g. Takeover after supervising), stamp the
+      // existing channel's state before navigating so the correct messages are shown immediately.
+      if (initialConversationOverride) {
+        setConversationStateForAssignment(existingAssignmentId, initialConversationOverride);
+      }
       selectAssignment(existingAssignmentId);
       navigate("/activity");
       return;
     }
 
     const channel = (a.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-    const initialConversation = a.customerRecordId
+    const initialConversation = initialConversationOverride ?? (a.customerRecordId
       ? createConversationState(a.customerRecordId, channel)
-      : undefined;
+      : undefined);
 
     const data: AcceptIssueData = {
       id: a.id,
@@ -3588,6 +3808,7 @@ export default function ControlCenterPage() {
         setEscalatedModalCase({ ...row, status: effectiveStatus });
       },
       onSupervise: () => handleAcceptStatic(a, row.status),
+      onTakeoverAccept: (handoffConversation) => handleAcceptStatic(a, row.status, handoffConversation),
     };
     return row;
   // Exclude closed cases (taken over + dismissed) — they are represented in resolvedNormalised
@@ -3648,6 +3869,7 @@ export default function ControlCenterPage() {
         onReopen: () => {},
         onMonitor: () => {},
         onSupervise: () => {},
+        onTakeoverAccept: () => {},
       };
     });
 
@@ -3751,6 +3973,10 @@ export default function ControlCenterPage() {
           openCustomerConversation(r.customerRecordId, channel);
         });
       },
+      onTakeoverAccept: (handoffConversation) => {
+        if (!sa) return;
+        handleAcceptStatic(sa, r.status, handoffConversation);
+      },
     };
   });
 
@@ -3795,34 +4021,36 @@ export default function ControlCenterPage() {
     <div className="flex h-full flex-col">
 
       {/* ── Top-level Review / Queue tabs ────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
-        {([["Home", "monitor"], ["Assigned", "assigned"], ["Queue", "queue"]] as const).map(([label, key]) => {
-          const isActive = controlCenterTab === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setControlCenterTab(key)}
-              className={cn(
-                "relative py-3 px-1 mr-6 text-[13px] font-medium transition-colors",
-                isActive
-                  ? "text-[#6E56CF]"
-                  : "text-[#667085] hover:text-[#344054]",
-              )}
-            >
-              {label}
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-[#6E56CF]" />
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {mode !== "inbox" && (
+        <div className="shrink-0 flex items-center gap-0 border-b border-border bg-white dark:bg-[#0F1629] px-5">
+          {([["Home", "monitor"], ["Assigned", "assigned"]] as const).map(([label, key]) => {
+            const isActive = controlCenterTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setControlCenterTab(key)}
+                className={cn(
+                  "relative py-3 px-1 mr-6 text-[13px] font-medium transition-colors",
+                  isActive
+                    ? "text-[#166CCA]"
+                    : "text-[#667085] hover:text-[#344054]",
+                )}
+              >
+                {label}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-[#166CCA]" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
 
       {/* ── Summary cards row ────────────────────────────────────────────────── */}
-      {controlCenterTab === "monitor" && (() => {
+      {mode !== "inbox" && controlCenterTab === "monitor" && (() => {
         const criticalCount = baseRows.filter((a) => a.priority === "Critical").length;
         const highCount     = baseRows.filter((a) => a.priority === "High").length;
         const resolvedCount = tabCounts.resolved;
@@ -3908,14 +4136,17 @@ export default function ControlCenterPage() {
                                     selectAssignment(row.liveAssignmentId);
                                     navigate("/activity");
                                   } else {
+                                    if (!row.isAccepted) {
+                                      pushTransferredToast({ id: row.id, name: row.name, customerId: row.customerId, customerRecordId: row.customerRecordId ?? "", channel: row.channel as AssignmentChannel, label: row.botType, priority: row.priority, preview: row.preview });
+                                    }
                                     row.isAccepted ? row.onReopen() : row.onAccept();
                                   }
                                 }}
                                 className={cn(
                                   "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
                                   isInProgress
-                                    ? "border border-[#C8BFF0] bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#E8E3F8]"
-                                    : "bg-[#6E56CF] text-white hover:bg-[#5C46B8]",
+                                    ? "border border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA] hover:bg-[#D5E9F8]"
+                                    : "bg-[#166CCA] text-white hover:bg-[#1260B0]",
                                 )}
                               >
                                 {isInProgress ? "In Progress" : row.isAccepted ? "View" : "Takeover"}
@@ -3938,8 +4169,8 @@ export default function ControlCenterPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Overview</p>
                 <button
                   type="button"
-                  onClick={() => setControlCenterTab("queue")}
-                  className="text-[11px] font-medium text-[#6E56CF] hover:underline"
+                  onClick={() => navigate("/queue")}
+                  className="text-[11px] font-medium text-[#166CCA] hover:underline"
                 >
                   View Queue
                 </button>
@@ -3950,7 +4181,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("escalated");
-                    setControlCenterTab("queue");
+                    navigate("/queue");
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors",
@@ -3985,7 +4216,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("pending");
-                    setControlCenterTab("queue");
+                    navigate("/queue");
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#FFFAEB]"
                 >
@@ -4005,7 +4236,7 @@ export default function ControlCenterPage() {
                   type="button"
                   onClick={() => {
                     setIssueTab("open");
-                    setControlCenterTab("queue");
+                    navigate("/queue");
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg py-1.5 text-left transition-colors hover:bg-[#EFFBF1]"
                 >
@@ -4027,13 +4258,13 @@ export default function ControlCenterPage() {
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
               <div className="flex items-center justify-between mb-2.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
-                <button type="button" className="text-[11px] font-medium text-[#6E56CF] hover:underline">View All</button>
+                <button type="button" className="text-[11px] font-medium text-[#166CCA] hover:underline">View All</button>
               </div>
               <p className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] flex-1">
                 {trendText}
               </p>
               <div className="flex items-center gap-1.5 mt-3">
-                <span className="h-1.5 w-4 rounded-full bg-[#6E56CF]" />
+                <span className="h-1.5 w-4 rounded-full bg-[#166CCA]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-[#D0D5DD]" />
@@ -4061,7 +4292,7 @@ export default function ControlCenterPage() {
             {/* AI input bar */}
             <div className="w-full max-w-[56rem]">
               <div className="flex items-center gap-3 rounded-xl border border-border bg-white shadow-sm px-4 py-3">
-                <Sparkles className="h-4 w-4 shrink-0 text-[#6E56CF]" />
+                <Sparkles className="h-4 w-4 shrink-0 text-[#166CCA]" />
                 <input
                   type="text"
                   placeholder="What would you like to do today?"
@@ -4075,7 +4306,7 @@ export default function ControlCenterPage() {
                 <button
                   type="button"
                   onClick={() => openCopilot()}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] text-white transition-colors hover:bg-[#5C46B8]"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#166CCA] text-white transition-colors hover:bg-[#1260B0]"
                   aria-label="Ask AI"
                 >
                   <Send className="h-3.5 w-3.5" />
@@ -4088,7 +4319,7 @@ export default function ControlCenterPage() {
       })()}
 
       {/* ── Assigned tab ─────────────────────────────────────────────────────── */}
-      {controlCenterTab === "assigned" && (() => {
+      {mode !== "inbox" && controlCenterTab === "assigned" && (() => {
         // Include all cases assigned to the current agent:
         // 1. Static cases taken over via the review modal (active in rail)
         // 2. Live cases currently active in the rail
@@ -4119,8 +4350,8 @@ export default function ControlCenterPage() {
                 <div className="shrink-0 px-5 pt-4 pb-0">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => setViewMode("list")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "list" ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutList className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => setViewMode("card")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "card" ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutGrid className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => setViewMode("list")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "list" ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutList className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => setViewMode("card")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "card" ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutGrid className="h-3.5 w-3.5" /></button>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-[#98A2B3]">{assignedRows.length} assigned case{assignedRows.length !== 1 ? "s" : ""}</span>
@@ -4130,15 +4361,15 @@ export default function ControlCenterPage() {
                   {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                     <div className="flex flex-wrap gap-1.5 pb-3">
                       {[...channelFilters].map((ch) => (
-                        <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                        <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                           {channelFilterOptions.find(o => o.value === ch)?.label}
-                          <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                          <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                         </span>
                       ))}
                       {[...priorityFilters].map((p) => (
-                        <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                        <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                           {p}
-                          <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                          <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                         </span>
                       ))}
                     </div>
@@ -4148,8 +4379,8 @@ export default function ControlCenterPage() {
                 <div className={cn("flex-1 min-h-0", viewMode === "card" ? "overflow-y-auto" : "overflow-y-auto")}>
                   {assignedRows.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F2F0FA]">
-                        <Check className="h-5 w-5 text-[#6E56CF]" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#EBF4FD]">
+                        <Check className="h-5 w-5 text-[#166CCA]" />
                       </div>
                       <p className="text-[14px] font-semibold text-[#333333]">No assigned cases</p>
                       <p className="text-[12px] text-[#667085] max-w-xs">Cases you take over will appear here.</p>
@@ -4210,7 +4441,7 @@ export default function ControlCenterPage() {
       })()}
 
       {/* ── Queue tab ─────────────────────────────────────────────────────────── */}
-      {controlCenterTab === "queue" && <div className="min-h-0 flex-1 overflow-hidden">
+      {mode === "inbox" && <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex gap-0 h-full">
 
           {/* ── Left sidebar: My Day / Schedule / Performance / Messages ── */}
@@ -4244,25 +4475,25 @@ export default function ControlCenterPage() {
               const summary = `${urgencyPhrase}. ${progressPhrase} ${pipelinePhrase} Keep an eye on handle time and aim to wrap responses within SLA windows.`;
 
               return (
-                <div className="rounded-xl border border-[#C8BFF0]/60 bg-[#F5F3FF] dark:bg-[#18143A] dark:border-[#3D2F7A]/60 shadow-sm p-4">
+                <div className="rounded-xl border border-[#BFDBFE]/60 bg-[#EBF4FD] dark:bg-[#0B2040] dark:border-[#0C3D7A]/60 shadow-sm p-4">
                   <div className="flex items-center gap-2.5 mb-3">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#6E56CF] shadow-sm">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#166CCA] shadow-sm">
                       <Clock className="h-3.5 w-3.5 text-white stroke-[1.75]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#4C3898] dark:text-[#C8BFF0] leading-none">My Day</p>
-                      <p className="text-[10px] text-[#7C5CBF] dark:text-[#8B78D0] mt-0.5">Your day at a glance</p>
+                      <p className="text-[13px] font-semibold text-[#0D4F9A] dark:text-[#BFDBFE] leading-none">My Day</p>
+                      <p className="text-[10px] text-[#1260B0] dark:text-[#4B96DA] mt-0.5">Your day at a glance</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => openCopilot()}
-                      className="shrink-0 flex items-center gap-1 rounded-full border border-[#6E56CF]/30 bg-[#6E56CF]/10 hover:bg-[#6E56CF]/20 px-2 py-0.5 text-[10px] font-semibold text-[#6E56CF] dark:text-[#C8BFF0] transition-colors"
+                      className="shrink-0 flex items-center gap-1 rounded-full border border-[#166CCA]/30 bg-[#166CCA]/10 hover:bg-[#166CCA]/20 px-2 py-0.5 text-[10px] font-semibold text-[#166CCA] dark:text-[#BFDBFE] transition-colors"
                     >
                       <Sparkles className="h-2.5 w-2.5" />
                       AI Help
                     </button>
                   </div>
-                  <p className="text-[12px] leading-[1.65] text-[#4C3898] dark:text-[#B4A8E8]">
+                  <p className="text-[12px] leading-[1.65] text-[#0D4F9A] dark:text-[#4B96DA]">
                     {summary}
                   </p>
                 </div>
@@ -4273,7 +4504,7 @@ export default function ControlCenterPage() {
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EEF2FF] dark:bg-[#1C2A3A]">
-                  <CalendarCheck className="h-3.5 w-3.5 text-[#6E56CF]" />
+                  <CalendarCheck className="h-3.5 w-3.5 text-[#166CCA]" />
                 </div>
                 <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Schedule</span>
               </div>
@@ -4324,8 +4555,8 @@ export default function ControlCenterPage() {
             {/* Messages card */}
             <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-sm p-4">
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#F5F3FF] dark:bg-[#1C2036]">
-                  <MessageCircle className="h-3.5 w-3.5 text-[#6E56CF]" />
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#EBF4FD] dark:bg-[#0B1E35]">
+                  <MessageCircle className="h-3.5 w-3.5 text-[#166CCA]" />
                 </div>
                 <span className="text-[13px] font-semibold text-[#333333] dark:text-[#E2E8F0]">Messages</span>
               </div>
@@ -4360,7 +4591,7 @@ export default function ControlCenterPage() {
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
                       viewMode === "list"
-                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]"
                         : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
                     )}
                     aria-label="List view"
@@ -4373,7 +4604,7 @@ export default function ControlCenterPage() {
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
                       viewMode === "card"
-                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]"
                         : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
                     )}
                     aria-label="Card view"
@@ -4386,7 +4617,7 @@ export default function ControlCenterPage() {
                     className={cn(
                       "flex h-7 w-7 items-center justify-center rounded-md border transition-colors",
                       viewMode === "carousel"
-                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF]"
+                        ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]"
                         : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
                     )}
                     aria-label="Carousel view"
@@ -4431,13 +4662,13 @@ export default function ControlCenterPage() {
                     className={cn(
                       "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                       (channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all")
-                        ? "border-[#6E56CF]/40 bg-[#F2F0FA] text-[#6E56CF] hover:bg-[#EAE7F8]"
+                        ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA] hover:bg-[#D8EBF8]"
                         : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB] hover:text-[#333333]",
                     )}
                   >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     {(channelFilters.size + priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
-                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[9px] font-bold text-white">
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#166CCA] text-[9px] font-bold text-white">
                         {channelFilters.size + priorityFilters.size + (agentTypeFilter !== "all" ? 1 : 0) + (issueTab !== "all" ? 1 : 0)}
                       </span>
                     )}
@@ -4460,7 +4691,7 @@ export default function ControlCenterPage() {
                                 className={cn(
                                   "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                                   issueTab === tab
-                                    ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                    ? "border-[#166CCA] bg-[#166CCA] text-white"
                                     : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                                 )}
                               >{labels[tab]}</button>
@@ -4481,7 +4712,7 @@ export default function ControlCenterPage() {
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                                 agentTypeFilter === type
-                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  ? "border-[#166CCA] bg-[#166CCA] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
                             >{type === "all" ? "All" : type === "virtual" ? "Virtual" : "Human"}</button>
@@ -4505,7 +4736,7 @@ export default function ControlCenterPage() {
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                                 channelFilters.has(option.value)
-                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  ? "border-[#166CCA] bg-[#166CCA] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
                             >{option.label}</button>
@@ -4529,7 +4760,7 @@ export default function ControlCenterPage() {
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                                 priorityFilters.has(option.value)
-                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  ? "border-[#166CCA] bg-[#166CCA] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
                             >{option.label}</button>
@@ -4549,7 +4780,7 @@ export default function ControlCenterPage() {
                               className={cn(
                                 "rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors",
                                 groupMode === mode
-                                  ? "border-[#6E56CF] bg-[#6E56CF] text-white"
+                                  ? "border-[#166CCA] bg-[#166CCA] text-white"
                                   : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F9FAFB]",
                               )}
                             >{mode === "customer" ? "Customer" : "Case Type"}</button>
@@ -4562,7 +4793,7 @@ export default function ControlCenterPage() {
                           <button
                             type="button"
                             onClick={() => { setChannelFilters(new Set()); setPriorityFilters(new Set()); setAgentTypeFilter("all"); setIssueTab("all"); setIsFilterPanelOpen(false); }}
-                            className="text-[11px] font-medium text-[#6E56CF] hover:underline"
+                            className="text-[11px] font-medium text-[#166CCA] hover:underline"
                           >Clear all</button>
                         </div>
                       )}
@@ -4576,27 +4807,27 @@ export default function ControlCenterPage() {
               {(channelFilters.size > 0 || priorityFilters.size > 0 || agentTypeFilter !== "all" || issueTab !== "all") && (
                 <div className="flex flex-wrap gap-1.5 pb-3">
                   {[...channelFilters].map((ch) => (
-                    <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                    <span key={ch} className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                       {channelFilterOptions.find(o => o.value === ch)?.label}
-                      <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => { const n = new Set(channelFilters); n.delete(ch); setChannelFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   ))}
                   {[...priorityFilters].map((p) => (
-                    <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                    <span key={p} className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                       {p}
-                      <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => { const n = new Set(priorityFilters); n.delete(p); setPriorityFilters(n); }} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   ))}
                   {issueTab !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                       {issueTab.charAt(0).toUpperCase() + issueTab.slice(1)}
-                      <button type="button" onClick={() => setIssueTab("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => setIssueTab("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
                   {agentTypeFilter !== "all" && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#C8BFF0] bg-[#F2F0FA] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#6E56CF]">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] pl-2.5 pr-1.5 py-0.5 text-[11px] font-medium text-[#166CCA]">
                       {agentTypeFilter === "virtual" ? "Virtual Agents" : "Human Agents"}
-                      <button type="button" onClick={() => setAgentTypeFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#C8BFF0] transition-colors"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => setAgentTypeFilter("all")} className="flex h-3.5 w-3.5 items-center justify-center rounded-full hover:bg-[#BFDBFE] transition-colors"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )}
                 </div>
@@ -4731,6 +4962,7 @@ export default function ControlCenterPage() {
               },
             };
             if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
+            pushTransferredToast({ id: a.id, name: a.name, customerId: a.customerId, customerRecordId: a.customerRecordId ?? "", channel: a.channel, label: a.botType, priority: localPriority, preview: a.preview });
             acceptIssue(data);
             rejectIssue(escalatedModalCase.id);
             setEscalatedModalCase(null);

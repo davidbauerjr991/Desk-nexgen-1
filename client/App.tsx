@@ -6,7 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { Inbox, PhoneCall, Users, BookOpen, MessageSquare } from "lucide-react";
+import { PhoneCall, Users, BookOpen, MessageSquare } from "lucide-react";
 
 import Activity from "./pages/Activity";
 import ControlPanelPage from "./pages/ControlPanelPage";
@@ -31,8 +31,8 @@ function WorkspaceRoutes() {
     <Layout>
       <Routes>
         <Route path="/activity"     element={<Activity />} />
-        <Route path="/control-panel" element={<ControlPanelPage />} />
-        <Route path="/inbox"        element={<Placeholder title="Inbox" description="Your unified message inbox will appear here. Coming soon." icon={Inbox} />} />
+        <Route path="/control-center" element={<ControlPanelPage />} />
+        <Route path="/queue"        element={<ControlPanelPage mode="inbox" />} />
         <Route path="/desk"         element={<DeskPage />} />
         <Route path="/desk-panel"   element={<Desk />} />
         <Route path="/schedule"     element={<Schedule />} />

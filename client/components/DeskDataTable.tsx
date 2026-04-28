@@ -120,7 +120,7 @@ const TICKET_STATUS_CLASSES: Record<string, string> = {
   "Cancelled":           "bg-[#F2F4F7] text-[#667085]",
   "Duplicate":           "bg-[#F2F4F7] text-[#667085]",
   "De-Escalated":        "bg-[#EFFBF1] text-[#208337]",
-  "Training Rescheduled":"bg-[#F9F5FF] text-[#6941C6]",
+  "Training Rescheduled":"bg-[#F9F5FF] text-[#1260B0]",
 };
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
@@ -136,12 +136,12 @@ function DeskTabBar({ active, onChange }: { active: DeskTab; onChange: (t: DeskT
           onClick={() => onChange(tab)}
           className={cn(
             "relative px-5 py-3 text-[13px] font-medium transition-colors",
-            active === tab ? "text-[#6E56CF]" : "text-[#7A7A7A] hover:text-[#333333]",
+            active === tab ? "text-[#166CCA]" : "text-[#7A7A7A] hover:text-[#333333]",
           )}
         >
           {tab}
           {active === tab && (
-            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#6E56CF]" />
+            <span className="absolute bottom-0 left-0 right-0 h-[2px] rounded-t-full bg-[#166CCA]" />
           )}
         </button>
       ))}
@@ -194,7 +194,7 @@ function FilterDropdown({
           <button
             type="button"
             onClick={onClearAll}
-            className="text-[11px] font-medium text-[#6E56CF] hover:underline"
+            className="text-[11px] font-medium text-[#166CCA] hover:underline"
           >
             Clear all
           </button>
@@ -220,7 +220,7 @@ function FilterDropdown({
                       type="checkbox"
                       checked={checked}
                       onChange={() => onToggle(section.key, opt)}
-                      className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#6E56CF]"
+                      className="h-3.5 w-3.5 rounded border-[#D0D5DD] accent-[#166CCA]"
                     />
                     <span className="text-[12px] text-[#344054]">{opt}</span>
                   </label>
@@ -429,14 +429,14 @@ export default function DeskDataTable({
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors",
                   totalActiveFilters > 0
-                    ? "border-[#6E56CF] bg-[#F2F0FA] text-[#6E56CF]"
+                    ? "border-[#166CCA] bg-[#EBF4FD] text-[#166CCA]"
                     : "border-border bg-white text-[#344054] hover:bg-[#F9FAFB]",
                 )}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 Filter
                 {totalActiveFilters > 0 && (
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#6E56CF] text-[10px] font-bold text-white">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#166CCA] text-[10px] font-bold text-white">
                     {totalActiveFilters}
                   </span>
                 )}
@@ -459,13 +459,13 @@ export default function DeskDataTable({
               {activeChips.map(({ key, value }) => (
                 <span
                   key={`${key}:${value}`}
-                  className="inline-flex items-center gap-1 rounded-full bg-[#F2F0FA] px-2.5 py-1 text-[11px] font-medium text-[#6E56CF]"
+                  className="inline-flex items-center gap-1 rounded-full bg-[#EBF4FD] px-2.5 py-1 text-[11px] font-medium text-[#166CCA]"
                 >
                   {value}
                   <button
                     type="button"
                     onClick={() => removeFilterChip(key, value)}
-                    className="ml-0.5 rounded-full text-[#6E56CF] opacity-70 hover:opacity-100"
+                    className="ml-0.5 rounded-full text-[#166CCA] opacity-70 hover:opacity-100"
                   >
                     <X className="h-2.5 w-2.5" />
                   </button>
@@ -508,7 +508,7 @@ export default function DeskDataTable({
                       className={cn(
                         "min-w-0 rounded-2xl border bg-white p-4 shadow-[0_6px_18px_rgba(15,23,42,0.06)] transition-all",
                         isSelected
-                          ? "border-[#6E56CF] shadow-[0_10px_28px_rgba(0,109,173,0.14)]"
+                          ? "border-[#166CCA] shadow-[0_10px_28px_rgba(0,109,173,0.14)]"
                           : "border-black/10 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)]",
                       )}
                     >
@@ -516,7 +516,7 @@ export default function DeskDataTable({
                         <button
                           type="button"
                           onClick={() => onSelectCustomer?.(row.id)}
-                          className="flex min-w-0 flex-1 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#6E56CF] focus-visible:ring-2 focus-visible:ring-[#6E56CF]/25"
+                          className="flex min-w-0 flex-1 flex-col items-start rounded-xl text-left outline-none transition-colors hover:text-[#166CCA] focus-visible:ring-2 focus-visible:ring-[#166CCA]/25"
                         >
                           <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[#667085]">
                             {row.customerId}
