@@ -6,6 +6,7 @@
     <title>Hello world project</title>
     <script>
       // Restore path encoded by 404.html (GitHub Pages deep-link redirect).
+      // e.g. /Desk-nexgen-1/?p=%2Flogin  →  /Desk-nexgen-1/login
       (function () {
         var params = new URLSearchParams(window.location.search);
         var p = params.get("p");
@@ -14,9 +15,12 @@
           params.delete("p");
           params.delete("h");
           var qs = params.toString();
+          // Derive the repo base from the current pathname (e.g. "/Desk-nexgen-1/")
+          // so we don't hard-code it and it works on any host.
+          var base = window.location.pathname.replace(/\/$/, "");
           window.history.replaceState(
             null, null,
-            p + (qs ? "?" + qs : "") + h
+            base + p + (qs ? "?" + qs : "") + h
           );
         }
       })();
