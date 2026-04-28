@@ -393,7 +393,7 @@ export function EscalatedCaseModal({
   // Avatar URLs — component-level so all JSX (both columns) can reference them
   const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
   const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
-  const emilyAvatar = "/emily-avatar.jpg";
+  const emilyAvatar = `${import.meta.env.BASE_URL}emily-avatar.jpg`;
   const botAvatar = caseData.botType === "Jacob" ? jacobAvatar : caseData.botType === "Emily" ? emilyAvatar : ariaAvatar;
   const [localStatus, setLocalStatus] = useState(caseData.status);
   const [localPriority, setLocalPriority] = useState(caseData.priority);

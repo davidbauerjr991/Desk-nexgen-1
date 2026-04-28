@@ -4101,7 +4101,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                         )}
                         {row.botType === "Emily" && (
                           <img
-                            src="/emily-avatar.jpg"
+                            src={`${import.meta.env.BASE_URL}emily-avatar.jpg`}
                             alt="Emily avatar"
                             className="h-9 w-9 shrink-0 rounded-full object-cover"
                           />

@@ -6212,6 +6212,16 @@ function IncomingAssignmentCard({
   const cardRef = useRef<HTMLDivElement>(null);
   /** Timer that auto-collapses the case summary accordion after takeover. Cancelled on user interaction. */
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Timer that auto-dismisses the inline top-left toast after 15 s of inactivity. */
+  const autoIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Cancel the idle-dismiss timer — called whenever the agent opens an accordion. */
+  const cancelIdleTimer = useCallback(() => {
+    if (autoIdleTimerRef.current !== null) {
+      clearTimeout(autoIdleTimerRef.current);
+      autoIdleTimerRef.current = null;
+    }
+  }, []);
 
   /**
    * Smoothly slides the card down and fades it out by writing directly to the DOM element,
@@ -6253,6 +6263,19 @@ function IncomingAssignmentCard({
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.statusLabel, isInline]);
+
+  // Auto-dismiss the inline top-left toast after 15 s of inactivity.
+  // The timer is cancelled as soon as the agent opens any accordion.
+  useEffect(() => {
+    if (!isInline) return;
+    const t = setTimeout(() => {
+      autoIdleTimerRef.current = null;
+      handleDismiss();
+    }, 10_000);
+    autoIdleTimerRef.current = t;
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInline]);
 
   const REASONING_STEPS = [
     "Reviewing case history and prior customer interactions...",
@@ -6328,7 +6351,7 @@ function IncomingAssignmentCard({
               )}
               {(item.label ?? "Service Bot") === "Emily" && (
                 <img
-                  src="/emily-avatar.jpg"
+                  src={`${import.meta.env.BASE_URL}emily-avatar.jpg`}
                   alt="Emily avatar"
                   className="h-9 w-9 shrink-0 rounded-full object-cover mt-0.5"
                 />
@@ -6388,6 +6411,7 @@ function IncomingAssignmentCard({
               clearTimeout(autoMinimizeTimerRef.current);
               autoMinimizeTimerRef.current = null;
             }
+            cancelIdleTimer();
             setSummaryOpen((v) => !v);
           }}
           className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[#F9FAFB]"
@@ -6423,7 +6447,7 @@ function IncomingAssignmentCard({
                 <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 animate-in fade-in duration-300">
                   <div className="mb-1.5 flex items-center gap-2">
                     {item.label === "Emily" ? (
-                      <img src="/emily-avatar.jpg" alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
                     ) : (
                       <img
                         src={item.label === "Jacob"
@@ -6474,7 +6498,7 @@ function IncomingAssignmentCard({
                 <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3">
                   <div className="mb-1.5 flex items-center gap-2">
                     {item.label === "Emily" ? (
-                      <img src="/emily-avatar.jpg" alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
                     ) : (
                       <img
                         src={item.label === "Jacob"
@@ -6546,7 +6570,7 @@ function IncomingAssignmentCard({
                 <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => setIsToastProfileOpen((v) => !v)}
+                    onClick={() => { cancelIdleTimer(); setIsToastProfileOpen((v) => !v); }}
                     className="flex w-full items-center justify-between px-3 py-2.5 text-left"
                   >
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
@@ -6627,7 +6651,7 @@ function IncomingAssignmentCard({
             <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
               <button
                 type="button"
-                onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
+                onClick={() => { cancelIdleTimer(); setIsAttemptedResolutionOpen((v) => !v); }}
                 className="flex w-full items-center justify-between px-3 py-2.5 text-left"
               >
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">

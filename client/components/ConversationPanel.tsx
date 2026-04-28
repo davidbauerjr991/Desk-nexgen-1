@@ -2054,7 +2054,7 @@ export default function ConversationPanel({
                   const BOT_AVATARS: Record<string, string> = {
                     Aria: "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200",
                     Jacob: "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200",
-                    Emily: "/emily-avatar.jpg",
+                    Emily: `${import.meta.env.BASE_URL}emily-avatar.jpg`,
                   };
                   const effectiveAvatarUrl = isBotMessage
                     ? (BOT_AVATARS[message.author!] ?? null)
