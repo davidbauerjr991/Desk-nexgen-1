@@ -107,8 +107,10 @@ import {
 import { getCustomerAssignmentEntry } from "@/lib/customer-assignment-tasks";
 import { staticAssignments } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, pendingEscalatedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
 import { getEscalationStart, recordEscalationStart } from "@/lib/escalation-timers";
+import { SCENARIO_CHANNEL } from "@/lib/scenario-channel";
+import type { AppMsg, ControllerMsg } from "@/lib/scenario-channel";
 import { toast } from "sonner";
 
 // The logged-in agent's display name — used to mark cases as "assigned to me" on dismiss.
@@ -124,6 +126,9 @@ let escalationFired = false;
 let escalation2Fired = false;
 // Prevents the Marcus Webb (Emily) escalation from re-firing after Sofia's case resolves.
 let escalation3Fired = false;
+// Resolved flags — read by the BroadcastChannel HELLO handler to report current state.
+let jordanResolvedFlag = false;
+let sofiaResolvedFlag = false;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -3233,7 +3238,7 @@ function DockedConversationPanel({
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {summaryTab === "overview" ? (<>
                         {/* Customer Profile — collapsible */}
-                      <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <div className="rounded-xl border border-[#E4E7EC] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setIsCustomerProfileOpen((v) => !v)}
@@ -3314,19 +3319,19 @@ function DockedConversationPanel({
                         const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
                         const customerContext = sa?.customerContext;
                         return customerContext ? (
-                          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
                             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Context</p>
                             <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
                           </div>
                         ) : (
-                          <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                          <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
                             <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Issue</p>
                             <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
                           </div>
                         );
                       })()}
                       {/* Section 2: Collapsible Attempted Resolution */}
-                      <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                      <div className="rounded-xl border border-[#E4E7EC] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                         <button
                           type="button"
                           onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
@@ -3479,7 +3484,7 @@ function DockedConversationPanel({
                     {(<>
 
                     {/* Customer Profile — collapsible */}
-                    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                    <div className="rounded-xl border border-[#E4E7EC] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setIsCustomerProfileOpen((v) => !v)}
@@ -3560,12 +3565,12 @@ function DockedConversationPanel({
                       const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.name.toLowerCase() === conversation.customerName.toLowerCase());
                       const customerContext = sa?.customerContext;
                       return customerContext ? (
-                        <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
                           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Context</p>
                           <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{customerContext}</p>
                         </div>
                       ) : (
-                        <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
+                        <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 dark:border-[#1B3A52] dark:bg-[#0F2233]">
                           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0] dark:text-[#4B96DA]">Customer Issue</p>
                           <p className="text-[12px] leading-5 text-[#344054] dark:text-[#CBD5E1]">{casePreview ?? getCustomerIssueSummary(conversation)}</p>
                         </div>
@@ -3573,7 +3578,7 @@ function DockedConversationPanel({
                     })()}
 
                     {/* Section 2: Collapsible Attempted Resolution */}
-                    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
+                    <div className="rounded-xl border border-[#E4E7EC] bg-white dark:border-[#1B3A52] dark:bg-[#0F2233] overflow-hidden">
                       <button
                         type="button"
                         onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
@@ -6200,7 +6205,8 @@ function IncomingAssignmentCard({
   const approveToastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(false);
-  const [isToastProfileOpen, setIsToastProfileOpen] = useState(false);
+  // Open customer profile by default when the case has been taken over (transferred state)
+  const [isToastProfileOpen, setIsToastProfileOpen] = useState(item.statusLabel === "transferred");
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -6264,14 +6270,14 @@ function IncomingAssignmentCard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.statusLabel, isInline]);
 
-  // Auto-dismiss the inline top-left toast after 15 s of inactivity.
+  // Auto-dismiss the inline top-left toast after 5 s of inactivity.
   // The timer is cancelled as soon as the agent opens any accordion.
   useEffect(() => {
     if (!isInline) return;
     const t = setTimeout(() => {
       autoIdleTimerRef.current = null;
       handleDismiss();
-    }, 10_000);
+    }, 5_000);
     autoIdleTimerRef.current = t;
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -6567,7 +6573,7 @@ function IncomingAssignmentCard({
               if (!toastCustomerRecord) return null;
               const { profile } = toastCustomerRecord;
               return (
-                <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+                <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
                   <button
                     type="button"
                     onClick={() => { cancelIdleTimer(); setIsToastProfileOpen((v) => !v); }}
@@ -6648,7 +6654,7 @@ function IncomingAssignmentCard({
             })()}
 
             {/* Attempted Resolution — collapsible, white bg matching activity accordion */}
-            <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+            <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
               <button
                 type="button"
                 onClick={() => { cancelIdleTimer(); setIsAttemptedResolutionOpen((v) => !v); }}
@@ -6677,7 +6683,7 @@ function IncomingAssignmentCard({
 
             {/* Copilot response card — appears after submission */}
             {copilotPhase !== "idle" && (
-              <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+              <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setIsCopilotOpen((v) => !v)}
@@ -6890,6 +6896,12 @@ function NotificationStack({
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Scroll container for expanded mode — scroll to bottom so the front card is always visible.
+  const expandedScrollRef = useRef<HTMLDivElement>(null);
+
+  // Hide/show toggle — lets agents temporarily slide toasts off-screen without dismissing them.
+  // Must be declared before the early return to satisfy Rules of Hooks.
+  const [isHidden, setIsHidden] = useState(false);
 
   // Track actual rendered card heights so expanded positions are accurate
   // even when a card's content is taller than the static NOTIF_CARD_HEIGHT estimate.
@@ -6908,6 +6920,16 @@ function NotificationStack({
     observerRefs.current.set(key, ro);
   }, []);
   useEffect(() => () => { observerRefs.current.forEach((ro) => ro.disconnect()); }, []);
+
+  // Each time the stack opens, scroll to the bottom so the front card (item[0]) is visible.
+  // In flex-col-reverse the front card lives at the visual bottom; overflow is at the top.
+  // IMPORTANT: must be declared before the early-return below to satisfy Rules of Hooks.
+  useEffect(() => {
+    if (isExpanded && expandedScrollRef.current) {
+      const el = expandedScrollRef.current;
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [isExpanded]);
 
   type StackItem =
     | { type: "assignment"; key: string; assignmentData: QueuePreviewItem }
@@ -6935,31 +6957,6 @@ function NotificationStack({
     leaveTimerRef.current = setTimeout(() => { setIsExpanded(false); setHoveredKey(null); }, 250);
   };
 
-  // Compute each card's translateY in expanded mode using actual measured heights
-  // (falling back to the static estimate until the ResizeObserver fires).
-  const rawExpandedTranslateY = defaultOrder.map((_, i) => {
-    let offset = 0;
-    for (let j = 0; j < i; j++) {
-      const h = cardHeights[defaultOrder[j].key] ?? NOTIF_CARD_HEIGHT[defaultOrder[j].type];
-      offset += h + NOTIF_CARD_GAP;
-    }
-    return -offset;
-  });
-
-  // Clamp: if the topmost card would extend above the top of the viewport (minus a 20px
-  // margin), shift the entire stack down just enough to keep it on-screen.
-  const VIEWPORT_MARGIN_PX = 20; // min gap from viewport top
-  const BOTTOM_ANCHOR_PX   = 20; // bottom-5 = 20px from viewport bottom
-  const topIdx = defaultOrder.length - 1;
-  const topCardHeight =
-    cardHeights[defaultOrder[topIdx]?.key] ??
-    NOTIF_CARD_HEIGHT[defaultOrder[topIdx]?.type ?? "assignment"];
-  const topCardTranslateY = rawExpandedTranslateY[topIdx] ?? 0;
-  const maxAllowedUp =
-    window.innerHeight - BOTTOM_ANCHOR_PX - VIEWPORT_MARGIN_PX - topCardHeight;
-  const clampShift = Math.max(0, -topCardTranslateY - maxAllowedUp);
-  const expandedTranslateY = rawExpandedTranslateY.map((y) => y + clampShift);
-
   const renderCard = (item: StackItem) =>
     item.type === "assignment" ? (
       <IncomingAssignmentCard
@@ -6979,67 +6976,138 @@ function NotificationStack({
       />
     );
 
-  return createPortal(
-    // Single render — all cards always in the DOM.
-    // isExpanded only changes CSS target values; the browser interpolates every frame.
+  return (
+    <>
+      {/* ── Toggle pill ───────────────────────────────────────────────────── */}
+      {createPortal(
+        <button
+          onClick={() => setIsHidden((h) => !h)}
+          className="pointer-events-auto fixed bottom-5 z-[9999] flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium shadow-md transition-all duration-200"
+          style={{
+            right: isHidden ? 20 : 432,
+            // When hidden: prominent amber pill with pulse badge; when visible: muted ghost pill
+            background: isHidden ? "rgba(251,191,36,0.15)" : "rgba(255,255,255,0.85)",
+            backdropFilter: "blur(6px)",
+            borderColor: isHidden ? "rgba(251,191,36,0.6)" : "rgba(0,0,0,0.12)",
+            color: isHidden ? "#92400e" : "#6b7280",
+          }}
+          title={isHidden ? "Show alert toasts" : "Hide alert toasts"}
+        >
+          {isHidden ? (
+            <>
+              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-amber-400" />
+              <Bell size={13} />
+              {n} alert{n !== 1 ? "s" : ""}
+            </>
+          ) : (
+            <>
+              <Minus size={13} />
+              Hide alerts
+            </>
+          )}
+        </button>,
+        document.body,
+      )}
+
+      {/* ── Toast stack ───────────────────────────────────────────────────── */}
+      {createPortal(
     <div
       className="pointer-events-none fixed bottom-5 right-5 z-[9998]"
-      style={{ width: 400 }}
+          style={{
+            width: 400,
+            transition: "opacity 250ms ease, transform 250ms ease",
+            opacity: isHidden ? 0 : 1,
+            transform: isHidden ? "translateY(16px)" : "translateY(0)",
+            pointerEvents: isHidden ? "none" : undefined,
+          }}
     >
-      {defaultOrder.map((item, idx) => {
-        const isBackground = idx > 0;
-        const isHovered    = hoveredKey === item.key;
+      {isExpanded ? (
+        // ── Expanded: scrollable column anchored at the bottom ─────────────
+        // flex-col-reverse puts item[0] (front card) at the visual bottom.
+        // Overflow cards (background) appear above and are reachable by scrolling up.
+        // maxHeight caps the container to the viewport so it never pushes off-screen.
+        <div
+          ref={expandedScrollRef}
+          className="pointer-events-auto flex flex-col-reverse gap-2 overflow-y-auto"
+          style={{ maxHeight: "calc(100vh - 40px)" }}
+          onMouseEnter={cancelLeave}
+          onMouseLeave={scheduleCollapse}
+        >
+          {defaultOrder.map((item) => (
+            <div key={item.key} ref={assignCardRef(item.key)}>
+              {renderCard(item)}
+            </div>
+          ))}
+        </div>
+      ) : (
+        // ── Collapsed: rolodex peek stack ────────────────────────────────────
+        // Cards stay in their fixed peek positions at all times.
+        // Hovering any card just raises its z-index so it appears in front
+        // without moving anything.
+        <>
+          {defaultOrder.map((item, idx) => {
+            const isHovered    = hoveredKey === item.key;
+            // Only treat hover as active if the hovered key still exists in the stack.
+            // Prevents a dismissed card's stale key from dimming the remaining card(s).
+            const isAnyHovered = hoveredKey !== null && defaultOrder.some((it) => it.key === hoveredKey);
 
-        // ── Collapsed (rolodex) targets ─────────────────────────────────────
-        const cY         = -(idx * NOTIF_PEEK_PX);
-        const cScale     = Math.max(0.88, 1 - idx * NOTIF_SCALE_STEP);
-        const cBrightness = idx === 0 ? 1 : Math.max(0.65, 1 - idx * NOTIF_BRIGHTNESS_STEP);
+            // Position never changes — cards stay fixed in their peek slots.
+            const cY = -(idx * NOTIF_PEEK_PX);
 
-        // ── Expanded (column) targets ───────────────────────────────────────
-        const eY = expandedTranslateY[idx];
+            // Scale: hovered card = full size; non-hovered cards while hovering =
+            // slightly shrunk (depth-1 level, ~0.96) so Aria visibly steps back;
+            // nothing hovered = normal idx-based sizing.
+            const cScale = isHovered
+              ? 1
+              : isAnyHovered
+                ? Math.max(0.88, 1 - NOTIF_SCALE_STEP)
+                : Math.max(0.88, 1 - idx * NOTIF_SCALE_STEP);
 
-        const translateY = isExpanded ? eY  : cY;
-        const scale      = isExpanded ? 1   : cScale;
-        const brightness = isExpanded ? 1   : cBrightness;
+            // Brightness:
+            //   • Hovered card          → full (1) — looks like the screenshot-1 front card
+            //   • Others while hovering → all dim to the depth-1 background level
+            //   • Nothing hovered       → normal idx-based: idx 0 = full, others dimmed
+            const cBrightness = isHovered
+              ? 1
+              : isAnyHovered
+                ? Math.max(0.65, 1 - NOTIF_BRIGHTNESS_STEP)   // uniform background dim
+                : idx === 0 ? 1 : Math.max(0.65, 1 - idx * NOTIF_BRIGHTNESS_STEP);
 
-        // Hovered background card jumps to front z-order (expanded or collapsed).
-        const zIndex = isHovered ? n + 1 : n - idx;
+            const zIndex       = isHovered ? n + 1 : n - idx;
+            const staggerDelay = `${(n - 1 - idx) * 28}ms`;
 
-        // Stagger: on expand top cards move first (they travel furthest); on collapse bottom card moves first.
-        const staggerDelay = isExpanded
-          ? `${idx * 40}ms`
-          : `${(n - 1 - idx) * 28}ms`;
-
-        return (
-          <div
-            key={item.key}
-            ref={assignCardRef(item.key)}
-            className="pointer-events-auto absolute bottom-0 left-0 right-0"
-            style={{
-              transform: `translateY(${translateY}px) scale(${scale})`,
-              transformOrigin: "bottom center",
-              filter: brightness < 1 ? `brightness(${brightness})` : undefined,
-              zIndex,
-              cursor: isBackground && !isExpanded ? "pointer" : undefined,
-              transition: [
-                `transform 420ms cubic-bezier(0.34,1.12,0.64,1) ${staggerDelay}`,
-                `filter 300ms ease-out ${staggerDelay}`,
-                `opacity 200ms ease ${staggerDelay}`,
-              ].join(", "),
-            }}
-            onMouseEnter={() => {
-              cancelLeave();
-              setHoveredKey(item.key);
-              if (isBackground && !isExpanded) setIsExpanded(true);
-            }}
-            onMouseLeave={scheduleCollapse}
-          >
-            {renderCard(item)}
-          </div>
-        );
-      })}
+            return (
+              <div
+                key={item.key}
+                ref={assignCardRef(item.key)}
+                className="pointer-events-auto absolute bottom-0 left-0 right-0"
+                style={{
+                  transform: `translateY(${cY}px) scale(${cScale})`,
+                  transformOrigin: "bottom center",
+                  filter: cBrightness < 1 ? `brightness(${cBrightness})` : undefined,
+                  zIndex,
+                  transition: [
+                    `transform 300ms cubic-bezier(0.34,1.12,0.64,1) ${isAnyHovered ? "0ms" : staggerDelay}`,
+                    `filter 200ms ease-out ${isAnyHovered ? "0ms" : staggerDelay}`,
+                    `opacity 200ms ease ${isAnyHovered ? "0ms" : staggerDelay}`,
+                  ].join(", "),
+                }}
+                onMouseEnter={() => {
+                  cancelLeave();
+                  setHoveredKey(item.key);
+                }}
+                onMouseLeave={scheduleCollapse}
+              >
+                {renderCard(item)}
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>,
     document.body,
+      )}
+    </>
   );
 }
 
@@ -7637,6 +7705,13 @@ export default function Layout({ children }: LayoutProps) {
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // Track how many cases are currently escalated (for the left rail badge + tooltip).
   const [escalatedRailCount, setEscalatedRailCount] = useState(0);
+  // Keep agentStatusRef in sync so the BroadcastChannel HELLO handler can read the live status.
+  useEffect(() => { agentStatusRef.current = status; }, [status]);
+  /** True while the Scenario Controller tab is open and connected. Disables the built-in auto-timers. */
+  const [isControllerConnected, setIsControllerConnected] = useState(false);
+  const scenarioChannelRef = useRef<BroadcastChannel | null>(null);
+  /** Ref mirror of `status` so the BroadcastChannel handler reads the live value without a stale closure. */
+  const agentStatusRef = useRef<AgentStatus>("Offline");
 
   // Module-level flag — ensures the Jordan Davis escalation fires at most once per browser session,
   // even if Layout unmounts and remounts during navigation.
@@ -7644,8 +7719,9 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (status !== "Available") return;
     if (escalationFired) return; // already queued or fired — do not repeat
-    escalationFired = true;
+    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
     const timer = setTimeout(() => {
+      escalationFired = true; // set inside callback so cleanup can still cancel before it runs
       // Don't show toast if the case has already been taken over (already in the active rail)
       if (visibleAssignmentIdsRef.current.includes("static-11")) return;
       setIncomingNotifications((prev) => {
@@ -7677,10 +7753,13 @@ export default function Layout({ children }: LayoutProps) {
           },
         ];
       });
+      pendingEscalatedIds.add("static-11");
       setEscalatedRailCount((n) => n + 1);
     }, 5_000);
     return () => clearTimeout(timer);
-  }, [status]);
+  // isControllerConnected included so connecting the controller before 5 s cancels the pending timer
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, isControllerConnected]);
 
   // Second escalation — Sofia Martinez / Jacob fraud alert.
   // Fires 8 seconds after Jordan's case is marked resolved.
@@ -7688,8 +7767,9 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!isJordanResolved) return;
     if (escalation2Fired) return;
-    escalation2Fired = true;
+    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
     const timer = setTimeout(() => {
+      escalation2Fired = true; // set inside callback so cleanup can still cancel before it runs
       // Don't show toast if the case has already been taken over (already in the active rail)
       if (visibleAssignmentIdsRef.current.includes("static-sofia")) return;
       setIncomingNotifications((prev) => {
@@ -7721,10 +7801,13 @@ export default function Layout({ children }: LayoutProps) {
           },
         ];
       });
+      pendingEscalatedIds.add("static-sofia");
       setEscalatedRailCount((n) => n + 1);
     }, 8_000);
     return () => clearTimeout(timer);
-  }, [isJordanResolved]);
+  // isControllerConnected included so connecting the controller before 8 s cancels the pending timer
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isJordanResolved, isControllerConnected]);
 
   // Third escalation — Marcus Webb / Emily shipping error.
   // ControlPanelPage already waits 8 s before calling onSofiaCaseResolved(), so
@@ -7733,8 +7816,9 @@ export default function Layout({ children }: LayoutProps) {
   useEffect(() => {
     if (!isSofiaResolved) return;
     if (escalation3Fired) return;
-    escalation3Fired = true;
+    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
     const timer = setTimeout(() => {
+      escalation3Fired = true; // set inside callback so cleanup can still cancel before it runs
       // Don't show toast if the case has already been taken over (already in the active rail)
       if (visibleAssignmentIdsRef.current.includes("static-marcus")) return;
       // Also suppress if a notification for this customer is already being dismissed
@@ -7767,9 +7851,24 @@ export default function Layout({ children }: LayoutProps) {
           },
         ];
       });
+      pendingEscalatedIds.add("static-marcus");
       setEscalatedRailCount((n) => n + 1);
     }, 0);
     return () => clearTimeout(timer);
+  // isControllerConnected included so connecting the controller cancels any pending timer
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSofiaResolved, isControllerConnected]);
+
+  // Broadcast resolved status to the Scenario Controller whenever a case resolves.
+  useEffect(() => {
+    if (!isJordanResolved) return;
+    jordanResolvedFlag = true;
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "jordan", status: "resolved" } satisfies AppMsg);
+  }, [isJordanResolved]);
+  useEffect(() => {
+    if (!isSofiaResolved) return;
+    sofiaResolvedFlag = true;
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "sofia", status: "resolved" } satisfies AppMsg);
   }, [isSofiaResolved]);
 
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
@@ -8037,6 +8136,149 @@ export default function Layout({ children }: LayoutProps) {
   const autoAssignTimerRef = useRef<number | null>(null);
   const visibleAssignmentIdsRef = useRef(visibleAssignmentIds);
   visibleAssignmentIdsRef.current = visibleAssignmentIds;
+
+  // ── Scenario Controller BroadcastChannel ───────────────────────────────────
+  // Helpers that fire each escalation immediately (no setTimeout) when triggered by the controller.
+  const fireJordanEscalation = useCallback(() => {
+    if (escalationFired) return;
+    escalationFired = true;
+    if (visibleAssignmentIdsRef.current.includes("static-11")) return;
+    setIncomingNotifications((prev) => {
+      if (prev.some((n) => n.id === "escalation-static-11")) return prev;
+      return [...prev, {
+        id: "escalation-static-11", customerRecordId: "jordan", channel: "chat" as const,
+        initials: "JD", name: "Jordan Davis", customerId: "CST-11621", label: "Aria",
+        lastUpdated: "11m", time: "11m",
+        preview: "Router dropping all connections — port forwarding config blocking factory reset",
+        statusLabel: "Escalated", priority: "Critical",
+        priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]", badgeColor: "#E32926",
+        icon: MessageCircle, isActive: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        escalatedAt: getEscalationStart("jordan"),
+        aiConfidence: staticAssignments.find((s) => s.id === "static-11")?.aiConfidence,
+        aiConfidenceReason: staticAssignments.find((s) => s.id === "static-11")?.aiConfidenceReason,
+      }];
+    });
+    pendingEscalatedIds.add("static-11");
+    setEscalatedRailCount((n) => n + 1);
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "jordan", status: "active" } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fireSofiaEscalation = useCallback(() => {
+    if (escalation2Fired) return;
+    escalation2Fired = true;
+    if (visibleAssignmentIdsRef.current.includes("static-sofia")) return;
+    setIncomingNotifications((prev) => {
+      if (prev.some((n) => n.id === "escalation-static-sofia")) return prev;
+      return [...prev, {
+        id: "escalation-static-sofia", customerRecordId: "sofia", channel: "chat" as const,
+        initials: "SM", name: "Sofia Martinez", customerId: "CST-12045", label: "Jacob",
+        lastUpdated: "8m", time: "8m",
+        preview: "Proactive fraud alert — 2 unauthorized transactions totaling $2,159 detected",
+        statusLabel: "Escalated", priority: "Critical",
+        priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]", badgeColor: "#E32926",
+        icon: MessageCircle, isActive: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        escalatedAt: getEscalationStart("sofia"),
+        aiConfidence: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidence,
+        aiConfidenceReason: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidenceReason,
+      }];
+    });
+    pendingEscalatedIds.add("static-sofia");
+    setEscalatedRailCount((n) => n + 1);
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "sofia", status: "active" } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fireMarcusEscalation = useCallback(() => {
+    if (escalation3Fired) return;
+    escalation3Fired = true;
+    if (visibleAssignmentIdsRef.current.includes("static-marcus")) return;
+    if (visibleAssignmentIdsRef.current.some((id) => id.includes("marcus"))) return;
+    setIncomingNotifications((prev) => {
+      if (prev.some((n) => n.id === "escalation-static-marcus")) return prev;
+      return [...prev, {
+        id: "escalation-static-marcus", customerRecordId: "marcus", channel: "chat" as const,
+        initials: "MW", name: "Marcus Webb", customerId: "CST-13317", label: "Emily",
+        lastUpdated: "6m", time: "6m",
+        preview: "Order shipped to wrong address - request for Human Agent",
+        statusLabel: "Escalated", priority: "Critical",
+        priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]", badgeColor: "#E32926",
+        icon: MessageCircle, isActive: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        escalatedAt: getEscalationStart("marcus"),
+      }];
+    });
+    pendingEscalatedIds.add("static-marcus");
+    setEscalatedRailCount((n) => n + 1);
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "marcus", status: "active" } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // BroadcastChannel — listen for controller messages and send status updates.
+  useEffect(() => {
+    const ch = new BroadcastChannel(SCENARIO_CHANNEL);
+    scenarioChannelRef.current = ch;
+
+    ch.onmessage = (e: MessageEvent<ControllerMsg>) => {
+      const msg = e.data;
+      if (msg.type === "HELLO") {
+        setIsControllerConnected(true);
+        // Only send APP_READY once the agent is Available — the controller uses
+        // this as the signal to unlock buttons and start auto-timers.
+        if (agentStatusRef.current === "Available") {
+          ch.postMessage({
+            type: "APP_READY",
+            statuses: {
+              jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
+              sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
+              marcus: escalation3Fired ? "active" : "idle",
+            },
+          } satisfies AppMsg);
+        }
+      }
+      if (msg.type === "BYE") {
+        setIsControllerConnected(false);
+      }
+      if (msg.type === "TRIGGER") {
+        if (msg.case === "jordan") fireJordanEscalation();
+        if (msg.case === "sofia")  fireSofiaEscalation();
+        if (msg.case === "marcus") fireMarcusEscalation();
+      }
+    };
+
+    return () => {
+      scenarioChannelRef.current = null;
+      ch.close();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation]);
+
+  // When the agent transitions to Available while the controller is already connected,
+  // send APP_READY so the controller unlocks buttons and starts auto-timers.
+  useEffect(() => {
+    if (status !== "Available") return;
+    if (!isControllerConnected) return;
+    scenarioChannelRef.current?.postMessage({
+      type: "APP_READY",
+      statuses: {
+        jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
+        sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
+        marcus: escalation3Fired ? "active" : "idle",
+      },
+    } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, isControllerConnected]);
+
+  // Auto-open the Scenario Controller tab once per browser session.
+  useEffect(() => {
+    if (sessionStorage.getItem("desk-controller-opened")) return;
+    sessionStorage.setItem("desk-controller-opened", "1");
+    const base = (import.meta.env.BASE_URL as string).replace(/\/$/, "");
+    window.open(`${window.location.origin}${base}/controller`, "desk-nexgen-controller");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (autoAssignTimerRef.current !== null) {
@@ -9488,9 +9730,9 @@ export default function Layout({ children }: LayoutProps) {
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
     // Cache the original item so that if the agent takes over via the modal we can
-    // push a transferred toast (the notification is removed from the list below).
+    // push a transferred toast. The toast is intentionally NOT removed here —
+    // it stays visible until the agent clicks ✕ to dismiss or takes over the case.
     pendingTransferItemRef.current = item;
-    removeIncoming(item.id);
     // Always open the monitor modal on the current page — no navigation required
     const sa = staticAssignments.find(
       (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
@@ -9555,13 +9797,32 @@ export default function Layout({ children }: LayoutProps) {
     // fade-in animation fires cleanly (double navigation via /control-center breaks it).
     const customerRecordId = sa?.customerRecordId ?? item.customerRecordId;
     const channel = (item.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+    // item.label is the bot display name ("Aria", "Jacob", "Emily") — stamp pre-takeover
+    // agent messages with it so they render with the bot's avatar, not the human agent's.
+    const botAuthor = item.label ?? "Aria";
     const baseConversation = customerRecordId
-      ? createConversationState(customerRecordId, channel)
+      ? createConversationState(customerRecordId, channel, botAuthor)
+      : undefined;
+    // Append a warm handoff message from the bot at the moment of takeover
+    const conversationWithHandoff = baseConversation
+      ? {
+          ...baseConversation,
+          messages: [
+            ...baseConversation.messages,
+            {
+              id: (baseConversation.messages[baseConversation.messages.length - 1]?.id ?? 0) + 1,
+              role: "agent" as const,
+              author: botAuthor,
+              content: "I'm going to transfer you to a live customer service agent, please hold.",
+              time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+            },
+          ],
+        }
       : undefined;
     // For Marcus's case, pre-populate the reply draft when the agent takes over
-    const initialConversation = customerRecordId === "marcus" && baseConversation
-      ? { ...baseConversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
-      : baseConversation;
+    const initialConversation = customerRecordId === "marcus" && conversationWithHandoff
+      ? { ...conversationWithHandoff, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
+      : conversationWithHandoff;
 
     acceptIssue({
       id: sa?.id ?? item.id,
@@ -11446,6 +11707,10 @@ export default function Layout({ children }: LayoutProps) {
             const sa = staticAssignments.find(
               (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
             );
+            // Dismiss the toast and clear the escalated badge — agent has taken over
+            if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
+            else removeIncoming(escalatedToastModal.id);
+            setEscalatedRailCount((n) => Math.max(0, n - 1));
             // Remove from ControlPanelPage queue on next render — use static ID so the filter matches
             pendingQueueRejections.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedToastModal(null);
@@ -11468,10 +11733,27 @@ export default function Layout({ children }: LayoutProps) {
                 preview: escalatedToastModal.preview,
               });
             }
+            // Append warm handoff message from the bot at the moment of takeover
+            const modalBotAuthor = escalatedToastModal.botType ?? "Aria";
+            const conversationWithHandoff = conversation
+              ? {
+                  ...conversation,
+                  messages: [
+                    ...conversation.messages,
+                    {
+                      id: (conversation.messages[conversation.messages.length - 1]?.id ?? 0) + 1,
+                      role: "agent" as const,
+                      author: modalBotAuthor,
+                      content: "I'm going to transfer you to a live customer service agent, please hold.",
+                      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                    },
+                  ],
+                }
+              : conversation;
             // For Marcus's case, pre-populate the reply draft when the agent takes over
             const takeoverConversation = escalatedToastModal.customerRecordId === "marcus"
-              ? { ...conversation, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
-              : conversation;
+              ? { ...conversationWithHandoff, draft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time." }
+              : conversationWithHandoff;
             // Call acceptIssue directly — ONE navigation to /activity for a clean fade-in
             acceptIssue({
               id: escalatedToastModal.id,
@@ -11490,12 +11772,35 @@ export default function Layout({ children }: LayoutProps) {
             });
           }}
           onSupervise={() => {
-            // Monitor behaves like Takeover for now
+            // Monitor behaves like Takeover for now — dismiss toast and clear badge
+            if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
+            else removeIncoming(escalatedToastModal.id);
+            setEscalatedRailCount((n) => Math.max(0, n - 1));
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
             const sa = staticAssignments.find(
               (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
             );
+            // Build conversation with warm handoff message
+            const superviseBotAuthor = escalatedToastModal.botType ?? "Aria";
+            const superviseBase = escalatedToastModal.customerRecordId
+              ? createConversationState(escalatedToastModal.customerRecordId, (escalatedToastModal.channel === "sms" ? "sms" : "chat") as "chat" | "sms", superviseBotAuthor)
+              : undefined;
+            const superviseConversation = superviseBase
+              ? {
+                  ...superviseBase,
+                  messages: [
+                    ...superviseBase.messages,
+                    {
+                      id: (superviseBase.messages[superviseBase.messages.length - 1]?.id ?? 0) + 1,
+                      role: "agent" as const,
+                      author: superviseBotAuthor,
+                      content: "I'm going to transfer you to a live customer service agent, please hold.",
+                      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                    },
+                  ],
+                }
+              : undefined;
             acceptIssue({
               id: escalatedToastModal.id,
               name: escalatedToastModal.name,
@@ -11506,12 +11811,17 @@ export default function Layout({ children }: LayoutProps) {
               preview: escalatedToastModal.preview,
               status: escalatedToastModal.status as QueueAssignmentStatus,
               waitTime: escalatedToastModal.waitTime,
+              initialConversation: superviseConversation,
               onCreated: sa
                 ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
                 : undefined,
             });
           }}
           onTransfer={() => {
+            // Dismiss the toast and clear the escalated badge — case is fully handed off
+            if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
+            else removeIncoming(escalatedToastModal.id);
+            setEscalatedRailCount((n) => Math.max(0, n - 1));
             pendingQueueRejections.add(escalatedToastModal.id);
             setEscalatedToastModal(null);
           }}

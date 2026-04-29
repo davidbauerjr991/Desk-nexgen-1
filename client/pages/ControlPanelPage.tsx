@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle,
@@ -28,7 +28,7 @@ import { getCustomerRecord, createConversationState } from "@/lib/customer-datab
 import type { SharedConversationData } from "@/components/ConversationPanel";
 import { staticAssignments, type Channel, type Priority, type AiOverview, type StaticAssignment } from "@/lib/static-assignments";
 import { EscalatedCaseModal, type EscalatedCaseModalData } from "@/components/EscalatedCaseModal";
-import { pendingQueueRejections, pendingResolvedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
+import { pendingQueueRejections, pendingResolvedIds, pendingEscalatedIds, acceptedStaticsStore, pendingHandoffConversations } from "@/lib/queue-state";
 import { getEscalationStart } from "@/lib/escalation-timers";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -1540,15 +1540,22 @@ function RejectPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [assigned, setAssigned] = useState<string | null>(null);
   const [tab, setTab] = useState<TransferTab>("Agents");
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 150);
+  }, [isClosing, onClose]);
 
   // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node)) handleClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+  }, [handleClose]);
 
   const sortedAgents = [...agentRoster].sort((a, b) => {
     const avail = availabilityOrder[a.availability] - availabilityOrder[b.availability];
@@ -1574,14 +1581,14 @@ function RejectPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+      className={`fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden ${isClosing ? "animate-popover-fade-out" : "animate-popover-fade-in"}`}
       style={{ left, top, width: POPOVER_WIDTH, transform }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <p className="text-[12px] font-semibold text-[#333333]">Transfer to</p>
-        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
+        <button type="button" onClick={handleClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -1791,14 +1798,21 @@ function TakeoverPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [alertBot, setAlertBot] = useState(true);
   const [reason, setReason] = useState("");
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 150);
+  }, [isClosing, onClose]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      if (ref.current && !ref.current.contains(e.target as Node)) handleClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [onClose]);
+  }, [handleClose]);
 
   const POPOVER_WIDTH = 320;
   const ESTIMATED_HEIGHT = 260;
@@ -1807,7 +1821,7 @@ function TakeoverPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
+      className={`fixed z-[9999] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden ${isClosing ? "animate-popover-fade-out" : "animate-popover-fade-in"}`}
       style={{ left, top, width: POPOVER_WIDTH, transform }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -1817,7 +1831,7 @@ function TakeoverPopover({
           <p className="text-[12px] font-semibold text-[#1D2939]">Take over conversation</p>
           <p className="text-[11px] text-[#667085] mt-0.5">Currently handled by <span className="font-medium text-[#344054]">{botType}</span></p>
         </div>
-        <button type="button" onClick={onClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors ml-3 shrink-0">
+        <button type="button" onClick={handleClose} className="text-[#98A2B3] hover:text-[#475467] transition-colors ml-3 shrink-0">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -1851,7 +1865,7 @@ function TakeoverPopover({
       <div className="flex items-center justify-end gap-2 border-t border-border bg-[#F9FAFB] px-4 py-2.5">
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="rounded-md border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
         >
           Cancel
@@ -2423,6 +2437,13 @@ function BulkResponseModal({
   const [response, setResponse] = useState(aiResponse);
   const [channels, setChannels] = useState({ email: true, sms: true, inApp: false });
   const [sent, setSent] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 180);
+  }, [isClosing, onClose]);
 
   function toggleChannel(key: keyof typeof channels) {
     setChannels((c) => ({ ...c, [key]: !c[key] }));
@@ -2431,15 +2452,16 @@ function BulkResponseModal({
   function handleSend() {
     setSent(true);
     onSent();
-    setTimeout(onClose, 1200);
+    // Show success state briefly, then fade out and close
+    setTimeout(handleClose, 900);
   }
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] px-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] px-4 ${isClosing ? "animate-backdrop-fade-out" : ""}`}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <div className={`w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden ${isClosing ? "animate-modal-fade-out" : "animate-in fade-in slide-in-from-bottom-4 duration-300"}`}>
         {/* Header */}
         <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#F2F4F7]">
           <div className="flex items-center gap-3">
@@ -2451,7 +2473,7 @@ function BulkResponseModal({
               <p className="text-[12px] text-[#667085]">{count} customers affected</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors">
+          <button type="button" onClick={handleClose} className="flex h-8 w-8 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -2543,7 +2565,7 @@ function BulkResponseModal({
               <><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Send to All {count} Customers</>
             )}
           </button>
-          <button type="button" onClick={onClose} className="rounded-xl border border-[#D0D5DD] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors">
+          <button type="button" onClick={handleClose} className="rounded-xl border border-[#D0D5DD] bg-white px-5 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors">
             Cancel
           </button>
         </div>
@@ -3530,10 +3552,6 @@ const persistedState = {
   controlCenterTab: "monitor" as "monitor" | "assigned" | "queue",
 };
 
-// Ensures the local escalation-override timer fires at most once per session,
-// even if ControlCenterPage mounts and unmounts multiple times.
-let escalationLocalFired = false;
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-panel" } = {}) {
@@ -3613,6 +3631,18 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
     });
   }
 
+  // Drain escalated IDs queued by Layout (fires at the same moment as each toast).
+  // Handles the case where this page was already mounted when the escalation fired.
+  const pendingEscalatedSnapshot = pendingEscalatedIds.size > 0 ? new Set(pendingEscalatedIds) : null;
+  if (pendingEscalatedSnapshot) {
+    pendingEscalatedIds.clear();
+    setEscalatedOverrides((prev) => {
+      const next = new Set([...prev, ...pendingEscalatedSnapshot]);
+      persistedState.escalatedIds = next;
+      return next;
+    });
+  }
+
   // Poll for resolved IDs added while this page is already mounted (e.g. agent resolves
   // a case from the active conversation without navigating away from Home).
   useEffect(() => {
@@ -3635,6 +3665,24 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Poll for escalated IDs written by Layout at the same moment as each toast.
+  // Runs at 300 ms so multiple escalations queued at once are all picked up together.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (pendingEscalatedIds.size === 0) return;
+      const snapshot = new Set(pendingEscalatedIds);
+      pendingEscalatedIds.clear();
+      setEscalatedOverrides((prev) => {
+        const next = new Set([...prev, ...snapshot]);
+        persistedState.escalatedIds = next;
+        return next;
+      });
+    }, 300);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Ref so the toast callback (created once) always reads the latest rows
   const staticNormalisedRef = useRef<RowData[]>([]);
 
@@ -3652,54 +3700,6 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
   // Reset carousel to first item whenever any filter changes in carousel mode
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (viewMode === "carousel") setCarouselIndex(0); }, [issueTab, priorityFilters, channelFilters, agentTypeFilter]);
-
-  // Escalation timer is handled in Layout.tsx so it fires regardless of current page.
-  // When the escalated notification is pushed, also mark static-11 as escalated locally.
-  // The module-level flag + persistedState.escalatedIds ensure this only fires once per
-  // browser session and the escalated status is preserved across remounts.
-  useEffect(() => {
-    if (!isAgentAvailable) return;
-    if (escalationLocalFired) return;
-    escalationLocalFired = true;
-    // Do NOT clear this timer on unmount — if the user navigates away before it fires,
-    // we still want the escalation to register. The persistedState update ensures the
-    // remounted component picks up the escalated status immediately on return.
-    setTimeout(() => {
-      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-11"]);
-      setEscalatedOverrides(new Set(persistedState.escalatedIds));
-    }, 5_000);
-  }, [isAgentAvailable]);
-
-  // Second escalation — Sofia Martinez / Jacob fraud alert.
-  // Fires 8 seconds after Jordan's case (static-11) is marked resolved.
-  const escalation2LocalFiredRef = useRef(false);
-  useEffect(() => {
-    if (!persistedState.resolvedIds.has("static-11")) return;
-    if (escalation2LocalFiredRef.current) return;
-    escalation2LocalFiredRef.current = true;
-    // Do NOT clear on unmount — same reasoning as the first escalation timer.
-    setTimeout(() => {
-      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-sofia"]);
-      setEscalatedOverrides(new Set(persistedState.escalatedIds));
-    }, 8_000);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bulkResolvedIds]);
-
-  // Third escalation — Marcus Webb / Emily shipping error.
-  // Fires 8 seconds after Sofia's case (static-sofia) is marked resolved.
-  const escalation3LocalFiredRef = useRef(false);
-  useEffect(() => {
-    if (!persistedState.resolvedIds.has("static-sofia")) return;
-    if (escalation3LocalFiredRef.current) return;
-    escalation3LocalFiredRef.current = true;
-    // Do NOT clear on unmount — same reasoning as the first escalation timer.
-    setTimeout(() => {
-      persistedState.escalatedIds = new Set([...persistedState.escalatedIds, "static-marcus"]);
-      setEscalatedOverrides(new Set(persistedState.escalatedIds));
-      onSofiaCaseResolved();
-    }, 8_000);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bulkResolvedIds]);
 
   // Nadia Petrov / Payments Bot — auto-trigger disabled for now, kept for future use.
   // setEscalatedOverrides((prev) => new Set([...prev, "static-13"]));
@@ -4108,7 +4108,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[13px] font-semibold text-[#1D2939]">{row.botType}</span>
+                            <span className="text-[13px] font-semibold text-[#1D2939]">{row.isClosed ? "Unassigned" : row.botType}</span>
                             <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
                               Escalated
                             </span>
@@ -4117,7 +4117,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                           <p className="mt-0.5 text-[12px] text-[#475467] leading-[1.4] truncate">{row.preview}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {!row.isAccepted && (
+                          {(!row.isAccepted || row.isClosed) && (
                             <button
                               type="button"
                               onClick={() => row.onMonitor()}
@@ -4136,7 +4136,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                                     selectAssignment(row.liveAssignmentId);
                                     navigate("/activity");
                                   } else {
-                                    if (!row.isAccepted) {
+                                    if (!row.isAccepted || row.isClosed) {
                                       pushTransferredToast({ id: row.id, name: row.name, customerId: row.customerId, customerRecordId: row.customerRecordId ?? "", channel: row.channel as AssignmentChannel, label: row.botType, priority: row.priority, preview: row.preview });
                                     }
                                     row.isAccepted ? row.onReopen() : row.onAccept();
@@ -4149,7 +4149,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                                     : "bg-[#166CCA] text-white hover:bg-[#1260B0]",
                                 )}
                               >
-                                {isInProgress ? "In Progress" : row.isAccepted ? "View" : "Takeover"}
+                                {isInProgress ? "In Progress" : (row.isAccepted && !row.isClosed) ? "View" : "Takeover"}
                               </button>
                             );
                           })()}

@@ -13284,7 +13284,14 @@ export function getChannelFromConversationLabel(label: string): CustomerChannel 
   return "email";
 }
 
-export function createConversationState(customerId: string, channel: CustomerChannel): SharedConversationData {
+/**
+ * Build the initial conversation state for a customer.
+ * @param botAuthor  When provided (e.g. "Aria", "Jacob", "Emily"), every pre-existing
+ *                   agent-role message is stamped with `author: botAuthor` so the
+ *                   conversation panel renders the bot's avatar rather than the human
+ *                   agent's avatar for those messages.
+ */
+export function createConversationState(customerId: string, channel: CustomerChannel, botAuthor?: string): SharedConversationData {
   const customer = getCustomerRecord(customerId);
 
   if (channel === "voice") {
@@ -13321,7 +13328,12 @@ export function createConversationState(customerId: string, channel: CustomerCha
     timelineLabel: conversation.timelineLabel,
     status: "open",
     draft: "",
-    messages: conversation.messages.map((message) => ({ ...message })),
+    messages: conversation.messages.map((message) => ({
+      ...message,
+      // Stamp pre-existing bot messages so the conversation panel renders the
+      // bot avatar instead of the human agent's avatar after takeover.
+      ...(botAuthor && message.role === "agent" && !message.author ? { author: botAuthor } : {}),
+    })),
     isCustomerTyping: false,
   };
 }

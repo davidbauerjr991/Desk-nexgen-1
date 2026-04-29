@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   AlertTriangle,
   Check,
@@ -186,7 +186,7 @@ function TransferPopover({ priority, preview, triggerRect, onClose, onAssign }: 
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[200] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
+      className="fixed z-[10001] rounded-xl border border-border bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden"
       style={{ left, top, width: POPOVER_WIDTH, transform }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -377,6 +377,13 @@ export function EscalatedCaseModal({
   onResolve: () => void;
   onClose: () => void;
 }) {
+  const [isClosing, setIsClosing] = useState(false);
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 180);
+  }, [isClosing, onClose]);
+
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
@@ -519,21 +526,21 @@ export function EscalatedCaseModal({
   }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [onClose]);
+  }, [handleClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 animate-backdrop-fade-in bg-white/80 backdrop-blur-[3px]"
-        onClick={onClose}
+        className={`absolute inset-0 bg-white/80 backdrop-blur-[3px] ${isClosing ? "animate-backdrop-fade-out" : "animate-backdrop-fade-in"}`}
+        onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="animate-modal-fade-in relative z-10 flex flex-col w-[90vw] max-w-[1280px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden">
+      <div className={`${isClosing ? "animate-modal-fade-out" : "animate-modal-fade-in"} relative z-10 flex flex-col w-[90vw] max-w-[1280px] max-h-[90vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden`}>
 
         {/* ── Full-width header ── */}
         <div className="shrink-0 border-b border-border px-5 pt-3 pb-3">
@@ -578,7 +585,7 @@ export function EscalatedCaseModal({
               )}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#344054] transition-colors"
                 aria-label="Close"
               >
@@ -663,7 +670,7 @@ export function EscalatedCaseModal({
                         onClick={() => {
                           const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
                           const base = caseData.customerRecordId
-                            ? createConversationState(caseData.customerRecordId, channel)
+                            ? createConversationState(caseData.customerRecordId, channel, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
                             : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
                           const fullConversation = injectedMessages.length > 0
                             ? { ...base, messages: [...base.messages, ...injectedMessages] }
@@ -699,7 +706,7 @@ export function EscalatedCaseModal({
                 const initials = caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase();
                 const profile = rec.profile;
                 return (
-                  <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+                  <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setIsCustomerProfileOpen((v) => !v)}
@@ -775,7 +782,7 @@ export function EscalatedCaseModal({
               })()}
 
               {/* Attempted Resolution accordion */}
-              <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
+              <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setIsAttemptedResolutionOpen((v) => !v)}
@@ -813,7 +820,7 @@ export function EscalatedCaseModal({
               {showQuickActions && aiCommentApproved === "approved" && (() => {
                 const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
                 const baseConv = caseData.customerRecordId
-                  ? createConversationState(caseData.customerRecordId, channel)
+                  ? createConversationState(caseData.customerRecordId, channel, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
                   : { messages: [] as ConversationMessage[] };
                 const allMessages = [...baseConv.messages, ...injectedMessages];
                 const customerRespondedAfterApproval =
@@ -871,7 +878,7 @@ export function EscalatedCaseModal({
             {(() => {
               const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
               const baseConversation = caseData.customerRecordId
-                ? createConversationState(caseData.customerRecordId, channel)
+                ? createConversationState(caseData.customerRecordId, channel, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
                 : {
                     customerName: caseData.name,
                     label: "Chat",
@@ -1761,7 +1768,7 @@ export function EscalatedCaseModal({
               onClick={() => {
                 const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
                 const base = caseData.customerRecordId
-                  ? createConversationState(caseData.customerRecordId, channel)
+                  ? createConversationState(caseData.customerRecordId, channel, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
                   : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
                 const fullConversation = injectedMessages.length > 0
                   ? { ...base, messages: [...base.messages, ...injectedMessages] }

@@ -13,6 +13,15 @@ export const pendingQueueRejections = new Set<string>();
 export const pendingResolvedIds = new Set<string>();
 
 /**
+ * Static case IDs whose escalation toast just fired and whose home-tab row should
+ * immediately be marked "escalated". Layout writes here whenever an escalation
+ * notification is pushed; ControlPanelPage drains it via polling so the home-tab
+ * alert appears at the exact same moment as the bottom-right toast — and multiple
+ * alerts can stack simultaneously.
+ */
+export const pendingEscalatedIds = new Set<string>();
+
+/**
  * Tracks which static assignments have been accepted (staticId → assignmentId).
  * Survives ControlPanelPage remounts (it unmounts on every navigate("/activity")).
  * Written by Layout.tsx when taking over via toast; read/written by ControlPanelPage.

@@ -21,6 +21,7 @@ import SalesforcePage from "./pages/SalesforcePage";
 import ServiceNowPage from "./pages/ServiceNowPage";
 import WemPage from "./pages/WemPage";
 import ReportingPage from "./pages/ReportingPage";
+import ScenarioControllerPage from "./pages/ScenarioControllerPage";
 import Layout from "./components/Layout";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,9 @@ const App = () => (
 
           {/* Login page — no sidebar / header chrome */}
           <Route path="/login" element={<LoginPage />} />
+
+          {/* Scenario controller — standalone tab, no Layout chrome */}
+          <Route path="/controller" element={<ScenarioControllerPage />} />
 
           {/* All workspace routes — wrapped in Layout */}
           <Route path="/*" element={<WorkspaceRoutes />} />
