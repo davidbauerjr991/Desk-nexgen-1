@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutContext,
   useLayoutContext,
@@ -33,8 +33,6 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
-  FilePlus2,
-  FileText,
   GripHorizontal,
   Inbox,
   Mail,
@@ -134,7 +132,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "notes" | "addNew" | "chat" | "notifications";
+type FloatingPanelId = "conversation" | "customerInfo" | "deskCanvas" | "call" | "addNew" | "chat" | "notifications";
 type CombinedInteractionPanelTab = "conversation" | "customerInfo" | "canvas";
 
 // Agent roster used for the Transfer sub-menu in the case header dropdown
@@ -1845,12 +1843,12 @@ function AddNewPopoverContent({
 function CustomerProfilePopover({
   customerName,
   onOpenCustomerInfo,
-  onOpenNotes,
+  isCustomerInfoOpen = false,
 }: {
   customerRecordId: string;
   customerName: string;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
-  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
+  isCustomerInfoOpen?: boolean;
 }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -1860,18 +1858,14 @@ function CustomerProfilePopover({
         aria-label="Open customer information"
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onOpenCustomerInfo(e); }}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
+        className={cn(
+          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors",
+          isCustomerInfoOpen
+            ? "bg-[#166CCA]/10 text-[#166CCA] hover:bg-[#166CCA]/20"
+            : "text-[#7A7A7A] hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]",
+        )}
       >
         <User className="h-3.5 w-3.5 stroke-[1.5]" />
-      </button>
-      <button
-        type="button"
-        aria-label="Open notes"
-        onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => { e.stopPropagation(); onOpenNotes(e); }}
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
-      >
-        <FileText className="h-3.5 w-3.5 stroke-[1.5]" />
       </button>
     </div>
   );
@@ -2367,7 +2361,7 @@ function DockedConversationPanel({
   onOpenCall,
   onOpenChannel,
   onOpenCustomerInfo,
-  onOpenNotes,
+  isCustomerInfoOpen = false,
   onConversationStatusChange,
   onResolveAssignment,
   overviewIsOpen,
@@ -2390,7 +2384,7 @@ function DockedConversationPanel({
   onRemoveAssignment,
   caseOverviewOpenTrigger = 0,
   activeCaseTransferredItem = null,
-  onDismissActiveCaseToast,
+  onTakeoverOpen,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -2403,7 +2397,7 @@ function DockedConversationPanel({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email" | "whatsapp">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
-  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
+  isCustomerInfoOpen?: boolean;
   onConversationStatusChange: (status: ConversationStatus) => void;
   onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
@@ -2426,10 +2420,10 @@ function DockedConversationPanel({
   onRemoveAssignment?: (transferRecipient?: string) => void;
   /** Increment this to force the Case Overview accordion open (e.g. when a toast is dismissed). */
   caseOverviewOpenTrigger?: number;
-  /** When set, renders the transferred handoff card as an overlay at the top-left of this panel. */
+  /** When set, used to trigger the customer info popunder at the panel's top-left on takeover. */
   activeCaseTransferredItem?: QueuePreviewItem | null;
-  /** Called when the agent dismisses the active-case overlay toast. */
-  onDismissActiveCaseToast?: () => void;
+  /** Called with the panel's top-left position once the takeover item lands and bounds are known. */
+  onTakeoverOpen?: (position: { x: number; y: number }) => void;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -2438,8 +2432,9 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(false);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
-  const [toastDismissTrigger, setToastDismissTrigger] = useState(0);
   const [summaryTab, setSummaryTab] = useState<CustomerChannel | "history" | "conversation">(activeChannel);
+  // Track which transferred item we've already opened the customer info popunder for, to avoid re-firing.
+  const hasOpenedCustomerInfoForItemRef = useRef<string | null>(null);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(true);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
@@ -2936,6 +2931,15 @@ function DockedConversationPanel({
     }
   }, [isNarrowPanel, summaryTab]);
 
+  // Open the customer info popunder at the panel's top-left once both the transferred item
+  // and the panel bounds are known (bounds settle after the 520ms entrance animation).
+  useEffect(() => {
+    if (!activeCaseTransferredItem || !panelBounds) return;
+    if (hasOpenedCustomerInfoForItemRef.current === activeCaseTransferredItem.id) return;
+    hasOpenedCustomerInfoForItemRef.current = activeCaseTransferredItem.id;
+    onTakeoverOpen?.({ x: panelBounds.left + 12, y: panelBounds.headerBottom + 12 });
+  }, [activeCaseTransferredItem, panelBounds, onTakeoverOpen]);
+
   useEffect(() => {
     if (!contentInitializedRef.current) {
       contentInitializedRef.current = true;
@@ -3030,11 +3034,6 @@ function DockedConversationPanel({
                               const next = !isHandoffSummaryOpen;
                               setIsHandoffSummaryOpen(next);
                               if (!next) { onSummaryClose?.(); }
-                              // If the top-left toast is showing and we're opening the summary,
-                              // animate the toast out simultaneously.
-                              if (next && activeCaseTransferredItem) {
-                                setToastDismissTrigger((n) => n + 1);
-                              }
                             }}
                             className={cn(
                               "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full transition-colors",
@@ -3052,7 +3051,7 @@ function DockedConversationPanel({
                     </TooltipProvider>
                   )}
                   <div className="min-w-0">
-                    <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
+                    <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
                   </div>
                   {/* Channel + history tabs in header */}
                   {!isNarrowPanel && (
@@ -3677,39 +3676,6 @@ function DockedConversationPanel({
         )}
       </div>
 
-      {/* Active-case transferred toast — rendered via createPortal to document.body so its
-          z-index (10002) beats the ConversationPanel footer portal (z-index 60 / 10000).
-          Positioned with `fixed` coords derived from panelBounds so it visually sits
-          at top-3 left-3 of the conversation panel, relative to its measured rect. */}
-      {activeCaseTransferredItem && isOpen && panelBounds && panelBounds.width > 0 && createPortal(
-        <div
-          className="pointer-events-none"
-          style={{
-            position: "fixed",
-            left: panelBounds.left + 12,
-            top: panelBounds.headerBottom + 12,
-            width: 380,
-            maxWidth: panelBounds.width - 24,
-            zIndex: 10002,
-          }}
-        >
-          <div className="pointer-events-auto">
-            <IncomingAssignmentCard
-              item={activeCaseTransferredItem}
-              onMonitor={() => {}}
-              onTakeover={() => {}}
-              onTransfer={() => {}}
-              onDismiss={() => onDismissActiveCaseToast?.()}
-              isInline
-              dismissDirection="left"
-              inlinePanelHeight={panelBounds.height}
-              inlineHeaderOffset={panelBounds.headerBottom - panelBounds.top}
-              dismissTrigger={toastDismissTrigger}
-            />
-          </div>
-        </div>,
-        document.body,
-      )}
     </div>
   );
 }
@@ -4097,23 +4063,9 @@ function DockedCustomerInfoPanel({
   );
 }
 
-function CustomerInfoPopunder({
-  position,
-  size,
-  customerRecordId,
-  customerName,
-  customerId,
-  panelSelection,
-  zIndex,
-  onPositionChange,
-  onSizeChange,
-  onOpenCall,
-  isCallDisabled,
-  onClose,
-  onDock,
-  dragActivation = null,
-  onInteractStart,
-}: {
+type CustomerInfoPopunderHandle = { triggerClose: () => void };
+
+const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   position: CustomerInfoPopunderPosition;
   size: CustomerInfoPopunderSize;
   customerRecordId: string;
@@ -4129,36 +4081,126 @@ function CustomerInfoPopunder({
   onDock?: () => void;
   dragActivation?: CopilotDragActivation | null;
   onInteractStart?: () => void;
-}) {
+  /** When set, shows a live elapsed-time chip in the header. Dismissed on first interaction. */
+  takeoverStartTime?: number | null;
+}>(function CustomerInfoPopunder({
+  position,
+  size,
+  customerRecordId,
+  customerName,
+  customerId,
+  panelSelection,
+  zIndex,
+  onPositionChange,
+  onSizeChange,
+  onOpenCall,
+  isCallDisabled,
+  onClose,
+  onDock,
+  dragActivation = null,
+  onInteractStart,
+  takeoverStartTime = null,
+}, ref) {
+  // Two-div architecture:
+  //   containerRef  — outer, position-only div. Owns transform:translate(x,y) and explicit
+  //                   width/height. No animations, no visual chrome. Because it has no CSS
+  //                   animations, will-change:transform gives a clean compositor layer for
+  //                   zero-latency drag. Explicit size avoids browser content-measurement on
+  //                   every resize tick.
+  //   innerRef      — inner content div. Owns CSS entry/exit animations and all visual chrome.
+  //                   Its animation transform is on a separate element from the positioning
+  //                   transform, so there is no compositor conflict.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
+  const [isExiting, setIsExiting] = useState(false);
+  // Live ref copies — read by event handlers without causing re-renders.
+  const positionRef = useRef(position);
+  const sizeRef = useRef(size);
+  useEffect(() => { positionRef.current = position; }, [position]);
+  useEffect(() => { sizeRef.current = size; }, [size]);
+
+  // `transform`, `width`, and `height` are intentionally OMITTED from the React style props
+  // so React can never overwrite mid-gesture values.
+  // These useLayoutEffects are the sole owners when no gesture is active.
+
+  // Position — compositor-only transform on the outer div (no animation transform on this element).
+  useLayoutEffect(() => {
+    if (!containerRef.current || isDraggingRef.current || isResizingRef.current) return;
+    containerRef.current.style.transform = `translate(${position.x}px, ${position.y}px)`;
+  }, [position]);
+
+  // Size — direct DOM write on outer div; explicit dimensions eliminate content-measure on resize.
+  useLayoutEffect(() => {
+    if (!containerRef.current || isResizingRef.current) return;
+    containerRef.current.style.width = `${size.width}px`;
+    containerRef.current.style.height = `${size.height}px`;
+  }, [size]);
+
+  // Plays the slide-up exit animation then delegates the actual unmount to the caller.
+  const handleClose = useCallback(() => {
+    if (isExiting) return;
+    setIsExiting(true);
+    setTimeout(() => { onClose(); }, 280);
+  }, [isExiting, onClose]);
+
+  // Expose triggerClose so the parent can animate-out without immediately unmounting.
+  useImperativeHandle(ref, () => ({ triggerClose: handleClose }), [handleClose]);
+
+  // Auto-close after 5 s when opened via takeover (mirrors the old top-left toast behaviour).
+  // Cancelled the moment the user interacts with the panel.
+  const autoCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelAutoClose = useCallback(() => {
+    if (autoCloseTimerRef.current !== null) {
+      clearTimeout(autoCloseTimerRef.current);
+      autoCloseTimerRef.current = null;
+    }
+  }, []);
+  // Keep a stable ref to handleClose so the timer callback always calls the latest version
+  // without adding handleClose to the effect's dep array — which would reset the timer on
+  // every Layout re-render (handleClose changes whenever the inline onClose prop changes).
+  const handleCloseRef = useRef(handleClose);
+  useEffect(() => { handleCloseRef.current = handleClose; }, [handleClose]);
+  useEffect(() => {
+    if (!takeoverStartTime) return;
+    autoCloseTimerRef.current = setTimeout(() => {
+      autoCloseTimerRef.current = null;
+      handleCloseRef.current();
+    }, 5_000);
+    return () => {
+      if (autoCloseTimerRef.current !== null) clearTimeout(autoCloseTimerRef.current);
+    };
+  }, [takeoverStartTime]); // intentionally excludes handleClose — use ref instead
 
   useEffect(() => {
     if (!dragActivation) return;
-
     isDraggingRef.current = true;
     dragOffsetRef.current = dragActivation.offset;
     document.body.style.userSelect = "none";
+    if (containerRef.current) containerRef.current.style.willChange = "transform";
   }, [dragActivation]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (isDraggingRef.current) {
-        const nextX = event.clientX - dragOffsetRef.current.x;
-        const nextY = event.clientY - dragOffsetRef.current.y;
-
-        onPositionChange({
-          x: Math.min(
-            Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, nextX),
-            window.innerWidth - size.width - CUSTOMER_INFO_POPOUNDER_MARGIN,
-          ),
-          y: Math.min(
-            Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, nextY),
-            window.innerHeight - size.height - CUSTOMER_INFO_POPOUNDER_MARGIN,
-          ),
-        });
+        // Compute the clamped absolute destination.
+        const absX = Math.min(
+          Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, event.clientX - dragOffsetRef.current.x),
+          window.innerWidth - sizeRef.current.width - CUSTOMER_INFO_POPOUNDER_MARGIN,
+        );
+        const absY = Math.min(
+          Math.max(CUSTOMER_INFO_POPOUNDER_MARGIN, event.clientY - dragOffsetRef.current.y),
+          window.innerHeight - sizeRef.current.height - CUSTOMER_INFO_POPOUNDER_MARGIN,
+        );
+        // Write transform directly to the outer div — compositor-only, off the main thread.
+        // No CSS animation on this element, so will-change:transform gives a clean layer.
+        if (containerRef.current) {
+          containerRef.current.style.transform = `translate(${absX}px, ${absY}px)`;
+        }
+        positionRef.current = { x: absX, y: absY };
         return;
       }
 
@@ -4166,22 +4208,37 @@ function CustomerInfoPopunder({
 
       const deltaX = event.clientX - resizeStartRef.current.mouseX;
       const deltaY = event.clientY - resizeStartRef.current.mouseY;
-
-      onSizeChange({
-        width: Math.min(
-          Math.max(360, resizeStartRef.current.width + deltaX),
-          window.innerWidth - position.x - CUSTOMER_INFO_POPOUNDER_MARGIN,
-        ),
-        height: Math.min(
-          Math.max(420, resizeStartRef.current.height + deltaY),
-          window.innerHeight - position.y - CUSTOMER_INFO_POPOUNDER_MARGIN,
-        ),
-      });
+      const nextW = Math.min(
+        Math.max(360, resizeStartRef.current.width + deltaX),
+        window.innerWidth - positionRef.current.x - CUSTOMER_INFO_POPOUNDER_MARGIN,
+      );
+      const nextH = Math.min(
+        Math.max(420, resizeStartRef.current.height + deltaY),
+        window.innerHeight - positionRef.current.y - CUSTOMER_INFO_POPOUNDER_MARGIN,
+      );
+      // Direct DOM write to the outer div — no React re-render on every frame.
+      sizeRef.current = { width: nextW, height: nextH };
+      if (containerRef.current) {
+        containerRef.current.style.width  = `${nextW}px`;
+        containerRef.current.style.height = `${nextH}px`;
+      }
     };
 
     const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      isResizingRef.current = false;
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        // transform is already at the correct final position from the last mousemove
+        // DOM write — no additional writes needed. Just notify React of the new position
+        // so subsequent re-renders stay in sync.
+        onPositionChange(positionRef.current);
+        // Release the compositor layer promotion — not needed at rest.
+        if (containerRef.current) containerRef.current.style.willChange = "auto";
+      }
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        // Sync React state once on release so the rest of the app knows the final size.
+        onSizeChange(sizeRef.current);
+      }
       document.body.style.userSelect = "";
     };
 
@@ -4193,31 +4250,46 @@ function CustomerInfoPopunder({
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
+  }, [onPositionChange, onSizeChange]);
 
   return (
+    // Outer div: position + size only. No animations — clean compositor layer for drag.
+    // transform and width/height are DOM-managed (not in React style) to prevent overwrites.
     <div
-      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
-      style={{
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        height: size.height,
-        maxWidth: "calc(100vw - 2rem)",
-        maxHeight: "calc(100vh - 2rem)",
-        zIndex,
-      }}
+      ref={containerRef}
+      className="fixed"
+      style={{ zIndex }}
     >
+      {/* Inner div: CSS entry/exit animations + visual chrome. Animation transform is on a
+          separate element from the outer div's positioning transform — no conflict. */}
+      <div
+        ref={innerRef}
+        className={cn(
+          "flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]",
+          isExiting
+            ? "animate-out slide-out-to-top-4 fade-out duration-300"
+            : "animate-in slide-in-from-top-4 fade-in duration-300",
+        )}
+        style={{
+          width: "100%",
+          height: "100%",
+          maxWidth: "calc(100vw - 2rem)",
+          maxHeight: "calc(100vh - 2rem)",
+          animationFillMode: "both",
+        }}
+        onMouseDown={cancelAutoClose}
+      >
       <div
         className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
         onMouseDown={(event) => {
           onInteractStart?.();
           isDraggingRef.current = true;
           dragOffsetRef.current = {
-            x: event.clientX - position.x,
-            y: event.clientY - position.y,
+            x: event.clientX - positionRef.current.x,
+            y: event.clientY - positionRef.current.y,
           };
           document.body.style.userSelect = "none";
+          if (containerRef.current) containerRef.current.style.willChange = "transform";
         }}
       >
         <div className="flex items-center gap-3">
@@ -4231,7 +4303,7 @@ function CustomerInfoPopunder({
           <button
             type="button"
             onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClose}
+            onClick={handleClose}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
             aria-label="Close customer information popunder"
           >
@@ -4266,9 +4338,10 @@ function CustomerInfoPopunder({
       >
         <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
       </button>
+      </div>{/* end inner animation div */}
     </div>
   );
-}
+});
 
 function DockedCopilotPanel({
   width,
@@ -4609,7 +4682,7 @@ function ConversationPopunder({
   onOpenCall,
   onOpenChannel,
   onOpenCustomerInfo,
-  onOpenNotes,
+  isCustomerInfoOpen = false,
   onConversationStatusChange,
   onResolveAssignment,
   overviewIsOpen,
@@ -4634,7 +4707,7 @@ function ConversationPopunder({
   onOpenCall: (anchorRect?: DOMRect | null) => void;
   onOpenChannel: (channel: Extract<CustomerChannel, "sms" | "email" | "whatsapp">) => void;
   onOpenCustomerInfo: (event?: React.MouseEvent<HTMLElement>) => void;
-  onOpenNotes: (event: React.MouseEvent<HTMLElement>) => void;
+  isCustomerInfoOpen?: boolean;
   onConversationStatusChange: (status: ConversationStatus) => void;
   onResolveAssignment?: () => void;
   overviewIsOpen: boolean;
@@ -4740,7 +4813,7 @@ function ConversationPopunder({
         <div className="flex items-center gap-3">
           <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
           <div>
-            <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} onOpenNotes={onOpenNotes} />
+            <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
           </div>
           <CustomerContactDropdown
             onOpenCall={(anchorRect) => onOpenCall(anchorRect)}
@@ -4806,160 +4879,7 @@ function ConversationPopunder({
   );
 }
 
-function NotesPopoverContent({
-  position,
-  size,
-  zIndex,
-  customerId,
-  onPositionChange,
-  onSizeChange,
-  onClose,
-  onInteractStart,
-}: {
-  position: {
-    x: number;
-    y: number;
-  };
-  size: {
-    width: number;
-    height: number;
-  };
-  zIndex: number;
-  customerId?: string;
-  onPositionChange: (position: { x: number; y: number }) => void;
-  onSizeChange: (size: { width: number; height: number }) => void;
-  onClose: () => void;
-  onInteractStart?: () => void;
-}) {
-  const [addNoteTrigger, setAddNoteTrigger] = useState(0);
-  const dragOffsetRef = useRef({ x: 0, y: 0 });
-  const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: size.width, height: size.height });
-  const isDraggingRef = useRef(false);
-  const isResizingRef = useRef(false);
 
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      const margin = 16;
-
-      if (isDraggingRef.current) {
-        const nextX = event.clientX - dragOffsetRef.current.x;
-        const nextY = event.clientY - dragOffsetRef.current.y;
-
-        onPositionChange({
-          x: Math.min(Math.max(margin, nextX), window.innerWidth - size.width - margin),
-          y: Math.min(Math.max(margin, nextY), window.innerHeight - size.height - margin),
-        });
-        return;
-      }
-
-      if (!isResizingRef.current) return;
-
-      const deltaX = event.clientX - resizeStartRef.current.mouseX;
-      const deltaY = event.clientY - resizeStartRef.current.mouseY;
-
-      onSizeChange({
-        width: Math.min(
-          Math.max(360, resizeStartRef.current.width + deltaX),
-          window.innerWidth - position.x - margin,
-        ),
-        height: Math.min(
-          Math.max(420, resizeStartRef.current.height + deltaY),
-          window.innerHeight - position.y - margin,
-        ),
-      });
-    };
-
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      isResizingRef.current = false;
-      document.body.style.userSelect = "";
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      document.body.style.userSelect = "";
-    };
-  }, [onPositionChange, onSizeChange, position.x, position.y, size.height, size.width]);
-
-  return (
-    <div
-      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
-      style={{
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        height: size.height,
-        maxWidth: "calc(100vw - 2rem)",
-        maxHeight: "calc(100vh - 2rem)",
-        zIndex,
-      }}
-    >
-      <div
-        className="flex cursor-grab items-center justify-between gap-3 border-b border-border bg-background/50 px-5 py-4 active:cursor-grabbing"
-        onMouseDown={(event) => {
-          onInteractStart?.();
-          isDraggingRef.current = true;
-          dragOffsetRef.current = {
-            x: event.clientX - position.x,
-            y: event.clientY - position.y,
-          };
-          document.body.style.userSelect = "none";
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
-          <h3 className="text-sm font-semibold tracking-tight text-[#333333]">Notes</h3>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={() => setAddNoteTrigger((current) => current + 1)}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
-            aria-label="Add note"
-          >
-            <FilePlus2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onMouseDown={(event) => event.stopPropagation()}
-            onClick={onClose}
-            className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-white dark:hover:bg-[#1C2536] hover:text-[#333333] dark:hover:text-[#CBD5E1]"
-            aria-label="Close notes popunder"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <NotesPanel notesOnly customerId={customerId} addNoteTrigger={addNoteTrigger} />
-
-      <button
-        type="button"
-        aria-label="Resize notes popunder"
-        className="absolute bottom-0 right-0 h-5 w-5 cursor-se-resize"
-        onMouseDown={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          isResizingRef.current = true;
-          resizeStartRef.current = {
-            mouseX: event.clientX,
-            mouseY: event.clientY,
-            width: size.width,
-            height: size.height,
-          };
-          document.body.style.userSelect = "none";
-        }}
-      >
-        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-sm border-b-2 border-r-2 border-[#A1A1AA]" />
-      </button>
-    </div>
-  );
-}
 
 function HeaderIconButton({
   children,
@@ -7204,7 +7124,7 @@ function LeftQueueRail({
   return (
     <div
       className={cn(
-        "relative z-30 block h-full shrink-0 transition-[width] duration-300 ease-out",
+        "relative z-[80] block h-full shrink-0 transition-[width] duration-300 ease-out",
         isOpen ? "w-[347px]" : "w-[60px]",
       )}
     >
@@ -7713,151 +7633,11 @@ export default function Layout({ children }: LayoutProps) {
   /** Ref mirror of `status` so the BroadcastChannel handler reads the live value without a stale closure. */
   const agentStatusRef = useRef<AgentStatus>("Offline");
 
-  // Module-level flag — ensures the Jordan Davis escalation fires at most once per browser session,
-  // even if Layout unmounts and remounts during navigation.
-  // This lives in Layout so it fires regardless of which page the agent is currently on.
-  useEffect(() => {
-    if (status !== "Available") return;
-    if (escalationFired) return; // already queued or fired — do not repeat
-    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
-    const timer = setTimeout(() => {
-      escalationFired = true; // set inside callback so cleanup can still cancel before it runs
-      // Don't show toast if the case has already been taken over (already in the active rail)
-      if (visibleAssignmentIdsRef.current.includes("static-11")) return;
-      setIncomingNotifications((prev) => {
-        if (prev.some((n) => n.id === "escalation-static-11")) return prev; // already in list
-        return [
-          ...prev,
-          {
-            id: "escalation-static-11",
-            customerRecordId: "jordan",
-            channel: "chat" as const,
-            initials: "JD",
-            name: "Jordan Davis",
-            customerId: "CST-11621",
-            label: "Aria",
-            lastUpdated: "11m",
-            time: "11m",
-            preview: "Router dropping all connections — port forwarding config blocking factory reset",
-            statusLabel: "Escalated",
-            priority: "Critical",
-            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
-            badgeColor: "#E32926",
-            icon: MessageCircle,
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            escalatedAt: getEscalationStart("jordan"),
-            aiConfidence: staticAssignments.find((s) => s.id === "static-11")?.aiConfidence,
-            aiConfidenceReason: staticAssignments.find((s) => s.id === "static-11")?.aiConfidenceReason,
-          },
-        ];
-      });
-      pendingEscalatedIds.add("static-11");
-      setEscalatedRailCount((n) => n + 1);
-    }, 5_000);
-    return () => clearTimeout(timer);
-  // isControllerConnected included so connecting the controller before 5 s cancels the pending timer
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, isControllerConnected]);
-
-  // Second escalation — Sofia Martinez / Jacob fraud alert.
-  // Fires 8 seconds after Jordan's case is marked resolved.
+  // Scenario escalations are controlled exclusively by the Scenario Controller tab.
+  // The standalone auto-fire timers have been removed — scenarios only fire via
+  // fireJordanEscalation / fireSofiaEscalation / fireMarcusEscalation (called on TRIGGER msg).
   const [isJordanResolved, setIsJordanResolved] = useState(false);
-  useEffect(() => {
-    if (!isJordanResolved) return;
-    if (escalation2Fired) return;
-    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
-    const timer = setTimeout(() => {
-      escalation2Fired = true; // set inside callback so cleanup can still cancel before it runs
-      // Don't show toast if the case has already been taken over (already in the active rail)
-      if (visibleAssignmentIdsRef.current.includes("static-sofia")) return;
-      setIncomingNotifications((prev) => {
-        if (prev.some((n) => n.id === "escalation-static-sofia")) return prev;
-        return [
-          ...prev,
-          {
-            id: "escalation-static-sofia",
-            customerRecordId: "sofia",
-            channel: "chat" as const,
-            initials: "SM",
-            name: "Sofia Martinez",
-            customerId: "CST-12045",
-            label: "Jacob",
-            lastUpdated: "8m",
-            time: "8m",
-            preview: "Proactive fraud alert — 2 unauthorized transactions totaling $2,159 detected",
-            statusLabel: "Escalated",
-            priority: "Critical",
-            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
-            badgeColor: "#E32926",
-            icon: MessageCircle,
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            escalatedAt: getEscalationStart("sofia"),
-            aiConfidence: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidence,
-            aiConfidenceReason: staticAssignments.find((s) => s.id === "static-sofia")?.aiConfidenceReason,
-          },
-        ];
-      });
-      pendingEscalatedIds.add("static-sofia");
-      setEscalatedRailCount((n) => n + 1);
-    }, 8_000);
-    return () => clearTimeout(timer);
-  // isControllerConnected included so connecting the controller before 8 s cancels the pending timer
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isJordanResolved, isControllerConnected]);
-
-  // Third escalation — Marcus Webb / Emily shipping error.
-  // ControlPanelPage already waits 8 s before calling onSofiaCaseResolved(), so
-  // we fire the toast immediately here to stay in sync with the home-tab alert.
   const [isSofiaResolved, setIsSofiaResolved] = useState(false);
-  useEffect(() => {
-    if (!isSofiaResolved) return;
-    if (escalation3Fired) return;
-    if (isControllerConnected) return; // controller tab is managing timing — do not auto-fire
-    const timer = setTimeout(() => {
-      escalation3Fired = true; // set inside callback so cleanup can still cancel before it runs
-      // Don't show toast if the case has already been taken over (already in the active rail)
-      if (visibleAssignmentIdsRef.current.includes("static-marcus")) return;
-      // Also suppress if a notification for this customer is already being dismissed
-      // (e.g. agent took over via ControlPanel path before this timer fired)
-      if (visibleAssignmentIdsRef.current.some((id) => id.includes("marcus"))) return;
-      setIncomingNotifications((prev) => {
-        if (prev.some((n) => n.id === "escalation-static-marcus")) return prev;
-        return [
-          ...prev,
-          {
-            id: "escalation-static-marcus",
-            customerRecordId: "marcus",
-            channel: "chat" as const,
-            initials: "MW",
-            name: "Marcus Webb",
-            customerId: "CST-13317",
-            label: "Emily",
-            lastUpdated: "6m",
-            time: "6m",
-            preview: "Order shipped to wrong address - request for Human Agent",
-            statusLabel: "Escalated",
-            priority: "Critical",
-            priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
-            badgeColor: "#E32926",
-            icon: MessageCircle,
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            escalatedAt: getEscalationStart("marcus"),
-          },
-        ];
-      });
-      pendingEscalatedIds.add("static-marcus");
-      setEscalatedRailCount((n) => n + 1);
-    }, 0);
-    return () => clearTimeout(timer);
-  // isControllerConnected included so connecting the controller cancels any pending timer
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSofiaResolved, isControllerConnected]);
 
   // Broadcast resolved status to the Scenario Controller whenever a case resolves.
   useEffect(() => {
@@ -7875,7 +7655,6 @@ export default function Layout({ children }: LayoutProps) {
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
   const [activeRightPanel, setActiveRightPanel] = useState<RightPanelView>(null);
   const [deskPanelSelection, setDeskPanelSelection] = useState<DeskPanelSelection>(null);
-  const [isNotesPopoverOpen, setIsNotesPopoverOpen] = useState(false);
   const [isChatPopoverOpen, setIsChatPopoverOpen] = useState(false);
   const [chatPopunderPosition, setChatPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [chatPopunderSize, setChatPopunderSize] = useState(() => ({
@@ -7909,11 +7688,6 @@ export default function Layout({ children }: LayoutProps) {
   }));
   const [isPageEntered, setIsPageEntered] = useState(false);
   const [contentRevealTrigger, setContentRevealTrigger] = useState(0);
-  const [notesPopunderPosition, setNotesPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
-  const [notesPopunderSize, setNotesPopunderSize] = useState(() => ({
-    width: 380,
-    height: typeof window === "undefined" ? 720 : Math.max(420, window.innerHeight - 80),
-  }));
   const [addNewPopunderPosition, setAddNewPopunderPosition] = useState(() => ({ x: 0, y: 0 }));
   const [addNewPopunderSize, setAddNewPopunderSize] = useState(() => ({
     width: 360,
@@ -8023,6 +7797,12 @@ export default function Layout({ children }: LayoutProps) {
   );
   const [isCustomerInfoPopunderOpen, setIsCustomerInfoPopunderOpen] = useState(false);
   const [isCustomerInfoIconPopoverOpen, setIsCustomerInfoIconPopoverOpen] = useState(false);
+  // Takeover-only popunder: shows CustomerInfoPopunder without touching isCustomerInfoPanelOpen
+  // so the layout (docked panel widths) is never affected.
+  const [isTakeoverInfoOpen, setIsTakeoverInfoOpen] = useState(false);
+  // Epoch timestamp (ms) of the most recent takeover-open. Passed to CustomerInfoPopunder
+  // to drive the elapsed-time header chip. Cleared when opened via icon (non-takeover path).
+  const [customerInfoTakeoverStartTime, setCustomerInfoTakeoverStartTime] = useState<number | null>(null);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
@@ -8031,10 +7811,12 @@ export default function Layout({ children }: LayoutProps) {
   const [combinedInteractionPanelTab, setCombinedInteractionPanelTab] = useState<CombinedInteractionPanelTab>("conversation");
   const [conversationDragActivation, setConversationDragActivation] = useState<CopilotDragActivation | null>(null);
   const [customerInfoDragActivation, setCustomerInfoDragActivation] = useState<CopilotDragActivation | null>(null);
+  // Tracks whether the customer info popunder has ever been given a real position (so re-opens stay in place).
+  const customerInfoHasBeenPositionedRef = useRef(false);
+  const customerInfoPopunderRef = useRef<CustomerInfoPopunderHandle>(null);
   const wasExpandedCanvasRouteRef = useRef(false);
   const [floatingPanelOrder, setFloatingPanelOrder] = useState<FloatingPanelId[]>([
     "call",
-    "notes",
     "addNew",
     "notifications",
     "chat",
@@ -8048,6 +7830,10 @@ export default function Layout({ children }: LayoutProps) {
     y: 72,
   }));
   const [customerInfoPopunderSize, setCustomerInfoPopunderSize] = useState<CustomerInfoPopunderSize>({ width: 380, height: 720 });
+  // Ref so getAnchoredCustomerInfoPopunderPosition can read the latest size without
+  // capturing it in useMemo/useEffect dep arrays (prevents context invalidation on resize).
+  const customerInfoPopunderSizeRef = useRef(customerInfoPopunderSize);
+  useEffect(() => { customerInfoPopunderSizeRef.current = customerInfoPopunderSize; }, [customerInfoPopunderSize]);
   const [customerInfoPopunderPosition, setCustomerInfoPopunderPosition] = useState<CustomerInfoPopunderPosition>(() => ({
     x: 420,
     y: 72,
@@ -8082,7 +7868,6 @@ export default function Layout({ children }: LayoutProps) {
   // Persists conversation state when a channel is trashed so it can be restored on reopen.
   // Key: `${customerRecordId}::${channel}`
   const channelStateArchiveRef = useRef<Map<string, SharedConversationData>>(new Map());
-  const notesButtonRef = useRef<HTMLDivElement | null>(null);
   const bellButtonRef = useRef<HTMLDivElement | null>(null);
   const chatButtonRef = useRef<HTMLDivElement | null>(null);
   const addNewButtonRef = useRef<HTMLDivElement | null>(null);
@@ -8750,22 +8535,6 @@ export default function Layout({ children }: LayoutProps) {
     };
   };
 
-  const getAnchoredNotesPopunderPosition = () => {
-    if (typeof window === "undefined") {
-      return { x: 16, y: 64 };
-    }
-
-    const margin = 16;
-    const gap = 10;
-    const popunderWidth = Math.min(notesPopunderSize.width, window.innerWidth - margin * 2);
-    const buttonBounds = notesButtonRef.current?.getBoundingClientRect();
-
-    return {
-      x: Math.max(window.innerWidth - popunderWidth - margin, margin),
-      y: Math.max(margin, (buttonBounds?.bottom ?? 48) + gap),
-    };
-  };
-
   const getAnchoredAddNewPopunderPosition = () => {
     if (typeof window === "undefined") {
       return { x: 16, y: 64 };
@@ -8844,8 +8613,8 @@ export default function Layout({ children }: LayoutProps) {
       return { x: 420, y: 72 };
     }
 
-    const width = Math.min(customerInfoPopunderSize.width, window.innerWidth - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
-    const height = Math.min(customerInfoPopunderSize.height, window.innerHeight - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
+    const width = Math.min(customerInfoPopunderSizeRef.current.width, window.innerWidth - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
+    const height = Math.min(customerInfoPopunderSizeRef.current.height, window.innerHeight - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
 
     if (!anchorRect) {
       return {
@@ -9087,8 +8856,6 @@ export default function Layout({ children }: LayoutProps) {
     setIsCustomerInfoPopunderOpen(true);
     setCustomerInfoDragActivation(null);
   }, [
-    customerInfoPopunderSize.height,
-    customerInfoPopunderSize.width,
     dockedConversationWidth,
     isCombinedInteractionPanel,
     isConversationPanelOpen,
@@ -9803,7 +9570,8 @@ export default function Layout({ children }: LayoutProps) {
     const baseConversation = customerRecordId
       ? createConversationState(customerRecordId, channel, botAuthor)
       : undefined;
-    // Append a warm handoff message from the bot at the moment of takeover
+    // Append a warm handoff message from the bot at the moment of takeover,
+    // followed by the internal handoff card (agent-only green transfer notice).
     const conversationWithHandoff = baseConversation
       ? {
           ...baseConversation,
@@ -9815,6 +9583,15 @@ export default function Layout({ children }: LayoutProps) {
               author: botAuthor,
               content: "I'm going to transfer you to a live customer service agent, please hold.",
               time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+            },
+            {
+              id: (baseConversation.messages[baseConversation.messages.length - 1]?.id ?? 0) + 2,
+              role: "agent" as const,
+              author: botAuthor,
+              content: `I have transferred the assignment. You are now live with customer ${item.name}.`,
+              time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+              isInternal: true,
+              isHandoffCard: true,
             },
           ],
         }
@@ -10104,26 +9881,6 @@ export default function Layout({ children }: LayoutProps) {
     );
   };
 
-  // Opens the Customer Info panel as an independent floating popover from the
-  // inline icon button — bypasses all desk-route / canvas gating logic.
-  const openNotesIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
-    const margin = 16;
-    const gap = 10;
-    const anchorRect = event?.currentTarget.getBoundingClientRect();
-    const popunderWidth = Math.min(notesPopunderSize.width, window.innerWidth - margin * 2);
-    const x = anchorRect
-      ? Math.min(Math.max(margin, anchorRect.left), window.innerWidth - popunderWidth - margin)
-      : Math.max(window.innerWidth - popunderWidth - margin, margin);
-    const y = anchorRect
-      ? Math.max(margin, anchorRect.bottom + gap)
-      : Math.max(margin, (notesButtonRef.current?.getBoundingClientRect().bottom ?? 48) + gap);
-    const maxHeight = window.innerHeight - y - margin;
-    setNotesPopunderSize((prev) => ({ ...prev, height: Math.max(200, maxHeight) }));
-    bringFloatingPanelToFront("notes");
-    setNotesPopunderPosition({ x, y });
-    setIsNotesPopoverOpen(true);
-  };
-
   const openChatPopover = () => {
     const margin = 16;
     const gap = 10;
@@ -10161,22 +9918,25 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const openCustomerInfoIconPopover = (event?: React.MouseEvent<HTMLElement>) => {
-    const anchorRect = event?.currentTarget.getBoundingClientRect();
-    const nextPosition = getAnchoredCustomerInfoPopunderPosition(anchorRect);
+    // If the popunder is already visible (from icon click or takeover), animate it out.
+    if (isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen || isDeskCustomerInfoPopunderVisible) {
+      // Trigger the slide-up exit animation; onClose will clear state after it finishes.
+      customerInfoPopunderRef.current?.triggerClose();
+      return;
+    }
 
     bringFloatingPanelToFront("customerInfo");
-    setCustomerInfoPopunderPosition(nextPosition);
-    setCustomerInfoDragActivation(
-      event
-        ? {
-            id: Date.now(),
-            offset: {
-              x: event.clientX - nextPosition.x,
-              y: event.clientY - nextPosition.y,
-            },
-          }
-        : null,
-    );
+
+    // Only anchor to the icon on first open; subsequent reopens restore the last position.
+    if (!customerInfoHasBeenPositionedRef.current) {
+      const anchorRect = event?.currentTarget.getBoundingClientRect();
+      setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition(anchorRect));
+      customerInfoHasBeenPositionedRef.current = true;
+    }
+
+    // Never start in drag state from icon click — user drags via the grab handle.
+    // This is not a takeover-open, so clear any stale takeover timestamp.
+    setCustomerInfoTakeoverStartTime(null);
     setIsCustomerInfoIconPopoverOpen(true);
   };
 
@@ -10401,7 +10161,6 @@ export default function Layout({ children }: LayoutProps) {
     }
 
     setActiveRightPanel(null);
-    setIsNotesPopoverOpen(false);
     setIsAddNewPopoverOpen(false);
     // Only open conversation panel in docked mode if it isn't already floating
     if (!isConversationPopunderOpen) {
@@ -10689,8 +10448,6 @@ export default function Layout({ children }: LayoutProps) {
       activeConversationTabs,
       conversationState,
       deskPanelSelection,
-      customerInfoPopunderSize.height,
-      customerInfoPopunderSize.width,
       activeCallAssignmentId,
       dockedConversationWidth,
       isAddNewPopoverOpen,
@@ -10899,8 +10656,6 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </HeaderIconButton>
           </div>
-
-          <div ref={notesButtonRef} className="hidden" aria-hidden="true" />
 
           <div ref={chatButtonRef}>
             <HeaderIconButton
@@ -11187,7 +10942,8 @@ export default function Layout({ children }: LayoutProps) {
                   }
                 }}
                 onOpenCustomerInfo={openCustomerInfoIconPopover}
-                onOpenNotes={openNotesIconPopover}
+                isCustomerInfoOpen={isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
+
                 onConversationStatusChange={handleConversationStatusChange}
                 onResolveAssignment={handleResolveAssignment}
                 overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -11246,8 +11002,12 @@ export default function Layout({ children }: LayoutProps) {
                 }}
                 caseOverviewOpenTrigger={caseOverviewOpenTrigger}
                 activeCaseTransferredItem={activeCaseTransferredItem}
-                onDismissActiveCaseToast={() => {
-                  if (activeCaseTransferredItem) removeIncoming(activeCaseTransferredItem.id);
+                onTakeoverOpen={(pos) => {
+                  bringFloatingPanelToFront("customerInfo");
+                  setCustomerInfoPopunderPosition(pos);
+                  customerInfoHasBeenPositionedRef.current = true;
+                  setCustomerInfoTakeoverStartTime(Date.now());
+                  setIsTakeoverInfoOpen(true);
                 }}
               />
             ) : null}
@@ -11330,8 +11090,8 @@ export default function Layout({ children }: LayoutProps) {
               onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
+              isCustomerInfoOpen={isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
               onOpenCustomerInfo={openCustomerInfoIconPopover}
-              onOpenNotes={openNotesIconPopover}
               onConversationStatusChange={handleConversationStatusChange}
               onResolveAssignment={handleResolveAssignment}
               overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -11390,8 +11150,12 @@ export default function Layout({ children }: LayoutProps) {
               }}
               caseOverviewOpenTrigger={caseOverviewOpenTrigger}
               activeCaseTransferredItem={activeCaseTransferredItem}
-              onDismissActiveCaseToast={() => {
-                if (activeCaseTransferredItem) removeIncoming(activeCaseTransferredItem.id);
+              onTakeoverOpen={(pos) => {
+                bringFloatingPanelToFront("customerInfo");
+                setCustomerInfoPopunderPosition(pos);
+                customerInfoHasBeenPositionedRef.current = true;
+                setCustomerInfoTakeoverStartTime(Date.now());
+                setIsTakeoverInfoOpen(true);
               }}
             />
             <DockedCustomerInfoPanel
@@ -11470,9 +11234,9 @@ export default function Layout({ children }: LayoutProps) {
           onSelectChannel={setActiveConversationChannel}
           onOpenDeskPanel={openDeskPanel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
+          isCustomerInfoOpen={isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
           onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
           onOpenCustomerInfo={openCustomerInfoIconPopover}
-          onOpenNotes={openNotesIconPopover}
           onConversationStatusChange={handleConversationStatusChange}
           onResolveAssignment={handleResolveAssignment}
           overviewIsOpen={overviewOpenByAssignmentId[selectedAssignment.id] ?? true}
@@ -11489,8 +11253,9 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {(isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen) && (
+      {(isActivityRoute || isDeskRoute) && (isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen) && (
         <CustomerInfoPopunder
+          ref={customerInfoPopunderRef}
           position={customerInfoPopunderPosition}
           size={customerInfoPopunderSize}
           customerRecordId={selectedAssignment.customerRecordId}
@@ -11502,7 +11267,8 @@ export default function Layout({ children }: LayoutProps) {
           onSizeChange={setCustomerInfoPopunderSize}
           onOpenCall={layoutContextValue.toggleCallPopunder}
           isCallDisabled={status === "In a Call" || status !== "Available"}
-          onClose={() => { setIsCustomerInfoIconPopoverOpen(false); closeCustomerInfoPanel(); }}
+          takeoverStartTime={customerInfoTakeoverStartTime}
+          onClose={() => { setIsCustomerInfoIconPopoverOpen(false); setIsTakeoverInfoOpen(false); setCustomerInfoTakeoverStartTime(null); closeCustomerInfoPanel(); }}
           onDock={isCustomerInfoPanelAllowed ? () => { setIsCustomerInfoIconPopoverOpen(false); dockCustomerInfoPanel(); } : undefined}
           dragActivation={customerInfoDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("customerInfo")}
@@ -11733,7 +11499,8 @@ export default function Layout({ children }: LayoutProps) {
                 preview: escalatedToastModal.preview,
               });
             }
-            // Append warm handoff message from the bot at the moment of takeover
+            // Append warm handoff message from the bot at the moment of takeover,
+            // followed by the internal handoff card (agent-only green transfer notice).
             const modalBotAuthor = escalatedToastModal.botType ?? "Aria";
             const conversationWithHandoff = conversation
               ? {
@@ -11746,6 +11513,15 @@ export default function Layout({ children }: LayoutProps) {
                       author: modalBotAuthor,
                       content: "I'm going to transfer you to a live customer service agent, please hold.",
                       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                    },
+                    {
+                      id: (conversation.messages[conversation.messages.length - 1]?.id ?? 0) + 2,
+                      role: "agent" as const,
+                      author: modalBotAuthor,
+                      content: `I have transferred the assignment. You are now live with customer ${escalatedToastModal.name}.`,
+                      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                      isInternal: true,
+                      isHandoffCard: true,
                     },
                   ],
                 }
@@ -11797,6 +11573,15 @@ export default function Layout({ children }: LayoutProps) {
                       author: superviseBotAuthor,
                       content: "I'm going to transfer you to a live customer service agent, please hold.",
                       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                    },
+                    {
+                      id: (superviseBase.messages[superviseBase.messages.length - 1]?.id ?? 0) + 2,
+                      role: "agent" as const,
+                      author: superviseBotAuthor,
+                      content: `I have transferred the assignment. You are now live with customer ${escalatedToastModal.name}.`,
+                      time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+                      isInternal: true,
+                      isHandoffCard: true,
                     },
                   ],
                 }
@@ -11869,19 +11654,6 @@ export default function Layout({ children }: LayoutProps) {
         />
       )}
 
-      {isNotesPopoverOpen && (
-        <NotesPopoverContent
-          key={selectedAssignment.customerRecordId}
-          position={notesPopunderPosition}
-          size={notesPopunderSize}
-          zIndex={getFloatingPanelZIndex("notes")}
-          customerId={selectedAssignment.customerRecordId}
-          onPositionChange={setNotesPopunderPosition}
-          onSizeChange={setNotesPopunderSize}
-          onClose={() => setIsNotesPopoverOpen(false)}
-          onInteractStart={() => bringFloatingPanelToFront("notes")}
-        />
-      )}
 
       {isAddNewPopoverOpen && (
         <AddNewPopoverContent

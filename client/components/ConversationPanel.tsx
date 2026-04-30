@@ -30,6 +30,11 @@ export type ConversationMessage = {
    * the human agent's avatar.
    */
   author?: string;
+  /**
+   * When true, renders as the green "handoff notice" card (internal agent-only notification
+   * that the assignment has been transferred). Treated as internal — not visible to customer.
+   */
+  isHandoffCard?: boolean;
 };
 
 export type ConversationStatus = "open" | "pending";
@@ -1948,7 +1953,7 @@ export default function ConversationPanel({
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
           <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
-            <div className={cn("space-y-6 px-6", isWidePanel ? "mx-auto max-w-[1024px]" : "w-full")}>
+            <div className={cn("space-y-6 px-6", isWidePanel ? "m-8 mx-auto max-w-[991px]" : "m-8")}>
             <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -2063,7 +2068,7 @@ export default function ConversationPanel({
                   const msgInitials = isBotMessage
                     ? (message.author ?? "").slice(0, 2).toUpperCase()
                     : msgName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
-                  return (
+                  const messageEl = (
                   <div
                     key={message.id}
                     className={cn(
@@ -2071,8 +2076,39 @@ export default function ConversationPanel({
                       isNewMessage && "animate-in fade-in slide-in-from-bottom-3",
                     )}
                   >
+                    {/* Handoff notice card — internal, agent-only green card */}
+                    {message.isHandoffCard && (
+                      <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3 animate-in fade-in duration-300">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {message.author === "Emily" ? (
+                              <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                            ) : (
+                              <img
+                                src={message.author === "Jacob"
+                                  ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                                  : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                                alt={`${message.author ?? "Aria"} avatar`}
+                                className="h-5 w-5 rounded-full object-cover shrink-0"
+                              />
+                            )}
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#166744]">{message.author ?? "Aria"}</p>
+                          </div>
+                          <span className="rounded-full border border-[#24943E] px-2 py-0.5 text-[10px] font-medium text-[#166744]">Internal note</span>
+                        </div>
+                        <p className="text-[13px] font-medium leading-5 text-[#166744]">{message.content}</p>
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-[#24943E] bg-white px-3 py-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#208337]">Status</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-[#208337]" />
+                            <span className="text-[12px] font-semibold text-[#208337]">Live</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Internal note */}
-                    {message.isInternal && (
+                    {message.isInternal && !message.isHandoffCard && (
                       <div className="rounded-xl border border-dashed border-[#D0D5DD] bg-[#F9FAFB] overflow-hidden">
                         <button
                           type="button"
@@ -2205,6 +2241,7 @@ export default function ConversationPanel({
                     )}
                   </div>
                   );
+                  return messageEl;
                 })}
 
                 {/* Suggested Next Steps — always inline */}

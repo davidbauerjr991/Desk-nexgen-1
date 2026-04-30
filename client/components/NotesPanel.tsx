@@ -1,19 +1,27 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Eye, FileDown, GripVertical, Search, Ticket, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, FileDown, FilePlus2, GripVertical, Search, Sparkles, Ticket, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import CustomerInfoPanel, { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
-import OverviewDashboard from "@/components/OverviewDashboard";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
+import { getCustomerRecord } from "@/lib/customer-database";
+import { staticAssignments } from "@/lib/static-assignments";
 import { cn } from "@/lib/utils";
 import { addNoteForCustomer, getNotesForCustomer, type CustomerNote } from "@/lib/notes-database";
 
 const PRIMARY_TABS = ["Overview", "Details"] as const;
-const SWITCHABLE_TABS = ["Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History"] as const;
-const DEFAULT_SWITCHABLE_TAB = "Tickets";
+const SWITCHABLE_TABS = ["Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History", "Notes"] as const;
+const DEFAULT_SWITCHABLE_TAB = "Accounts";
+
+const COPILOT_REASONING_STEPS = [
+  "Reviewing case history and prior customer interactions...",
+  "Analysing account details and transaction patterns...",
+  "Cross-referencing similar resolved cases in the knowledge base...",
+  "Synthesising a recommended response...",
+] as const;
 const TICKET_PAGE_SIZE = 6;
 
 export const NOTES_PANEL_MENU_ITEMS = [...PRIMARY_TABS, ...SWITCHABLE_TABS];
@@ -731,6 +739,179 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
   );
 }
 
+function OverviewTabContent({ customerId, customerName, onCopilotSubmit }: { customerId?: string; customerName?: string; onCopilotSubmit: (query: string) => void }) {
+  const [isProfileOpen, setIsProfileOpen] = useState(true);
+  const [isCaseOpen, setIsCaseOpen] = useState(true);
+  const [copilotQuery, setCopilotQuery] = useState("");
+
+  const handleCopilotSubmit = () => {
+    if (!copilotQuery.trim()) return;
+    onCopilotSubmit(copilotQuery);
+    setCopilotQuery("");
+  };
+
+  const rec = customerId ? getCustomerRecord(customerId) : null;
+  const sa = customerId
+    ? staticAssignments.find((s) => s.customerRecordId === customerId)
+    : null;
+  const actions = sa?.aiOverview?.actions ?? [];
+  const profile = rec?.profile;
+  const initials = (customerName ?? rec?.name ?? "")
+    .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="space-y-3 p-4">
+
+          {/* Customer Profile */}
+          {rec && profile && (
+            <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsProfileOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isProfileOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Identity */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-[#111827] leading-tight">{customerName ?? rec.name}</p>
+                          <p className="text-[11px] text-[#667085] leading-snug">
+                            {profile.department} · {profile.tenureYears} yr{profile.tenureYears !== 1 ? "s" : ""} tenure
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{profile.totalAUM}</p>
+                      </div>
+                    </div>
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                        <p className="mb-1 text-[10px] text-[#667085]">Fraud Risk Score</p>
+                        <p className={cn("text-[15px] font-bold leading-none mb-1.5",
+                          profile.fraudRiskScore >= 70 ? "text-[#E32926]" :
+                          profile.fraudRiskScore >= 40 ? "text-[#A37A00]" : "text-[#208337]")}>
+                          {profile.fraudRiskScore} <span className="text-[11px] font-normal text-[#98A2B3]">/ 100</span>
+                        </p>
+                        <div className="h-1.5 rounded-full bg-[#E4E7EC] overflow-hidden">
+                          <div
+                            className={cn("h-full rounded-full",
+                              profile.fraudRiskScore >= 70 ? "bg-[#E32926]" :
+                              profile.fraudRiskScore >= 40 ? "bg-[#A37A00]" : "bg-[#208337]")}
+                            style={{ width: `${profile.fraudRiskScore}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-[#F9FAFB] border border-[#E4E7EC] p-2.5">
+                        <p className="mb-1 text-[10px] text-[#667085]">Prior Disputes</p>
+                        <p className="text-[15px] font-bold leading-none text-[#111827]">
+                          {profile.priorDisputeCount === 0 ? "None" : profile.priorDisputeCount}
+                        </p>
+                        <p className={cn("mt-1 text-[10px]", profile.cardBlocked ? "text-[#E32926] font-medium" : "text-[#667085]")}>
+                          Card: {profile.cardBlocked ? "BLOCKED" : "NOT blocked"}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Tags */}
+                    {profile.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {profile.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium border",
+                              tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border-[#BFDBFE]" :
+                              tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border-[#24943E]" :
+                              "bg-[#EBF4FD] text-[#166CCA] border-[#BFDBFE]",
+                            )}
+                          >
+                            {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Case Overview */}
+          {actions.length > 0 && (
+            <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setIsCaseOpen((v) => !v)}
+                className="flex w-full items-center justify-between px-4 py-3 text-left"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Case Overview</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isCaseOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isCaseOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <ul className="px-4 pb-4 space-y-2">
+                    {actions.map((action, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                        <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#1260B0]" />
+                        {action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Fallback when no customer loaded */}
+          {!rec && (
+            <div className="flex min-h-[200px] items-center justify-center text-xs text-[#9CA3AF]">
+              No customer data to display
+            </div>
+          )}
+
+        </div>
+      </ScrollArea>
+
+      {/* Ask Copilot — pinned to bottom */}
+      <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
+        <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+          <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
+          <input
+            type="text"
+            value={copilotQuery}
+            onChange={(e) => setCopilotQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleCopilotSubmit(); }}
+            placeholder="Ask Copilot about this Case"
+            className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+          />
+          <button
+            type="button"
+            onClick={handleCopilotSubmit}
+            className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface NotesPanelProps {
   initialTab?: string;
   initialTicketId?: string;
@@ -769,6 +950,46 @@ export default function NotesPanel({
   const [moreMenuPosition, setMoreMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const moreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Copilot tab state
+  const [isCopilotTabOpen, setIsCopilotTabOpen] = useState(false);
+  const [copilotSubmittedQuery, setCopilotSubmittedQuery] = useState("");
+  const [copilotPhase, setCopilotPhase] = useState<"idle" | "reasoning" | "done">("idle");
+  const [copilotReasoningVisible, setCopilotReasoningVisible] = useState(0);
+  const [copilotResponse, setCopilotResponse] = useState("");
+  const [copilotFollowUp, setCopilotFollowUp] = useState("");
+  const copilotTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const handleCopilotSubmit = (query: string) => {
+    if (!query.trim()) return;
+    // Clear any previous timers
+    copilotTimersRef.current.forEach(clearTimeout);
+    copilotTimersRef.current = [];
+    setCopilotSubmittedQuery(query);
+    setCopilotPhase("reasoning");
+    setCopilotReasoningVisible(0);
+    setIsCopilotTabOpen(true);
+    setActiveTab("Copilot");
+    // Build a contextual response from the customer record and static assignment
+    const rec = customerId ? getCustomerRecord(customerId) : null;
+    const sa = customerId ? staticAssignments.find((s) => s.customerRecordId === customerId) : null;
+    const customerCtx = sa?.customerContext ?? rec?.name ?? "this customer";
+    const response = `Based on the case details for ${rec?.name ?? "this customer"}, here is what I found:\n\n${customerCtx}\n\nRegarding your question — "${query}" — I recommend reviewing the case overview actions and confirming the next steps with the customer directly. If additional account changes are needed, they can be applied from the Details tab.`;
+    setCopilotResponse(response);
+    // Animate reasoning steps, then reveal response
+    COPILOT_REASONING_STEPS.forEach((_, i) => {
+      const t = setTimeout(() => setCopilotReasoningVisible(i + 1), 800 + i * 900);
+      copilotTimersRef.current.push(t);
+    });
+    const doneTimer = setTimeout(
+      () => setCopilotPhase("done"),
+      800 + COPILOT_REASONING_STEPS.length * 900 + 400,
+    );
+    copilotTimersRef.current.push(doneTimer);
+  };
+
+  // Cleanup copilot timers on unmount
+  useEffect(() => () => { copilotTimersRef.current.forEach(clearTimeout); }, []);
 
   useEffect(() => {
     if (requestedTicket) {
@@ -845,8 +1066,12 @@ export default function NotesPanel({
     setIsComposerOpen(false);
   };
 
-  const visibleTabs = [...PRIMARY_TABS, activeSwitchableTab];
-  const moreTabs = SWITCHABLE_TABS.filter((tab) => tab !== activeSwitchableTab);
+  const visibleTabs: string[] = isCopilotTabOpen
+    ? [...PRIMARY_TABS, "Copilot"]
+    : [...PRIMARY_TABS, activeSwitchableTab];
+  const moreTabs: string[] = isCopilotTabOpen
+    ? [...SWITCHABLE_TABS]
+    : SWITCHABLE_TABS.filter((tab) => tab !== activeSwitchableTab);
   const activeTicket = openTickets.find((ticket) => ticket.id === activeTab) ?? null;
 
   const handleOpenTicket = (ticket: CustomerTicket) => {
@@ -883,13 +1108,39 @@ export default function NotesPanel({
                     setShowMoreTabs(false);
                   }}
                   className={cn(
-                    "relative whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
+                    "relative flex items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-xs font-medium transition-colors",
                     activeTab === tab
                       ? "text-[#166CCA] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:rounded-t after:bg-[#166CCA]"
                       : "text-[#6B7280] hover:text-[#333]",
                   )}
                 >
+                  {tab === "Copilot" && <Sparkles className="h-3 w-3 flex-shrink-0" />}
                   {tab}
+                  {tab === "Copilot" && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCopilotTabOpen(false);
+                        setCopilotPhase("idle");
+                        setActiveTab("Overview");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setIsCopilotTabOpen(false);
+                          setCopilotPhase("idle");
+                          setActiveTab("Overview");
+                        }
+                      }}
+                      className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#CBD5E1] text-[#F8FAFC] transition-colors hover:bg-[#94A3B8]"
+                      aria-label="Close Copilot tab"
+                    >
+                      <X className="h-3 w-3" />
+                    </span>
+                  )}
                 </button>
               ))}
               <div>
@@ -988,6 +1239,14 @@ export default function NotesPanel({
                 <button
                   type="button"
                   className="text-[#6B7280] transition-colors hover:text-[#333]"
+                  aria-label="Add note"
+                  onClick={() => setIsComposerOpen(true)}
+                >
+                  <FilePlus2 className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  className="text-[#6B7280] transition-colors hover:text-[#333]"
                   aria-label="Export notes"
                 >
                   <FileDown className="h-4 w-4" />
@@ -1040,11 +1299,87 @@ export default function NotesPanel({
       )}
 
       {activeTab === "Overview" && (
-        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <ScrollArea className="h-full min-h-0 w-full">
-              {customerId ? <OverviewDashboard customerId={customerId} customerName={customerName} /> : null}
-            </ScrollArea>
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          <OverviewTabContent customerId={customerId} customerName={customerName} onCopilotSubmit={handleCopilotSubmit} />
+        </div>
+      )}
+
+      {activeTab === "Copilot" && (
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-4 p-4">
+              {/* Query bubble */}
+              <div className="flex justify-end">
+                <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-[#166CCA] px-3 py-2 text-[12px] text-white leading-relaxed">
+                  {copilotSubmittedQuery}
+                </div>
+              </div>
+
+              {/* Reasoning steps */}
+              <div className="space-y-2">
+                {COPILOT_REASONING_STEPS.slice(0, copilotReasoningVisible).map((step, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <div className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-[#BFDBFE] bg-[#EBF4FD]" />
+                    <p className="text-[11px] text-[#98A2B3] leading-snug">{step}</p>
+                  </div>
+                ))}
+                {copilotPhase === "reasoning" && copilotReasoningVisible < COPILOT_REASONING_STEPS.length && (
+                  <div className="flex items-center gap-1.5 pl-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                )}
+              </div>
+
+              {/* Response */}
+              {copilotPhase === "done" && (
+                <div className="rounded-xl border border-[#E4E7EC] bg-white p-4 space-y-2">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#166CCA]" />
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Copilot</p>
+                  </div>
+                  {copilotResponse.split("\n\n").map((para, i) => (
+                    <p key={i} className="text-[12px] text-[#344054] leading-relaxed">{para}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* Follow-up input */}
+          <div className="shrink-0 border-t border-[#E4E7EC] px-4 py-3">
+            <div className="flex items-center gap-2 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2">
+              <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#166CCA]" />
+              <input
+                type="text"
+                value={copilotFollowUp}
+                onChange={(e) => setCopilotFollowUp(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && copilotFollowUp.trim()) {
+                    handleCopilotSubmit(copilotFollowUp);
+                    setCopilotFollowUp("");
+                  }
+                }}
+                placeholder="Ask a follow-up question..."
+                className="min-w-0 flex-1 bg-transparent text-[12px] text-[#344054] placeholder:text-[#98A2B3] outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (copilotFollowUp.trim()) {
+                    handleCopilotSubmit(copilotFollowUp);
+                    setCopilotFollowUp("");
+                  }
+                }}
+                className="shrink-0 text-[#166CCA] hover:text-[#1260B0] transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"/>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1081,7 +1416,7 @@ export default function NotesPanel({
 
       {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Accounts" && activeTab !== "Tickets" && activeTab !== "Interactions" && !activeTicket && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Accounts" && activeTab !== "Tickets" && activeTab !== "Interactions" && activeTab !== "Copilot" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>

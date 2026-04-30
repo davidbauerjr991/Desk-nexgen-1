@@ -1914,6 +1914,7 @@ function TakeoverButton({
       : { customerName, label: botType, timelineLabel: "", status: "open" as const, draft: "", messages: [] };
     const time = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
     const firstName = customerName.split(" ")[0];
+    const baseId = Date.now();
     return {
       ...seed,
       messages: [
@@ -1921,13 +1922,23 @@ function TakeoverButton({
         ...seed.messages.map((msg) =>
           msg.role === "agent" && !msg.author ? { ...msg, author: botType } : msg
         ),
-        // Handoff notice authored by the bot
+        // Customer-facing transfer notice authored by the bot
         {
-          id: Date.now(),
+          id: baseId,
           role: "agent" as const,
           author: botType,
           content: `${firstName}, I'm transferring you now to ${CURRENT_AGENT_NAME}, a human specialist who will take it from here.`,
           time,
+        },
+        // Internal-only handoff card — visible to the agent, not the customer
+        {
+          id: baseId + 1,
+          role: "agent" as const,
+          author: botType,
+          content: `I have transferred the assignment. You are now live with customer ${customerName}.`,
+          time,
+          isInternal: true,
+          isHandoffCard: true,
         },
       ],
     };
