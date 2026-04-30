@@ -13,7 +13,83 @@ export type CustomerOverviewTimelineItem = {
   sortOrder: number;
 };
 
-export type CustomerHistoryDot = "purple" | "orange" | "gray" | "red" | "green";
+export type CustomerHistoryDot = "purple" | "orange" | "gray" | "red" | "green" | "blue";
+
+export type CustomerHistoryItemType =
+  | "search"       // Google / web search
+  | "web"          // Website page visit
+  | "chat"         // Bot or live-agent chat
+  | "purchase"     // Order placed
+  | "shipping"     // Shipping / delivery event
+  | "registration" // Product or account registration
+  | "ticket"       // Auto-generated system ticket
+  | "email"        // System or agent email
+  | "system"       // Internal system event
+  | "handoff";     // Human-agent handoff
+
+// ── Interaction types ────────────────────────────────────────────────────────
+
+export type CustomerHistoryChatMessage = {
+  sender: "customer" | "bot" | "agent";
+  name?: string;
+  text: string;
+  time?: string;
+};
+
+export type CustomerHistoryInteraction =
+  | {
+      kind: "chat";
+      botName?: string;
+      agentName?: string;
+      messages: CustomerHistoryChatMessage[];
+    }
+  | {
+      kind: "search";
+      query: string;
+      results: { title: string; url: string; snippet: string; clicked?: boolean }[];
+    }
+  | {
+      kind: "web";
+      url: string;
+      title: string;
+      description?: string;
+      sectionsViewed?: string[];
+    }
+  | {
+      kind: "purchase";
+      orderId: string;
+      items: { name: string; qty: number; price: string }[];
+      total: string;
+      paymentMethod?: string;
+      shippingAddress?: string;
+    }
+  | {
+      kind: "shipping";
+      carrier: string;
+      trackingNumber: string;
+      events: { status: string; location: string; time: string; isDelivered?: boolean }[];
+    }
+  | {
+      kind: "ticket";
+      ticketId: string;
+      subject: string;
+      notes: { author: string; isInternal?: boolean; text: string; time: string }[];
+    }
+  | {
+      kind: "email";
+      from: string;
+      to: string;
+      subject: string;
+      sentAt: string;
+      body: string;
+      opened?: boolean;
+    }
+  | {
+      kind: "registration";
+      fields: { label: string; value: string }[];
+    };
+
+// ── History item ─────────────────────────────────────────────────────────────
 
 export type CustomerHistoryItem = {
   id: string;
@@ -21,6 +97,16 @@ export type CustomerHistoryItem = {
   timestamp: string;
   detail: string;
   dot: CustomerHistoryDot;
+  /** Categorises the event for icon rendering and filtering. */
+  type?: CustomerHistoryItemType;
+  /** Optional structured metadata shown in the detail panel (e.g. order numbers, URLs). */
+  meta?: { label: string; value: string }[];
+  /** Short customer quote shown as an interstitial message bubble beneath the event row. */
+  customerMessage?: string;
+  /** Phase label shown as a section separator above this item when it is the first in its group. */
+  phase?: string;
+  /** Full interaction content rendered when the agent clicks "View [interaction]". Stored here to keep Layout.tsx lean. */
+  interaction?: CustomerHistoryInteraction;
 };
 
 type SeedConversationChannel = Exclude<CustomerChannel, "voice">;
@@ -3390,6 +3476,23 @@ export const customerDatabase: CustomerSeedRecord[] = [
             time: "9:51 AM",
             sentiment: "critical",
           },
+          {
+            id: 7,
+            role: "agent",
+            author: "Jacob",
+            content: "Hang on Sofia, I'm transferring you to Jeff Comstock who will take care of you.",
+            time: "9:52 AM",
+            isHandoffMessage: true,
+          },
+          {
+            id: 8,
+            role: "agent",
+            author: "Jacob",
+            content: "Transferring to a fraud specialist now. Context: 11-year customer, first fraud dispute — two unauthorized charges ($1,847 + $312) from an out-of-state electronics retailer within 12 minutes of each other. Rent payment due tomorrow. Actions needed: authorize dispute, apply provisional credit, block current card, issue replacement.",
+            time: "9:52 AM",
+            isInternal: true,
+            isHandoffCard: true,
+          },
         ],
       },
       sms: {
@@ -3516,33 +3619,431 @@ export const customerDatabase: CustomerSeedRecord[] = [
       },
     ],
     customerHistory: [
+      // ── Phase 1: Research ─────────────────────────────────────────────────
       {
         id: "jordan-h1",
-        title: "CloudMesh Pro v3 router registered",
-        timestamp: "Feb 2024 · Account opened",
-        detail: "Jordan activated a Fiber 500 plan and registered a CloudMesh Pro v3 router.",
-        dot: "green",
+        type: "search",
+        phase: "Research",
+        title: "Searched for home-office fiber routers",
+        timestamp: "Feb 2024",
+        detail: "Jordan searched Google for the best routers for a home-office fiber setup and followed a WirelessReview.com link comparing gigabit-ready options.",
+        dot: "gray",
+        meta: [
+          { label: "Query", value: "best routers for home office fiber internet 2023" },
+          { label: "Result clicked", value: "WirelessReview.com — Top 10 Routers for Gigabit Fiber" },
+          { label: "Time on page", value: "~3 min" },
+        ],
+        interaction: {
+          kind: "search",
+          query: "best routers for home office fiber internet 2023",
+          results: [
+            { title: "WirelessReview.com — Top 10 Routers for Gigabit Fiber", url: "wirelessreview.com/top-10-routers-gigabit-fiber", snippet: "Comparing the best routers for fiber internet speeds — our top pick for Gigabit+ plans is the CloudMesh Pro v3, praised for port forwarding flexibility and throughput stability.", clicked: true },
+            { title: "Tom's Hardware — Best Wi-Fi Routers for Home Offices 2023", url: "tomshardware.com/best-picks/best-home-office-routers", snippet: "From budget to premium, these are the routers worth buying for home offices and remote workers needing low latency and VPN support." },
+            { title: "Reddit r/HomeNetworking — Fiber router recommendations", url: "reddit.com/r/HomeNetworking/fiber-router-rec", snippet: "\"I switched to Fiber 500 and needed something that could handle my NAS and VPN ports — ended up with the CloudMesh Pro v3 after months of research.\"" },
+            { title: "PCMag — Best Routers for Gigabit Internet 2023", url: "pcmag.com/picks/best-gigabit-routers", snippet: "Whether you're on a Fiber 500 or Fiber 1Gig plan, these routers deliver the speed, range, and advanced features you need." },
+          ],
+        },
       },
       {
         id: "jordan-h2",
-        title: "Firmware auto-update failed",
-        timestamp: "Jan 2026",
-        detail: "Router firmware stuck on 4.0.8 after a failed automatic update to 4.1.2.",
-        dot: "orange",
+        type: "search",
+        title: "Searched CloudMesh Pro v3 reviews",
+        timestamp: "Feb 2024",
+        detail: "Jordan searched specifically for CloudMesh Pro v3 reviews focusing on port forwarding — a key requirement for his home-office VPN and NAS setup.",
+        dot: "gray",
+        meta: [
+          { label: "Query", value: "CloudMesh Pro v3 review port forwarding" },
+          { label: "Result clicked", value: "cloudmesh.com — Pro v3 product page (specifications)" },
+          { label: "Section viewed", value: "Port forwarding & advanced networking" },
+        ],
+        interaction: {
+          kind: "search",
+          query: "CloudMesh Pro v3 review port forwarding",
+          results: [
+            { title: "cloudmesh.com — Pro v3 Product Page (Specifications)", url: "cloudmesh.com/products/pro-v3/specs", snippet: "The CloudMesh Pro v3 supports up to 32 custom port forwarding rules, all firmware-managed via the admin panel. Includes QoS, VPN passthrough, and VLAN segmentation.", clicked: true },
+            { title: "TechRadar — CloudMesh Pro v3 Review", url: "techradar.com/reviews/cloudmesh-pro-v3", snippet: "An excellent router for power users needing granular networking controls. Port forwarding works flawlessly with up to 32 active rules under firmware 4.0+." },
+            { title: "r/HomeNetworking — CloudMesh Pro v3 port forwarding issues?", url: "reddit.com/r/HomeNetworking/cloudmesh-pf-issues", snippet: "\"Works perfectly for me on firmware 4.0+ with NAS and Plex ports — just make sure you back up your config before any firmware update.\"" },
+            { title: "SmallNetBuilder — CloudMesh Pro v3 In-Depth", url: "smallnetbuilder.com/cloudmesh-pro-v3-review", snippet: "Advanced networking features are well above average for this price point. The firmware UI is clean and rule management is intuitive." },
+          ],
+        },
       },
       {
         id: "jordan-h3",
-        title: "Connection drop — resolved after reboot",
-        timestamp: "Mar 2026",
-        detail: "Jordan reported intermittent drops; resolved by agent-guided reboot.",
+        type: "web",
+        title: "Compared CloudMesh Pro v3 vs competitors",
+        timestamp: "Feb 2024",
+        detail: "Jordan visited Reddit r/HomeNetworking and compared CloudMesh Pro v3 against Netgear Orbi before returning to the CloudMesh product page to review pricing.",
         dot: "gray",
+        meta: [
+          { label: "Query", value: "CloudMesh Pro v3 vs Netgear Orbi home office" },
+          { label: "Community", value: "Reddit r/HomeNetworking (7 min, 3 thread links)" },
+          { label: "Follow-up", value: "Returned to cloudmesh.com — pricing & compatibility" },
+        ],
+        interaction: {
+          kind: "web",
+          url: "reddit.com/r/HomeNetworking/cloudmesh-vs-orbi-home-office",
+          title: "CloudMesh Pro v3 vs Netgear Orbi — home office setup?",
+          description: "Jordan spent ~7 minutes reading a community thread comparing CloudMesh Pro v3 against Netgear Orbi for home offices requiring NAS and VPN port forwarding.",
+          sectionsViewed: [
+            "Top comment — CloudMesh port forwarding vs Orbi comparison (3 min)",
+            "Reply thread — firmware stability on Orbi vs CloudMesh (2 min)",
+            "cloudmesh.com — Pricing & compatibility page (follow-up, 2 min)",
+          ],
+        },
       },
+
+      // ── Phase 2: Pre-Purchase Chat ────────────────────────────────────────
       {
         id: "jordan-h4",
-        title: "Case escalated — port forwarding backup query",
-        timestamp: "Today · 9:44 AM",
-        detail: "AI paused mid-reset; human agent assigned to confirm firmware backup behavior before factory reset proceeds.",
+        type: "chat",
+        phase: "Pre-Purchase",
+        title: "Pre-purchase bot chat — port forwarding query",
+        timestamp: "Feb 2024",
+        detail: "Jordan started a chat on CloudMesh.com asking whether the Pro v3 supports custom port forwarding for a home office. Bot confirmed up to 32 custom rules, firmware-managed. Jordan also asked about warranty (2-yr limited) and self-setup feasibility.",
+        dot: "blue",
+        customerMessage: "Does the Pro v3 support custom port forwarding rules for a home office setup?",
+        meta: [
+          { label: "Channel", value: "CloudMesh.com website chat" },
+          { label: "Bot", value: "CloudMesh Sales Assistant" },
+          { label: "Topics covered", value: "Port forwarding limits, warranty, self-install, Fiber 500 compatibility" },
+          { label: "Outcome", value: "Confirmed Pro v3 recommended for Fiber 500 tier" },
+        ],
+        interaction: {
+          kind: "chat",
+          botName: "CloudMesh Sales Assistant",
+          messages: [
+            { sender: "bot", name: "CloudMesh Sales Assistant", text: "Hi there! I'm the CloudMesh Sales Assistant. How can I help you today?", time: "10:14 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "Does the Pro v3 support custom port forwarding rules for a home office setup?", time: "10:14 AM" },
+            { sender: "bot", name: "CloudMesh Sales Assistant", text: "Great question! Yes — the CloudMesh Pro v3 supports up to 32 custom port forwarding rules, all firmware-managed through the admin panel. You can configure rules for specific devices, ports, and protocols.", time: "10:15 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "Perfect. And what's the warranty on it?", time: "10:15 AM" },
+            { sender: "bot", name: "CloudMesh Sales Assistant", text: "The Pro v3 comes with a 2-year limited warranty covering hardware defects. Extended coverage is also available through CloudMesh Care+.", time: "10:16 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "Can I set it up myself or do I need a technician?", time: "10:17 AM" },
+            { sender: "bot", name: "CloudMesh Sales Assistant", text: "The Pro v3 is designed for self-installation! The CloudMesh mobile app walks you through every step — most customers are up and running in under 20 minutes. If you run into any issues, our support team is available 24/7.", time: "10:17 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "I'm on a Fiber 500 plan — is it compatible?", time: "10:18 AM" },
+            { sender: "bot", name: "CloudMesh Sales Assistant", text: "Absolutely — the Pro v3 is optimized for Fiber 500 and above, with throughput up to 2.5 Gbps on the WAN port. It's our recommended device for that tier.", time: "10:18 AM" },
+          ],
+        },
+      },
+
+      // ── Phase 3: Purchase & Shipping ──────────────────────────────────────
+      {
+        id: "jordan-h5",
+        type: "purchase",
+        phase: "Purchase & Shipping",
+        title: "CloudMesh Pro v3 purchased",
+        timestamp: "Feb 2024",
+        detail: "Jordan placed an order for the CloudMesh Pro v3 at $189.00, paid by Visa ending 4422. Order confirmation sent to jordan.davis@email.com.",
+        dot: "green",
+        meta: [
+          { label: "Order #", value: "CM-40291" },
+          { label: "Amount", value: "$189.00" },
+          { label: "Payment", value: "Visa ****4422" },
+          { label: "Status", value: "Confirmed" },
+        ],
+        interaction: {
+          kind: "purchase",
+          orderId: "CM-40291",
+          items: [{ name: "CloudMesh Pro v3 Router", qty: 1, price: "$189.00" }],
+          total: "$189.00",
+          paymentMethod: "Visa ****4422",
+          shippingAddress: "Jordan Davis · 4821 Maple Creek Dr, Portland OR 97201",
+        },
+      },
+      {
+        id: "jordan-h6",
+        type: "shipping",
+        title: "Router shipped — FedEx",
+        timestamp: "Feb 2024",
+        detail: "CloudMesh Pro v3 shipped via FedEx. Jordan received a shipping confirmation and tracking number. The following day he contacted support about a tracking delay — resolved within 24 hours.",
+        dot: "gray",
+        customerMessage: "My tracking says 'in transit' but it hasn't moved in 24 hours — is it delayed?",
+        meta: [
+          { label: "Carrier", value: "FedEx" },
+          { label: "Tracking #", value: "779004821355" },
+          { label: "Estimated delivery", value: "3 business days" },
+          { label: "Delay query", value: "Bot confirmed no weather alerts; advised 24hr patience" },
+        ],
+        interaction: {
+          kind: "shipping",
+          carrier: "FedEx",
+          trackingNumber: "779004821355",
+          events: [
+            { status: "Delivered", location: "Portland, OR — Front Door", time: "Feb 19, 2024 · 2:18 PM", isDelivered: true },
+            { status: "Out for Delivery", location: "Portland, OR", time: "Feb 19, 2024 · 7:45 AM" },
+            { status: "In Transit", location: "Portland, OR Hub", time: "Feb 18, 2024 · 11:30 PM" },
+            { status: "In Transit — No movement (24 hr)", location: "Salt Lake City, UT Hub", time: "Feb 17, 2024 · 3:02 AM" },
+            { status: "Departed FedEx Facility", location: "Memphis, TN", time: "Feb 15, 2024 · 9:45 PM" },
+            { status: "Label Created", location: "CloudMesh Fulfillment — Austin, TX", time: "Feb 14, 2024 · 2:30 PM" },
+          ],
+        },
+      },
+      {
+        id: "jordan-h7",
+        type: "shipping",
+        title: "Package delivered",
+        timestamp: "Feb 2024",
+        detail: "FedEx confirmed delivery — signed for at Jordan's front door. No damage reported.",
+        dot: "green",
+        meta: [
+          { label: "Status", value: "Delivered — signature confirmed" },
+          { label: "Condition", value: "No damage reported" },
+        ],
+        interaction: {
+          kind: "shipping",
+          carrier: "FedEx",
+          trackingNumber: "779004821355",
+          events: [
+            { status: "Delivered — Signature: J. Davis", location: "Portland, OR — Front Door", time: "Feb 19, 2024 · 2:18 PM", isDelivered: true },
+            { status: "Out for Delivery", location: "Portland, OR", time: "Feb 19, 2024 · 7:45 AM" },
+            { status: "In Transit", location: "Portland, OR Hub", time: "Feb 18, 2024 · 11:30 PM" },
+            { status: "Departed FedEx Facility", location: "Memphis, TN", time: "Feb 15, 2024 · 9:45 PM" },
+          ],
+        },
+      },
+
+      // ── Phase 4: Setup & Registration ─────────────────────────────────────
+      {
+        id: "jordan-h8",
+        type: "registration",
+        phase: "Setup & Registration",
+        title: "Router registered — Fiber 500 provisioned",
+        timestamp: "Feb 2024",
+        detail: "Jordan registered the CloudMesh Pro v3 via the mobile app and linked it to his account. Fiber 500 provisioned — connection confirmed stable at 487 Mbps down / 493 Mbps up.",
+        dot: "green",
+        meta: [
+          { label: "Serial #", value: "CMV3-8829-4401" },
+          { label: "Plan", value: "Fiber 500" },
+          { label: "Speed confirmed", value: "487 Mbps ↓ / 493 Mbps ↑" },
+          { label: "Setup method", value: "Self-install via CloudMesh mobile app" },
+        ],
+        interaction: {
+          kind: "registration",
+          fields: [
+            { label: "Product", value: "CloudMesh Pro v3" },
+            { label: "Serial Number", value: "CMV3-8829-4401" },
+            { label: "Account", value: "jordan.davis@email.com" },
+            { label: "Service Plan", value: "Fiber 500" },
+            { label: "Registration Date", value: "Feb 22, 2024" },
+            { label: "Registered via", value: "CloudMesh Mobile App (iOS)" },
+            { label: "Speed Test Result", value: "487 Mbps ↓ / 493 Mbps ↑ — PASSED" },
+            { label: "Firmware at Setup", value: "4.0.6 (updated to 4.0.8 on Mar 3, 2024)" },
+            { label: "Setup Status", value: "Complete" },
+          ],
+        },
+      },
+      {
+        id: "jordan-h9",
+        type: "chat",
+        title: "Post-setup chat — config backup question",
+        timestamp: "Feb 2024",
+        detail: "After configuring 6 custom port forwarding rules for his NAS and work VPN, Jordan asked the support bot how to back up his configuration. Bot walked him through Settings → Advanced → Backup Config.",
+        dot: "blue",
+        customerMessage: "I've set up 6 custom port forwarding rules for my NAS and work VPN — how do I back these up?",
+        meta: [
+          { label: "Channel", value: "CloudMesh.com support chat" },
+          { label: "Topic", value: "Config backup for 6 custom port forwarding rules" },
+          { label: "Resolution", value: "Agent demonstrated admin panel backup path" },
+          { label: "Outcome", value: "Customer confirmed setup successful" },
+        ],
+        interaction: {
+          kind: "chat",
+          botName: "CloudMesh Support Bot",
+          messages: [
+            { sender: "bot", name: "CloudMesh Support Bot", text: "Welcome back, Jordan! How can I help you with your CloudMesh Pro v3 today?", time: "3:02 PM" },
+            { sender: "customer", name: "Jordan Davis", text: "I've set up 6 custom port forwarding rules for my NAS and work VPN — how do I back these up?", time: "3:02 PM" },
+            { sender: "bot", name: "CloudMesh Support Bot", text: "Great question! You can back up your entire router configuration — including all port forwarding rules — from the admin panel. Here's how:\n1. Open your browser and go to 192.168.1.1\n2. Log in with your admin credentials\n3. Navigate to Settings → Advanced → Backup Config\n4. Click 'Download Backup' to save a .json config file to your computer.", time: "3:03 PM" },
+            { sender: "customer", name: "Jordan Davis", text: "Does this include all 6 of my port forwarding rules?", time: "3:04 PM" },
+            { sender: "bot", name: "CloudMesh Support Bot", text: "Yes — the backup file includes all custom port forwarding rules, VLAN settings, QoS configurations, and Wi-Fi settings. You can restore from this file at any time.", time: "3:04 PM" },
+            { sender: "customer", name: "Jordan Davis", text: "Perfect, downloaded it. Thanks!", time: "3:05 PM" },
+            { sender: "bot", name: "CloudMesh Support Bot", text: "You're all set! Keep that file somewhere safe — it'll be very handy if you ever need to restore after a firmware reset. Is there anything else I can help with?", time: "3:05 PM" },
+            { sender: "customer", name: "Jordan Davis", text: "No, that's it. Thanks.", time: "3:06 PM" },
+          ],
+        },
+      },
+
+      // ── Phase 5: Auto Diagnostic Tickets ─────────────────────────────────
+      {
+        id: "jordan-h10",
+        type: "ticket",
+        phase: "Diagnostic Tickets",
+        title: "Auto ticket — intermittent packet loss detected",
+        timestamp: "Oct 2025",
+        detail: "System detected packet loss exceeding 2% over a 4-hour window on Jordan's CloudMesh Pro v3. Auto-ticket created and auto-closed after signal stabilized — no action taken.",
+        dot: "orange",
+        meta: [
+          { label: "Ticket #", value: "CT-7741" },
+          { label: "Trigger", value: "Packet loss >2% over 4hr window" },
+          { label: "Device", value: "CloudMesh Pro v3 — Serial CMV3-8829-4401" },
+          { label: "Status", value: "Auto-closed — signal self-stabilized" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CT-7741",
+          subject: "Intermittent packet loss detected — CloudMesh Pro v3",
+          notes: [
+            { author: "System (Auto)", time: "Oct 14, 2025 · 2:18 AM", isInternal: true, text: "Auto-generated ticket: Packet loss exceeded 2% threshold over a 4-hour monitoring window. Device: CloudMesh Pro v3 — Serial CMV3-8829-4401. Running firmware 4.0.8. No customer action required at this time." },
+            { author: "System (Auto)", time: "Oct 14, 2025 · 6:44 AM", isInternal: true, text: "Signal stabilized. Packet loss returned to <0.1% sustained over 2-hour window. No root cause confirmed — possible ISP-side fluctuation. Ticket auto-closed. No customer notification sent." },
+          ],
+        },
+      },
+      {
+        id: "jordan-h11",
+        type: "email",
+        title: "Firmware update notification — v4.1.2 available",
+        timestamp: "Jan 2026",
+        detail: "System detected Jordan's router running firmware 4.0.8 with stable release 4.1.2 available. Auto-notification sent to jordan.davis@email.com. Email was opened but the update link was not clicked.",
+        dot: "orange",
+        meta: [
+          { label: "Ticket #", value: "CT-8103" },
+          { label: "Current firmware", value: "4.0.8" },
+          { label: "Available firmware", value: "4.1.2 (stable)" },
+          { label: "Email status", value: "Opened — update link not clicked" },
+          { label: "Status", value: "Open — pending customer action" },
+        ],
+        interaction: {
+          kind: "email",
+          from: "noreply@cloudmesh.com",
+          to: "jordan.davis@email.com",
+          subject: "Firmware Update Available: CloudMesh Pro v3 — v4.1.2",
+          sentAt: "Jan 8, 2026 · 9:00 AM",
+          opened: true,
+          body: "Hi Jordan,\n\nA new stable firmware update (v4.1.2) is available for your CloudMesh Pro v3 (Serial: CMV3-8829-4401).\n\nCurrent version: 4.0.8\nNew version: 4.1.2 (Stable Release)\n\nWhat's new in 4.1.2:\n• Improved Wi-Fi stability under high concurrent connection loads\n• Fixed packet loss regression on Fiber 500+ plans with 4+ port forwarding rules\n• Security patches for CVE-2025-8841 and CVE-2025-9012\n• Improved config backup compatibility across firmware versions\n\nWe recommend updating at your earliest convenience. The update takes approximately 3 minutes and will briefly restart your router. Your settings and port forwarding rules will not be affected by this update.\n\n[ Update Now → ]\n\nQuestions? Visit support.cloudmesh.com or contact us 24/7 at 1-800-CLOUDMESH.\n\n— The CloudMesh Team",
+        },
+      },
+      {
+        id: "jordan-h12",
+        type: "ticket",
+        title: "Auto ticket — repeated restart cycles detected",
+        timestamp: "Feb 2026",
+        detail: "System detected 3 router reboots within a 6-hour window. Auto-ticket created as a potential indicator of hardware instability or firmware conflict. Auto-closed with no escalation requested.",
+        dot: "orange",
+        meta: [
+          { label: "Ticket #", value: "CT-8819" },
+          { label: "Trigger", value: "3 reboots in 6-hour window" },
+          { label: "Flag", value: "Possible hardware instability or firmware issue" },
+          { label: "Status", value: "Auto-closed — no escalation" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CT-8819",
+          subject: "Repeated restart cycles detected — possible firmware instability",
+          notes: [
+            { author: "System (Auto)", time: "Feb 3, 2026 · 11:45 PM", isInternal: true, text: "Auto-generated ticket: 3 router reboots detected within a 6-hour window. Device: CloudMesh Pro v3 — Serial CMV3-8829-4401. Current firmware: 4.0.8. Flag raised: Possible hardware instability or firmware conflict. No customer notification sent." },
+            { author: "System (Auto)", time: "Feb 4, 2026 · 6:01 AM", isInternal: true, text: "No further reboots detected in 6-hour follow-up monitoring window. Pattern not sustained. Ticket auto-closed with no escalation. Note: firmware update CT-8103 still open and pending customer action. Correlated risk: elevated if disconnections recur." },
+          ],
+        },
+      },
+      {
+        id: "jordan-h13",
+        type: "ticket",
+        title: "Auto ticket — 14 disconnections in 48 hrs (escalated)",
+        timestamp: "Apr 2026",
+        detail: "System detected 14 disconnection events in a 48-hour window. Correlated with firmware 4.0.8 known instability flag. Auto-escalated to 'Needs Review'. System email sent to Jordan — link not clicked.",
         dot: "red",
+        meta: [
+          { label: "Ticket #", value: "CT-9204" },
+          { label: "Trigger", value: "14 disconnections in 48hrs" },
+          { label: "Correlated flag", value: "Firmware 4.0.8 — known instability" },
+          { label: "Email", value: "Sent to jordan.davis@email.com — link not clicked" },
+          { label: "Status", value: "Open — Needs Review" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CT-9204",
+          subject: "14 disconnections in 48 hrs — escalated to Needs Review",
+          notes: [
+            { author: "System (Auto)", time: "Apr 28, 2026 · 4:12 AM", isInternal: true, text: "Auto-generated ticket: 14 connection drop events detected over 48-hour window. Device: CloudMesh Pro v3 — Serial CMV3-8829-4401. Firmware: 4.0.8." },
+            { author: "System (Auto)", time: "Apr 28, 2026 · 4:12 AM", isInternal: true, text: "Correlation match: Firmware 4.0.8 — confirmed instability flag for Fiber 500+ plans with >4 active port forwarding rules. This device has 6 active rules. Escalation threshold exceeded." },
+            { author: "System (Auto)", time: "Apr 28, 2026 · 4:13 AM", isInternal: true, text: "Ticket escalated to status: Needs Review. System email sent to jordan.davis@email.com with link to diagnostic report. Priority: High." },
+            { author: "System (Auto)", time: "Apr 29, 2026 · 9:00 AM", isInternal: true, text: "Email opened at 9:02 AM — diagnostic report link not clicked. Customer has not initiated contact. Ticket remains Open — Needs Review. Related open ticket: CT-8103 (firmware update pending)." },
+          ],
+        },
+      },
+
+      // ── Phase 6: Current Case ─────────────────────────────────────────────
+      {
+        id: "jordan-h14",
+        type: "web",
+        phase: "Current Case",
+        title: "Visited support site — searched factory reset guide",
+        timestamp: "Today · 9:30 AM",
+        detail: "Jordan visited support.cloudmesh.com and searched 'router keeps dropping connection', then clicked the 'Factory reset CloudMesh Pro v3' help article.",
+        dot: "gray",
+        meta: [
+          { label: "Site", value: "support.cloudmesh.com" },
+          { label: "Search query", value: "router keeps dropping connection" },
+          { label: "Article clicked", value: "Factory reset CloudMesh Pro v3" },
+        ],
+        interaction: {
+          kind: "web",
+          url: "support.cloudmesh.com",
+          title: "CloudMesh Support — Factory Reset Guide",
+          description: "Jordan visited the CloudMesh support site and searched for help with his router dropping connections, then spent ~4 minutes reading the factory reset article.",
+          sectionsViewed: [
+            "Search: 'router keeps dropping connection' — 11 results returned",
+            "Article: 'Factory reset CloudMesh Pro v3' (clicked — 4 min read)",
+            "Section expanded: 'Will a factory reset delete my settings?'",
+            "Section expanded: 'Port forwarding rules after reset' (left page without completing reset)",
+          ],
+        },
+      },
+      {
+        id: "jordan-h15",
+        type: "chat",
+        title: "Live chat opened — connection drops reported",
+        timestamp: "Today · 9:33 AM",
+        detail: "Jordan initiated a chat with Aria reporting the router was dropping all connections. Aria pulled diagnostics and identified a firmware mismatch (4.0.8 vs stable 4.1.2), then initiated a guided factory reset sequence.",
+        dot: "blue",
+        customerMessage: "My router keeps dropping all my connections. I've tried restarting it but it keeps happening.",
+        meta: [
+          { label: "Channel", value: "CloudMesh.com website chat" },
+          { label: "Bot", value: "Aria" },
+          { label: "Issue reported", value: "Router dropping all connections after 3 reboots" },
+          { label: "Diagnostics", value: "24hr telemetry pulled — firmware mismatch confirmed" },
+        ],
+        interaction: {
+          kind: "chat",
+          botName: "Aria",
+          messages: [
+            { sender: "bot", name: "Aria", text: "Hi Jordan! I'm Aria, your CloudMesh support assistant. I can see you've been reading our factory reset guide — are you having trouble with your router?", time: "9:33 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "My router keeps dropping all my connections. I've tried restarting it but it keeps happening.", time: "9:33 AM" },
+            { sender: "bot", name: "Aria", text: "I'm sorry to hear that — let me pull up your device diagnostics right now.", time: "9:34 AM" },
+            { sender: "bot", name: "Aria", text: "I've retrieved the last 24 hours of telemetry for your CloudMesh Pro v3 (Serial: CMV3-8829-4401). I can see 14 disconnection events in the past 48 hours. This pattern is consistent with a known instability affecting firmware 4.0.8 on Fiber 500+ plans with more than 4 active port forwarding rules.", time: "9:35 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "Why wasn't I told about this sooner?", time: "9:35 AM" },
+            { sender: "bot", name: "Aria", text: "We did send you a firmware update notification on January 8th — I can see the email was opened but the update wasn't applied. Firmware 4.1.2, which resolves this issue, is still available. I can walk you through updating the firmware directly, or — if the instability is severe — a factory reset followed by the firmware update would fully resolve it.", time: "9:36 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "OK let's do the factory reset then.", time: "9:37 AM" },
+            { sender: "bot", name: "Aria", text: "Before we proceed — I want to make sure you know: a factory reset will erase all current settings, including Wi-Fi names, passwords, and any custom configurations. Are you ready to continue?", time: "9:37 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "Wait — I have port forwarding rules set up for my home office. Will those be wiped if I do a factory reset?", time: "9:40 AM" },
+            { sender: "bot", name: "Aria", text: "That's a really important question. Yes — a factory reset would erase your custom port forwarding rules. However, if you previously saved a configuration backup, you can restore those settings after the reset.", time: "9:41 AM" },
+            { sender: "customer", name: "Jordan Davis", text: "I backed it up a while ago but I'm not sure if the backup still works on the new firmware. I have 6 rules critical for my home office VPN and NAS.", time: "9:42 AM" },
+            { sender: "bot", name: "Aria", text: "I understand — this is an important concern. The behavior of configuration backups across firmware versions, particularly from 4.0.8 to 4.1.2, is outside my confidence threshold to advise on definitively. I'm connecting you with a human agent who can confirm the safest path forward.", time: "9:43 AM" },
+            { sender: "bot", name: "Aria", text: "Escalating your case now. An agent will review your port forwarding configuration and confirm whether your backup will restore correctly after the update. Your case number is CST-11621.", time: "9:44 AM" },
+          ],
+        },
+      },
+      {
+        id: "jordan-h16",
+        type: "handoff",
+        title: "Escalated — port forwarding backup unresolved",
+        timestamp: "Today · 9:44 AM",
+        detail: "Mid-reset, Jordan raised concern about losing 6 custom port forwarding rules critical to his home office. Aria paused the reset — firmware-specific backup behavior outside its confidence threshold — and escalated to a human agent.",
+        dot: "red",
+        customerMessage: "Wait — I have port forwarding rules set up for my home office. Will those be wiped if I do a factory reset?",
+        meta: [
+          { label: "Case #", value: "CST-11621" },
+          { label: "Escalated to", value: "Jeff Comstock" },
+          { label: "Reason", value: "Port forwarding config backup behavior on firmware 4.0.8 requires expert confirmation" },
+          { label: "Status", value: "Live — awaiting agent response" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CST-11621",
+          subject: "Escalation — port forwarding backup unresolved pre-factory-reset",
+          notes: [
+            { author: "Aria (Bot)", time: "Today · 9:44 AM", isInternal: true, text: "Escalating to human agent. Customer is mid-factory-reset sequence and has raised concern about losing 6 custom port forwarding rules critical to home office VPN/NAS. Config backup exists from Feb 2024 on firmware 4.0.8. Customer's query: will this backup restore correctly to firmware 4.1.2 post-factory-reset? This is outside my confidence threshold — requires expert confirmation before proceeding." },
+            { author: "System", time: "Today · 9:44 AM", isInternal: true, text: "Case CST-11621 created and assigned to Jeff Comstock (Tier 2 — Network Specialist). Priority: Critical. Customer is live and waiting. Do not proceed with factory reset without agent confirmation." },
+          ],
+        },
       },
     ],
     queue: {
@@ -3602,6 +4103,23 @@ export const customerDatabase: CustomerSeedRecord[] = [
             content: "Okay, I'll wait. Just please make sure I don't lose those port forwarding rules — my whole home office setup depends on them.",
             time: "9:44 AM",
             sentiment: "frustrated",
+          },
+          {
+            id: 6,
+            role: "agent",
+            author: "Aria",
+            content: "Hang on Jordan, I'm transferring you to Jeff Comstock who will take care of you.",
+            time: "9:44 AM",
+            isHandoffMessage: true,
+          },
+          {
+            id: 7,
+            role: "agent",
+            author: "Aria",
+            content: "Flagging for human agent now. Context: Jordan is mid-reset on CloudMesh Pro v3 (firmware 4.0.8) and needs confirmation that port forwarding rules survive a factory reset before proceeding. Customer is anxious about losing home office configuration. Confirm: port forwarding configs are backed up automatically on this firmware and will be fully restored after reset.",
+            time: "9:44 AM",
+            isInternal: true,
+            isHandoffCard: true,
           },
         ],
       },
@@ -3770,26 +4288,277 @@ export const customerDatabase: CustomerSeedRecord[] = [
       },
     ],
     customerHistory: [
+      // ── Phase 1: Account & Order History ───────────────────────────────────
       {
         id: "marcus-h1",
-        title: "Account opened — first purchase",
-        timestamp: "Apr 2023 · Account opened",
-        detail: "Marcus joined as a new customer with his first apparel order. No complaints on record.",
+        type: "registration",
+        phase: "Account History",
+        title: "Account opened — first apparel order",
+        timestamp: "Apr 2023",
+        detail: "Marcus created his account and placed his first order — a navy crewneck sweater. No complaints on record at time of joining.",
         dot: "green",
+        meta: [
+          { label: "Customer ID", value: "CST-13317" },
+          { label: "Account type", value: "E-Commerce" },
+          { label: "Email", value: "marcus.webb@email.com" },
+          { label: "Joined via", value: "Web checkout — westbrook.com" },
+        ],
+        interaction: {
+          kind: "registration",
+          fields: [
+            { label: "Customer ID", value: "CST-13317" },
+            { label: "Name", value: "Marcus Webb" },
+            { label: "Email", value: "marcus.webb@email.com" },
+            { label: "Phone", value: "(512) 555-0193" },
+            { label: "Address at signup", value: "419 Elm St, Denver, CO 80203" },
+            { label: "Account type", value: "E-Commerce" },
+            { label: "Joined via", value: "Web checkout — westbrook.com" },
+            { label: "First order", value: "Navy Crewneck Sweater — $89.00" },
+            { label: "Member since", value: "April 2023" },
+          ],
+        },
       },
       {
         id: "marcus-h2",
-        title: "3-year customer — 14 lifetime orders",
-        timestamp: "Through Apr 2026",
-        detail: "14 orders over 3 years with zero prior complaints or return requests. High-value loyal customer.",
+        type: "system",
+        title: "14 lifetime orders — zero complaints",
+        timestamp: "Apr 2023 – Mar 2026",
+        detail: "Marcus has placed 14 orders over 3 years with no prior complaints, return requests, or escalations on record. Loyal, high-value customer.",
         dot: "green",
+        meta: [
+          { label: "Total orders", value: "14" },
+          { label: "Total spend", value: "~$1,740" },
+          { label: "Categories", value: "Knitwear, outerwear, accessories" },
+          { label: "Complaints", value: "None" },
+          { label: "Returns", value: "0" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CST-13317 — Order History",
+          subject: "3-year order history summary",
+          notes: [
+            { author: "System", time: "As of Apr 21, 2026", isInternal: true, text: "14 confirmed orders placed between Apr 2023 and Mar 2026. Estimated total spend: $1,740. Categories: knitwear, outerwear, accessories. Zero complaint or return records on file. Customer flagged as high-value loyal segment." },
+          ],
+        },
       },
+
+      // ── Phase 2: Address Update ─────────────────────────────────────────────
       {
         id: "marcus-h3",
-        title: "Shipping error — order #WB-88214",
-        timestamp: "Today · 10:14 AM",
-        detail: "Charcoal Merino Sweater ($129) shipped to outdated address on file. Address update may not have propagated before shipping cutoff.",
+        type: "system",
+        phase: "Address Update",
+        title: "Shipping address updated — Denver → Austin",
+        timestamp: "Jan 2025",
+        detail: "Marcus submitted an address change from 419 Elm St, Denver, CO to 2847 Ridgewood Ave, Austin, TX via his account settings. Update was saved to his account profile.",
+        dot: "blue",
+        meta: [
+          { label: "Previous address", value: "419 Elm St, Denver, CO 80203" },
+          { label: "New address", value: "2847 Ridgewood Ave, Austin, TX 78704" },
+          { label: "Updated via", value: "Account Settings — westbrook.com" },
+          { label: "Confirmed by", value: "System (self-service)" },
+        ],
+        interaction: {
+          kind: "registration",
+          fields: [
+            { label: "Change type", value: "Shipping address update" },
+            { label: "Previous address", value: "419 Elm St, Denver, CO 80203" },
+            { label: "New address", value: "2847 Ridgewood Ave, Austin, TX 78704" },
+            { label: "Updated via", value: "Account Settings — westbrook.com" },
+            { label: "Date", value: "January 14, 2025" },
+            { label: "Confirmed by", value: "System — self-service account update" },
+            { label: "Status", value: "Saved to account profile" },
+            { label: "Note", value: "Address was not propagated to cached shipping label at Apr 2026 order cutoff" },
+          ],
+        },
+      },
+
+      // ── Phase 3: Browsing & Purchase ───────────────────────────────────────
+      {
+        id: "marcus-h4",
+        type: "web",
+        phase: "Purchase",
+        title: "Browsed knitwear collection — westbrook.com",
+        timestamp: "Apr 18, 2026 · 1:45 PM",
+        detail: "Marcus visited the knitwear section of westbrook.com, spending ~12 minutes browsing the Merino sweater range and comparing colorways before clicking through to the Charcoal product page.",
+        dot: "gray",
+        meta: [
+          { label: "Site", value: "westbrook.com/knitwear" },
+          { label: "Time on site", value: "~12 min" },
+          { label: "Page viewed", value: "Merino Sweater — Charcoal (product detail)" },
+          { label: "Action", value: "Added to cart" },
+        ],
+        interaction: {
+          kind: "web",
+          url: "westbrook.com/knitwear/merino-sweater-charcoal",
+          title: "Charcoal Merino Sweater — Product Detail",
+          description: "Marcus spent ~12 minutes browsing the knitwear collection before landing on the Charcoal Merino Sweater product page. He reviewed sizing, read 3 customer reviews, and added the Large to his cart.",
+          sectionsViewed: [
+            "Knitwear category page — 8 products browsed",
+            "Charcoal Merino Sweater — product detail page (6 min)",
+            "Size guide — Men's Large selected",
+            "Customer reviews — 3 reviews read (avg 4.7 ★)",
+            "Added to cart: Charcoal Merino Sweater, Size Large",
+          ],
+        },
+      },
+      {
+        id: "marcus-h5",
+        type: "purchase",
+        title: "Order #WB-88214 placed — Charcoal Merino Sweater",
+        timestamp: "Apr 18, 2026 · 2:31 PM",
+        detail: "Marcus placed an order for 1x Charcoal Merino Sweater (Size L) at $129.00, paid by Mastercard ending 7731. Shipping address pulled from cached profile — outdated Denver address used instead of current Austin address.",
+        dot: "green",
+        customerMessage: "I need this by Saturday — it's a gift for my dad's birthday party.",
+        meta: [
+          { label: "Order #", value: "WB-88214" },
+          { label: "Item", value: "Charcoal Merino Sweater — Size L" },
+          { label: "Amount", value: "$129.00" },
+          { label: "Payment", value: "Mastercard ****7731" },
+          { label: "Ship-to used", value: "419 Elm St, Denver, CO 80203 (cached — outdated)" },
+        ],
+        interaction: {
+          kind: "purchase",
+          orderId: "WB-88214",
+          items: [{ name: "Charcoal Merino Sweater — Size Large", qty: 1, price: "$129.00" }],
+          total: "$129.00",
+          paymentMethod: "Mastercard ****7731",
+          shippingAddress: "Marcus Webb · 419 Elm St, Denver, CO 80203  ⚠ Outdated — current address is Austin, TX",
+        },
+      },
+
+      // ── Phase 4: Post-Purchase / Shipping Error ─────────────────────────────
+      {
+        id: "marcus-h6",
+        type: "email",
+        phase: "Shipping Error",
+        title: "Order confirmation email sent",
+        timestamp: "Apr 18, 2026 · 2:32 PM",
+        detail: "Automated order confirmation sent to marcus.webb@email.com showing the Denver shipping address. Email was opened but Marcus did not flag the address discrepancy at the time.",
+        dot: "orange",
+        meta: [
+          { label: "To", value: "marcus.webb@email.com" },
+          { label: "Subject", value: "Your order is confirmed — #WB-88214" },
+          { label: "Address shown", value: "419 Elm St, Denver, CO 80203" },
+          { label: "Status", value: "Delivered — opened (address not flagged)" },
+        ],
+        interaction: {
+          kind: "email",
+          from: "noreply@westbrook.com",
+          to: "marcus.webb@email.com",
+          subject: "Your order is confirmed — #WB-88214",
+          sentAt: "Apr 18, 2026 · 2:32 PM",
+          opened: true,
+          body: "Hi Marcus,\n\nThank you for your order! Here's your confirmation:\n\nOrder #WB-88214\nCharcoal Merino Sweater — Size Large × 1 ......... $129.00\n\nTotal: $129.00\nPayment: Mastercard ****7731\n\nShipping to:\nMarcus Webb\n419 Elm St\nDenver, CO 80203\n\nEstimated Delivery: Tuesday, Apr 22, 2026\n\nYou'll receive a shipping confirmation with tracking once your order is on its way.\n\nQuestions? Contact us at support@westbrook.com\n\n— The Westbrook Team",
+        },
+      },
+      {
+        id: "marcus-h7",
+        type: "shipping",
+        title: "Order shipped via FedEx — wrong address",
+        timestamp: "Apr 19, 2026 · 8:05 AM",
+        detail: "Package shipped via FedEx to 419 Elm St, Denver, CO — Marcus's outdated address. Package is in transit and cannot be intercepted once with the carrier.",
         dot: "red",
+        customerMessage: "I just noticed my order is headed to Denver. I moved over a year ago — that's not my address anymore.",
+        meta: [
+          { label: "Carrier", value: "FedEx" },
+          { label: "Tracking #", value: "784912033651" },
+          { label: "Shipped to", value: "419 Elm St, Denver, CO 80203 ⚠" },
+          { label: "Status", value: "In transit — cannot intercept" },
+        ],
+        interaction: {
+          kind: "shipping",
+          carrier: "FedEx",
+          trackingNumber: "784912033651",
+          events: [
+            { status: "In Transit", location: "Kansas City, MO Hub", time: "Apr 21, 2026 · 6:14 AM" },
+            { status: "In Transit", location: "Albuquerque, NM Hub", time: "Apr 20, 2026 · 9:30 PM" },
+            { status: "Departed FedEx Facility", location: "Dallas, TX", time: "Apr 19, 2026 · 11:45 PM" },
+            { status: "Picked Up", location: "Westbrook Fulfillment — Dallas, TX", time: "Apr 19, 2026 · 8:05 AM" },
+            { status: "Label Created", location: "Westbrook Fulfillment — Dallas, TX", time: "Apr 18, 2026 · 5:00 PM" },
+          ],
+        },
+      },
+
+      // ── Phase 5: Current Case ───────────────────────────────────────────────
+      {
+        id: "marcus-h8",
+        type: "web",
+        phase: "Current Case",
+        title: "Checked order status — noticed wrong address",
+        timestamp: "Today · 10:05 AM",
+        detail: "Marcus logged into westbrook.com to check his order status and discovered the package was shipped to his old Denver address. He then launched the support chat.",
+        dot: "gray",
+        meta: [
+          { label: "Site", value: "westbrook.com — My Orders" },
+          { label: "Order checked", value: "WB-88214" },
+          { label: "Address shown", value: "419 Elm St, Denver, CO 80203" },
+          { label: "Next action", value: "Opened support chat" },
+        ],
+        interaction: {
+          kind: "web",
+          url: "westbrook.com/account/orders/WB-88214",
+          title: "Order Status — #WB-88214",
+          description: "Marcus logged in to check the delivery status of his sweater order and noticed the shipping address listed as his old Denver address — not the Austin address he'd updated over a year earlier.",
+          sectionsViewed: [
+            "My Orders — order list viewed",
+            "Order #WB-88214 detail — shipping address: 419 Elm St, Denver, CO 80203",
+            "Tracking status: In Transit (no delivery estimate shown)",
+            "Support chat widget launched",
+          ],
+        },
+      },
+      {
+        id: "marcus-h9",
+        type: "chat",
+        title: "Support chat — wrong address reported",
+        timestamp: "Today · 10:07 AM",
+        detail: "Marcus contacted support via chat and reported the shipping error to Emily. Emily confirmed the address mismatch but was unable to intercept the in-transit package. Marcus escalated, requesting a human agent due to the Saturday birthday deadline.",
+        dot: "blue",
+        customerMessage: "That can't be right. I placed this order less than 24 hours ago. There has to be something you can do — this is a birthday gift for my dad and the party is Saturday.",
+        meta: [
+          { label: "Channel", value: "westbrook.com website chat" },
+          { label: "Bot", value: "Emily" },
+          { label: "Issue reported", value: "Order shipped to outdated Denver address" },
+          { label: "Outcome", value: "Unable to intercept — escalated to Priya Nair" },
+        ],
+        interaction: {
+          kind: "chat",
+          botName: "Emily",
+          messages: [
+            { sender: "bot", name: "Emily", text: "Hi Marcus — I can see you've been with us for 3 years and have 14 orders on record. How can I help you today?", time: "10:07 AM" },
+            { sender: "customer", name: "Marcus Webb", text: "Hi, I ordered a charcoal merino sweater a few days ago and I just checked my order status — it says it was shipped to an old address in Denver. I moved to Austin over a year ago.", time: "10:08 AM" },
+            { sender: "bot", name: "Emily", text: "I'm really sorry about this, Marcus. I can see order #WB-88214 — the Charcoal Merino Sweater for $129 — was shipped to 419 Elm St, Denver, CO. Your current address on file is 2847 Ridgewood Ave, Austin, TX. It looks like the shipping label may have used a cached address before your update took effect.", time: "10:09 AM" },
+            { sender: "customer", name: "Marcus Webb", text: "That's really frustrating. I updated my address a while back. Is there any way to get it redirected or sent again? I need this for an event this weekend.", time: "10:10 AM" },
+            { sender: "bot", name: "Emily", text: "I'm sorry, Marcus — your order shipped early this morning and is already in transit. Once an order is with the carrier, we're unable to redirect or intercept it. I know that's not what you were hoping to hear.", time: "10:12 AM" },
+            { sender: "customer", name: "Marcus Webb", text: "That can't be right. I placed this order less than 24 hours ago. There has to be something you can do — this is a birthday gift for my dad and the party is Saturday. Please, I need a real person.", time: "10:13 AM" },
+            { sender: "bot", name: "Emily", text: "Hang on Marcus, I'm connecting you with Priya Nair who will take care of you.", time: "10:14 AM" },
+          ],
+        },
+      },
+      {
+        id: "marcus-h10",
+        type: "handoff",
+        title: "Escalated to Priya Nair — time-sensitive",
+        timestamp: "Today · 10:14 AM",
+        detail: "Emily escalated to Priya Nair (Senior Care). Resolution paths: reship overnight to Austin, full refund + reorder, or carrier intercept attempt. Birthday deadline Saturday — goodwill gesture recommended.",
+        dot: "red",
+        customerMessage: "I need a real person.",
+        meta: [
+          { label: "Case #", value: "CST-13317" },
+          { label: "Escalated to", value: "Priya Nair — Senior Care" },
+          { label: "Reason", value: "Package in transit to wrong address — time-sensitive birthday gift" },
+          { label: "Resolution paths", value: "Reship overnight, refund + reorder, or carrier intercept" },
+          { label: "Goodwill", value: "CARE20 — 20% off next order recommended" },
+        ],
+        interaction: {
+          kind: "ticket",
+          ticketId: "CST-13317",
+          subject: "Escalation — order #WB-88214 shipped to wrong address",
+          notes: [
+            { author: "Emily (Bot)", time: "Today · 10:14 AM", isInternal: true, text: "Escalating to Priya Nair (Senior Care). Order #WB-88214 — Charcoal Merino Sweater ($129) shipped to outdated Denver address (419 Elm St). Current address: 2847 Ridgewood Ave, Austin, TX. Package in transit — cannot intercept. Time-sensitive: birthday event Saturday. Resolution paths: (1) reship overnight to Austin, (2) full refund + reorder, (3) carrier intercept attempt. Goodwill code CARE20 (20% off next order) recommended." },
+            { author: "System", time: "Today · 10:14 AM", isInternal: true, text: "Case CST-13317 assigned to Priya Nair (Senior Care Agent). Priority: Critical. Customer is live and awaiting response." },
+          ],
+        },
       },
     ],
     queue: {
@@ -3850,6 +4619,23 @@ export const customerDatabase: CustomerSeedRecord[] = [
             content: "That can't be right. I placed this order less than 24 hours ago. There has to be something you can do — this is a birthday gift for my dad and the party is Saturday. Please, I need a real person.",
             time: "10:13 AM",
             sentiment: "critical",
+          },
+          {
+            id: 7,
+            role: "agent",
+            author: "Emily",
+            content: "Hang on Marcus, I'm connecting you with Priya Nair who will take care of you.",
+            time: "10:14 AM",
+            isHandoffMessage: true,
+          },
+          {
+            id: 8,
+            role: "agent",
+            author: "Emily",
+            content: "Connecting you with a senior agent now. Context: order #WB-88214 shipped to outdated Denver address (2847 Ridgewood Ave, Austin is current). Time-sensitive — birthday event Saturday. Resolution paths: reship overnight, full refund + reorder, or carrier intercept. Goodwill code CARE20 (20% off next order) recommended.",
+            time: "10:14 AM",
+            isInternal: true,
+            isHandoffCard: true,
           },
         ],
       },

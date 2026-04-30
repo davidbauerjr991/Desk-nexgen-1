@@ -1692,7 +1692,7 @@ export function EscalatedCaseModal({
                   showAiPanel={false}
                   hideTranscript={false}
                   hideInput={true}
-                  isPendingAcceptance={false}
+                  isPendingAcceptance={true}
                   onSelectChannel={() => {}}
                   onConversationChange={() => {}}
                   agentAvatarUrl={botAvatar}

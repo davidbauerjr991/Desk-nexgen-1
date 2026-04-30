@@ -35,6 +35,11 @@ export type ConversationMessage = {
    * that the assignment has been transferred). Treated as internal — not visible to customer.
    */
   isHandoffCard?: boolean;
+  /**
+   * When true, this message is part of the agent handoff sequence (warm farewell + internal
+   * context card) and should be hidden while the case is in review/pending-acceptance mode.
+   */
+  isHandoffMessage?: boolean;
 };
 
 export type ConversationStatus = "open" | "pending";
@@ -85,6 +90,14 @@ interface ConversationPanelProps {
   forcedSuggestionVariants?: InlineSuggestion[] | null;
   /** Extra padding (px) added to the top of the scroll area — used to clear floating tab bars. */
   scrollTopPadding?: number;
+  /** AI confidence score (0–100) for the pending handoff — shown inline when isPendingAcceptance=true. */
+  aiConfidence?: number;
+  /** Short reason text below the confidence bar. */
+  aiConfidenceReason?: string;
+  /** Name of the bot agent (e.g. "Aria", "Jacob", "Emily") for the inline review card avatar. */
+  botLabel?: string;
+  /** Context summary from the bot for the inline review card. */
+  customerContext?: string;
 }
 
 const conversationFooterMenuItems = [
@@ -1109,6 +1122,10 @@ export default function ConversationPanel({
   forcedSuggestedReply,
   forcedSuggestionVariants,
   scrollTopPadding = 0,
+  aiConfidence,
+  aiConfidenceReason,
+  botLabel,
+  customerContext,
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
@@ -1118,6 +1135,11 @@ export default function ConversationPanel({
 
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
+
+  // Inline review card approve phase — mirrors the toast card in Layout.tsx
+  const [inlineApprovePhase, setInlineApprovePhase] = useState<"idle" | "approving" | "resolved">("idle");
+  const inlineApproveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1953,7 +1975,7 @@ export default function ConversationPanel({
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
           <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
-            <div className={cn("space-y-6 px-6", isWidePanel ? "m-8 mx-auto max-w-[991px]" : "m-8")}>
+            <div className={cn("space-y-6 px-6", isWidePanel ? "m-8 mx-auto max-w-[800px]" : "m-8")}>
             <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
                 {conversation.timelineLabel}
@@ -2047,7 +2069,10 @@ export default function ConversationPanel({
                   </p>
                 </div>
 
-                {conversation.messages.map((message) => {
+                {conversation.messages.filter((message) =>
+                  // Hide warm handoff and internal notes until the agent has taken over
+                  isPendingAcceptance ? !(message.isInternal || message.isHandoffCard || message.isHandoffMessage) : true
+                ).map((message) => {
                   const isNewMessage = !seenMessageIdsRef.current.has(message.id);
                   if (isNewMessage) seenMessageIdsRef.current.add(message.id);
                   const appliedTags = messageTags[message.id] ?? [];
@@ -2400,6 +2425,94 @@ export default function ConversationPanel({
                   return nextStepsContent;
                 })()
                 }
+
+                {/* Inline AI review card — shown in place of the green handoff note during pending-acceptance mode */}
+                {isPendingAcceptance && (customerContext || aiConfidence !== undefined) && (
+                  <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3 animate-in fade-in duration-300">
+                    {/* Bot header */}
+                    <div className="mb-1.5 flex items-center gap-2">
+                      {botLabel === "Emily" ? (
+                        <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <img
+                          src={botLabel === "Jacob"
+                            ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                            : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+                          alt={`${botLabel ?? "Aria"} avatar`}
+                          className="h-5 w-5 rounded-full object-cover shrink-0"
+                        />
+                      )}
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{botLabel ?? "Aria"}</p>
+                    </div>
+
+                    {/* Context text */}
+                    {customerContext && (
+                      <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
+                    )}
+
+                    {/* AI Confidence meter + Approve button */}
+                    {aiConfidence !== undefined && (
+                      inlineApprovePhase === "approving" ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-[13px] font-medium text-[#344054]">Approving request</span>
+                          <span className="flex items-center gap-0.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
+                          </span>
+                        </div>
+                      ) : inlineApprovePhase === "resolved" ? (
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-[#208337]" />
+                          <span className="text-[12px] font-semibold text-[#208337]">Approved</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
+                              <span className="text-[12px] font-bold text-[#166CCA]">{aiConfidence}%</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                              <div className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA]" style={{ width: `${aiConfidence}%` }} />
+                            </div>
+                            {aiConfidenceReason && (
+                              <p className="text-[10px] text-[#98A2B3] leading-relaxed">{aiConfidenceReason}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              inlineApproveTimersRef.current.forEach(clearTimeout);
+                              inlineApproveTimersRef.current = [];
+                              setInlineApprovePhase("approving");
+                              inlineApproveTimersRef.current.push(
+                                setTimeout(() => {
+                                  setInlineApprovePhase("resolved");
+                                  onAcceptAssignment?.();
+                                }, 2800)
+                              );
+                            }}
+                            className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
+                          >
+                            Approve
+                          </button>
+                        </>
+                      )
+                    )}
+
+                    {/* If no confidence data, just show a plain Approve button */}
+                    {aiConfidence === undefined && (
+                      <button
+                        type="button"
+                        onClick={() => onAcceptAssignment?.()}
+                        className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
+                      >
+                        Approve
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {appendContent}
 
