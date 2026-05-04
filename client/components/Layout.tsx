@@ -64,6 +64,9 @@ import {
   X,
   UserX,
   MoreVertical,
+  CheckCircle2,
+  Building2,
+  ExternalLink,
 } from "lucide-react";
 
 import {
@@ -2889,8 +2892,7 @@ function DockedConversationPanel({
   };
 
   const sofiaResolveBox = isSofia ? (
-    <div className="px-4 py-3">
-      <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
+    <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
         <div className="px-4 pt-3 pb-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
         </div>
@@ -2973,7 +2975,6 @@ function DockedConversationPanel({
           </div>
         </div>
       </div>
-    </div>
   ) : undefined;
 
   // Marcus resolve-with-options next step
@@ -3091,8 +3092,7 @@ function DockedConversationPanel({
   };
 
   const marcusResolveBox = isMarcus && !marcusResolveDismissed ? (
-    <div className="px-4 py-3">
-      <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
+    <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden">
         <div className="px-4 pt-3 pb-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
         </div>
@@ -3208,7 +3208,6 @@ function DockedConversationPanel({
           )}
         </div>
       </div>
-    </div>
   ) : undefined;
 
   // Ask Copilot state for summary panel
@@ -4554,6 +4553,8 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   onInteractStart?: () => void;
   /** When set, shows a live elapsed-time chip in the header. Dismissed on first interaction. */
   takeoverStartTime?: number | null;
+  /** When set, shows the blue AI case overview card at the top of the Overview tab. */
+  takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string } | null;
 }>(function CustomerInfoPopunder({
   position,
   size,
@@ -4571,6 +4572,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   dragActivation = null,
   onInteractStart,
   takeoverStartTime = null,
+  takeoverCard = null,
 }, ref) {
   // Two-div architecture:
   //   containerRef  — outer, position-only div. Owns transform:translate(x,y) and explicit
@@ -4748,6 +4750,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
           maxHeight: "calc(100vh - 2rem)",
           animationFillMode: "both",
         }}
+        onMouseEnter={cancelAutoClose}
         onMouseDown={cancelAutoClose}
       >
       <div
@@ -4788,6 +4791,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
         initialTab={panelSelection?.initialTab ?? "Overview"}
         initialTicketId={panelSelection?.ticketId}
         customerId={customerRecordId}
+        takeoverCard={takeoverCard ?? undefined}
       />
 
       <button
@@ -6535,6 +6539,219 @@ function IncomingTransferPopover({
   );
 }
 
+// ─── Dismissal confirmation toast ─────────────────────────────────────────────
+function DismissalToast({
+  data,
+  onClose,
+}: {
+  data: { customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string };
+  onClose: () => void;
+}) {
+  // Entrance animation — starts off-screen, flips to visible on next paint
+  const [entered, setEntered] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Auto-dismiss timer — stored in a ref so we can cancel it when details are opened
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerCancelledRef = useRef(false);
+
+  useEffect(() => {
+    // Trigger entrance on next paint
+    const raf = requestAnimationFrame(() => setEntered(true));
+    // Auto-dismiss after 12 s
+    timerRef.current = setTimeout(() => handleClose(), 12000);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function handleClose() {
+    setExiting(true);
+    setTimeout(onClose, 300);
+  }
+
+  function handleToggleDetails() {
+    const opening = !detailsOpen;
+    setDetailsOpen(opening);
+    // Cancel the auto-dismiss timer the first time the agent opens the accordion
+    if (opening && !timerCancelledRef.current) {
+      timerCancelledRef.current = true;
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  }
+
+  // Derive external system mock data from case context
+  const isShipping = data.customerId.startsWith("CST-133") || data.actions.some(a => /order|ship|address/i.test(a));
+  const isFraud = data.actions.some(a => /fraud|dispute|transaction|unauthorized/i.test(a));
+  const caseType = isFraud ? "Fraud Investigation" : isShipping ? "Order Issue" : "Technical Support";
+  const sfCaseNum = `CS-${Math.abs(data.customerId.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % 90000 + 10000)}`;
+  const snIncidentNum = `INC${String(Math.abs(data.customerId.split("").reduce((acc, c) => acc + c.charCodeAt(0) * 7, 0) % 9000000 + 1000000)).padStart(7, "0")}`;
+  const timestamp = new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+
+  const sfUpdates = [
+    `Case Status → ${data.resolvedStatus}`,
+    `Case Type → ${caseType}`,
+    `Case Owner → Unassigned`,
+    `Resolution Date → ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`,
+    `Contact Record → Updated`,
+  ];
+  const snUpdates = [
+    `State → ${data.resolvedStatus === "Resolved" ? "Resolved" : "Closed"}`,
+    `Assignment Group → Cleared`,
+    `Close Code → ${isFraud ? "Fraud Confirmed" : isShipping ? "Fulfillment Error" : "Resolved by AI"}`,
+    `Work Notes → Case summary appended`,
+    `SLA Status → Met`,
+  ];
+
+  const isVisible = entered && !exiting;
+
+  return createPortal(
+    <div
+      className="fixed bottom-5 right-5 z-[10100] w-[380px]"
+      style={{
+        transform: isVisible ? "translateY(0)" : "translateY(calc(100% + 20px))",
+        opacity: isVisible ? 1 : 0,
+        transition: "transform 350ms cubic-bezier(0.34,1.56,0.64,1), opacity 300ms ease-out",
+      }}
+    >
+      <div className="rounded-2xl border border-[#E4E7EC] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.18)] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 bg-[#EFFBF1] border-b border-[#BBF7D0] px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="h-4 w-4 text-[#208337] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-[13px] font-semibold text-[#111827]">
+                {data.status === "transferred" ? "Case Transferred" : data.status === "unassigned" ? "Case Dismissed & Unassigned" : "Case Dismissed"}
+              </p>
+              <p className="text-[11px] text-[#667085]">{data.customerName} · {data.customerId} · {timestamp}</p>
+            </div>
+          </div>
+          <button type="button" onClick={handleClose} className="shrink-0 text-[#98A2B3] hover:text-[#344054] transition-colors mt-0.5">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Status pill — always visible */}
+        <div className="flex items-center gap-2 border-b border-[#F2F4F7] bg-[#F9FAFB] px-4 py-2.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Status</span>
+          <span className="ml-auto inline-flex items-center gap-1.5">
+            <span className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              data.resolvedStatus === "Resolved" ? "bg-[#208337]" : data.resolvedStatus === "Pending" ? "bg-[#FFB800]" : "bg-[#E32926]",
+            )} />
+            <span className={cn(
+              "text-[12px] font-semibold",
+              data.resolvedStatus === "Resolved" ? "text-[#208337]" : data.resolvedStatus === "Pending" ? "text-[#A37A00]" : "text-[#C71D1A]",
+            )}>{data.resolvedStatus}</span>
+          </span>
+        </div>
+
+        {/* Accordion toggle */}
+        <button
+          type="button"
+          onClick={handleToggleDetails}
+          className="flex w-full items-center justify-between px-4 py-2.5 text-left hover:bg-[#F9FAFB] transition-colors"
+        >
+          <span className="text-[12px] font-semibold text-[#344054]">Case Details</span>
+          <span className="flex items-center gap-1.5 text-[11px] text-[#667085]">
+            {timerCancelledRef.current ? null : <span className="text-[10px] text-[#98A2B3]">auto-closes in 12s</span>}
+            <svg
+              className={cn("h-3.5 w-3.5 text-[#98A2B3] transition-transform duration-200", detailsOpen && "rotate-180")}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </button>
+
+        {/* Accordion body — CSS grid trick: 0fr → 1fr animates height without measuring */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateRows: detailsOpen ? "1fr" : "0fr",
+            transition: "grid-template-rows 280ms cubic-bezier(0.4,0,0.2,1)",
+          }}
+        >
+          <div style={{ overflow: "hidden" }}>
+            <div className="border-t border-[#F2F4F7] px-4 pb-3 space-y-3 max-h-[420px] overflow-y-auto">
+              {/* Case summary */}
+              <div className="pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1.5">Case Summary</p>
+                <p className="text-[12px] text-[#344054] leading-relaxed">{data.preview}</p>
+              </div>
+
+              {/* What changed */}
+              {data.actions.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1.5">Changes Made</p>
+                  <ul className="space-y-1">
+                    {data.actions.slice(0, 4).map((action, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] text-[#344054] leading-relaxed">
+                        <Check className="h-3 w-3 text-[#208337] shrink-0 mt-1" />
+                        {action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Salesforce */}
+              <div className="rounded-xl border border-[#E4E7EC] overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-[#F9FAFB] border-b border-[#E4E7EC]">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3 w-3 text-[#00A1E0]" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#00A1E0]">Salesforce</span>
+                  </div>
+                  <span className="text-[10px] text-[#98A2B3] font-medium">{sfCaseNum}</span>
+                </div>
+                <ul className="px-3 py-2 space-y-1">
+                  {sfUpdates.map((u, i) => (
+                    <li key={i} className="flex items-center gap-2 text-[11px] text-[#344054]">
+                      <ExternalLink className="h-2.5 w-2.5 text-[#98A2B3] shrink-0" />
+                      {u}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* ServiceNow */}
+              <div className="rounded-xl border border-[#E4E7EC] overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 bg-[#F9FAFB] border-b border-[#E4E7EC]">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3 w-3 text-[#81B5A1]" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#4A9E7F]">ServiceNow</span>
+                  </div>
+                  <span className="text-[10px] text-[#98A2B3] font-medium">{snIncidentNum}</span>
+                </div>
+                <ul className="px-3 py-2 space-y-1">
+                  {snUpdates.map((u, i) => (
+                    <li key={i} className="flex items-center gap-2 text-[11px] text-[#344054]">
+                      <ExternalLink className="h-2.5 w-2.5 text-[#98A2B3] shrink-0" />
+                      {u}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-4 py-2.5 border-t border-[#F2F4F7] bg-[#F9FAFB]">
+          <p className="text-[10px] text-[#98A2B3] text-center">All external systems updated · Changes may take up to 60 seconds to sync</p>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── Escalation live timer ────────────────────────────────────────────────────
 function EscalationTimer({ customerId }: { customerId?: string }) {
   const startRef = useRef(customerId ? getEscalationStart(customerId) : Date.now());
@@ -6564,6 +6781,7 @@ function IncomingAssignmentCard({
   onDismiss,
   onApprove,
   onApproveResolved,
+  onDismissResolved,
   isInline = false,
   dismissDirection = "down",
   inlinePanelHeight = 0,
@@ -6577,6 +6795,8 @@ function IncomingAssignmentCard({
   onDismiss: (item: QueuePreviewItem) => void;
   onApprove?: (item: QueuePreviewItem) => void;
   onApproveResolved?: (item: QueuePreviewItem) => void;
+  /** Called when the agent clicks Dismiss on the resolved-state card — used to fire the confirmation toast. */
+  onDismissResolved?: (item: QueuePreviewItem) => void;
   /** When true, suppresses auto-minimize timer. Use for the active-case top-left overlay. */
   isInline?: boolean;
   /** Direction the card slides when dismissed. Defaults to "down" (bottom-right stack behaviour). */
@@ -6593,6 +6813,8 @@ function IncomingAssignmentCard({
 }) {
   const [summaryOpen, setSummaryOpen] = useState(item.statusLabel === "transferred");
   const [approvePhase, setApprovePhase] = useState<"idle" | "approving" | "resolved">("idle");
+  const [resolvedToastStatus, setResolvedToastStatus] = useState("Resolved");
+  const [resolvedStatusOpen, setResolvedStatusOpen] = useState(false);
   const approveToastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [showTransfer, setShowTransfer] = useState(false);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(false);
@@ -6712,6 +6934,13 @@ function IncomingAssignmentCard({
   return (
     <div
       ref={cardRef}
+      onMouseEnter={() => {
+        // Cancel the 5-second auto-dismiss permanently once the agent hovers
+        if (autoIdleTimerRef.current !== null) {
+          clearTimeout(autoIdleTimerRef.current);
+          autoIdleTimerRef.current = null;
+        }
+      }}
       className={cn(
         "pointer-events-auto w-full rounded-2xl bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in duration-300 overflow-hidden border transition-colors",
         isInline ? "slide-in-from-left-3" : "slide-in-from-bottom-3",
@@ -6881,13 +7110,86 @@ function IncomingAssignmentCard({
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">
                     Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
                   </p>
-                  <div className="mt-3 flex items-center justify-between rounded-lg border border-[#24943E] bg-white px-3 py-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[#208337]">Case Status</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-[#208337]" />
-                      <span className="text-[12px] font-semibold text-[#208337]">Resolved</span>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#208337" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                    </div>
+                  {/* Case Status dropdown */}
+                  <div className="relative mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setResolvedStatusOpen((v) => !v)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-colors",
+                        resolvedToastStatus === "Resolved" ? "border-[#24943E] bg-[#EFFBF1]" :
+                        resolvedToastStatus === "Pending"  ? "border-[#FFB800] bg-[#FFF6E0]" :
+                        resolvedToastStatus === "Escalated"? "border-[#E53935] bg-[#FDEAEA]" :
+                                                             "border-[#BFDBFE] bg-white",
+                      )}
+                    >
+                      <span className={cn("text-[10px] font-semibold uppercase tracking-widest",
+                        resolvedToastStatus === "Resolved" ? "text-[#208337]" :
+                        resolvedToastStatus === "Pending"  ? "text-[#A37A00]" :
+                        resolvedToastStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                      )}>Case Status</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn("h-2 w-2 rounded-full",
+                          resolvedToastStatus === "Resolved" ? "bg-[#208337]" :
+                          resolvedToastStatus === "Pending"  ? "bg-[#FFB800]" :
+                          resolvedToastStatus === "Escalated"? "bg-[#E32926]" : "bg-[#166CCA]",
+                        )} />
+                        <span className={cn("text-[12px] font-semibold",
+                          resolvedToastStatus === "Resolved" ? "text-[#208337]" :
+                          resolvedToastStatus === "Pending"  ? "text-[#A37A00]" :
+                          resolvedToastStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                        )}>{resolvedToastStatus}</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          className={cn(
+                            resolvedToastStatus === "Resolved" ? "text-[#208337]" :
+                            resolvedToastStatus === "Pending"  ? "text-[#A37A00]" :
+                            resolvedToastStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                            resolvedStatusOpen && "rotate-180", "transition-transform"
+                          )}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </div>
+                    </button>
+                    {resolvedStatusOpen && (
+                      <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 z-30 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                        {[
+                          { label: "Resolved",  dot: "bg-[#208337]", text: "text-[#208337]" },
+                          { label: "Open",      dot: "bg-[#166CCA]", text: "text-[#166CCA]" },
+                          { label: "Pending",   dot: "bg-[#FFB800]", text: "text-[#A37A00]" },
+                          { label: "Escalated", dot: "bg-[#E32926]", text: "text-[#C71D1A]" },
+                        ].map(({ label, dot, text }) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => { setResolvedToastStatus(label); setResolvedStatusOpen(false); }}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F9FAFB] transition-colors"
+                          >
+                            <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />
+                            <span className={cn("text-[13px] font-medium", text)}>{label}</span>
+                            {resolvedToastStatus === label && (
+                              <svg className="ml-auto h-3.5 w-3.5 text-[#166CCA]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Takeover + Dismiss buttons */}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onTakeover(item)}
+                      className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2 text-[13px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                    >
+                      Takeover
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { onDismissResolved?.(item); handleDismiss(); }}
+                      className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                    >
+                      Dismiss
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -6908,6 +7210,26 @@ function IncomingAssignmentCard({
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{item.label ?? "Aria"}</p>
                   </div>
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
+
+                  {/* Takeover / Review buttons — shown inline when there is no AI confidence meter (e.g. Marcus) */}
+                  {item.statusLabel === "Escalated" && item.aiConfidence === undefined && (
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onTakeover(item)}
+                        className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2 text-[13px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                      >
+                        Takeover
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onMonitor(item)}
+                        className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                      >
+                        Review
+                      </button>
+                    </div>
+                  )}
 
                   {/* AI Confidence + Approve / Approving state — driven by aiConfidence in static assignment */}
                   {item.statusLabel === "Escalated" && item.aiConfidence !== undefined && (
@@ -6934,23 +7256,25 @@ function IncomingAssignmentCard({
                             <p className="text-[10px] text-[#98A2B3] leading-relaxed">{item.aiConfidenceReason}</p>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            approveToastTimersRef.current.forEach(clearTimeout);
-                            approveToastTimersRef.current = [];
-                            setApprovePhase("approving");
-                            approveToastTimersRef.current.push(
-                              setTimeout(() => {
-                                setApprovePhase("resolved");
-                                onApproveResolved?.(item);
-                              }, 2800)
-                            );
-                          }}
-                          className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
-                        >
-                          Approve
-                        </button>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              approveToastTimersRef.current.forEach(clearTimeout);
+                              approveToastTimersRef.current = [];
+                              setApprovePhase("approving");
+                              approveToastTimersRef.current.push(
+                                setTimeout(() => {
+                                  setApprovePhase("resolved");
+                                  onApproveResolved?.(item);
+                                }, 2800)
+                              );
+                            }}
+                            className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2 text-[13px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                          >
+                            Approve
+                          </button>
+                        </div>
                       </>
                     )
                   )}
@@ -7151,8 +7475,8 @@ function IncomingAssignmentCard({
           </div>
         </div>
 
-      {/* Actions — hidden after takeover (toast is in "transferred" / auto-dismiss state) */}
-      {item.statusLabel !== "transferred" && (
+      {/* Actions footer — always show both Review and Takeover buttons */}
+      {item.statusLabel !== "transferred" && approvePhase !== "resolved" && (
         <div className="flex items-center gap-2 border-t border-[#F2F4F7] px-4 py-2.5">
           <button
             type="button"
@@ -7270,6 +7594,7 @@ function NotificationStack({
   onDismiss,
   onApprove,
   onApproveResolved,
+  onDismissResolved,
   onChatOpen,
   onChatDismiss,
 }: {
@@ -7281,6 +7606,7 @@ function NotificationStack({
   onDismiss: (item: QueuePreviewItem) => void;
   onApprove?: (item: QueuePreviewItem) => void;
   onApproveResolved?: (item: QueuePreviewItem) => void;
+  onDismissResolved?: (item: QueuePreviewItem) => void;
   onChatOpen: (notif: AgentChatNotification) => void;
   onChatDismiss: (notif: AgentChatNotification) => void;
 }) {
@@ -7358,6 +7684,7 @@ function NotificationStack({
         onDismiss={onDismiss}
         onApprove={onApprove}
         onApproveResolved={onApproveResolved}
+        onDismissResolved={onDismissResolved}
       />
     ) : (
       <IncomingAgentChatCard
@@ -7992,6 +8319,21 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
     .find((message) => message.role === "customer")
     ?.content.toLowerCase() ?? "";
 
+  // ── Fraud / takeover handoff — Jeff introducing himself after Sofia's case ──
+  if (
+    (normalizedMessage.includes("monitoring") || normalizedMessage.includes("been following") || normalizedMessage.includes("been watching") || normalizedMessage.includes("stepped in")) &&
+    (normalizedMessage.includes("fraud") || normalizedMessage.includes("credit") || normalizedMessage.includes("protected") || normalizedMessage.includes("dispute") || normalizedMessage.includes("seriously"))
+  ) {
+    return "Thank you so much! I really appreciate it. I'm just relieved this is being taken care of — I was honestly so scared earlier.";
+  }
+
+  if (
+    normalizedMessage.includes("i'm jeff") || normalizedMessage.includes("i am jeff") ||
+    normalizedMessage.includes("this is jeff") || normalizedMessage.includes("my name is jeff")
+  ) {
+    return "Thank you so much, Jeff! I'm so glad you were able to help. I feel a lot better knowing it's being handled.";
+  }
+
   if (
     normalizedMessage.includes("screenshot") ||
     normalizedMessage.includes("screen shot") ||
@@ -8092,6 +8434,8 @@ export default function Layout({ children }: LayoutProps) {
 
   // Global escalation modal — renders on any page when agent clicks Review from a toast
   const [escalatedToastModal, setEscalatedToastModal] = useState<EscalatedCaseModalData | null>(null);
+  // Dismissal confirmation toast — shown bottom-right when agent clicks Dismiss after resolving a case
+  const [dismissalToast, setDismissalToast] = useState<{ customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string } | null>(null);
 
   // 5 s after the agent dismisses the login briefing, push the escalated-case notification.
   // Track how many cases are currently escalated (for the left rail badge + tooltip).
@@ -8274,6 +8618,8 @@ export default function Layout({ children }: LayoutProps) {
   // Epoch timestamp (ms) of the most recent takeover-open. Passed to CustomerInfoPopunder
   // to drive the elapsed-time header chip. Cleared when opened via icon (non-takeover path).
   const [customerInfoTakeoverStartTime, setCustomerInfoTakeoverStartTime] = useState<number | null>(null);
+  // Blue AI overview card shown at the top of the Overview tab when a case is taken over.
+  const [customerInfoTakeoverCard, setCustomerInfoTakeoverCard] = useState<{ botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string } | null>(null);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
@@ -8300,7 +8646,7 @@ export default function Layout({ children }: LayoutProps) {
     x: 84,
     y: 72,
   }));
-  const [customerInfoPopunderSize, setCustomerInfoPopunderSize] = useState<CustomerInfoPopunderSize>({ width: 380, height: 720 });
+  const [customerInfoPopunderSize, setCustomerInfoPopunderSize] = useState<CustomerInfoPopunderSize>({ width: 315, height: 420 });
   // Ref so getAnchoredCustomerInfoPopunderPosition can read the latest size without
   // capturing it in useMemo/useEffect dep arrays (prevents context invalidation on resize).
   const customerInfoPopunderSizeRef = useRef(customerInfoPopunderSize);
@@ -8983,6 +9329,28 @@ export default function Layout({ children }: LayoutProps) {
     if (customerRecordId === "jordan") pendingResolvedIds.add("static-11");
     if (customerRecordId === "marcus") pendingResolvedIds.add("static-marcus");
     handleRemoveGroupedAssignments(siblingIds, transferRecipient);
+
+    // Fire the dismissal confirmation toast
+    const assignment = Object.values(assignmentItemsById).find((a) => a?.customerRecordId === customerRecordId);
+    const sa = staticAssignments.find((s) => s.customerRecordId === customerRecordId || s.customerId === assignment?.customerId);
+    if (assignment || sa) {
+      const name = assignment?.name ?? sa?.name ?? customerRecordId;
+      const custId = assignment?.customerId ?? sa?.customerId ?? customerRecordId;
+      const preview = assignment?.preview ?? sa?.preview ?? "";
+      const botType = sa?.label ?? "Aria";
+      const channel = assignment?.channel ?? sa?.channel ?? "chat";
+      const actions = sa?.aiOverview?.actions ?? [];
+      setDismissalToast({
+        customerName: name,
+        customerId: custId,
+        status: transferRecipient === null ? "unassigned" : transferRecipient ? "transferred" : "dismissed",
+        resolvedStatus: transferRecipient === null ? "Unassigned" : transferRecipient ? "Transferred" : "Resolved",
+        actions,
+        preview,
+        botType,
+        channel,
+      });
+    }
   };
 
   const getAnchoredCallPopunderPosition = (anchorRect?: DOMRect | null) => {
@@ -9993,6 +10361,8 @@ export default function Layout({ children }: LayoutProps) {
       aiOverview: sa?.aiOverview ?? { actions: [] },
       status: effectiveStatus,
       escalatedAt: item.escalatedAt,
+      aiConfidence: sa?.aiConfidence,
+      aiConfidenceReason: sa?.aiConfidenceReason,
     });
   };
 
@@ -10017,6 +10387,8 @@ export default function Layout({ children }: LayoutProps) {
       aiOverview: sa?.aiOverview ?? { actions: [] },
       status: effectiveStatus,
       escalatedAt: item.escalatedAt,
+      aiConfidence: sa?.aiConfidence,
+      aiConfidenceReason: sa?.aiConfidenceReason,
       autoApprove: true,
     });
   };
@@ -10043,20 +10415,23 @@ export default function Layout({ children }: LayoutProps) {
       : undefined;
     // Append a warm handoff message from the bot at the moment of takeover,
     // followed by the internal handoff card (agent-only green transfer notice).
+    const isMarcusTakeover = customerRecordId === "marcus";
     const conversationWithHandoff = baseConversation
       ? {
           ...baseConversation,
           messages: [
             ...baseConversation.messages,
-            {
+            // Marcus already has a "Hang on Marcus, I'm connecting you with…" handoff message in
+            // the static conversation data, so skip injecting the generic transfer bubble for him.
+            ...(!isMarcusTakeover ? [{
               id: (baseConversation.messages[baseConversation.messages.length - 1]?.id ?? 0) + 1,
               role: "agent" as const,
               author: botAuthor,
               content: "I'm going to transfer you to a live customer service agent, please hold.",
               time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-            },
+            }] : []),
             {
-              id: (baseConversation.messages[baseConversation.messages.length - 1]?.id ?? 0) + 2,
+              id: (baseConversation.messages[baseConversation.messages.length - 1]?.id ?? 0) + (isMarcusTakeover ? 1 : 2),
               role: "agent" as const,
               author: botAuthor,
               content: `I have transferred the assignment. You are now live with customer ${item.name}.`,
@@ -10741,6 +11116,7 @@ export default function Layout({ children }: LayoutProps) {
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       onJordanCaseResolved: () => setIsJordanResolved(true),
       onSofiaCaseResolved: () => setIsSofiaResolved(true),
+      showDismissalToast: (summary) => setDismissalToast(summary),
       pushTransferredToast,
       isConversationPanelOpen,
       isConversationPopunderOpen,
@@ -11476,8 +11852,28 @@ export default function Layout({ children }: LayoutProps) {
                 onTakeoverOpen={(pos) => {
                   bringFloatingPanelToFront("customerInfo");
                   setCustomerInfoPopunderPosition(pos);
+                  setCustomerInfoPopunderSize({ width: 315, height: 600 });
                   customerInfoHasBeenPositionedRef.current = true;
                   setCustomerInfoTakeoverStartTime(Date.now());
+                  const botLabel = selectedAssignment.label ?? "Aria";
+                  const botAvatarUrl = botLabel === "Emily"
+                    ? `${import.meta.env.BASE_URL}emily-avatar.jpg`
+                    : botLabel === "Jacob"
+                      ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                      : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+                  const ctx = staticAssignments.find((s) =>
+                    s.customerRecordId === selectedAssignment.customerRecordId ||
+                    s.customerId === selectedAssignment.customerId
+                  )?.customerContext;
+                  if (ctx) {
+                    setCustomerInfoTakeoverCard({
+                      botType: botLabel,
+                      botAvatarUrl,
+                      customerContext: ctx,
+                      aiConfidence: selectedAssignment.aiConfidence ?? 78,
+                      aiConfidenceReason: selectedAssignment.aiConfidenceReason ?? "Based on 3 similar resolved cases and firmware documentation match.",
+                    });
+                  }
                   setIsTakeoverInfoOpen(true);
                 }}
                 aiConfidence={selectedAssignment.aiConfidence}
@@ -11631,8 +12027,28 @@ export default function Layout({ children }: LayoutProps) {
               onTakeoverOpen={(pos) => {
                 bringFloatingPanelToFront("customerInfo");
                 setCustomerInfoPopunderPosition(pos);
+                setCustomerInfoPopunderSize({ width: 315, height: 600 });
                 customerInfoHasBeenPositionedRef.current = true;
                 setCustomerInfoTakeoverStartTime(Date.now());
+                const botLabel = selectedAssignment.label ?? "Aria";
+                const botAvatarUrl = botLabel === "Emily"
+                  ? `${import.meta.env.BASE_URL}emily-avatar.jpg`
+                  : botLabel === "Jacob"
+                    ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                    : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+                const ctx = staticAssignments.find((s) =>
+                  s.customerRecordId === selectedAssignment.customerRecordId ||
+                  s.customerId === selectedAssignment.customerId
+                )?.customerContext;
+                if (ctx) {
+                  setCustomerInfoTakeoverCard({
+                    botType: botLabel,
+                    botAvatarUrl,
+                    customerContext: ctx,
+                    aiConfidence: selectedAssignment.aiConfidence ?? 78,
+                    aiConfidenceReason: selectedAssignment.aiConfidenceReason ?? "Based on 3 similar resolved cases and firmware documentation match.",
+                  });
+                }
                 setIsTakeoverInfoOpen(true);
               }}
             />
@@ -11746,7 +12162,8 @@ export default function Layout({ children }: LayoutProps) {
           onOpenCall={layoutContextValue.toggleCallPopunder}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           takeoverStartTime={customerInfoTakeoverStartTime}
-          onClose={() => { setIsCustomerInfoIconPopoverOpen(false); setIsTakeoverInfoOpen(false); setCustomerInfoTakeoverStartTime(null); closeCustomerInfoPanel(); }}
+          takeoverCard={isTakeoverInfoOpen ? customerInfoTakeoverCard : null}
+          onClose={() => { setIsCustomerInfoIconPopoverOpen(false); setIsTakeoverInfoOpen(false); setCustomerInfoTakeoverStartTime(null); setCustomerInfoTakeoverCard(null); closeCustomerInfoPanel(); }}
           onDock={isCustomerInfoPanelAllowed ? () => { setIsCustomerInfoIconPopoverOpen(false); dockCustomerInfoPanel(); } : undefined}
           dragActivation={customerInfoDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("customerInfo")}
@@ -11937,6 +12354,21 @@ export default function Layout({ children }: LayoutProps) {
         }}
         onApprove={approveIncomingAssignment}
         onApproveResolved={resolveIncomingByApprove}
+        onDismissResolved={(item) => {
+          const sa = staticAssignments.find(
+            (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
+          );
+          setDismissalToast({
+            customerName: item.name,
+            customerId: item.customerId ?? "",
+            status: "dismissed",
+            resolvedStatus: "Resolved",
+            actions: sa?.aiOverview?.actions ?? [],
+            preview: item.preview ?? "",
+            botType: item.label ?? "Aria",
+            channel: item.channel,
+          });
+        }}
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
       />
@@ -11980,20 +12412,23 @@ export default function Layout({ children }: LayoutProps) {
             // Append warm handoff message from the bot at the moment of takeover,
             // followed by the internal handoff card (agent-only green transfer notice).
             const modalBotAuthor = escalatedToastModal.botType ?? "Aria";
+            const isModalMarcus = escalatedToastModal.customerRecordId === "marcus";
             const conversationWithHandoff = conversation
               ? {
                   ...conversation,
                   messages: [
                     ...conversation.messages,
-                    {
+                    // Marcus already has a "Hang on Marcus, I'm connecting you with…" handoff message in
+                    // the static conversation data, so skip injecting the generic transfer bubble for him.
+                    ...(!isModalMarcus ? [{
                       id: (conversation.messages[conversation.messages.length - 1]?.id ?? 0) + 1,
                       role: "agent" as const,
                       author: modalBotAuthor,
                       content: "I'm going to transfer you to a live customer service agent, please hold.",
                       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
-                    },
+                    }] : []),
                     {
-                      id: (conversation.messages[conversation.messages.length - 1]?.id ?? 0) + 2,
+                      id: (conversation.messages[conversation.messages.length - 1]?.id ?? 0) + (isModalMarcus ? 1 : 2),
                       role: "agent" as const,
                       author: modalBotAuthor,
                       content: `I have transferred the assignment. You are now live with customer ${escalatedToastModal.name}.`,
@@ -12100,6 +12535,15 @@ export default function Layout({ children }: LayoutProps) {
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
           onClose={() => setEscalatedToastModal(null)}
+          onDismissed={(summary) => setDismissalToast(summary)}
+        />
+      )}
+
+      {/* Dismissal confirmation toast */}
+      {dismissalToast && (
+        <DismissalToast
+          data={dismissalToast}
+          onClose={() => setDismissalToast(null)}
         />
       )}
 

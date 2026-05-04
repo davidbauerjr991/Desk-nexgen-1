@@ -21,7 +21,7 @@ export type ConversationMessage = {
   content: string;
   time: string;
   channel?: CustomerChannel;
-  sentiment?: "frustrated" | "critical";
+  sentiment?: "frustrated" | "critical" | "positive";
   isInternal?: boolean;
   ticket?: CustomerTicket;
   /**
@@ -402,6 +402,57 @@ function getInlineSuggestionVariants(
   customerMessage: ConversationMessage,
 ): InlineSuggestion[] {
   const normalizedMessage = customerMessage.content.toLowerCase();
+  const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
+
+  // ── Sofia fraud / transfer handoff scenario ───────────────────────────────
+  if (
+    normalizedMessage.includes("fraud") ||
+    normalizedMessage.includes("unauthorized") ||
+    normalizedMessage.includes("scared") ||
+    normalizedMessage.includes("rent") ||
+    normalizedMessage.includes("temporary credit") ||
+    normalizedMessage.includes("fraudulent") ||
+    (normalizedMessage.includes("sorry") && normalizedMessage.includes("upset"))
+  ) {
+    return [
+      {
+        summary: `Introduce yourself warmly as the agent who has been monitoring, and immediately reassure ${customerFirstName} that the situation is being taken seriously at every level.`,
+        suggestedReply: `Hi ${customerFirstName}, this is Jeff — I've been monitoring this conversation and I want you to know we take this extremely seriously. You're in safe hands and we're going to make sure everything is fully resolved for you.`,
+      },
+      {
+        summary: `Acknowledge the distress ${customerFirstName} has been through and personally commit to seeing this through to resolution.`,
+        suggestedReply: `${customerFirstName}, I'm so sorry this happened to you. My name is Jeff and I've been following along this entire conversation. I want to personally make sure this is completely taken care of — you have my full attention right now.`,
+      },
+      {
+        summary: `Validate how stressful this must be and confirm that the protective actions already taken are solid.`,
+        suggestedReply: `${customerFirstName}, I can only imagine how stressful this has been, especially with your rent due. I'm Jeff, and I want to reassure you — the credit has been applied, your card is protected, and I'm right here if anything else comes up.`,
+      },
+      {
+        summary: `Reassure ${customerFirstName} about the case status and offer a direct line of escalation if anything else surfaces.`,
+        suggestedReply: `Hi ${customerFirstName}, this is Jeff. I've reviewed everything Jacob did on your case and it was handled correctly. Your temporary credit is in place and the investigation is underway. I'll be keeping a close eye on this personally.`,
+      },
+      {
+        summary: `Empathize with the emotional weight of the situation and confirm that the fraud investigation is moving forward with urgency.`,
+        suggestedReply: `${customerFirstName}, please don't apologize — what happened to your account was serious and your reaction was completely understandable. I'm Jeff, and I want you to know our fraud team is already working on this. You did the right thing by reaching out.`,
+      },
+      {
+        summary: `Acknowledge the transfer, introduce yourself, and give ${customerFirstName} confidence that no details will be lost.`,
+        suggestedReply: `Hi ${customerFirstName}, I'm Jeff. Jacob has transferred you over to me, and I've read through everything — you won't have to repeat yourself. We have the dispute filed, your credit applied, and a replacement card on its way. Is there anything else I can help you with right now?`,
+      },
+      {
+        summary: `Open with warmth, confirm everything that has been done, and give ${customerFirstName} a clear sense of what happens next.`,
+        suggestedReply: `${customerFirstName}, my name is Jeff and I'll be with you from here. Everything Jacob set up is in place — the dispute is filed under reference #FRD-2159-SM and your balance is protected. You should see the credit reflected shortly. I'll follow up if our investigation team needs anything from you.`,
+      },
+      {
+        summary: `Acknowledge the handoff and immediately focus on ${customerFirstName}'s most pressing concern — the rent deadline.`,
+        suggestedReply: `Hi ${customerFirstName}, this is Jeff. I know your rent is due tomorrow and that's exactly why I'm stepping in personally. The $2,159 credit is on your account right now — your payment should go through without any issue. I'm here if you need anything else at all.`,
+      },
+      {
+        summary: `Close with confidence and warmth, making ${customerFirstName} feel cared for as the handoff wraps up.`,
+        suggestedReply: `${customerFirstName}, you're all set on our end. I'm Jeff and I'll be your point of contact from here on. Please don't hesitate to reach back out if you notice anything unusual on your account — we'll be watching it closely on our side too.`,
+      },
+    ];
+  }
 
   if (normalizedMessage.includes("same error") || normalizedMessage.includes("tried again") || normalizedMessage.includes("retry") || normalizedMessage.includes("retried") || normalizedMessage.includes("still")) {
     return [
@@ -1155,7 +1206,11 @@ export default function ConversationPanel({
   const [containerBounds, setContainerBounds] = useState<{ left: number; width: number; bottom: number } | null>(null);
 
   const previousMessageCountRef = useRef(conversation.messages.length);
+  const initialMessageCountRef = useRef(conversation.messages.length);
   const shouldStickToBottomRef = useRef(true);
+  // Suggestion panel is hidden until the customer sends a NEW message after the agent's
+  // first reply. This prevents showing suggestions on an already-open conversation.
+  const [suggestionUnlocked, setSuggestionUnlocked] = useState(false);
   const [draft, setDraft] = useState(conversation.draft);
   const [isDraftFocused, setIsDraftFocused] = useState(false);
   const [isInputHovered, setIsInputHovered] = useState(false);
@@ -1744,8 +1799,10 @@ export default function ConversationPanel({
 
   useEffect(() => {
     previousMessageCountRef.current = conversation.messages.length;
+    initialMessageCountRef.current = conversation.messages.length;
     shouldStickToBottomRef.current = true;
     setNewMessagesCount(0);
+    setSuggestionUnlocked(false);
 
     return queueScrollToBottomAfterLayout();
   }, [draftKey]);
@@ -1760,6 +1817,16 @@ export default function ConversationPanel({
     }
 
     const addedMessagesCount = nextMessageCount - previousMessageCount;
+
+    // Unlock the suggestion panel the first time a new customer message arrives
+    // after the agent has sent at least one message since opening the conversation.
+    if (!suggestionUnlocked && nextMessageCount > initialMessageCountRef.current) {
+      const newMessages = conversation.messages.slice(previousMessageCount);
+      const hasNewCustomerMessage = newMessages.some((m) => m.role === "customer");
+      if (hasNewCustomerMessage) {
+        setSuggestionUnlocked(true);
+      }
+    }
 
     if (shouldStickToBottomRef.current) {
       const frameId = window.requestAnimationFrame(() => {
@@ -1974,7 +2041,7 @@ export default function ConversationPanel({
         {/* Conversation view — hidden on copilot tab when narrow */}
         {(!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (
         <div className="relative min-h-0 flex-1 flex flex-col overflow-hidden">
-          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
+          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: isPendingAcceptance ? 0 : 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
             <div className={cn("space-y-6 px-6", isWidePanel ? "m-8 mx-auto max-w-[800px]" : "m-8")}>
             <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -2070,8 +2137,9 @@ export default function ConversationPanel({
                 </div>
 
                 {conversation.messages.filter((message) =>
-                  // Hide warm handoff and internal notes until the agent has taken over
-                  isPendingAcceptance ? !(message.isInternal || message.isHandoffCard || message.isHandoffMessage) : true
+                  // In review mode: hide handoff cards/messages but keep isInternal action notes
+                  // (those are injected by the agent during supervise and must be visible)
+                  isPendingAcceptance ? !(message.isHandoffCard || message.isHandoffMessage) : true
                 ).map((message) => {
                   const isNewMessage = !seenMessageIdsRef.current.has(message.id);
                   if (isNewMessage) seenMessageIdsRef.current.add(message.id);
@@ -2122,13 +2190,6 @@ export default function ConversationPanel({
                           <span className="rounded-full border border-[#24943E] px-2 py-0.5 text-[10px] font-medium text-[#166744]">Internal note</span>
                         </div>
                         <p className="text-[13px] font-medium leading-5 text-[#166744]">{message.content}</p>
-                        <div className="mt-3 flex items-center justify-between rounded-lg border border-[#24943E] bg-white px-3 py-2">
-                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#208337]">Status</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 animate-pulse rounded-full bg-[#208337]" />
-                            <span className="text-[12px] font-semibold text-[#208337]">Live</span>
-                          </div>
-                        </div>
                       </div>
                     )}
 
@@ -2246,6 +2307,12 @@ export default function ConversationPanel({
                             <div className={cn("mt-0.5 flex items-center gap-1 text-xs font-medium text-[#C71D1A]", isMsgAgent && "justify-end")}>
                               <AlertTriangle className="h-3.5 w-3.5" />
                               Critical sentiment detected
+                            </div>
+                          )}
+                          {message.sentiment === "positive" && (
+                            <div className={cn("mt-0.5 flex items-center gap-1 text-xs font-medium text-[#208337]", isMsgAgent && "justify-end")}>
+                              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                              Positive sentiment detected
                             </div>
                           )}
                         </div>

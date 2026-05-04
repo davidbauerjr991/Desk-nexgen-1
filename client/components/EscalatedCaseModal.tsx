@@ -47,6 +47,10 @@ export type EscalatedCaseModalData = {
   customerContext?: string;
   aiOverview: { actions: string[] };
   status: string;
+  /** AI confidence score (0–100) for the pending handoff — shown in the inline internal note card. */
+  aiConfidence?: number;
+  /** Short reason text below the confidence bar. */
+  aiConfidenceReason?: string;
   /** Timestamp (ms) when the escalation first appeared — keeps the modal timer in sync with the toast. */
   escalatedAt?: number;
   /** When true the modal auto-fires the approve sequence immediately on open */
@@ -369,6 +373,7 @@ export function EscalatedCaseModal({
   onTransfer,
   onResolve,
   onClose,
+  onDismissed,
 }: {
   caseData: EscalatedCaseModalData;
   onTakeover: (conversation: import("@/components/ConversationPanel").SharedConversationData, status: string, priority: string) => void;
@@ -376,6 +381,8 @@ export function EscalatedCaseModal({
   onTransfer: () => void;
   onResolve: () => void;
   onClose: () => void;
+  /** Called when the agent clicks Dismiss after a case is resolved — passes case summary for the dismissal toast. */
+  onDismissed?: (summary: { customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string }) => void;
 }) {
   const [isClosing, setIsClosing] = useState(false);
   const handleClose = useCallback(() => {
@@ -395,6 +402,12 @@ export function EscalatedCaseModal({
   const [superviseScrollTrigger, setSuperviseScrollTrigger] = useState(0);
   const [approveContext, setApproveContext] = useState(false);
   const [showResolvedMessage, setShowResolvedMessage] = useState(false);
+  const [declinePopoverOpen, setDeclinePopoverOpen] = useState(false);
+  const [isRegeneratingNote, setIsRegeneratingNote] = useState(false);
+  const [regeneratedNoteContext, setRegeneratedNoteContext] = useState<string | null>(null);
+  const [regeneratedConfidence, setRegeneratedConfidence] = useState<number | null>(null);
+  const [resolvedInlineStatus, setResolvedInlineStatus] = useState("Resolved");
+  const [resolvedInlineStatusOpen, setResolvedInlineStatusOpen] = useState(false);
   const [jordanTyping, setJordanTyping] = useState(false);
 
   // Avatar URLs — component-level so all JSX (both columns) can reference them
@@ -408,12 +421,15 @@ export function EscalatedCaseModal({
   // Load scripted responses from the customer database so content is data-driven.
   // Falls back to empty strings if no escalationResponses are defined for this customer.
   const dbResponses = getCustomerRecord(caseData.customerRecordId)?.escalationResponses ?? [];
+  const [aiCommentIndex, setAiCommentIndex] = useState(0);
   const [aiComment, setAiComment] = useState(dbResponses[0] ?? "");
   const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [aiCommentRegenerating, setAiCommentRegenerating] = useState(false);
+  const [secondAiCommentIndex, setSecondAiCommentIndex] = useState(1);
   const [secondAiComment, setSecondAiComment] = useState(dbResponses[1] ?? "");
   const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [secondAiCommentRegenerating, setSecondAiCommentRegenerating] = useState(false);
+  const [thirdAiCommentIndex, setThirdAiCommentIndex] = useState(2);
   const [thirdAiComment, setThirdAiComment] = useState(dbResponses[2] ?? "");
   const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
   const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
@@ -426,6 +442,7 @@ export function EscalatedCaseModal({
   // Third card two-phase split: actions approved → thinking → bot comment
   const [thirdActionsApproved, setThirdActionsApproved] = useState(false);
   const [thirdBotCommentReady, setThirdBotCommentReady] = useState(false);
+  const [thirdActionRejectPopoverOpen, setThirdActionRejectPopoverOpen] = useState(false);
   const [sofiaTyping, setSofiaTyping] = useState(false);
   // Temporary credit state — pre-checked and open by default
   const [creditChecked, setCreditChecked] = useState(true);
@@ -457,6 +474,9 @@ export function EscalatedCaseModal({
   const [disputePaused, setDisputePaused] = useState(false);
   const [disputeStepIndex, setDisputeStepIndex] = useState(0);
   const [disputeComplete, setDisputeComplete] = useState(false);
+  const [disputeRejectPopoverOpen, setDisputeRejectPopoverOpen] = useState(false);
+  const [disputeRejectedReason, setDisputeRejectedReason] = useState<string | null>(null);
+  const [disputeAltPhase, setDisputeAltPhase] = useState<"idle" | "thinking" | "ready">("idle");
   const disputeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const disputeStepIndexRef = useRef(0); // mirrors disputeStepIndex for use in closures
   const [injectedMessages, setInjectedMessages] = useState<ConversationMessage[]>([]);
@@ -508,11 +528,13 @@ export function EscalatedCaseModal({
     approveTimersRef.current.push(setTimeout(() => {
       const t2 = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
       setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "customer" as const, content: "\u2605\u2605\u2605\u2605\u2605  Case resolution rated 5 stars", time: t2 }]);
+      setSuperviseScrollTrigger((n) => n + 1);
     }, 4500));
     approveTimersRef.current.push(setTimeout(() => {
       setLocalStatus("resolved");
       setLocalPriority("Low");
       setShowResolvedMessage(true);
+      setSuperviseScrollTrigger((n) => n + 1);
       onResolve();
     }, 5500));
   }
@@ -530,6 +552,249 @@ export function EscalatedCaseModal({
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [handleClose]);
+
+  // ── Case Overview card (AI internal note + confidence meter) — rendered in left panel ──
+  const confidence = caseData.aiConfidence ?? 78;
+  const confidenceReason = caseData.aiConfidenceReason ?? "Based on 3 similar resolved cases and firmware documentation match.";
+  const DECLINE_REASONS = [
+    "Cannot verify this information",
+    "Incorrect approach",
+    "Need more information",
+    "Risk is too high",
+    "Requires escalation",
+  ];
+  const REGENERATED_NOTE: Record<string, string> = {
+    jordan: "Understood. As an alternative, I can guide Jordan through manually exporting his port forwarding rules from the router admin panel (192.168.1.1 › Advanced › Backup Config) before the factory reset — this ensures his configuration is fully preserved regardless of firmware backup behaviour. Would you like me to proceed with these instructions instead?",
+    sofia: "Understood. As an additional safeguard, I recommend we first have our fraud prevention team independently verify the transaction details before initiating the dispute. I can flag this case for priority review and arrange for a fraud specialist to contact Sofia directly within the next 30 minutes. Shall I proceed?",
+  };
+  const regeneratedNote = regeneratedNoteContext
+    ?? REGENERATED_NOTE[caseData.customerRecordId ?? ""]
+    ?? "Understood. I've re-evaluated the situation and would like to propose an alternative approach. Could you clarify what additional information is needed so I can update my recommendation accordingly?";
+
+  const caseOverviewCard = caseData.customerContext ? (
+    <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 space-y-3">
+      {/* Header — always shown */}
+      <div className="flex items-center gap-2">
+        <img src={botAvatar} alt={`${caseData.botType} avatar`} className="h-7 w-7 rounded-full object-cover shrink-0" />
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
+          {caseData.botType}
+        </p>
+      </div>
+
+      {/* ── State 3: Resolved ── */}
+      {showResolvedMessage ? (
+        <>
+          <p className="text-[13px] font-medium leading-5 text-[#344054]">
+            Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+          </p>
+          {/* Case Status dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setResolvedInlineStatusOpen((v) => !v)}
+              className={cn(
+                "flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-colors",
+                resolvedInlineStatus === "Resolved" ? "border-[#24943E] bg-[#EFFBF1]" :
+                resolvedInlineStatus === "Pending"  ? "border-[#FFB800] bg-[#FFF6E0]" :
+                resolvedInlineStatus === "Escalated"? "border-[#E53935] bg-[#FDEAEA]" :
+                                                     "border-[#BFDBFE] bg-white",
+              )}
+            >
+              <span className={cn("text-[11px] font-semibold uppercase tracking-widest",
+                resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+              )}>Case Status</span>
+              <div className="flex items-center gap-1.5">
+                <div className={cn("h-2 w-2 rounded-full",
+                  resolvedInlineStatus === "Resolved" ? "bg-[#208337]" :
+                  resolvedInlineStatus === "Pending"  ? "bg-[#FFB800]" :
+                  resolvedInlineStatus === "Escalated"? "bg-[#E32926]" : "bg-[#166CCA]",
+                )} />
+                <span className={cn("text-[12px] font-semibold",
+                  resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                  resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                  resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                )}>{resolvedInlineStatus}</span>
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform",
+                  resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                  resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                  resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                  resolvedInlineStatusOpen && "rotate-180",
+                )} />
+              </div>
+            </button>
+            {resolvedInlineStatusOpen && (
+              <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 z-30 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                {[
+                  { label: "Resolved",  dot: "bg-[#208337]", text: "text-[#208337]" },
+                  { label: "Open",      dot: "bg-[#166CCA]", text: "text-[#166CCA]" },
+                  { label: "Pending",   dot: "bg-[#FFB800]", text: "text-[#A37A00]" },
+                  { label: "Escalated", dot: "bg-[#E32926]", text: "text-[#C71D1A]" },
+                ].map(({ label, dot, text }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => { setResolvedInlineStatus(label); setResolvedInlineStatusOpen(false); }}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />
+                    <span className={cn("text-[13px] font-medium", text)}>{label}</span>
+                    {resolvedInlineStatus === label && (
+                      <Check className="ml-auto h-3.5 w-3.5 text-[#166CCA]" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onDismissed?.({
+                customerName: caseData.name,
+                customerId: caseData.customerId,
+                status: localStatus,
+                resolvedStatus: resolvedInlineStatus,
+                actions: caseData.aiOverview.actions,
+                preview: caseData.preview,
+                botType: caseData.botType,
+                channel: caseData.channel,
+              });
+              handleClose();
+            }}
+            className="w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+          >
+            Dismiss
+          </button>
+        </>
+      ) : approveContext ? (
+        /* ── State 2: Approving in progress ── */
+        <>
+          <p className="text-[13px] font-medium leading-5 text-[#344054]">
+            {regeneratedNoteContext ? regeneratedNote : caseData.customerContext}
+          </p>
+          <p className="text-[12px] font-medium text-[#344054] flex items-center gap-1.5">
+            Approving request
+            <span className="inline-flex gap-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce" style={{ animationDelay: "300ms" }} />
+            </span>
+          </p>
+        </>
+      ) : (
+        /* ── State 1: Normal — show message, confidence, Approve/Reject ── */
+        <>
+          {/* Body — regenerating spinner OR context / regenerated text */}
+          {isRegeneratingNote ? (
+            <div className="flex items-center gap-2.5 py-2">
+              <span className="h-4 w-4 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+              <span className="text-[12px] text-[#1260B0] font-medium">Reconsidering suggestion…</span>
+            </div>
+          ) : (
+            <p className="text-[13px] font-medium leading-5 text-[#344054]">
+              {regeneratedNoteContext ? regeneratedNote : caseData.customerContext}
+            </p>
+          )}
+
+          {/* Confidence meter — hidden while regenerating */}
+          {!isRegeneratingNote && (() => {
+            const displayConfidence = regeneratedNoteContext
+              ? (regeneratedConfidence ?? confidence)
+              : confidence;
+            return (
+              <div className="rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
+                  <span className="text-[12px] font-bold text-[#166CCA]">{displayConfidence}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-700"
+                    style={{ width: `${displayConfidence}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-[#98A2B3] leading-relaxed">{confidenceReason}</p>
+              </div>
+            );
+          })()}
+
+          {/* Action buttons — hidden in supervise mode */}
+          {!isRegeneratingNote && !showQuickActions && (
+            caseData.customerRecordId === "marcus" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const ch = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+                  const base = caseData.customerRecordId
+                    ? createConversationState(caseData.customerRecordId, ch, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
+                    : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
+                  const fullConversation = injectedMessages.length > 0
+                    ? { ...base, messages: [...base.messages, ...injectedMessages] }
+                    : base;
+                  onTakeover(fullConversation, localStatus, localPriority);
+                }}
+                className="w-full rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+              >
+                Take Over
+              </button>
+            ) : (
+              <div className="relative flex gap-2">
+                {/* Decline popover */}
+                {declinePopoverOpen && (
+                  <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                    <div className="px-3 py-2 border-b border-[#F2F4F7]">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Reason for rejecting</p>
+                    </div>
+                    {DECLINE_REASONS.map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => {
+                          setDeclinePopoverOpen(false);
+                          setIsRegeneratingNote(true);
+                          const delta = Math.floor(Math.random() * 6) + 3;
+                          const newConfidence = Math.min(99, Math.max(60, confidence + (Math.random() > 0.4 ? delta : -delta)));
+                          approveTimersRef.current.push(setTimeout(() => {
+                            setIsRegeneratingNote(false);
+                            setRegeneratedNoteContext(regeneratedNote);
+                            setRegeneratedConfidence(newConfidence);
+                          }, 1800));
+                        }}
+                        className="w-full px-3 py-2 text-left text-[13px] text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={triggerApprove}
+                  className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeclinePopoverOpen((v) => !v)}
+                  className={cn(
+                    "flex-1 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                    declinePopoverOpen
+                      ? "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054]"
+                      : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F2F4F7]",
+                  )}
+                >
+                  Reject
+                </button>
+              </div>
+            )
+          )}
+        </>
+      )}
+    </div>
+  ) : null;
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -612,92 +877,9 @@ export function EscalatedCaseModal({
           <div className="flex flex-col w-[380px] shrink-0 border-r border-border overflow-hidden">
             {/* Scrollable body */}
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
-              {/* Human Assist Request */}
-              {caseData.customerContext && (
-                <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <img
-                      src={botAvatar}
-                      alt={`${caseData.botType} avatar`}
-                      className="h-9 w-9 rounded-full object-cover shrink-0"
-                    />
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{caseData.botType}</p>
-                  </div>
-                  <p className="text-[13px] font-medium leading-5 text-[#344054]">
-                    {showResolvedMessage
-                      ? `Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!`
-                      : caseData.customerContext}
-                  </p>
 
-                  {/* Confidence meter — hidden once resolved or when supervising */}
-                  {!approveContext && !showResolvedMessage && !showQuickActions && (
-                    <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
-                        </div>
-                        <span className="text-[12px] font-bold text-[#166CCA]">94%</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-700"
-                          style={{ width: "94%" }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-[#98A2B3] leading-relaxed">
-                        Based on 3 similar resolved cases and firmware documentation match.
-                      </p>
-                    </div>
-                  )}
-
-                  {showResolvedMessage ? (
-                    /* Post-resolution: status dropdown locked to resolved */
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between rounded-lg border border-[#24943E] bg-[#EFFBF1] px-3 py-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-widest text-[#208337]">Case Status</span>
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-2 w-2 rounded-full bg-[#208337]" />
-                          <span className="text-[12px] font-semibold text-[#208337]">Resolved</span>
-                          <ChevronDown className="h-3.5 w-3.5 text-[#208337]" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : !approveContext && !showQuickActions ? (
-                    caseData.customerRecordId === "marcus" ? (
-                      // Marcus/Emily card — "Take Over" triggers the same action as the footer Takeover button
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const channel = (caseData.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
-                          const base = caseData.customerRecordId
-                            ? createConversationState(caseData.customerRecordId, channel, caseData.botType === "Jacob" ? "Jacob" : caseData.botType === "Emily" ? "Emily" : "Aria")
-                            : { customerName: caseData.name, label: "Chat", timelineLabel: "", status: "open" as const, draft: "", messages: [], isCustomerTyping: false };
-                          const fullConversation = injectedMessages.length > 0
-                            ? { ...base, messages: [...base.messages, ...injectedMessages] }
-                            : base;
-                          onTakeover(fullConversation, localStatus, localPriority);
-                        }}
-                        className="mt-3 w-full rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
-                      >
-                        Take Over
-                      </button>
-                    ) : (
-                    <button
-                      type="button"
-                      onClick={triggerApprove}
-                      className="mt-3 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
-                    >
-                      Approve
-                    </button>
-                    )
-                  ) : !showQuickActions ? (
-                    <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-1.5">
-                      <Check className="h-3 w-3 text-[#208337]" />
-                      <span className="text-[11px] font-semibold text-[#208337]">Approved — {caseData.botType} is responding to {caseData.name.split(" ")[0]}</span>
-                    </div>
-                  ) : null}
-                </div>
-              )}
+              {/* Case Overview — AI internal note + confidence meter */}
+              {caseOverviewCard}
 
               {/* Customer Profile Card */}
               {(() => {
@@ -1078,10 +1260,51 @@ export function EscalatedCaseModal({
                     </div>
 
                     {/* Phase 1 Approve/Reject */}
-                    <div className="flex items-center gap-2">
+                    <div className="relative flex items-center gap-2">
+                      {/* Reject reasons popover */}
+                      {thirdActionRejectPopoverOpen && (
+                        <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                          <div className="px-3 py-2 border-b border-[#F2F4F7]">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Reason for rejecting</p>
+                          </div>
+                          {[
+                            "Credit amount is incorrect",
+                            "Cannot verify mailing address",
+                            "Shipping speed not appropriate",
+                            "Need supervisor approval",
+                            "Requires additional verification",
+                          ].map((reason) => (
+                            <button
+                              key={reason}
+                              type="button"
+                              onClick={() => {
+                                setThirdActionRejectPopoverOpen(false);
+                                const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Agent rejected action authorization — Reason: ${reason}`, time: noteTime, isInternal: true }]);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                                // Reset actions back to defaults
+                                setShippingChecked(true);
+                                setShippingExpanded(true);
+                                setSelectedShipping("3-5 days");
+                                setShippingConfirmed(false);
+                                setCreditChecked(true);
+                                setCreditExpanded(true);
+                                setCreditAmount("2,159.00");
+                                setCreditConfirmed(false);
+                                setThirdActionsApproved(false);
+                                setThirdBotCommentReady(false);
+                              }}
+                              className="w-full px-3 py-2.5 text-left text-[13px] text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              {reason}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
+                          setThirdActionRejectPopoverOpen(false);
                           // Fire internal notes for checked actions
                           if (creditChecked && !creditConfirmed) {
                             setCreditConfirmed(true);
@@ -1108,20 +1331,13 @@ export function EscalatedCaseModal({
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          // Reset actions back to defaults
-                          setShippingChecked(true);
-                          setShippingExpanded(true);
-                          setSelectedShipping("3-5 days");
-                          setShippingConfirmed(false);
-                          setCreditChecked(true);
-                          setCreditExpanded(true);
-                          setCreditAmount("2,159.00");
-                          setCreditConfirmed(false);
-                          setThirdActionsApproved(false);
-                          setThirdBotCommentReady(false);
-                        }}
-                        className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+                        onClick={() => setThirdActionRejectPopoverOpen((v) => !v)}
+                        className={cn(
+                          "flex-1 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                          thirdActionRejectPopoverOpen
+                            ? "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054]"
+                            : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F2F4F7]",
+                        )}
                       >
                         Reject
                       </button>
@@ -1184,14 +1400,16 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setThirdAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setThirdAiComment(dbResponses[2] ?? "");
+                              const nextIndex = (thirdAiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                              setThirdAiCommentIndex(nextIndex);
+                              setThirdAiComment(dbResponses[nextIndex] ?? dbResponses[2] ?? "");
                               setThirdAiCommentApproved(null);
                               setThirdAiCommentRegenerating(false);
                             }, 1800));
                           }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
-                          Reject
+                          Generate New
                         </button>
                       </div>
                     )}
@@ -1244,7 +1462,6 @@ export function EscalatedCaseModal({
                                       role: "customer" as const,
                                       content: "Of course. It's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
                                       time: sofiaTime,
-                                      sentiment: "frustrated" as const,
                                     },
                                   ]);
                                   setSuperviseScrollTrigger((n) => n + 1);
@@ -1266,14 +1483,16 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setSecondAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setSecondAiComment(dbResponses[1] ?? "");
+                              const nextIndex = (secondAiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                              setSecondAiCommentIndex(nextIndex);
+                              setSecondAiComment(dbResponses[nextIndex] ?? dbResponses[1] ?? "");
                               setSecondAiCommentApproved(null);
                               setSecondAiCommentRegenerating(false);
                             }, 1800));
                           }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
-                          Reject
+                          Generate New
                         </button>
                       </div>
                     )}
@@ -1460,65 +1679,196 @@ export function EscalatedCaseModal({
 
                     {/* Approve / Reject — hidden while dispute is running */}
                     {!disputeRunning && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            // Card 1 approve: only kick off the dispute animation, do NOT inject message yet
-                            setSuperviseScrollTrigger((n) => n + 1);
-                            if (disputeChecked) {
-                              setDisputeRunning(true);
-                              setDisputePaused(false);
-                              disputeStepIndexRef.current = 0;
-                              disputeTimersRef.current.forEach(clearTimeout);
-                              disputeTimersRef.current = [];
-                              const runStep = (fromStep: number) => {
-                                for (let i = fromStep; i < DISPUTE_STEPS.length; i++) {
-                                  const delay = (i - fromStep) * 1200 + 800;
-                                  const t = setTimeout(() => {
-                                    disputeStepIndexRef.current = i + 1;
-                                    setDisputeStepIndex(i + 1);
-                                  }, delay);
-                                  disputeTimersRef.current.push(t);
-                                }
-                                const doneDelay = (DISPUTE_STEPS.length - fromStep) * 1200 + 800;
-                                const done = setTimeout(() => {
-                                  setDisputeComplete(true);
-                                  const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-                                  setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
-                                  setSuperviseScrollTrigger((n) => n + 1);
-                                }, doneDelay);
-                                disputeTimersRef.current.push(done);
-                              };
-                              (disputeTimersRef as any).runStep = runStep;
-                              runStep(0);
-                            } else {
-                              // No dispute — go straight to bot comment card
-                              setDisputeComplete(true);
-                            }
-                          }}
-                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            disputeTimersRef.current.forEach(clearTimeout);
-                            disputeTimersRef.current = [];
-                            setDisputeChecked(true);
-                            setDisputeExpanded(true);
-                            setDisputeRunning(false);
-                            setDisputePaused(false);
-                            setDisputeStepIndex(0);
-                            disputeStepIndexRef.current = 0;
-                            setDisputeComplete(false);
-                          }}
-                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
-                        >
-                          Reject
-                        </button>
-                      </div>
+                      disputeAltPhase === "thinking" ? (
+                        /* ── Reconsidering spinner ── */
+                        <div className="flex items-center gap-2.5 py-1">
+                          <span className="h-4 w-4 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+                          <span className="text-[12px] text-[#1260B0] font-medium">Reconsidering approach…</span>
+                        </div>
+                      ) : disputeAltPhase === "ready" ? (
+                        /* ── Alternative approach card ── */
+                        <div className="rounded-xl border border-[#E4E7EC] bg-white p-3 space-y-3 animate-in fade-in duration-300">
+                          <div className="flex items-center gap-1.5">
+                            <Sparkles className="h-3 w-3 text-[#1260B0]" />
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Alternative Approach</p>
+                          </div>
+                          <p className="text-[12px] text-[#344054] leading-relaxed">
+                            Understood. As an alternative, I recommend we first place a temporary hold on Sofia's card ****7714 to prevent further unauthorized charges, then initiate a manual fraud review with our specialist team. This gives the fraud team 24 hours to independently verify the transactions before we commit to the full dispute and provisional credit. Shall I proceed with the card hold and escalation to the fraud team?
+                          </p>
+                          <div className="relative flex gap-2">
+                            {disputeRejectPopoverOpen && (
+                              <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                                <div className="px-3 py-2 border-b border-[#F2F4F7]">
+                                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Reason for rejecting</p>
+                                </div>
+                                {[
+                                  "Still cannot verify the transactions",
+                                  "Alternative approach not appropriate",
+                                  "Need specialist involvement",
+                                  "Risk remains too high",
+                                  "Escalate to supervisor",
+                                ].map((reason) => (
+                                  <button
+                                    key={reason}
+                                    type="button"
+                                    onClick={() => {
+                                      setDisputeRejectPopoverOpen(false);
+                                      const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                      setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Agent rejected alternative approach — Reason: ${reason}`, time: noteTime, isInternal: true }]);
+                                      setSuperviseScrollTrigger((n) => n + 1);
+                                      setDisputeAltPhase("idle");
+                                      setDisputeRejectedReason(null);
+                                    }}
+                                    className="w-full px-3 py-2.5 text-left text-[13px] text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                                  >
+                                    {reason}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDisputeRejectPopoverOpen(false);
+                                setDisputeAltPhase("idle");
+                                setDisputeRejectedReason(null);
+                                setSuperviseScrollTrigger((n) => n + 1);
+                                setDisputeRunning(true);
+                                setDisputePaused(false);
+                                disputeStepIndexRef.current = 0;
+                                disputeTimersRef.current.forEach(clearTimeout);
+                                disputeTimersRef.current = [];
+                                const runStep = (fromStep: number) => {
+                                  for (let i = fromStep; i < DISPUTE_STEPS.length; i++) {
+                                    const delay = (i - fromStep) * 1200 + 800;
+                                    const t = setTimeout(() => {
+                                      disputeStepIndexRef.current = i + 1;
+                                      setDisputeStepIndex(i + 1);
+                                    }, delay);
+                                    disputeTimersRef.current.push(t);
+                                  }
+                                  const doneDelay = (DISPUTE_STEPS.length - fromStep) * 1200 + 800;
+                                  const done = setTimeout(() => {
+                                    setDisputeComplete(true);
+                                    const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                    setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                  }, doneDelay);
+                                  disputeTimersRef.current.push(done);
+                                };
+                                (disputeTimersRef as any).runStep = runStep;
+                                runStep(0);
+                              }}
+                              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDisputeRejectPopoverOpen((v) => !v)}
+                              className={cn(
+                                "flex-1 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                                disputeRejectPopoverOpen
+                                  ? "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054]"
+                                  : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F2F4F7]",
+                              )}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── Default: original Approve / Reject ── */
+                        <div className="relative flex gap-2">
+                          {disputeRejectPopoverOpen && (
+                            <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                              <div className="px-3 py-2 border-b border-[#F2F4F7]">
+                                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Reason for rejecting</p>
+                              </div>
+                              {[
+                                "Cannot verify the transactions",
+                                "Incorrect dispute amount",
+                                "Need more customer verification",
+                                "Risk is too high",
+                                "Requires manual review",
+                              ].map((reason) => (
+                                <button
+                                  key={reason}
+                                  type="button"
+                                  onClick={() => {
+                                    setDisputeRejectPopoverOpen(false);
+                                    setDisputeRejectedReason(reason);
+                                    // Inject internal note
+                                    const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                    setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Agent rejected dispute authorization — Reason: ${reason}`, time: noteTime, isInternal: true }]);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                    // Show reconsidering spinner then alternative approach
+                                    setDisputeAltPhase("thinking");
+                                    approveTimersRef.current.push(setTimeout(() => {
+                                      setDisputeAltPhase("ready");
+                                      setSuperviseScrollTrigger((n) => n + 1);
+                                    }, 2000));
+                                  }}
+                                  className="w-full px-3 py-2.5 text-left text-[13px] text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                                >
+                                  {reason}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDisputeRejectPopoverOpen(false);
+                              setSuperviseScrollTrigger((n) => n + 1);
+                              if (disputeChecked) {
+                                setDisputeRunning(true);
+                                setDisputePaused(false);
+                                disputeStepIndexRef.current = 0;
+                                disputeTimersRef.current.forEach(clearTimeout);
+                                disputeTimersRef.current = [];
+                                const runStep = (fromStep: number) => {
+                                  for (let i = fromStep; i < DISPUTE_STEPS.length; i++) {
+                                    const delay = (i - fromStep) * 1200 + 800;
+                                    const t = setTimeout(() => {
+                                      disputeStepIndexRef.current = i + 1;
+                                      setDisputeStepIndex(i + 1);
+                                    }, delay);
+                                    disputeTimersRef.current.push(t);
+                                  }
+                                  const doneDelay = (DISPUTE_STEPS.length - fromStep) * 1200 + 800;
+                                  const done = setTimeout(() => {
+                                    setDisputeComplete(true);
+                                    const noteTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+                                    setInjectedMessages((prev) => [...prev, { id: Date.now(), role: "agent" as const, content: `Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review`, time: noteTime, isInternal: true }]);
+                                    setSuperviseScrollTrigger((n) => n + 1);
+                                  }, doneDelay);
+                                  disputeTimersRef.current.push(done);
+                                };
+                                (disputeTimersRef as any).runStep = runStep;
+                                runStep(0);
+                              } else {
+                                setDisputeComplete(true);
+                              }
+                            }}
+                            className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDisputeRejectPopoverOpen((v) => !v)}
+                            className={cn(
+                              "flex-1 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+                              disputeRejectPopoverOpen
+                                ? "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054]"
+                                : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F2F4F7]",
+                            )}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )
                     )}
                   </div>
                   <img
@@ -1571,7 +1921,7 @@ export function EscalatedCaseModal({
                                 setInjectedMessages((prev) => [...prev, {
                                   id: Date.now(), role: "customer" as const,
                                   content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
-                                  time: sofiaTme, sentiment: "frustrated" as const,
+                                  time: sofiaTme, sentiment: "positive" as const,
                                 }]);
                                 setSofiaFirstReplyVisible(true);
                                 setSuperviseScrollTrigger((n) => n + 1);
@@ -1585,7 +1935,7 @@ export function EscalatedCaseModal({
                                     setInjectedMessages((prev) => [...prev, {
                                       id: Date.now(), role: "customer" as const,
                                       content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
-                                      time: addrTime, sentiment: "frustrated" as const,
+                                      time: addrTime,
                                     }]);
                                     setSofiaAddressInjected(true);
                                     setSuperviseScrollTrigger((n) => n + 1);
@@ -1607,14 +1957,16 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setAiComment(dbResponses[0] ?? "");
+                              const nextIndex = (aiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                              setAiCommentIndex(nextIndex);
+                              setAiComment(dbResponses[nextIndex] ?? dbResponses[0] ?? "");
                               setAiCommentApproved(null);
                               setAiCommentRegenerating(false);
                             }, 1800));
                           }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
-                          Reject
+                          Generate New
                         </button>
                       </div>
                     )}
@@ -1661,14 +2013,16 @@ export function EscalatedCaseModal({
                           onClick={() => {
                             setAiCommentRegenerating(true);
                             approveTimersRef.current.push(setTimeout(() => {
-                              setAiComment(dbResponses[0] ?? "");
+                              const nextIndex = (aiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                              setAiCommentIndex(nextIndex);
+                              setAiComment(dbResponses[nextIndex] ?? dbResponses[0] ?? "");
                               setAiCommentApproved(null);
                               setAiCommentRegenerating(false);
                             }, 1800));
                           }}
                           className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
                         >
-                          Reject
+                          Generate New
                         </button>
                       </div>
                     )}
@@ -1678,6 +2032,93 @@ export function EscalatedCaseModal({
                     alt={`${caseData.botType ?? "AI"} avatar`}
                     className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover"
                   />
+                </div>
+              ) : undefined;
+
+              // ── "Great job" resolved note — appears inline after the 5-star message ──
+              const resolvedNoteInlineCard = !showQuickActions && showResolvedMessage ? (
+                <div className="px-4 py-3 flex items-start gap-2">
+                  <div className="flex-1 rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 space-y-3">
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-3 w-3 text-[#1260B0]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
+                        Internal Note · {caseData.botType}
+                      </p>
+                    </div>
+                    <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                      Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+                    </p>
+                    {/* Case Status dropdown */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setResolvedInlineStatusOpen((v) => !v)}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-colors",
+                          resolvedInlineStatus === "Resolved" ? "border-[#24943E] bg-[#EFFBF1]" :
+                          resolvedInlineStatus === "Pending"  ? "border-[#FFB800] bg-[#FFF6E0]" :
+                          resolvedInlineStatus === "Escalated"? "border-[#E53935] bg-[#FDEAEA]" :
+                                                               "border-[#BFDBFE] bg-white",
+                        )}
+                      >
+                        <span className={cn("text-[11px] font-semibold uppercase tracking-widest",
+                          resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                          resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                          resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                        )}>Case Status</span>
+                        <div className="flex items-center gap-1.5">
+                          <div className={cn("h-2 w-2 rounded-full",
+                            resolvedInlineStatus === "Resolved" ? "bg-[#208337]" :
+                            resolvedInlineStatus === "Pending"  ? "bg-[#FFB800]" :
+                            resolvedInlineStatus === "Escalated"? "bg-[#E32926]" : "bg-[#166CCA]",
+                          )} />
+                          <span className={cn("text-[12px] font-semibold",
+                            resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                            resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                            resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                          )}>{resolvedInlineStatus}</span>
+                          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform",
+                            resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                            resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                            resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                            resolvedInlineStatusOpen && "rotate-180",
+                          )} />
+                        </div>
+                      </button>
+                      {resolvedInlineStatusOpen && (
+                        <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 z-30 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                          {[
+                            { label: "Resolved",  dot: "bg-[#208337]", text: "text-[#208337]" },
+                            { label: "Open",      dot: "bg-[#166CCA]", text: "text-[#166CCA]" },
+                            { label: "Pending",   dot: "bg-[#FFB800]", text: "text-[#A37A00]" },
+                            { label: "Escalated", dot: "bg-[#E32926]", text: "text-[#C71D1A]" },
+                          ].map(({ label, dot, text }) => (
+                            <button
+                              key={label}
+                              type="button"
+                              onClick={() => { setResolvedInlineStatus(label); setResolvedInlineStatusOpen(false); }}
+                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />
+                              <span className={cn("text-[13px] font-medium", text)}>{label}</span>
+                              {resolvedInlineStatus === label && (
+                                <Check className="ml-auto h-3.5 w-3.5 text-[#166CCA]" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {/* Dismiss button */}
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                  <img src={botAvatar} alt={`${caseData.botType} avatar`} className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
                 </div>
               ) : undefined;
 
@@ -1697,11 +2138,13 @@ export function EscalatedCaseModal({
                   onConversationChange={() => {}}
                   agentAvatarUrl={botAvatar}
                   appendContent={
-                    sofiaDisputeAuthCard ??
-                    sofiaBotCommentCard ??
-                    (showThinkingThird ? thinkingBubble : thirdActionAuthBubble) ??
-                    (showThinkingBetweenActions ? thinkingBubble : thirdBotCommentBubble) ??
-                    aiNextResponseBubble
+                    !showQuickActions
+                      ? undefined
+                      : (sofiaDisputeAuthCard ??
+                         sofiaBotCommentCard ??
+                         (showThinkingThird ? thinkingBubble : thirdActionAuthBubble) ??
+                         (showThinkingBetweenActions ? thinkingBubble : thirdBotCommentBubble) ??
+                         aiNextResponseBubble)
                   }
                   scrollToBottomTrigger={superviseScrollTrigger}
                 />
@@ -1712,46 +2155,54 @@ export function EscalatedCaseModal({
         </div>
 
         {/* ── Full-width footer ── */}
-        <div className="shrink-0 border-t border-border bg-[#F9FAFB] px-5 py-3 flex items-center justify-between gap-2">
-          {/* Supervise switch */}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={showQuickActions}
-            onClick={() => setShowQuickActions((v) => {
-              if (!v) {
-                setAiCommentApproved(null);
-                setSofiaFirstReplyVisible(false);
-                setSofiaAddressInjected(false);
-                setSecondCardReady(false);
-                setThirdCardReady(false);
-                setSofiaTyping(false);
-                setSuperviseScrollTrigger((n) => n + 1);
-              }
-              return !v;
-            })}
-            className="flex items-center gap-2 group"
-          >
-            <div
-              className={cn(
-                "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none",
-                showQuickActions ? "bg-[#166CCA]" : "bg-[#D0D5DD]",
-              )}
-            >
-              <span
-                className={cn(
-                  "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out",
-                  showQuickActions ? "translate-x-4" : "translate-x-0",
-                )}
-              />
+        <div
+          className={cn(
+            "shrink-0 border-t px-5 py-3 flex items-center justify-between gap-3 transition-colors duration-200",
+            showQuickActions
+              ? "border-[#FEC84B]/60 bg-[#FFFCF0]"
+              : "border-border bg-[#F9FAFB]",
+          )}
+        >
+          {/* Supervise mode alert — left side, only visible when active */}
+          {showQuickActions ? (
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#FEC84B]/25">
+                <AlertTriangle className="h-3.5 w-3.5 text-[#B54708]" />
+              </div>
+              <div>
+                <p className="text-[12px] font-semibold text-[#B54708] leading-tight">Supervising this conversation</p>
+                <p className="text-[11px] text-[#92400E]/70 leading-tight">You are monitoring the AI agent in real time</p>
+              </div>
             </div>
-            <span className={cn("text-[12px] font-medium", showQuickActions ? "text-[#1260B0]" : "text-[#344054]")}>
-              Supervise
-            </span>
-          </button>
+          ) : (
+            <div />
+          )}
 
           {/* Right-side actions */}
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowQuickActions((v) => {
+                if (!v) {
+                  setAiCommentApproved(null);
+                  setSofiaFirstReplyVisible(false);
+                  setSofiaAddressInjected(false);
+                  setSecondCardReady(false);
+                  setThirdCardReady(false);
+                  setSofiaTyping(false);
+                  setSuperviseScrollTrigger((n) => n + 1);
+                }
+                return !v;
+              })}
+              className={cn(
+                "rounded-lg border px-3.5 py-1.5 text-[12px] font-medium transition-colors",
+                showQuickActions
+                  ? "border-[#FEC84B] bg-[#FEF3C7] text-[#B54708] hover:bg-[#FDE68A]"
+                  : "border-border bg-white text-[#344054] hover:bg-[#F2F4F7]",
+              )}
+            >
+              {showQuickActions ? "Stop Supervising" : "Supervise"}
+            </button>
             <button
               ref={transferBtnRef}
               type="button"

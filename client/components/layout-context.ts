@@ -162,6 +162,8 @@ export interface LayoutContextValue {
   onJordanCaseResolved: () => void;
   /** Signal that Sofia's (Jacob's) case has been resolved — triggers the third escalation (Marcus / Emily). */
   onSofiaCaseResolved: () => void;
+  /** Show the dismissal confirmation toast (bottom-right) with case summary + external system writes. */
+  showDismissalToast: (summary: { customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string }) => void;
   /** Always shows a "transferred" handoff toast for the given item, even if the original toast was already dismissed. */
   pushTransferredToast: (item: {
     name: string;

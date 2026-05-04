@@ -443,8 +443,8 @@ export const staticAssignments: StaticAssignment[] = [
     preview: "Proactive fraud alert — 2 unauthorized transactions totaling $2,159 detected",
     waitTime: "8m",
     customerContext: "Sofia and I have been speaking about a proactive fraud alert. I've identified 2 unauthorized transactions totaling $2,159 from an out-of-state electronics retailer posted in the last hour. Sofia is very distressed — her rent is due tomorrow and her account balance has been impacted. I need your approval to begin the dispute process immediately.",
-    aiConfidence: 97,
-    aiConfidenceReason: "Transaction pattern matches confirmed fraud in 5 similar cases. Merchant flagged as high-risk. Customer denial is consistent and immediate.",
+    aiConfidence: 85,
+    aiConfidenceReason: "Transaction pattern matches confirmed fraud in 5 similar cases. Merchant flagged as high-risk. Customer denial is consistent and immediate. Customer distress level is high — human intervention recommended.",
     aiOverview: {
       actions: [
         "Detected behavioral anomaly via real-time transaction monitoring — 4 flagged transactions in past 6 hours deviating from Sofia's 11-year spending pattern.",
@@ -478,7 +478,7 @@ export const staticAssignments: StaticAssignment[] = [
     preview: "Router dropping all connections — port forwarding config blocking factory reset",
     waitTime: "11m",
     customerContext: "Jordan and I have been speaking and I'm unsure of next steps. I would like to tell him that the CloudMesh Pro v3 firmware will be backed up if he factory resets. Can you please approve my confirmation?",
-    aiConfidence: 94,
+    aiConfidence: 78,
     aiConfidenceReason: "Based on 3 similar resolved cases and firmware documentation match.",
     aiOverview: {
       actions: [

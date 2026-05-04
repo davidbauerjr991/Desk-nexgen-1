@@ -739,7 +739,7 @@ function TicketsDataGrid({ tickets = customerTickets, onOpenTicket }: { tickets?
   );
 }
 
-function OverviewTabContent({ customerId, customerName, onCopilotSubmit }: { customerId?: string; customerName?: string; onCopilotSubmit: (query: string) => void }) {
+function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeoverCard }: { customerId?: string; customerName?: string; onCopilotSubmit: (query: string) => void; takeoverCard?: TakeoverCardData }) {
   const [isProfileOpen, setIsProfileOpen] = useState(true);
   const [isCaseOpen, setIsCaseOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
@@ -763,6 +763,30 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit }: { cus
     <div className="flex h-full min-h-0 flex-col">
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-3 p-4">
+
+          {/* Takeover case overview card — shown above Customer Profile on takeover */}
+          {takeoverCard && (
+            <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <img src={takeoverCard.botAvatarUrl} alt={takeoverCard.botType} className="h-7 w-7 rounded-full object-cover shrink-0" />
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{takeoverCard.botType}</p>
+              </div>
+              <p className="text-[13px] font-medium leading-5 text-[#344054]">{takeoverCard.customerContext}</p>
+              <div className="rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
+                  <span className="text-[12px] font-bold text-[#166CCA]">{takeoverCard.aiConfidence}%</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA]"
+                    style={{ width: `${takeoverCard.aiConfidence}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-[#98A2B3] leading-relaxed">{takeoverCard.aiConfidenceReason}</p>
+              </div>
+            </div>
+          )}
 
           {/* Customer Profile */}
           {rec && profile && (
@@ -912,6 +936,14 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit }: { cus
   );
 }
 
+interface TakeoverCardData {
+  botType: string;
+  botAvatarUrl: string;
+  customerContext: string;
+  aiConfidence: number;
+  aiConfidenceReason: string;
+}
+
 interface NotesPanelProps {
   initialTab?: string;
   initialTicketId?: string;
@@ -919,6 +951,7 @@ interface NotesPanelProps {
   addNoteTrigger?: number;
   customerId?: string;
   customerName?: string;
+  takeoverCard?: TakeoverCardData;
 }
 
 export default function NotesPanel({
@@ -928,6 +961,7 @@ export default function NotesPanel({
   addNoteTrigger = 0,
   customerId,
   customerName,
+  takeoverCard,
 }: NotesPanelProps) {
   const availableTickets = useMemo(() => getCustomerTickets(customerId), [customerId]);
   const requestedTicket = useMemo(() => getCustomerTicketById(initialTicketId, customerId), [customerId, initialTicketId]);
@@ -1300,7 +1334,7 @@ export default function NotesPanel({
 
       {activeTab === "Overview" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
-          <OverviewTabContent customerId={customerId} customerName={customerName} onCopilotSubmit={handleCopilotSubmit} />
+          <OverviewTabContent customerId={customerId} customerName={customerName} onCopilotSubmit={handleCopilotSubmit} takeoverCard={takeoverCard} />
         </div>
       )}
 
