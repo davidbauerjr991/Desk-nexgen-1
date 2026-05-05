@@ -134,9 +134,12 @@ let escalationFired = false;
 let escalation2Fired = false;
 // Prevents the Marcus Webb (Emily) escalation from re-firing after Sofia's case resolves.
 let escalation3Fired = false;
+// Prevents the Terry Williams (Aria) sales-lead escalation from re-firing after Marcus's case resolves.
+let escalation4Fired = false;
 // Resolved flags — read by the BroadcastChannel HELLO handler to report current state.
 let jordanResolvedFlag = false;
 let sofiaResolvedFlag = false;
+let marcusResolvedFlag = false;
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -666,7 +669,7 @@ const DESK_CANVAS_POPOUNDER_COPILOT_MIN_WIDTH = 360;
 const DESK_CANVAS_POPOUNDER_DESK_DEFAULT_WIDTH = 360;
 const DESK_CANVAS_POPOUNDER_COPILOT_DEFAULT_WIDTH = 360;
 const ASSIGNMENTS_POPOVER_Z_INDEX = 90;
-const FLOATING_PANEL_BASE_Z_INDEX = 70;
+const FLOATING_PANEL_BASE_Z_INDEX = 300;
 const COPILOT_DOCK_BREAKPOINT = 1280;
 const COMBINED_INTERACTION_PANEL_BREAKPOINT = 1024;
 const COMBINED_INTERACTION_PANEL_CANVAS_BREAKPOINT = 1280;
@@ -1372,6 +1375,7 @@ function CallControlsPopunder({
   onInteractStart,
   isJoiningCall = false,
   joiningCallCustomerName = "",
+  initialAccountNumber = "",
 }: {
   position: CallPopunderPosition;
   size: CallPopunderSize;
@@ -1386,12 +1390,14 @@ function CallControlsPopunder({
   onInteractStart?: () => void;
   isJoiningCall?: boolean;
   joiningCallCustomerName?: string;
+  /** Pre-populates the Account Number field on open (e.g. for inbound lead callbacks). */
+  initialAccountNumber?: string;
 }) {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 360, height: 520 });
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
-  const [accountNumber, setAccountNumber] = useState("");
+  const [accountNumber, setAccountNumber] = useState(initialAccountNumber);
   const [isTestingAudio, setIsTestingAudio] = useState(false);
   const [audioLevels, setAudioLevels] = useState({ mic: 42, speaker: 58 });
 
@@ -1491,7 +1497,7 @@ function CallControlsPopunder({
 
   return (
     <div
-      className="fixed z-[70] flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{
         left: position.x,
         top: position.y,
@@ -1787,7 +1793,7 @@ function AddNewPopoverContent({
 
   return (
     <div
-      className="fixed z-[70] flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{
         left: position.x,
         top: position.y,
@@ -3404,7 +3410,7 @@ function DockedConversationPanel({
         "relative hidden min-h-0 overflow-visible transition-[margin,opacity,transform] duration-500 ease-out min-[800px]:block",
         isOpen && (!isEqualSplit || equalSplitWidth === undefined) && "min-w-0 flex-1 basis-0",
         isOpen && isEqualSplit && equalSplitWidth !== undefined && "min-w-0 shrink-0",
-        isOpen ? "min-[800px]:translate-x-0 min-[800px]:opacity-100" : "pointer-events-none w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
+        isOpen ? "min-[800px]:opacity-100" : "pointer-events-none w-0 min-[800px]:-translate-x-4 min-[800px]:opacity-0",
       )}
       style={{
         width: isOpen && isEqualSplit && equalSplitWidth !== undefined ? equalSplitWidth : undefined,
@@ -3415,7 +3421,7 @@ function DockedConversationPanel({
         className={cn(
           "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-500 ease-out",
           "will-change-[opacity,transform]",
-          isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+          isContentEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
         )}
       >
         {isContentVisible && (
@@ -4213,7 +4219,7 @@ function CombinedInteractionPanel({
       className={cn(
         "relative min-h-0 overflow-visible transition-[width,margin,opacity,transform] duration-300 ease-out",
         (isFullWidth || isEqualSplit) && "min-w-0 flex-1 basis-0",
-        isOpen ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
+        isOpen ? "opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
       )}
       style={{
         width: isFullWidth || isEqualSplit ? undefined : isOpen ? width : 0,
@@ -4351,7 +4357,7 @@ function InlineAppSpacePanel({
       <div
         className={cn(
           "h-full min-h-0 w-full transition-[opacity,transform] duration-300 ease-out",
-          isOpen && isEntered ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0",
+          isOpen && isEntered ? "opacity-100" : "translate-x-4 opacity-0",
         )}
       >
         {children}
@@ -4476,7 +4482,7 @@ function DockedCustomerInfoPanel({
         isEqualSplit && equalSplitWidth === undefined && "min-w-0 flex-1 basis-0",
         isEqualSplit && equalSplitWidth !== undefined && "shrink-0",
         isOpen
-          ? "min-[1024px]:translate-x-0 min-[1024px]:opacity-100"
+          ? "min-[1024px]:opacity-100"
           : "pointer-events-none min-[1024px]:translate-x-4 min-[1024px]:opacity-0",
       )}
       style={{
@@ -4487,7 +4493,7 @@ function DockedCustomerInfoPanel({
       <div
         className={cn(
           "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-200 ease-out will-change-[opacity,transform]",
-          isContentEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+          isContentEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
         )}
       >
         {isContentVisible ? (
@@ -5034,7 +5040,7 @@ function DeskCanvasPopunder({
 
   return (
     <div
-      className="fixed z-[70] flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{
         left: position.x,
         top: position.y,
@@ -5262,7 +5268,7 @@ function ConversationPopunder({
 
   return (
     <div
-      className="fixed z-[70] flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
+      className="fixed flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)]"
       style={{
         left: position.x,
         top: position.y,
@@ -6356,7 +6362,7 @@ function QueueOverlayList({
           onCloseChannelKeepTask={onCloseChannelKeepTask}
           taskSummaryIds={taskSummaryIds}
           onSelectAssignment={onSelectAssignment}
-          className={cn(isOpen ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0")}
+          className={cn(isOpen ? "opacity-100" : "-translate-x-6 opacity-0")}
           style={{ transitionDelay: `${index * 35}ms` }}
         />
       ))}
@@ -6782,6 +6788,8 @@ function IncomingAssignmentCard({
   onApprove,
   onApproveResolved,
   onDismissResolved,
+  onLaunchCall,
+  isLaunching = false,
   isInline = false,
   dismissDirection = "down",
   inlinePanelHeight = 0,
@@ -6797,6 +6805,10 @@ function IncomingAssignmentCard({
   onApproveResolved?: (item: QueuePreviewItem) => void;
   /** Called when the agent clicks Dismiss on the resolved-state card — used to fire the confirmation toast. */
   onDismissResolved?: (item: QueuePreviewItem) => void;
+  /** Called when the agent clicks Launch Call on a lead card — opens the call popunder. */
+  onLaunchCall?: (item: QueuePreviewItem) => void;
+  /** When true, the lead card shows a "Connecting call…" state and hides the Launch Call button. */
+  isLaunching?: boolean;
   /** When true, suppresses auto-minimize timer. Use for the active-case top-left overlay. */
   isInline?: boolean;
   /** Direction the card slides when dismissed. Defaults to "down" (bottom-right stack behaviour). */
@@ -6811,7 +6823,7 @@ function IncomingAssignmentCard({
    *  panel toggle is clicked while the toast is visible). */
   dismissTrigger?: number;
 }) {
-  const [summaryOpen, setSummaryOpen] = useState(item.statusLabel === "transferred");
+  const [summaryOpen, setSummaryOpen] = useState(item.statusLabel === "transferred" || item.statusLabel === "lead");
   const [approvePhase, setApprovePhase] = useState<"idle" | "approving" | "resolved">("idle");
   const [resolvedToastStatus, setResolvedToastStatus] = useState("Resolved");
   const [resolvedStatusOpen, setResolvedStatusOpen] = useState(false);
@@ -6930,6 +6942,135 @@ function IncomingAssignmentCard({
   );
   const aiOverview = staticAssignment?.aiOverview ?? getTaskAiOverview(item.customerRecordId, item.name, item.channel);
   const customerContext = staticAssignment?.customerContext;
+
+  // ── Lead Intelligence Card — rendered for Sales Lead notifications ──────────
+  if (item.statusLabel === "lead" && item.leadIntelligence) {
+    const li = item.leadIntelligence;
+    return (
+      <div
+        ref={cardRef}
+        onMouseEnter={() => {
+          if (autoIdleTimerRef.current !== null) { clearTimeout(autoIdleTimerRef.current); autoIdleTimerRef.current = null; }
+        }}
+        className="pointer-events-auto w-full rounded-2xl bg-white shadow-[0_8px_32px_rgba(16,24,40,0.18)] animate-in fade-in slide-in-from-bottom-3 duration-300 overflow-hidden border border-[#F79009]/30"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2 bg-[#FFFBEB] border-b border-[#FDE68A] px-4 pt-3.5 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F59E0B] text-white">
+              <Phone className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[13px] font-semibold text-[#111827]">{item.name}</p>
+                <span className="rounded-full bg-[#FEF0C7] border border-[#FDE68A] px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#B54708]">New Lead</span>
+              </div>
+              <p className="text-[11px] text-[#667085]">VP of Operations · {li.company} · {li.location}</p>
+            </div>
+          </div>
+          <button type="button" onClick={handleDismiss} className="shrink-0 text-[#98A2B3] hover:text-[#344054] transition-colors mt-0.5">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Case Overview accordion */}
+        <div className="border-t border-black/[0.06]">
+          <button
+            type="button"
+            onClick={() => setSummaryOpen((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[#FFFBEB]"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#667085]">
+              Case Overview
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-3.5 w-3.5 text-[#667085] transition-transform duration-200",
+                summaryOpen ? "rotate-180" : "rotate-0",
+              )}
+            />
+          </button>
+
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{ maxHeight: summaryOpen ? "600px" : "0px", opacity: summaryOpen ? 1 : 0 }}
+          >
+            <div className="overflow-y-auto max-h-[480px]">
+              <div className="px-4 pb-3 flex flex-col gap-3">
+
+                {/* Aria message card */}
+                {li.ariaMessage && (
+                  <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <img
+                        src="https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"
+                        alt="Aria avatar"
+                        className="h-5 w-5 rounded-full object-cover shrink-0"
+                      />
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Aria</p>
+                    </div>
+                    <p className="text-[13px] leading-relaxed text-[#1D2939]">{li.ariaMessage}</p>
+
+                    {/* AI Confidence bar */}
+                    {li.aiConfidence !== undefined && (
+                      <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#344054]">AI Confidence</span>
+                          <span className="text-[13px] font-bold text-[#166CCA]">{li.aiConfidence}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-[#166CCA]"
+                            style={{ width: `${li.aiConfidence}%` }}
+                          />
+                        </div>
+                        {li.aiConfidenceReason && (
+                          <p className="mt-1.5 text-[11px] text-[#667085]">{li.aiConfidenceReason}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* AI Suggested Opening Lines */}
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1.5">💡 AI Suggested Opening Lines</p>
+                  <ul className="space-y-1.5">
+                    {li.openingLines.map((line, i) => (
+                      <li key={i} className="rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] px-2.5 py-2 text-[11px] text-[#344054] leading-relaxed">
+                        <span className="font-medium">{line.intro}</span>{" "}
+                        <span className="text-[#667085]">{line.question}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer — Launch Call button */}
+        <div className="px-4 pb-4">
+          {isLaunching ? (
+            <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#EBF4FD] border border-[#BFDBFE] px-4 py-2.5 text-[13px] font-semibold text-[#166CCA]">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-[#166CCA]/30 border-t-[#166CCA] animate-spin" />
+              Connecting call…
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onLaunchCall?.(item)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166CCA] px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1260B0] active:scale-[0.98] transition-all"
+            >
+              <Phone className="h-3.5 w-3.5" />
+              Launch Call
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -7595,6 +7736,8 @@ function NotificationStack({
   onApprove,
   onApproveResolved,
   onDismissResolved,
+  onLaunchCall,
+  launchingAssignmentId = null,
   onChatOpen,
   onChatDismiss,
 }: {
@@ -7607,6 +7750,8 @@ function NotificationStack({
   onApprove?: (item: QueuePreviewItem) => void;
   onApproveResolved?: (item: QueuePreviewItem) => void;
   onDismissResolved?: (item: QueuePreviewItem) => void;
+  onLaunchCall?: (item: QueuePreviewItem) => void;
+  launchingAssignmentId?: string | null;
   onChatOpen: (notif: AgentChatNotification) => void;
   onChatDismiss: (notif: AgentChatNotification) => void;
 }) {
@@ -7685,6 +7830,8 @@ function NotificationStack({
         onApprove={onApprove}
         onApproveResolved={onApproveResolved}
         onDismissResolved={onDismissResolved}
+        onLaunchCall={onLaunchCall}
+        isLaunching={item.assignmentData.id === launchingAssignmentId}
       />
     ) : (
       <IncomingAgentChatCard
@@ -7907,6 +8054,24 @@ function LeftQueueRail({
   const dropdownCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerLeaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // When the rail closes, the <aside> animates from w-0 → w-[60px] over 300ms.
+  // If the active-call card is forced open immediately, Radix UI positions it
+  // against the trigger at x≈0, landing the card inside the rail.
+  // Wait for the rail transition to settle before allowing forced-open behaviour.
+  const [railSettled, setRailSettled] = useState(!isOpen);
+  const railSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (railSettleTimerRef.current) clearTimeout(railSettleTimerRef.current);
+    if (!isOpen) {
+      railSettleTimerRef.current = setTimeout(() => { setRailSettled(true); }, 320);
+    } else {
+      setRailSettled(false);
+    }
+    return () => {
+      if (railSettleTimerRef.current) clearTimeout(railSettleTimerRef.current);
+    };
+  }, [isOpen]);
+
   const handleRemoveQueueItem = (assignmentId: QueuePreviewItem["id"]) => {
     onRemoveAssignment(assignmentId);
   };
@@ -8001,7 +8166,7 @@ function LeftQueueRail({
                       key={groupId}
                       openDelay={120}
                       closeDelay={200}
-                      open={isCardEngaged ? true : undefined}
+                      open={isCardEngaged && railSettled ? true : undefined}
                     >
                       <HoverCardTrigger asChild>
                         {(() => {
@@ -8170,7 +8335,7 @@ function LeftQueueRail({
           <div
             className={cn(
               "flex h-full min-h-0 w-full flex-col overflow-y-auto bg-[#F8F8F9] transition-transform duration-300 ease-out [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
-              isOpen ? "translate-x-0" : "-translate-x-8",
+              isOpen ? "" : "-translate-x-8",
             )}
           >
             {/* Assignments section */}
@@ -8453,6 +8618,7 @@ export default function Layout({ children }: LayoutProps) {
   // fireJordanEscalation / fireSofiaEscalation / fireMarcusEscalation (called on TRIGGER msg).
   const [isJordanResolved, setIsJordanResolved] = useState(false);
   const [isSofiaResolved, setIsSofiaResolved] = useState(false);
+  const [isMarcusResolved, setIsMarcusResolved] = useState(false);
 
   // Broadcast resolved status to the Scenario Controller whenever a case resolves.
   useEffect(() => {
@@ -8465,6 +8631,11 @@ export default function Layout({ children }: LayoutProps) {
     sofiaResolvedFlag = true;
     scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "sofia", status: "resolved" } satisfies AppMsg);
   }, [isSofiaResolved]);
+  useEffect(() => {
+    if (!isMarcusResolved) return;
+    marcusResolvedFlag = true;
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "marcus", status: "resolved" } satisfies AppMsg);
+  }, [isMarcusResolved]);
 
   const [incomingChatNotifications, setIncomingChatNotifications] = useState<AgentChatNotification[]>([]);
   const [chatInitialConversationId, setChatInitialConversationId] = useState<string | undefined>(undefined);
@@ -8664,6 +8835,9 @@ export default function Layout({ children }: LayoutProps) {
   const [recentInteractions, setRecentInteractions] = useState<RecentInteractionItem[]>([]);
   const [pendingCallCustomerRecordId, setPendingCallCustomerRecordId] = useState(initialSelectedAssignment.customerRecordId);
   const [isCallPopunderOpen, setIsCallPopunderOpen] = useState(false);
+  const [pendingCallAccountNumber, setPendingCallAccountNumber] = useState("");
+  const [launchingLeadId, setLaunchingLeadId] = useState<string | null>(null);
+  const leadLaunchTimerRef = useRef<number | null>(null);
   const [callPopunderMode, setCallPopunderMode] = useState<CallPopunderMode>("setup");
   const [isJoiningCallPopunder, setIsJoiningCallPopunder] = useState(false);
   const [joiningCallCustomerName, setJoiningCallCustomerName] = useState("");
@@ -8818,6 +8992,31 @@ export default function Layout({ children }: LayoutProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const fireTerryEscalation = useCallback(() => {
+    if (escalation4Fired) return;
+    escalation4Fired = true;
+    if (visibleAssignmentIdsRef.current.includes("static-terry")) return;
+    if (visibleAssignmentIdsRef.current.some((id) => id.includes("terry"))) return;
+    const sa = staticAssignments.find((s) => s.customerRecordId === "terry");
+    setIncomingNotifications((prev) => {
+      if (prev.some((n) => n.id === "escalation-static-terry")) return prev;
+      return [...prev, {
+        id: "escalation-static-terry", customerRecordId: "terry", channel: "voice" as const,
+        initials: "TW", name: "Terry Williams", customerId: "CST-14201", label: "Aria",
+        lastUpdated: "0m", time: "0m",
+        preview: "Inbound callback — VP of Ops at Nexus Freight evaluating TMS replacement",
+        statusLabel: "lead", priority: "High",
+        priorityClassName: "border-[#F79009] bg-[#FEF0C7] text-[#B54708]", badgeColor: "#F79009",
+        icon: Phone, isActive: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        escalatedAt: Date.now(),
+        leadIntelligence: sa?.leadIntelligence,
+      }];
+    });
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "terry", status: "active" } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // BroadcastChannel — listen for controller messages and send status updates.
   useEffect(() => {
     const ch = new BroadcastChannel(SCENARIO_CHANNEL);
@@ -8835,7 +9034,8 @@ export default function Layout({ children }: LayoutProps) {
             statuses: {
               jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
               sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
-              marcus: escalation3Fired ? "active" : "idle",
+              marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
+              terry:  escalation4Fired ? "active" : "idle",
             },
           } satisfies AppMsg);
         }
@@ -8847,6 +9047,7 @@ export default function Layout({ children }: LayoutProps) {
         if (msg.case === "jordan") fireJordanEscalation();
         if (msg.case === "sofia")  fireSofiaEscalation();
         if (msg.case === "marcus") fireMarcusEscalation();
+        if (msg.case === "terry")  fireTerryEscalation();
       }
     };
 
@@ -8855,7 +9056,7 @@ export default function Layout({ children }: LayoutProps) {
       ch.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation]);
+  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation]);
 
   // When the agent transitions to Available while the controller is already connected,
   // send APP_READY so the controller unlocks buttons and starts auto-timers.
@@ -10327,6 +10528,7 @@ export default function Layout({ children }: LayoutProps) {
     // Advance the escalation chain for each known customer record
     if (item.customerRecordId === "jordan") setIsJordanResolved(true);
     if (item.customerRecordId === "sofia") setIsSofiaResolved(true);
+    if (item.customerRecordId === "marcus") setIsMarcusResolved(true);
     // Flip the item's statusLabel in the notification list so the toast header
     // immediately reflects the resolved state without needing to dismiss first
     setIncomingNotifications((prev) =>
@@ -11116,6 +11318,7 @@ export default function Layout({ children }: LayoutProps) {
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       onJordanCaseResolved: () => setIsJordanResolved(true),
       onSofiaCaseResolved: () => setIsSofiaResolved(true),
+      onMarcusCaseResolved: () => setIsMarcusResolved(true),
       showDismissalToast: (summary) => setDismissalToast(summary),
       pushTransferredToast,
       isConversationPanelOpen,
@@ -11679,7 +11882,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className={cn(
             "flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-lg border border-black/[0.10] bg-white",
             "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
-            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+            isPageEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
           )}>
             <div className="flex flex-col items-center gap-4 text-center px-8 max-w-sm">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2F4F7]">
@@ -11710,7 +11913,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className={cn(
             "flex min-w-0 flex-1",
             "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
-            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+            isPageEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
           )}>
             <CombinedInteractionPanel
               isOpen={isCanvasMergedIntoCombinedPanel ? true : isConversationPanelOpen || isCustomerInfoPanelOpen}
@@ -11758,7 +11961,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className={cn(
             "flex min-w-0 flex-1 items-stretch gap-4",
             "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
-            isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+            isPageEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
           )}>
             {isInlineConversationSplitPanelVisible ? (
               <DockedConversationPanel
@@ -12104,7 +12307,7 @@ export default function Layout({ children }: LayoutProps) {
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-hidden min-[800px]:min-w-[360px]",
               "transition-[opacity,transform] duration-500 ease-out will-change-[opacity,transform]",
-              isPageEntered ? "translate-x-0 scale-100 opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
+              isPageEntered ? "opacity-100" : "translate-x-3 scale-[0.985] opacity-0",
               isActivityRoute ? "bg-transparent" : "rounded-lg border border-black/[0.16] bg-white",
             )}
           >
@@ -12227,12 +12430,14 @@ export default function Layout({ children }: LayoutProps) {
           onSizeChange={setCallPopunderSize}
           isJoiningCall={isJoiningCallPopunder}
           joiningCallCustomerName={joiningCallCustomerName}
+          initialAccountNumber={pendingCallAccountNumber}
           onClose={() => {
             if (callConnectTimeoutRef.current !== null) {
               window.clearTimeout(callConnectTimeoutRef.current);
               callConnectTimeoutRef.current = null;
             }
             setIsCallPopunderOpen(false);
+            setPendingCallAccountNumber("");
             setCallPopunderMode(status === "In a Call" ? "controls" : "setup");
             setIsJoiningCallPopunder(false);
             setJoiningCallCustomerName("");
@@ -12254,6 +12459,7 @@ export default function Layout({ children }: LayoutProps) {
               if (capturedJoiningAssignmentId) {
                 // Re-use the card already created by acceptIssue — don't open a duplicate
                 setSelectedAssignmentId(capturedJoiningAssignmentId);
+                openConversationPanel();
                 resolvedAssignmentId = capturedJoiningAssignmentId;
               } else {
                 const nextVoiceAssignment = openCustomerConversation(pendingCallCustomerRecordId, "voice");
@@ -12261,7 +12467,10 @@ export default function Layout({ children }: LayoutProps) {
               }
               setActiveCallAssignmentId(resolvedAssignmentId);
               setIsCallPopunderOpen(false);
+              setPendingCallAccountNumber("");
               setCallPopunderMode("controls");
+              setIsLeftRailOpen(true);
+              navigate("/activity");
               setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
               setIsCopilotPopoverOpen(true);
               callConnectTimeoutRef.current = null;
@@ -12369,6 +12578,37 @@ export default function Layout({ children }: LayoutProps) {
             channel: item.channel,
           });
         }}
+        onLaunchCall={(item) => {
+          if (item.statusLabel === "lead") {
+            // Lead cards skip the Start Call popunder entirely — show a "Connecting call…"
+            // spinner inside the toast, then connect after 2 seconds (matching popunder flow).
+            if (leadLaunchTimerRef.current !== null) {
+              window.clearTimeout(leadLaunchTimerRef.current);
+            }
+            if (item.customerRecordId === "terry") {
+              setPendingCallAccountNumber("NF-408-0174");
+            }
+            setPendingCallCustomerRecordId(item.customerRecordId);
+            setLaunchingLeadId(item.id);
+            leadLaunchTimerRef.current = window.setTimeout(() => {
+              leadLaunchTimerRef.current = null;
+              layoutContextValue.startCallStatus();
+              const nextVoiceAssignment = openCustomerConversation(item.customerRecordId, "voice");
+              setActiveCallAssignmentId(nextVoiceAssignment.id);
+              setPendingCallAccountNumber("");
+              setIsLeftRailOpen(true);
+              navigate("/activity");
+              setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
+              setIsCopilotPopoverOpen(true);
+              setLaunchingLeadId(null);
+              removeIncoming(item.id);
+            }, 2000);
+          } else {
+            layoutContextValue.toggleCallPopunder(null, item.customerRecordId);
+            removeIncoming(item.id);
+          }
+        }}
+        launchingAssignmentId={launchingLeadId}
         onChatOpen={openChatNotification}
         onChatDismiss={dismissChatNotification}
       />
@@ -12532,6 +12772,7 @@ export default function Layout({ children }: LayoutProps) {
             pendingResolvedIds.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
             if (escalatedToastModal.customerRecordId === "jordan") setIsJordanResolved(true);
+            if (escalatedToastModal.customerRecordId === "marcus") setIsMarcusResolved(true);
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
           onClose={() => setEscalatedToastModal(null)}

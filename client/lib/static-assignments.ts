@@ -10,6 +10,21 @@ export interface AiOverview {
   nextSteps: string[];
 }
 
+export interface LeadIntelligenceData {
+  formMessage: string;
+  browsedPages: Array<{ page: string; timeSpent?: string }>;
+  company: string;
+  location: string;
+  formAnswer: string;
+  openingLines: Array<{ intro: string; question: string }>;
+  /** Aria's narrative summary shown in the Case Overview accordion card. */
+  ariaMessage?: string;
+  /** AI confidence score (0–100) shown as a percentage bar. */
+  aiConfidence?: number;
+  /** Human-readable explanation shown beneath the confidence bar. */
+  aiConfidenceReason?: string;
+}
+
 export type CaseType =
   | "Billing Dispute"
   | "Payment Issue"
@@ -25,7 +40,8 @@ export type CaseType =
   | "Scheduling"
   | "General Inquiry"
   | "IT Support"
-  | "Order Issue";
+  | "Order Issue"
+  | "Sales Lead";
 
 export interface StaticAssignment {
   id: string;
@@ -60,6 +76,8 @@ export interface StaticAssignment {
    * Set when an agent clicks Takeover; cleared when they transfer or dismiss.
    */
   assignedTo: string | null;
+  /** Present only for Sales Lead cases — surface AI-gathered intelligence for the incoming callback. */
+  leadIntelligence?: LeadIntelligenceData;
 }
 
 // ─── Static assignments ───────────────────────────────────────────────────────
@@ -427,6 +445,67 @@ export const staticAssignments: StaticAssignment[] = [
       ],
     },
     assignedTo: null,
+  },
+  {
+    id: "static-terry",
+    name: "Terry Williams",
+    customerId: "CST-14201",
+    customerRecordId: "terry",
+    company: "Nexus Freight",
+    botType: "Aria",
+    caseType: "Sales Lead",
+    agentType: "virtual",
+    channel: "voice",
+    priority: "High",
+    status: "pending",
+    preview: "Inbound callback request — VP of Ops at Nexus Freight, evaluating TMS replacement for 200-person team",
+    waitTime: "0m",
+    customerContext: "Terry Williams just submitted a callback request after browsing the Enterprise Pricing page, Integrations page, and ROI Calculator (spending 4 min 12 sec on pricing alone). His company, Nexus Freight, auto-resolved from his email domain. He's a VP of Operations at a mid-sized logistics company in San Jose, CA evaluating a TMS replacement for a 200-person team.",
+    aiOverview: {
+      actions: [
+        "Detected inbound form submission from terry.williams@nexusfreight.com on the Enterprise Pricing page.",
+        "Tracked session: visited Enterprise Pricing, Integrations page, and ROI Calculator — 4 min 12 sec on pricing alone indicates serious budget evaluation.",
+        "Auto-resolved company to Nexus Freight from email domain; enriched with company size (~200 employees) and industry (logistics/TMS).",
+        "Surfaced 3 AI-suggested opening lines optimized for the lead's intent signals and buying stage.",
+      ],
+      whyNeeded:
+        "Terry is a high-intent inbound lead with clear budget awareness — he spent significant time on the ROI Calculator and Enterprise Pricing page. A timely callback from a human sales agent will maximize conversion probability. The AI has surfaced key intent signals and suggested opening lines to help the agent lead a high-value discovery call.",
+      nextSteps: [
+        "Open with an ROI-focused hook — Terry already spent time on the calculator, so he's thinking about value",
+        "Qualify the evaluation: solo or multi-stakeholder (IT team involvement changes the sales cycle)",
+        "Understand urgency: what's driving the TMS replacement decision now",
+        "Confirm budget range and decision timeline before pitching",
+      ],
+    },
+    assignedTo: null,
+    leadIntelligence: {
+      formMessage: "Terry Williams just submitted a callback request.",
+      browsedPages: [
+        { page: "Enterprise Pricing", timeSpent: "4 min 12 sec" },
+        { page: "Integrations" },
+        { page: "ROI Calculator" },
+      ],
+      company: "Nexus Freight",
+      location: "San Jose, CA",
+      formAnswer: "Looking to replace our current TMS. 200-person team.",
+      ariaMessage: "Terry Williams just submitted a callback request after browsing the Enterprise Pricing page, Integrations page, and ROI Calculator (spending 4 min 12 sec on pricing alone). His company, Nexus Freight, auto-resolved from his email domain. He's a VP of Operations at a mid-sized logistics company in San Jose, CA evaluating a TMS replacement for a 200-person team.",
+      aiConfidence: 78,
+      aiConfidenceReason: "Based on 3 similar resolved cases and firmware documentation match.",
+      openingLines: [
+        {
+          intro: "Terry visited the ROI calculator — he's already thinking about value. Lead with outcomes, not features.",
+          question: "\"What problem is your current TMS failing to solve?\"",
+        },
+        {
+          intro: "Ask him: \"What made you decide to reach out today specifically?\"",
+          question: "— this surfaces urgency.",
+        },
+        {
+          intro: "Ask him: \"Is this a solo evaluation or is your IT team involved?\"",
+          question: "— multi-stakeholder deals need earlier technical discovery.",
+        },
+      ],
+    },
   },
   {
     id: "static-sofia",

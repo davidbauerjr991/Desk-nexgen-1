@@ -3566,7 +3566,7 @@ const persistedState = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-panel" } = {}) {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved, showDismissalToast, pushTransferredToast, setConversationStateForAssignment } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved, onMarcusCaseResolved, showDismissalToast, pushTransferredToast, setConversationStateForAssignment } = useLayoutContext();
   const navigate = useNavigate();
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
   const [controlCenterTab, setControlCenterTab] = useState<"monitor" | "assigned" | "queue">(() => {
@@ -5007,6 +5007,8 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
             if ((escalatedModalCase as any).customerRecordId === "jordan") onJordanCaseResolved();
             // If this is Sofia's case, trigger the third escalation (Marcus / Emily)
             if ((escalatedModalCase as any).customerRecordId === "sofia") onSofiaCaseResolved();
+            // If this is Marcus's case, trigger the fourth escalation (Terry / Aria)
+            if ((escalatedModalCase as any).customerRecordId === "marcus") onMarcusCaseResolved();
             // Mark as resolved (overrides escalated status) — keeps case visible in list as resolved
             setBulkResolvedIds((prev) => {
               const next = new Set([...prev, resolvedId]);
