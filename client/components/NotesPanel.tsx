@@ -343,7 +343,17 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeove
                       )}
                     </div>
                   )}
-                  {!takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
+                  {/* Recommended Action — Elena only */}
+                  {customerId === "elena" && (
+                    <div className="rounded-xl border border-[#E4E7EC] bg-white p-3 space-y-1.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Recommended Action</p>
+                      <p className="text-[12px] leading-relaxed text-[#344054]">
+                        Ship the overnight replacement to Elena's address, apply a $25 goodwill credit to her account, and file a QA report flagging the packing discrepancy to the warehouse team.
+                      </p>
+                    </div>
+                  )}
+                  {/* Approve / Reject — hidden for Elena */}
+                  {customerId !== "elena" && !takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
                     <div className="flex items-center gap-2">
                       {takeoverCard.isLaunching ? (
                         <div className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5 text-[13px] font-semibold text-[#166CCA]">

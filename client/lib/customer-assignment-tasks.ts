@@ -382,6 +382,20 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
     ],
     suggestedActions: [],
   },
+
+  "elena vasquez": {
+    summary: "I've identified the resolution actions for Elena's missing memory card. Each action executes instantly — no forms or tickets needed.",
+    nextSteps: [
+      "Ship overnight replacement 64GB memory card to Elena's address",
+      "Apply $25 goodwill credit to Elena's account",
+      "File QA report — packing discrepancy for order #EV-44071",
+    ],
+    suggestedActions: [
+      { id: "ship-replacement", label: "Ship overnight replacement 64GB memory card" },
+      { id: "goodwill-credit", label: "Apply $25 goodwill credit to Elena's account" },
+      { id: "qa-report", label: "File QA report — packing discrepancy for order #EV-44071" },
+    ],
+  },
 };
 
 export function getCustomerAssignmentEntry(customerName: string): CustomerAssignmentEntry | null {

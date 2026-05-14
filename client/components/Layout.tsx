@@ -256,6 +256,8 @@ let escalation2Fired = false;
 let escalation3Fired = false;
 // Prevents the Terry Williams (Aria) sales-lead escalation from re-firing after Marcus's case resolves.
 let escalation4Fired = false;
+// Prevents the Elena Vasquez (Aria) cross-sell escalation from re-firing.
+let escalation5Fired = false;
 // Resolved flags — read by the BroadcastChannel HELLO handler to report current state.
 let jordanResolvedFlag = false;
 let sofiaResolvedFlag = false;
@@ -2190,6 +2192,17 @@ function DockedConversationPanel({
   const resolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Gate resolve-flow boxes behind "Suggest Next Steps" so they don't auto-show on takeover.
   const [resolveBoxVisible, setResolveBoxVisible] = useState(false);
+  // Elena: opportunity panel shown after all resolution tasks complete
+  const [elenaAllResolved, setElenaAllResolved] = useState(false);
+  const elenaHadTasksRef = useRef(false);
+  // Elena: opportunity panel action state
+  const [elenaOpportunityPhase, setElenaOpportunityPhase] = useState<"idle" | "processing" | "added" | "dismissed">("idle");
+  const elenaOpportunityTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Elena: derive whether the human agent has sent their first reply (non-internal, no author)
+  // so forced variants only apply before the first agent message.
+  const elenaInitialReplySent = customerRecordId === "elena" && conversation.messages.some(
+    (m) => m.role === "agent" && !m.isInternal && !m.author
+  );
 
   // ── Customer history helpers ──────────────────────────────────────────────
 
@@ -2673,6 +2686,108 @@ function DockedConversationPanel({
           </div>
         </div>
       </div>
+  ) : undefined;
+
+  // ── Elena-specific "Suggested Next Steps" panel ──────────────────────────
+  // Elena: handle "Add to Order" button click
+  const handleElenaAddToOrder = () => {
+    if (elenaOpportunityPhase !== "idle") return;
+    setElenaOpportunityPhase("processing");
+    elenaOpportunityTimersRef.current.forEach(clearTimeout);
+    elenaOpportunityTimersRef.current = [];
+    const t = setTimeout(() => {
+      setElenaOpportunityPhase("added");
+      // Inject internal note about the bundle being added
+      const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+      onConversationChange({
+        ...conversation,
+        messages: [
+          ...conversation.messages,
+          {
+            id: Date.now(),
+            role: "agent" as const,
+            content: `Start Strong Bundle ($151.20 after loyalty discount) added to Elena's order #EV-44071 — 128GB ProSpeed card, Vela camera bag, spare LP-E6NH battery. Free express shipping applied. — ${dateStr}`,
+            time: formatConversationReplyTime(new Date()),
+            isInternal: true,
+          },
+        ],
+      });
+      // Dismiss the panel after a brief pause and scroll
+      const t2 = setTimeout(() => {
+        setElenaOpportunityPhase("dismissed");
+        setTimeout(() => setGuidedScrollTrigger((n) => n + 1), 100);
+      }, 1500);
+      elenaOpportunityTimersRef.current.push(t2);
+    }, 2000);
+    elenaOpportunityTimersRef.current.push(t);
+  };
+
+  // Elena opportunity panel — surfaces a cross-sell after all resolution tasks complete
+  const elenaOpportunityPanel = customerRecordId === "elena" && elenaAllResolved && elenaOpportunityPhase !== "dismissed" ? (
+    <div className="animate-in fade-in slide-in-from-bottom-3 duration-700">
+      <div className="rounded-xl border border-[#F59E0B]/30 bg-[#FFFBEB] overflow-hidden">
+        <div className="px-4 pt-3 pb-1">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="h-3.5 w-3.5 text-[#D97706]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#92400E]">Opportunity</span>
+          </div>
+        </div>
+        <div className="px-4 pb-3">
+          <p className="text-[12px] leading-relaxed text-[#92400E]/80 mb-3">
+            Elena just bought a $1,849 camera kit — her first purchase. Based on her profile and similar customer data, she's a strong match for the Start Strong photography bundle.
+          </p>
+          <div className="rounded-lg border border-[#F59E0B]/20 bg-white px-3 py-2.5 space-y-2">
+            <p className="text-[11px] font-semibold text-[#92400E]">Start Strong Bundle — $189 (20% off)</p>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-[12px] text-[#344054]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] shrink-0" />
+                128GB ProSpeed memory card (upgrade)
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-[#344054]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] shrink-0" />
+                Vela camera bag with padded compartments
+              </div>
+              <div className="flex items-center gap-2 text-[12px] text-[#344054]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] shrink-0" />
+                Spare LP-E6NH battery
+              </div>
+            </div>
+            <p className="text-[11px] text-[#667085] leading-relaxed mt-1">
+              Coaching note: Elena's confidence took a hit — lead with resolution satisfaction before suggesting the bundle. Frame it as protecting her investment, not an upsell.
+            </p>
+          </div>
+          {/* Action buttons / processing / success */}
+          {elenaOpportunityPhase === "processing" ? (
+            <div className="mt-3 flex items-center gap-2 animate-in fade-in duration-200">
+              <Loader2 className="h-3.5 w-3.5 text-[#D97706] animate-spin" />
+              <span className="text-[12px] font-medium text-[#92400E]">Adding bundle to order…</span>
+            </div>
+          ) : elenaOpportunityPhase === "added" ? (
+            <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+              <Check className="h-3.5 w-3.5 text-[#208337]" />
+              <span className="text-[11px] font-semibold text-[#208337]">Bundle added to order — shipping express</span>
+            </div>
+          ) : (
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={handleElenaAddToOrder}
+                className="flex-1 rounded-lg bg-[#D97706] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#B45309] transition-colors"
+              >
+                Add to Order
+              </button>
+              <button
+                type="button"
+                onClick={() => setElenaOpportunityPhase("dismissed")}
+                className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2 text-[12px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+              >
+                Skip
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   ) : undefined;
 
   // Options resolve-flow state (driven from customer database resolveFlow)
@@ -4118,19 +4233,11 @@ function DockedConversationPanel({
                             <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
                           </div>
                         ) : null
-                      ) : customerRecordId === "terry" ? (
+                      ) : (
                         <span className="flex items-center gap-1.5 rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#1D4ED8] uppercase whitespace-nowrap border border-[#BFDBFE]">
                           <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
                           Review In Process
                         </span>
-                      ) : (
-                        <>
-                          <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#667085]"><Clock className="h-3.5 w-3.5" /><EscalationTimer customerId={customerRecordId} /></span>
-                          <span className="flex items-center gap-1.5 rounded-md bg-[#FFF8E1] px-2 py-1 text-[11px] font-semibold tracking-wide text-[#B45309] uppercase whitespace-nowrap">
-                            <TriangleAlert className="h-3.5 w-3.5 text-[#D97706]" />
-                            Escalated — Immediate Action Required
-                          </span>
-                        </>
                       )}
                       <button
                         type="button"
@@ -4235,7 +4342,17 @@ function DockedConversationPanel({
                     onAcceptAssignment={onAcceptAssignment}
                     onRejectAssignment={onRejectAssignment}
                     isWidePanel={isWidePanel}
-                    onAgentTasksChange={setHasAgentTasks}
+                    onAgentTasksChange={(hasTasks) => {
+                      setHasAgentTasks(hasTasks);
+                      // Elena: detect when all resolution tasks have been completed and removed
+                      if (customerRecordId === "elena") {
+                        if (hasTasks) elenaHadTasksRef.current = true;
+                        if (!hasTasks && elenaHadTasksRef.current && !elenaAllResolved) {
+                          setElenaAllResolved(true);
+                          setTimeout(() => setGuidedScrollTrigger((n) => n + 1), 150);
+                        }
+                      }
+                    }}
                     suppressAgentTasks={isOptionsResolve}
                     onNextStepsRequested={() => setResolveBoxVisible(true)}
                     appendContent={
@@ -4252,16 +4369,24 @@ function DockedConversationPanel({
                           {fourthBotCommentBubble}
                           {/* sofiaTransferCard removed — transfer now auto-fires on handoff approve */}
                         </>
+                      ) : customerRecordId === "elena" ? (
+                        elenaOpportunityPanel
                       ) : reviewResolveCard ? reviewResolveCard : (resolveBoxVisible ? (supervisorResolveBox ?? optionsResolveBox) : undefined)
                     }
                     scrollToBottomTrigger={guidedScrollTrigger + externalScrollTrigger}
                     hideInput={isPendingAcceptance}
                     isGuidingConversation={isGuidingConversation}
                     skipHandoffAnimation={handoffAnimatedCasesRef.current.has(customerRecordId)}
-                    onHandoffAnimationDone={() => { handoffAnimatedCasesRef.current.add(customerRecordId); }}
+                    onHandoffAnimationDone={() => {
+                      handoffAnimatedCasesRef.current.add(customerRecordId);
+                    }}
                     onOpenCustomerInfo={onOpenCustomerInfo}
-                    forcedSuggestedReply={isOptionsResolve ? optionsForcedReply : null}
-                    forcedSuggestionVariants={isOptionsResolve ? optionsForcedVariants : null}
+                    forcedSuggestedReply={isOptionsResolve ? optionsForcedReply : (customerRecordId === "elena" && elenaAllResolved && !elenaInitialReplySent ? "Hi Elena — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account." : null)}
+                    forcedSuggestionVariants={isOptionsResolve ? optionsForcedVariants : (customerRecordId === "elena" && elenaAllResolved && !elenaInitialReplySent ? [
+                      { summary: "Lead with empathy — confirm the fix and the credit upfront.", suggestedReply: "Hi Elena — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account." },
+                      { summary: "Apologize warmly and confirm both resolution actions in one go.", suggestedReply: "Elena, hi — Jeff here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble." },
+                      { summary: "Keep it brief and action-focused — show it's already handled.", suggestedReply: "Hi Elena, I'm Jeff. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up." },
+                    ] : null)}
                     aiConfidence={aiConfidence}
                     aiConfidenceReason={aiConfidenceReason}
                     botLabel={botLabel}
@@ -9576,6 +9701,17 @@ function IncomingAssignmentCard({
                             <p className="text-[10px] text-[#98A2B3] leading-relaxed">{item.aiConfidenceReason}</p>
                           )}
                         </div>
+                        {/* Recommended Action — Elena only */}
+                        {item.customerRecordId === "elena" && (
+                          <div className="mt-2.5 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1">Recommended Action</p>
+                            <p className="text-[12px] leading-relaxed text-[#344054]">
+                              Ship the overnight replacement to Elena's address, apply a $25 goodwill credit to her account, and file a QA report flagging the packing discrepancy to the warehouse team.
+                            </p>
+                          </div>
+                        )}
+                        {/* Approve button — hidden for Elena */}
+                        {item.customerRecordId !== "elena" && (
                         <div className="mt-2 flex gap-2">
                           <button
                             type="button"
@@ -9595,6 +9731,7 @@ function IncomingAssignmentCard({
                             Approve
                           </button>
                         </div>
+                        )}
                       </>
                     )
                   )}
@@ -10667,6 +10804,52 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
     .find((message) => message.role === "customer")
     ?.content.toLowerCase() ?? "";
 
+  // ── Elena Vasquez — multi-step resolution + cross-sell conversation ──
+  if (conversation.customerName === "Elena Vasquez") {
+    // Step 1: Agent sends resolution message (replacement + credit) → customer relieved
+    if (
+      (normalizedMessage.includes("replacement") || normalizedMessage.includes("ships today") || normalizedMessage.includes("on its way")) &&
+      (normalizedMessage.includes("credit") || normalizedMessage.includes("$25")) &&
+      !latestCustomerContext.includes("hassle")
+    ) {
+      return "That's great, thank you. I was worried this would be a hassle.";
+    }
+
+    // Step 2: Agent sends cross-sell pitch (mirrorless, storage, battery, bundle) → customer interested
+    if (
+      (normalizedMessage.includes("mirrorless") || normalizedMessage.includes("new owners") || normalizedMessage.includes("storage") || normalizedMessage.includes("spare battery") || normalizedMessage.includes("bundle") || normalizedMessage.includes("put together")) &&
+      !normalizedMessage.includes("$151") && !normalizedMessage.includes("loyalty discount") &&
+      latestCustomerContext.includes("hassle")
+    ) {
+      return "I was actually looking at camera bags last night. How much is the bundle?";
+    }
+
+    // Step 3: Agent sends pricing → customer wants to add it
+    if (
+      (normalizedMessage.includes("$151") || normalizedMessage.includes("loyalty discount") || normalizedMessage.includes("express shipping") || normalizedMessage.includes("happy shooting")) &&
+      !normalizedMessage.includes("added") && !normalizedMessage.includes("on its way") &&
+      !latestCustomerContext.includes("add that to my order")
+    ) {
+      return "Sounds great! Please add that to my order!";
+    }
+
+    // Step 4: Agent confirms bundle added/shipped → customer delighted (5-star)
+    if (
+      (normalizedMessage.includes("added") || normalizedMessage.includes("on its way") || normalizedMessage.includes("enjoy every shot") || normalizedMessage.includes("happy shooting")) &&
+      latestCustomerContext.includes("add that to my order")
+    ) {
+      return {
+        content: "This turned into a much better experience than I expected. Thank you, Jeff.",
+        starRating: 5,
+        aiAction: {
+          label: "Resolve & Close Case",
+          description: "Customer gave a 5-star rating. Auto-resolve, dismiss, and unassign this case.",
+          actionId: "auto-resolve-dismiss",
+        },
+      };
+    }
+  }
+
   // ── Marcus Webb — happy reply after any resolution (refund/reship/intercept) ──
   if (
     conversation.customerName === "Marcus Webb" &&
@@ -11414,6 +11597,33 @@ export default function Layout({ children }: LayoutProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const fireElenaEscalation = useCallback(() => {
+    if (escalation5Fired) return;
+    escalation5Fired = true;
+    if (visibleAssignmentIdsRef.current.includes("static-elena")) return;
+    if (visibleAssignmentIdsRef.current.some((id) => id.includes("elena"))) return;
+    setIncomingNotifications((prev) => {
+      if (prev.some((n) => n.id === "escalation-static-elena")) return prev;
+      return [...prev, {
+        id: "escalation-static-elena", customerRecordId: "elena", channel: "chat" as const,
+        initials: "EV", name: "Elena Vasquez", customerId: "CST-14402", label: "Aria",
+        lastUpdated: "4m", time: "4m",
+        preview: "Missing memory card from Luminos Pro 4K camera kit — customer requesting human agent",
+        statusLabel: "Escalated", priority: "High",
+        priorityClassName: "border-[#F59E0B] bg-[#FFF8E1] text-[#B45309]", badgeColor: "#F59E0B",
+        icon: MessageCircle, isActive: true,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        escalatedAt: getEscalationStart("elena"),
+        aiConfidence: staticAssignments.find((s) => s.id === "static-elena")?.aiConfidence,
+        aiConfidenceReason: staticAssignments.find((s) => s.id === "static-elena")?.aiConfidenceReason,
+      }];
+    });
+    pendingEscalatedIds.add("static-elena");
+    setEscalatedRailCount((n) => n + 1);
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "elena", status: "active" } satisfies AppMsg);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // BroadcastChannel — listen for controller messages and send status updates.
   useEffect(() => {
     const ch = new BroadcastChannel(SCENARIO_CHANNEL);
@@ -11433,6 +11643,7 @@ export default function Layout({ children }: LayoutProps) {
               sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
               marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
               terry:  escalation4Fired ? "active" : "idle",
+              elena:  escalation5Fired ? "active" : "idle",
             },
           } satisfies AppMsg);
         }
@@ -11445,6 +11656,7 @@ export default function Layout({ children }: LayoutProps) {
         if (msg.case === "sofia")  fireSofiaEscalation();
         if (msg.case === "marcus") fireMarcusEscalation();
         if (msg.case === "terry")  fireTerryEscalation();
+        if (msg.case === "elena")  fireElenaEscalation();
       }
     };
 
@@ -11453,7 +11665,7 @@ export default function Layout({ children }: LayoutProps) {
       ch.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation]);
+  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation, fireElenaEscalation]);
 
   // When the agent transitions to Available while the controller is already connected,
   // send APP_READY so the controller unlocks buttons and starts auto-timers.
@@ -11466,6 +11678,7 @@ export default function Layout({ children }: LayoutProps) {
         jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
         sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
         marcus: escalation3Fired ? "active" : "idle",
+        elena:  escalation5Fired ? "active" : "idle",
       },
     } satisfies AppMsg);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -13139,22 +13352,25 @@ export default function Layout({ children }: LayoutProps) {
       );
       const botType = assignment.label ?? sa?.botType ?? "Service Bot";
 
-      // Read the current conversation (seed) and build the takeover version
+      // Read the current conversation (seed) and build the takeover version.
+      // Use the setter callback to get the *latest* state — if injectGuidedMessage
+      // was called in the same event (e.g. Sofia warm handoff), the batched update
+      // will be visible here even though it wasn't flushed yet.
       const conversationStateKey = getConversationStateKey(assignmentId);
-      const currentConversation = conversationStatesByKey[conversationStateKey];
-      if (currentConversation && customerRecordId) {
-        const takeoverConversation = buildTakeoverConversation({
-          customerRecordId,
-          customerName: assignment.name,
-          botType,
-          channel: (assignment.channel === "sms" ? "sms" : "chat") as "chat" | "sms",
-          aiWhyNeeded: sa?.aiOverview?.whyNeeded ?? null,
-          modalConversation: currentConversation,
+      if (customerRecordId) {
+        setConversationStatesByKey((current) => {
+          const currentConversation = current[conversationStateKey];
+          if (!currentConversation) return current;
+          const takeoverConversation = buildTakeoverConversation({
+            customerRecordId,
+            customerName: assignment.name,
+            botType,
+            channel: (assignment.channel === "sms" ? "sms" : "chat") as "chat" | "sms",
+            aiWhyNeeded: sa?.aiOverview?.whyNeeded ?? null,
+            modalConversation: currentConversation,
+          });
+          return { ...current, [conversationStateKey]: takeoverConversation };
         });
-        setConversationStatesByKey((current) => ({
-          ...current,
-          [conversationStateKey]: takeoverConversation,
-        }));
         // Post-approval messages are now handled in ConversationPanel (handleInlineApprove)
         // which appends the agent response + customer reply in-place without transferring.
       }

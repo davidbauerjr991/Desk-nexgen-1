@@ -11,8 +11,6 @@ import {
 import { cn } from "@/lib/utils";
 import ConversationPanel, { type ConversationMessage } from "@/components/ConversationPanel";
 import { createConversationState, getCustomerRecord } from "@/lib/customer-database";
-import { getEscalationStart } from "@/lib/escalation-timers";
-import { EscalationTimer } from "@/components/EscalationTimer";
 import { priorityStyles } from "@/lib/priority-styles";
 import {
   Agent,
@@ -518,12 +516,9 @@ export function EscalatedCaseModal({
                   resolved
                 </span>
               ) : localStatus === "escalated" ? (
-                <>
-                  <span className="rounded border border-[#E53935] bg-[#FDEAEA] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#C71D1A]">
-                    escalated
-                  </span>
-                  <EscalationTimer customerId={caseData.customerRecordId} />
-                </>
+                <span className="rounded border border-[#BFDBFE] bg-[#EFF6FF] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-[#1D4ED8]">
+                  review
+                </span>
               ) : (
                 <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold leading-none transition-all duration-500", priorityStyles[localPriority] ?? "border-border bg-[#F9FAFB] text-[#344054]")}>
                   {localPriority}
@@ -536,14 +531,9 @@ export function EscalatedCaseModal({
                   Case Resolved
                 </p>
               ) : localStatus === "escalated" ? (
-                <>
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#FEE2E2]">
-                    <AlertTriangle className="h-3 w-3 text-[#E53935]" />
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#E53935]">
-                    Escalated — Immediate Action Required
-                  </p>
-                </>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1D4ED8]">
+                  Review In Process
+                </p>
               ) : (
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#667085]">
                   Reviewing

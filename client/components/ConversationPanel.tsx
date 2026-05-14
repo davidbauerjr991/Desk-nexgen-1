@@ -588,6 +588,7 @@ export default function ConversationPanel({
 
   const notedTaskIdsRef = useRef<Set<string>>(new Set());
   const optionsResolveCompletedRef = useRef(false);
+  const elenaTasksCompletedRef = useRef(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
   // Internal notes are agent-side records, not real conversation turns — ignore them
@@ -759,6 +760,7 @@ export default function ConversationPanel({
     taskRevealTimersRef.current = [];
     notedTaskIdsRef.current = new Set();
     optionsResolveCompletedRef.current = false;
+    elenaTasksCompletedRef.current = false;
     setMessageTags({});
     // Cancel any pending copilot thinking animation so it doesn't fire on the new assignment.
     if (copilotThinkingTimerRef.current !== null) {
@@ -829,7 +831,7 @@ export default function ConversationPanel({
     // "Set Case to Resolved" task so the agent can wrap up.
     let freshTasks: AgentTask[];
     const isGuidedReviewDone = conversation.guidedReviewCompleted;
-    if (optionsResolveCompletedRef.current || isGuidedReviewDone) {
+    if (optionsResolveCompletedRef.current || isGuidedReviewDone || elenaTasksCompletedRef.current) {
       if (!latestCustomerMessage) return; // wait for the customer to respond
       // For guided-review cases, only show the resolve task after the customer
       // responds to the human agent (not to a bot message from the review).
@@ -841,6 +843,11 @@ export default function ConversationPanel({
           (idx, m, i) => (m.role === "customer" ? i : idx), -1);
         // Need: human agent sent at least one message, and customer replied after it
         if (lastHumanAgentIdx < 0 || lastCustomerIdx <= lastHumanAgentIdx) return;
+      }
+      // Elena: only show "Set Case to Resolved" after the customer gives a 5-star review
+      // (the final message in the cross-sell conversation flow).
+      if (elenaTasksCompletedRef.current && !latestCustomerMessage.starRating) {
+        return; // conversation is still flowing — don't show resolve yet
       }
       freshTasks = [{ id: "set-resolved", label: "Set Case to Resolved — Dismiss & Unassign" }];
       // Clear post-resolve suggestion variants now that the customer has responded
@@ -1021,6 +1028,16 @@ export default function ConversationPanel({
       // Update the Suggested Response to reflect the completed action.
       const completionReply = TASK_COMPLETION_REPLIES[taskId];
       if (completionReply) setPostActionSuggestion(completionReply);
+
+      // Elena: mark tasks as completed once all 3 resolution tasks are done
+      // so they don't regenerate when the customer responds.
+      if (
+        customerId === "elena" &&
+        ["ship-replacement", "goodwill-credit", "qa-report"].every((id) => notedTaskIdsRef.current.has(id))
+      ) {
+        elenaTasksCompletedRef.current = true;
+      }
+
       // Remove the completed task from the AI list after a short delay so the
       // agent briefly sees the completed state before it disappears.
       setTimeout(() => {
@@ -1870,7 +1887,7 @@ export default function ConversationPanel({
                             </div>
                           )}
                           {/* AI-suggested action card — hidden when options-resolve or guided-review completed (task-based flow takes over) */}
-                          {message.aiAction && !optionsResolveCompletedRef.current && !conversation.guidedReviewCompleted && (
+                          {message.aiAction && !optionsResolveCompletedRef.current && !conversation.guidedReviewCompleted && !elenaTasksCompletedRef.current && (
                             <div className="mt-3 animate-in fade-in slide-in-from-bottom-2 duration-500" style={{ animationDelay: "800ms", animationFillMode: "backwards" }}>
                               <button
                                 type="button"
@@ -2442,6 +2459,17 @@ export default function ConversationPanel({
                               <p className="text-[10px] text-[#98A2B3] leading-relaxed">{aiConfidenceReason}</p>
                             ) : null}
                           </div>
+                          {/* Recommended Action — Elena only */}
+                          {customerId === "elena" && (
+                            <div className="mt-2.5 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5">
+                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1">Recommended Action</p>
+                              <p className="text-[12px] leading-relaxed text-[#344054]">
+                                Ship the overnight replacement to Elena's address, apply a $25 goodwill credit to her account, and file a QA report flagging the packing discrepancy to the warehouse team.
+                              </p>
+                            </div>
+                          )}
+                          {/* Approve / Reject — hidden for Elena */}
+                          {customerId !== "elena" && (
                           <div className="mt-2 flex gap-2">
                             <button
                               type="button"
@@ -2461,6 +2489,7 @@ export default function ConversationPanel({
                               Reject
                             </button>
                           </div>
+                          )}
                         </>
                       ) : null
                     )}

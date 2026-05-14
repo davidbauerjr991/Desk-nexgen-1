@@ -141,6 +141,28 @@ export function getInlineSuggestionVariants(
   const normalizedMessage = customerMessage.content.toLowerCase();
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
 
+  // ── Elena Vasquez — initial handoff: customer wants the card + human agent ──
+  if (
+    conversation.customerName === "Elena Vasquez" &&
+    (normalizedMessage.includes("not confident") || normalizedMessage.includes("actual person") ||
+     normalizedMessage.includes("handled properly") || normalizedMessage.includes("card sent"))
+  ) {
+    return [
+      {
+        summary: "Lead with empathy — confirm the fix and the credit upfront.",
+        suggestedReply: `Hi ${customerFirstName} — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.`,
+      },
+      {
+        summary: "Apologize warmly and confirm both resolution actions in one go.",
+        suggestedReply: `${customerFirstName}, hi — Jeff here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble.`,
+      },
+      {
+        summary: "Keep it brief and action-focused — show it's already handled.",
+        suggestedReply: `Hi ${customerFirstName}, I'm Jeff. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up.`,
+      },
+    ];
+  }
+
   // ── Sofia fraud / transfer handoff scenario ───────────────────────────────
   if (
     normalizedMessage.includes("fraud") ||
@@ -189,6 +211,70 @@ export function getInlineSuggestionVariants(
       {
         summary: `Close with warmth and a direct line of support.`,
         suggestedReply: `Hi ${customerFirstName}, this is Jeff. I want you to know I've seen everything in this conversation and I'm taking personal responsibility for your case. Your account is safe, your money is protected, and I'll be your direct contact from here on out.`,
+      },
+    ];
+  }
+
+  // ── Elena Vasquez — cross-sell conversation flow ──────────────────────────
+  // Step 2: After customer says "that's great" / "worried this would be a hassle"
+  if (
+    conversation.customerName === "Elena Vasquez" &&
+    (normalizedMessage.includes("hassle") || normalizedMessage.includes("that's great") || normalizedMessage.includes("worried"))
+  ) {
+    return [
+      {
+        summary: "Transition naturally to the bundle — ask about her camera experience.",
+        suggestedReply: "Is this your first mirrorless camera? A lot of new owners find they need more storage and a spare battery faster than they expect — I'd love to share something we put together.",
+      },
+      {
+        summary: "Bridge from resolution to accessories — frame it as protecting her investment.",
+        suggestedReply: "Glad we could sort that out quickly. By the way — since you've got the Luminos Pro, a lot of first-time owners grab extra storage and a spare battery early on. We actually have a bundle that might interest you.",
+      },
+      {
+        summary: "Keep it conversational — mention what other new camera owners typically need.",
+        suggestedReply: "Happy to hear that. Quick question — is this your first serious camera? Most new Luminos Pro owners end up wanting a bigger memory card and a backup battery within the first month. We have something that might save you a trip.",
+      },
+    ];
+  }
+
+  // Step 3: After customer asks about the bundle / mentions camera bags / asks price
+  if (
+    conversation.customerName === "Elena Vasquez" &&
+    (normalizedMessage.includes("bundle") || normalizedMessage.includes("how much") || normalizedMessage.includes("camera bag"))
+  ) {
+    return [
+      {
+        summary: "Give the price with the loyalty discount and close warmly.",
+        suggestedReply: "$151.20 with your loyalty discount — free express shipping. You're all set. Enjoy every shot.",
+      },
+      {
+        summary: "Present the bundle value and wrap up on a positive note.",
+        suggestedReply: "Great timing — the Start Strong bundle is $151.20 after your loyalty discount, and shipping is on us. You're going to love the extra storage. Enjoy the camera!",
+      },
+      {
+        summary: "Confirm the discount, mention free shipping, and close with enthusiasm.",
+        suggestedReply: "It's $151.20 with your loyalty discount applied, and we'll ship it express at no charge. That covers the 128GB card, camera bag, and spare battery. Happy shooting, Elena!",
+      },
+    ];
+  }
+
+  // Step 4: After customer says "add that to my order"
+  if (
+    conversation.customerName === "Elena Vasquez" &&
+    (normalizedMessage.includes("add that to my order") || normalizedMessage.includes("sounds great"))
+  ) {
+    return [
+      {
+        summary: "Confirm the bundle is added and shipped — close with warmth.",
+        suggestedReply: "Done! The Start Strong bundle has been added to your order and is shipping express — no extra charge. Enjoy every shot, Elena!",
+      },
+      {
+        summary: "Confirm order and wrap up on a personal note.",
+        suggestedReply: "It's added and on its way! You'll get a tracking email shortly. I'm glad we could turn this around for you, Elena. Happy shooting!",
+      },
+      {
+        summary: "Keep it short — confirm and close warmly.",
+        suggestedReply: "All set — the bundle's been added and ships today with free express delivery. Enjoy the new gear, Elena!",
       },
     ];
   }

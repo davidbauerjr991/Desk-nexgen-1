@@ -56,6 +56,16 @@ const CASES: CaseConfig[] = [
     triggerLabel: "Fires after Marcus resolves",
     defaultDelay: 0,
   },
+  {
+    key: "elena",
+    initials: "EV",
+    name: "Elena Vasquez",
+    customerId: "CST-14402",
+    issue: "Missing memory card from Luminos Pro 4K kit — cross-sell opportunity for Start Strong bundle",
+    bot: "Aria",
+    triggerLabel: "Fires after Terry resolves",
+    defaultDelay: 0,
+  },
 ];
 
 const BOT_COLORS: Record<string, { bg: string; text: string }> = {
@@ -278,6 +288,7 @@ export default function ScenarioControllerPage() {
     sofia: "idle",
     marcus: "idle",
     terry: "idle",
+    elena: "idle",
   });
 
   // Single global auto toggle — replaces per-case toggles
@@ -290,6 +301,7 @@ export default function ScenarioControllerPage() {
     sofia:  CASES[1].defaultDelay,
     marcus: CASES[2].defaultDelay,
     terry:  CASES[3].defaultDelay,
+    elena:  CASES[4].defaultDelay,
   });
   const delaysRef = useRef(delays);
   useEffect(() => { delaysRef.current = delays; }, [delays]);
@@ -299,6 +311,7 @@ export default function ScenarioControllerPage() {
     sofia:  null,
     marcus: null,
     terry:  null,
+    elena:  null,
   });
 
   const intervalsRef = useRef<Partial<Record<CaseKey, ReturnType<typeof setInterval>>>>({});
@@ -351,13 +364,13 @@ export default function ScenarioControllerPage() {
 
   /** Cancel all active countdowns and reset queued cases to idle. */
   const cancelAllCountdowns = useCallback(() => {
-    (["jordan", "sofia", "marcus", "terry"] as CaseKey[]).forEach((key) => {
+    (["jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
       clearCaseInterval(key);
     });
-    setCountdowns({ jordan: null, sofia: null, marcus: null, terry: null });
+    setCountdowns({ jordan: null, sofia: null, marcus: null, terry: null, elena: null });
     setCaseStatuses((prev) => {
       const next = { ...prev };
-      (["jordan", "sofia", "marcus", "terry"] as CaseKey[]).forEach((key) => {
+      (["jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
         if (next[key] === "queued") next[key] = "idle";
       });
       return next;
@@ -420,6 +433,8 @@ export default function ScenarioControllerPage() {
         setTimeout(() => startCountdown("marcus", delaysRef.current.marcus), 0);
       } else if (statuses.terry === "idle" && statuses.marcus === "resolved" && connectedRef.current) {
         setTimeout(() => startCountdown("terry", delaysRef.current.terry), 0);
+      } else if (statuses.elena === "idle" && statuses.terry === "resolved" && connectedRef.current) {
+        setTimeout(() => startCountdown("elena", delaysRef.current.elena), 0);
       }
       return statuses;
     });
@@ -474,6 +489,18 @@ export default function ScenarioControllerPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseStatuses.marcus]);
+
+  // Elena: start when Terry resolves and auto is on
+  const elenaStartedRef = useRef(false);
+  useEffect(() => {
+    if (caseStatuses.terry !== "resolved" || elenaStartedRef.current) return;
+    if (caseStatuses.elena !== "idle") { elenaStartedRef.current = true; return; }
+    elenaStartedRef.current = true;
+    if (globalAutoRef.current) {
+      startCountdown("elena", delaysRef.current.elena);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseStatuses.terry]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (

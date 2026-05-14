@@ -41,7 +41,8 @@ export type CaseType =
   | "General Inquiry"
   | "IT Support"
   | "Order Issue"
-  | "Sales Lead";
+  | "Sales Lead"
+  | "Cross-Sell Opportunity";
 
 export interface StaticAssignment {
   id: string;
@@ -1764,6 +1765,42 @@ export const staticAssignments: StaticAssignment[] = [
         "Complete and issue the DSAR response to Orion Pharma",
         "Assess whether the delay constitutes a reportable breach",
         "Document all actions taken for the compliance audit trail",
+      ],
+    },
+    assignedTo: null,
+  },
+  {
+    id: "static-elena",
+    name: "Elena Vasquez",
+    customerId: "CST-14402",
+    customerRecordId: "elena",
+    company: "Consumer",
+    botType: "Aria",
+    caseType: "Cross-Sell Opportunity",
+    agentType: "virtual",
+    channel: "chat",
+    priority: "High",
+    status: "pending",
+    preview: "Missing memory card from Luminos Pro 4K camera kit — customer requesting human agent",
+    waitTime: "4m",
+    customerContext:
+      "Elena purchased a Luminos Pro 4K camera kit ($1,849) and is missing the 64GB memory card from her order. I've confirmed the packing discrepancy and offered a replacement or refund. She's asked to speak with a human agent — she's not angry, but her confidence in us has taken a hit on a high-value first purchase.",
+    aiConfidence: 91,
+    aiConfidenceReason: "High match on resolution path and cross-sell receptivity based on purchase profile and similar customer data.",
+    aiOverview: {
+      actions: [
+        "Pulled Elena's order #EV-44071 and confirmed kit contents — 64GB memory card listed on packing slip but missing from shipment.",
+        "Cross-referenced warehouse packing record — card was scanned as included at dispatch. Flagged discrepancy internally.",
+        "Offered two resolution paths: overnight replacement card or refund of standalone value ($34.99).",
+        "Customer requested human agent — recognized as reasonable given high-value first purchase. Escalated with full context preserved.",
+      ],
+      whyNeeded:
+        "Elena is a high-value first-time buyer whose confidence in the brand has been shaken. A human agent can restore trust through personal attention, execute the resolution, and explore a cross-sell opportunity the AI has identified based on her purchase profile.",
+      nextSteps: [
+        "Lead with empathy and confirm overnight replacement of the 64GB memory card",
+        "Apply goodwill credit ($25) to restore confidence",
+        "File QA report for packing discrepancy to warehouse team",
+        "Present personalized 'Start Strong' accessory bundle if customer is receptive",
       ],
     },
     assignedTo: null,

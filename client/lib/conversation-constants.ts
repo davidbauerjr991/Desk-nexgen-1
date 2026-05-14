@@ -48,6 +48,9 @@ export const TASK_COMPLETION_NOTES: Record<string, string> = {
   "upgrade-beverage-package": "Beverage package upgraded",
   "confirm-credit-line": "Credit line confirmed",
   "set-resolved": "Case resolved",
+  "ship-replacement": "Overnight replacement 64GB memory card shipped to Elena's address",
+  "goodwill-credit": "$25 goodwill credit applied to Elena's account",
+  "qa-report": "QA report filed — packing discrepancy flagged for order #EV-44071",
   "options-resolve": "Resolution actioned for order #WB-88214: Full refund issued — Marcus free to reorder at his convenience. Goodwill discount code CARE20 (20%) applied to account.",
 };
 
@@ -60,6 +63,9 @@ export const TASK_COMPLETION_REPLIES: Record<string, string> = {
   "upgrade-beverage-package": "I've processed the upgrade to your beverage package. You should receive a confirmation email shortly.",
   "confirm-credit-line": "I've confirmed your credit line details. Everything looks good on our end.",
   "set-resolved": "Thank you so much for reaching out! I'm glad we could help. Have a great day!",
+  "ship-replacement": "Elena, I've arranged an overnight replacement for your 64GB memory card — it's on the way to the address on file. You should receive tracking details shortly.",
+  "goodwill-credit": "I've also applied a $25 credit to your account as a gesture of goodwill for the inconvenience. It will reflect on your next statement.",
+  "qa-report": "I've flagged the packing discrepancy with our warehouse team so we can prevent this from happening again.",
   "options-resolve": "I've processed the resolution for Marcus's order. The refund has been issued and a goodwill discount has been applied. Is there anything else you'd like to do before wrapping up?",
 };
 
@@ -72,6 +78,9 @@ export const TASK_ACTION_TITLES: Record<string, string> = {
   "upgrade-beverage-package": "Upgrading Beverage Package...",
   "confirm-credit-line": "Confirming Credit Line...",
   "set-resolved": "Resolving Case...",
+  "ship-replacement": "Shipping Replacement Card...",
+  "goodwill-credit": "Applying Goodwill Credit...",
+  "qa-report": "Filing QA Report...",
   "initiate-dispute": "Initiating Dispute...",
   "issue-temp-credit": "Applying Temporary Credit...",
   "issue-replacement-card": "Issuing Replacement Card...",
@@ -120,6 +129,22 @@ export const TASK_STEPS: Record<string, string[]> = {
     "Closing conversation thread",
     "Updating case status",
     "Removing from queue",
+  ],
+  "ship-replacement": [
+    "Locating order #EV-44071",
+    "Generating overnight shipment label",
+    "Scheduling pickup for 64GB memory card",
+    "Sending tracking confirmation to Elena",
+  ],
+  "goodwill-credit": [
+    "Pulling Elena's account record",
+    "Applying $25 credit to account",
+    "Logging goodwill gesture in CRM",
+  ],
+  "qa-report": [
+    "Retrieving warehouse packing log",
+    "Flagging discrepancy on order #EV-44071",
+    "Submitting QA report to warehouse team",
   ],
   "initiate-dispute": [
     "Verifying account and transaction details",
