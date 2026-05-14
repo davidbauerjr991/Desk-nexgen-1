@@ -28,6 +28,8 @@ export type ConversationMessage = {
   isHandoffMessage?: boolean;
   /** When set, renders a star rating row below the message bubble. */
   starRating?: number;
+  /** When set, the internal note triggers a special action on click instead of the default note detail panel. */
+  actionType?: "openCustomerInfo";
   /** When set, renders an AI-suggested action card below the message. */
   aiAction?: {
     label: string;
@@ -51,6 +53,10 @@ export type SharedConversationData = {
    *  panel should skip the regular suggested-actions flow and instead show a
    *  "Set Case to Resolved — Dismiss & Unassign" task once the customer responds. */
   guidedReviewCompleted?: boolean;
+  /** Transient flag — when true, Layout's handleConversationStateChange should NOT
+   *  auto-remove this assignment from pendingAcceptanceIds. Set by handleInlineApprove
+   *  so programmatic agent messages don't trigger takeover. Stripped before persisting. */
+  _skipAutoAccept?: boolean;
 };
 
 export type InlineSuggestion = {

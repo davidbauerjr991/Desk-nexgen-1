@@ -92,6 +92,16 @@ export type AcceptIssueData = {
   onCreated?: (assignmentId: string) => void;
   /** When true, opens the case in history-only mode — no channel tabs, Customer History tab active. */
   openAsHistoryOnly?: boolean;
+  /** Bot label (e.g. "Jacob", "Aria") — passed through to QueuePreviewItem.label. */
+  label?: string;
+  /** AI confidence percentage — passed through to QueuePreviewItem. */
+  aiConfidence?: number;
+  /** Reason shown beneath the AI confidence bar. */
+  aiConfidenceReason?: string;
+  /** Escalation start timestamp (ms). */
+  escalatedAt?: number;
+  /** When true, opens the case in pending-acceptance (review) mode with the inline AI review card. */
+  openAsPendingAcceptance?: boolean;
 };
 
 // ─── Context value ─────────────────────────────────────────────────────────────
@@ -175,6 +185,8 @@ export interface LayoutContextValue {
   onMarcusCaseResolved: () => void;
   /** Show the dismissal confirmation toast (bottom-right) with case summary + external system writes. */
   showDismissalToast: (summary: { customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string }) => void;
+  /** Number of review (pending-acceptance) cases that were resolved and dismissed this session. */
+  resolvedReviewCount: number;
   /** Assignment IDs that are in history-only mode (no active channel, Customer History tab shown). */
   historyOnlyAssignmentIds: Set<string>;
   /** Launch a lead call directly into in-call state (bypasses the Start Call modal). Returns immediately; the 2-second connecting delay runs internally. */
@@ -190,6 +202,8 @@ export interface LayoutContextValue {
     priority?: string;
     preview?: string;
   }) => void;
+  /** Most recently dismissed case — drives the contextual greeting on the Home tab. */
+  lastDismissedCase: { customerName: string; outcome: "resolved" | "transferred" | "unassigned" } | null;
 }
 
 // ─── Context + hook ───────────────────────────────────────────────────────────

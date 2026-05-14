@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Eye, FileDown, FilePlus2, Sparkles, Ticket, X } from "lucide-react";
+import { ChevronDown, Eye, FileDown, FilePlus2, Phone, Sparkles, Ticket, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -172,14 +172,224 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeove
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-3 p-4">
 
-          {/* Takeover case overview card — shown above Customer Profile on takeover */}
+          {/* Takeover / review case overview card — shown above Customer Profile */}
           {takeoverCard && (
             <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <img src={takeoverCard.botAvatarUrl} alt={takeoverCard.botType} className="h-7 w-7 rounded-full object-cover shrink-0" />
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{takeoverCard.botType}</p>
               </div>
-              <p className="text-[13px] font-medium leading-5 text-[#344054]">{takeoverCard.customerContext}</p>
+
+              {/* ── Resolved phase: "Great job" message + Dismiss ── */}
+              {takeoverCard.phase === "resolved" ? (
+                <div className="space-y-3 animate-in fade-in duration-500">
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                    Wow! Great job, Jeff! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
+                  </p>
+                  {/* Dismiss button */}
+                  <button
+                    type="button"
+                    onClick={() => takeoverCard.onDismiss?.()}
+                    className="w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              ) : takeoverCard.phase === "approving" ? (
+                /* ── Approving phase: keep context visible, show loading indicator below ── */
+                <>
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">{takeoverCard.customerContext}</p>
+                  <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                    <span className="text-[13px] font-medium text-[#344054]">Approving request</span>
+                    <span className="flex items-center gap-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
+                    </span>
+                  </div>
+                </>
+              ) : takeoverCard.phase === "reject-reasons" ? (
+                /* ── Reject reasons list ── */
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-2">Reason for Rejecting</p>
+                  <div className="space-y-0">
+                    {[
+                      "Cannot verify this information",
+                      "Incorrect approach",
+                      "Need more information",
+                      "Risk is too high",
+                      "Requires escalation",
+                    ].map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => takeoverCard.onPhaseChange?.("reject-loading", reason)}
+                        className="w-full text-left px-0 py-2.5 text-[14px] text-[#344054] hover:text-[#166CCA] transition-colors border-b border-[#E4E7EC] last:border-b-0"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : takeoverCard.phase === "reject-loading" ? (
+                /* ── Reject loading: generating revised approach ── */
+                <div className="animate-in fade-in duration-200">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-[#FEC84B] bg-[#FFFAEB] px-3 py-2 mb-2">
+                    <span className="text-[11px] font-semibold text-[#B54708]">Rejected</span>
+                    <span className="text-[11px] text-[#B54708]">— {takeoverCard.rejectReason}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium text-[#344054]">Generating revised approach</span>
+                    <span className="flex items-center gap-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
+                    </span>
+                  </div>
+                </div>
+              ) : takeoverCard.phase === "rejected" ? (
+                /* ── Rejected / revised approach: new context + higher confidence + buttons ── */
+                <>
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex items-center gap-1.5 rounded-lg border border-[#FEC84B] bg-[#FFFAEB] px-3 py-2 mb-2">
+                      <span className="text-[11px] font-semibold text-[#B54708]">Rejected</span>
+                      <span className="text-[11px] text-[#B54708]">— {takeoverCard.rejectReason}</span>
+                    </div>
+                    <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                      Based on your feedback, I&apos;ve revised my approach. Instead of proceeding with the original plan, I recommend we gather additional verification from the customer and consult the knowledge base for firmware-specific edge cases before taking action.
+                    </p>
+                  </div>
+                  {/* Revised AI confidence (bumped) */}
+                  {takeoverCard.aiConfidence !== undefined && (
+                    <div className="rounded-xl border border-[#E4E7EC] bg-white p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</p>
+                        <span className="text-[12px] font-bold text-[#166CCA]">{Math.min(takeoverCard.aiConfidence + 12, 98)}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-500"
+                          style={{ width: `${Math.min(takeoverCard.aiConfidence + 12, 98)}%` }}
+                        />
+                      </div>
+                      <p className="text-[10px] text-[#98A2B3] leading-relaxed">Revised approach accounts for agent feedback. Higher confidence after incorporating additional safeguards.</p>
+                    </div>
+                  )}
+                  {!takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
+                    <div className="flex items-center gap-2">
+                      {takeoverCard.isLaunching ? (
+                        <div className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5 text-[13px] font-semibold text-[#166CCA]">
+                          <div className="h-3.5 w-3.5 rounded-full border-[1.5px] border-[#166CCA]/30 border-t-[#166CCA] animate-spin" />
+                          Connecting call…
+                        </div>
+                      ) : takeoverCard.actionLabel ? (
+                        <button
+                          type="button"
+                          onClick={takeoverCard.onApprove}
+                          className={cn(
+                            "flex-1 rounded-lg px-3 py-2.5 text-[13px] font-semibold text-white transition-colors",
+                            takeoverCard.actionLabel === "Launch Call"
+                              ? "bg-[#166CCA] hover:bg-[#1260B0]"
+                              : "bg-[#DC2626] hover:bg-[#B91C1C]",
+                          )}
+                        >
+                          {takeoverCard.actionLabel === "Launch Call" && <Phone className="inline h-3.5 w-3.5 mr-1.5 -mt-px" />}
+                          {takeoverCard.actionLabel}
+                        </button>
+                      ) : (
+                        <>
+                          {takeoverCard.onApprove && (
+                            <button
+                              type="button"
+                              onClick={takeoverCard.onApprove}
+                              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {takeoverCard.onReject && (
+                            <button
+                              type="button"
+                              onClick={() => takeoverCard.onPhaseChange?.("reject-reasons")}
+                              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              Reject
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ── Idle phase: context + confidence + buttons ── */
+                <>
+                  <p className="text-[13px] font-medium leading-5 text-[#344054]">{takeoverCard.customerContext}</p>
+                  {/* AI confidence */}
+                  {takeoverCard.aiConfidence !== undefined && (
+                    <div className="rounded-xl border border-[#E4E7EC] bg-white p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</p>
+                        <span className="text-[12px] font-bold text-[#166CCA]">{takeoverCard.aiConfidence}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-500"
+                          style={{ width: `${takeoverCard.aiConfidence}%` }}
+                        />
+                      </div>
+                      {takeoverCard.aiConfidenceReason && (
+                        <p className="text-[10px] text-[#98A2B3] leading-relaxed">{takeoverCard.aiConfidenceReason}</p>
+                      )}
+                    </div>
+                  )}
+                  {!takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
+                    <div className="flex items-center gap-2">
+                      {takeoverCard.isLaunching ? (
+                        <div className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5 text-[13px] font-semibold text-[#166CCA]">
+                          <div className="h-3.5 w-3.5 rounded-full border-[1.5px] border-[#166CCA]/30 border-t-[#166CCA] animate-spin" />
+                          Connecting call…
+                        </div>
+                      ) : takeoverCard.actionLabel ? (
+                        <button
+                          type="button"
+                          onClick={takeoverCard.onApprove}
+                          className={cn(
+                            "flex-1 rounded-lg px-3 py-2.5 text-[13px] font-semibold text-white transition-colors",
+                            takeoverCard.actionLabel === "Launch Call"
+                              ? "bg-[#166CCA] hover:bg-[#1260B0]"
+                              : "bg-[#DC2626] hover:bg-[#B91C1C]",
+                          )}
+                        >
+                          {takeoverCard.actionLabel === "Launch Call" && <Phone className="inline h-3.5 w-3.5 mr-1.5 -mt-px" />}
+                          {takeoverCard.actionLabel}
+                        </button>
+                      ) : (
+                        <>
+                          {takeoverCard.onApprove && (
+                            <button
+                              type="button"
+                              onClick={takeoverCard.onApprove}
+                              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+                            >
+                              Approve
+                            </button>
+                          )}
+                          {takeoverCard.onReject && (
+                            <button
+                              type="button"
+                              onClick={() => takeoverCard.onPhaseChange?.("reject-reasons")}
+                              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              Reject
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -303,12 +513,34 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeove
   );
 }
 
+type TakeoverCardPhase = "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected";
+
 interface TakeoverCardData {
   botType: string;
   botAvatarUrl: string;
   customerContext: string;
   aiConfidence: number;
   aiConfidenceReason: string;
+  onApprove?: () => void;
+  onReject?: () => void;
+  /** Called when Dismiss is clicked. */
+  onDismiss?: () => void;
+  /** Phase of the card: idle → approving → resolved, or idle → reject-reasons → reject-loading → rejected */
+  phase?: TakeoverCardPhase;
+  /** The selected case status, owned by the parent so it survives docked ↔ dragging transitions. */
+  resolvedCaseStatus?: string;
+  /** Called when the agent changes the case status dropdown. */
+  onResolvedCaseStatusChange?: (status: string) => void;
+  /** The reason selected when rejecting. */
+  rejectReason?: string | null;
+  /** Called when the agent selects a reject reason or when phase transitions are needed. */
+  onPhaseChange?: (phase: TakeoverCardPhase, rejectReason?: string) => void;
+  /** When true, hide approve/reject buttons (e.g. while guiding the conversation). */
+  hideActions?: boolean;
+  /** When set, replaces the Approve/Reject buttons with a single button using this label (e.g. "Takeover"). */
+  actionLabel?: string;
+  /** When true, show a "Connecting call…" spinner instead of the action button (used during lead call launch). */
+  isLaunching?: boolean;
 }
 
 interface NotesPanelProps {

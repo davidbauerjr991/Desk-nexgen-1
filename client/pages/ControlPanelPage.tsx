@@ -17,7 +17,6 @@ import {
   Phone,
   GalleryVertical,
   LayoutGrid,
-  PauseCircle,
   LayoutList,
   SlidersHorizontal,
   Send,
@@ -173,6 +172,7 @@ function IssueRow({
   onMonitor,
   onSupervise,
   onTakeoverAccept,
+  isPendingReview = false,
   isMonitored = false,
   isSelected = false,
   onSelect,
@@ -195,6 +195,7 @@ function IssueRow({
   isAccepted: boolean;
   isClosed: boolean;
   isParkedFromToast: boolean;
+  isPendingReview?: boolean;
   liveAssignmentId: string | null;
   onAccept: () => void;
   onReject: () => void;
@@ -212,6 +213,7 @@ function IssueRow({
   const [rejectTriggerRect, setRejectTriggerRect] = useState<DOMRect | null>(null);
   const rejectButtonRef = useRef<HTMLButtonElement>(null);
   const isInProgress = isAccepted && !isClosed;
+  const progressLabel = isPendingReview ? "In Review" : "In Progress";
   const [performActionsState, setPerformActionsState] = useState<"idle" | "running" | "done">("idle");
   const [performActionsCompletedCount, setPerformActionsCompletedCount] = useState(0);
   const performActionsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -334,9 +336,14 @@ function IssueRow({
                   navigate("/activity");
                 }
               }}
-              className="rounded-md border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-1 text-[11px] font-semibold text-[#166CCA] hover:bg-[#DAEEFA] transition-colors"
+              className={cn(
+                "rounded-md border px-3 py-1 text-[11px] font-semibold transition-colors",
+                isPendingReview
+                  ? "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00] hover:bg-[#FFECB3]"
+                  : "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA] hover:bg-[#DAEEFA]",
+              )}
             >
-              In Progress
+              {progressLabel}
             </button>
           ) : isClosed ? (
             <button
@@ -568,6 +575,8 @@ type RowData = StaticAssignment & {
   isAccepted: boolean;
   isClosed: boolean;
   isParkedFromToast: boolean;
+  /** When true, this case is in review mode (pending acceptance) — not yet assigned to the agent. */
+  isPendingReview: boolean;
   liveAssignmentId: string | null;
   onAccept: () => void;
   onReject: () => void;
@@ -1755,7 +1764,7 @@ const persistedState = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-panel" } = {}) {
-  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved, onMarcusCaseResolved, showDismissalToast, pushTransferredToast, setConversationStateForAssignment, activeLeadNotifications, dismissLeadNotification, launchLeadCall } = useLayoutContext();
+  const { resolvedAssignments, assignmentStatusesById, acceptIssue, visibleAssignments, setAssignmentStatus, selectAssignment, openCopilot, isAgentAvailable, pendingMonitorCaseId, clearPendingMonitorCaseId, pendingTakeoverCaseId, clearPendingTakeoverCaseId, openCustomerConversation, dismissIncomingByCustomer, decrementEscalatedCount, onJordanCaseResolved, onSofiaCaseResolved, onMarcusCaseResolved, showDismissalToast, pushTransferredToast, setConversationStateForAssignment, activeLeadNotifications, dismissLeadNotification, launchLeadCall, resolvedReviewCount, lastDismissedCase, pendingAcceptanceIds } = useLayoutContext();
   const navigate = useNavigate();
   const peakEscalationCountRef = useRef(0);
   const [homeTrendSlide, setHomeTrendSlide] = useState(0);
@@ -2002,10 +2011,14 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
     const isClosed = isAccepted && !!assignmentId && !visibleAssignments.some((v) => v.id === assignmentId);
     // A case is "assigned to me" when it's been taken over and is still actively in the rail.
     const isAssignedToMe = isAccepted && !isClosed;
+    // Review cases are in the rail but not yet assigned — the agent is only reviewing Aria's work.
+    const isPendingReview = !!(assignmentId && pendingAcceptanceIds.has(assignmentId));
     const row: RowData = {
       ...a,
       // Override assignedTo with the runtime value — "You" when actively in rail, null otherwise.
-      assignedTo: isAssignedToMe ? CURRENT_AGENT_NAME : null,
+      // Review cases are NOT assigned to the agent yet — show the bot name instead.
+      assignedTo: isPendingReview ? null : isAssignedToMe ? CURRENT_AGENT_NAME : null,
+      isPendingReview,
       status: (bulkResolvedIds.has(a.id) || (pendingResolvedSnapshot?.has(a.id) ?? false)) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (liveStatus ?? a.status),
       isLive: false,
       isAccepted,
@@ -2017,8 +2030,32 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
       onReopen: () => handleAcceptStatic(a, liveStatus ?? a.status),
       onMonitor: () => {
         if (a.customerRecordId) dismissIncomingByCustomer(a.customerRecordId);
-        const effectiveStatus = bulkResolvedIds.has(a.id) ? "resolved" : escalatedOverrides.has(a.id) ? "escalated" : (row.status);
-        setEscalatedModalCase({ ...row, status: effectiveStatus });
+        // If the case is already in the rail, just select it
+        if (assignmentId) {
+          selectAssignment(assignmentId);
+          navigate("/activity");
+          return;
+        }
+        // Otherwise open in the left rail in pending-acceptance (review) mode — same as the toast
+        const botType = a.botType ?? "Service Bot";
+        const seedConversation = createConversationState(a.customerRecordId, a.channel, botType);
+        acceptIssue({
+          id: a.id,
+          name: a.name,
+          customerId: a.customerId ?? "",
+          customerRecordId: a.customerRecordId,
+          channel: a.channel as AssignmentChannel,
+          priority: a.priority,
+          preview: a.preview,
+          status: "open" as QueueAssignmentStatus,
+          waitTime: a.waitTime,
+          initialConversation: seedConversation,
+          label: botType,
+          aiConfidence: a.aiConfidence,
+          aiConfidenceReason: a.aiConfidenceReason,
+          openAsPendingAcceptance: true,
+          onCreated: (newAssignmentId) => { acceptedStaticsStore.set(a.id, newAssignmentId); },
+        });
       },
       onSupervise: () => handleAcceptStatic(a, row.status),
       onTakeoverAccept: (handoffConversation) => handleAcceptStatic(a, row.status, handoffConversation),
@@ -2073,8 +2110,9 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
         isAccepted: !isParkedFromToast,
         isClosed: false,
         isParkedFromToast,
+        isPendingReview: pendingAcceptanceIds.has(a.id),
         liveAssignmentId: a.id,
-        assignedTo: isParkedFromToast ? null : CURRENT_AGENT_NAME,
+        assignedTo: pendingAcceptanceIds.has(a.id) ? null : isParkedFromToast ? null : CURRENT_AGENT_NAME,
         onAccept: isParkedFromToast
           ? () => { setAssignmentStatus(a.id, "open"); selectAssignment(a.id); navigate("/activity"); }
           : () => {},
@@ -2149,6 +2187,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
       isAccepted: true,
       isClosed: true,
       isParkedFromToast: false,
+      isPendingReview: false,
       liveAssignmentId: null,
       onAccept: () => {
         // Re-open a dismissed case: remove staticId from rejectedIds, then re-accept.
@@ -2174,7 +2213,27 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
       },
       onMonitor: () => {
         if (r.customerRecordId) dismissIncomingByCustomer(r.customerRecordId);
-        if (sa) setEscalatedModalCase({ ...sa, status: r.status, customerRecordId: r.customerRecordId ?? sa.customerRecordId } as EscalatedCaseModalData);
+        if (!sa) return;
+        // Open in the left rail in pending-acceptance (review) mode — same as the toast
+        const botType = sa.botType ?? "Service Bot";
+        const seedConversation = createConversationState(sa.customerRecordId, sa.channel, botType);
+        acceptIssue({
+          id: sa.id,
+          name: sa.name,
+          customerId: sa.customerId ?? "",
+          customerRecordId: sa.customerRecordId,
+          channel: sa.channel as AssignmentChannel,
+          priority: sa.priority,
+          preview: sa.preview,
+          status: "open" as QueueAssignmentStatus,
+          waitTime: sa.waitTime,
+          initialConversation: seedConversation,
+          label: botType,
+          aiConfidence: sa.aiConfidence,
+          aiConfidenceReason: sa.aiConfidenceReason,
+          openAsPendingAcceptance: true,
+          onCreated: (newAssignmentId) => { acceptedStaticsStore.set(sa.id, newAssignmentId); },
+        });
       },
       onSupervise: () => {
         if (!sa) return;
@@ -2218,14 +2277,14 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
   // Per-tab counts for badges
   const tabCounts: Record<IssueTab, number> = {
     all: baseRows.length + filteredResolvedAssignments.length,
-    open: baseRows.filter((a) => a.status === "open").length + filteredResolvedAssignments.filter((r) => r.status === "open").length,
-    pending: baseRows.filter((a) => a.status === "pending").length + filteredResolvedAssignments.filter((r) => r.status === "pending").length,
-    resolved: baseRows.filter((a) => a.status === "resolved").length + filteredResolvedAssignments.filter((r) => r.status === "resolved").length,
+    open: baseRows.filter((a) => a.status === "open").length + resolvedNormalised.filter((r) => r.status === "open").length,
+    pending: baseRows.filter((a) => a.status === "pending").length + resolvedNormalised.filter((r) => r.status === "pending").length,
     // Uses resolvedNormalised (effectiveStatus) rather than filteredResolvedAssignments (raw r.status)
-    // so the count stays in sync with the escalated banner, which also reads resolvedNormalised.
-    // Without this, a stale-closure bug causes dismissed cases to be stored with r.status="escalated"
-    // even after the status was programmatically set to "resolved" before dismissal, making the
-    // count show 1 while the banner correctly shows 0.
+    // so the count stays in sync with pendingResolvedIds overrides — review cases dismissed via
+    // inline approve are stored with raw status "open" but should count as "resolved".
+    resolved: baseRows.filter((a) => a.status === "resolved").length + resolvedNormalised.filter((r) => r.status === "resolved").length,
+    // Same pattern for escalated — prevents stale-closure bug where dismissed escalated cases
+    // keep showing in the escalated count.
     escalated: baseRows.filter((a) => a.status === "escalated").length + resolvedNormalised.filter((r) => r.status === "escalated").length,
   };
   const totalTasks = tabCounts.open + tabCounts.pending + tabCounts.resolved + tabCounts.escalated;
@@ -2290,7 +2349,8 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
         if (escalationCount > peakEscalationCountRef.current) {
           peakEscalationCountRef.current = escalationCount;
         }
-        const escalationsHandled = peakEscalationCountRef.current;
+        // Total escalations handled = those that went through the modal + those resolved via review
+        const escalationsHandled = peakEscalationCountRef.current + resolvedReviewCount;
         const hadEscalations = escalationsHandled > 0 && escalationCount === 0;
 
         return (
@@ -2304,20 +2364,30 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                   : escalationCount === 1
                     ? "You have an escalation, Jeff"
                     : hadEscalations
-                      ? "Nice work, Jeff"
-                      : "Good morning, Jeff"}
+                      ? lastDismissedCase?.outcome === "transferred"
+                        ? `Great handoff, Jeff`
+                        : lastDismissedCase?.outcome === "resolved"
+                          ? `Well handled, Jeff`
+                          : "Nice work, Jeff"
+                      : activeLeadNotifications.length > 0
+                        ? "You have a new Lead, Jeff"
+                        : "Good morning, Jeff"}
               </h2>
               <p className="mt-0.5 text-[13px] text-[#667085] dark:text-[#8898AB]">
                 {escalationCount > 0
                   ? `${escalationCount} ${escalationCount === 1 ? "case requires" : "cases require"} immediate attention — review and take action to prevent SLA breaches`
-                  : hadEscalations
-                    ? "Last login: Today at 8:42 AM"
+                  : hadEscalations && lastDismissedCase
+                    ? lastDismissedCase.outcome === "transferred"
+                      ? `${lastDismissedCase.customerName}'s case was smoothly transferred — they're in good hands.`
+                      : lastDismissedCase.outcome === "resolved"
+                        ? `${lastDismissedCase.customerName}'s case was resolved successfully — another satisfied customer.`
+                        : `${lastDismissedCase.customerName}'s case has been unassigned and returned to the queue.`
                     : "Last login: Today at 8:42 AM"}
               </p>
               {escalationCount === 0 && (
                 <p className="mt-3 text-[13px] leading-relaxed text-[#475467] dark:text-[#94A3B8]">
                   {hadEscalations
-                    ? `You've resolved ${escalationsHandled} escalated ${escalationsHandled === 1 ? "case" : "cases"} and ${resolvedCount} total ${resolvedCount === 1 ? "case" : "cases"} today. With ${openCount} open and ${pendingCount} pending, you're in a good position — keep clearing your queue and stay ahead of SLA targets.`
+                    ? `You've resolved ${escalationsHandled} escalated ${escalationsHandled === 1 ? "case" : "cases"}${resolvedReviewCount > 0 ? ` (${resolvedReviewCount} via AI review)` : ""} and ${resolvedCount} total ${resolvedCount === 1 ? "case" : "cases"} today. With ${openCount} open and ${pendingCount} pending, you're in a good position — keep clearing your queue and stay ahead of SLA targets.`
                     : trendText}
                 </p>
               )}
@@ -2420,11 +2490,13 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                                 className={cn(
                                   "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
                                   isInProgress
-                                    ? "border border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA] hover:bg-[#D5E9F8]"
+                                    ? row.isPendingReview
+                                      ? "border border-[#FFB800] bg-[#FFF6E0] text-[#A37A00] hover:bg-[#FFECB3]"
+                                      : "border border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA] hover:bg-[#D5E9F8]"
                                     : "bg-[#166CCA] text-white hover:bg-[#1260B0]",
                                 )}
                               >
-                                {isInProgress ? "In Progress" : (row.isAccepted && !row.isClosed) ? "View" : "Takeover"}
+                                {isInProgress ? (row.isPendingReview ? "In Review" : "In Progress") : (row.isAccepted && !row.isClosed) ? "View" : "Takeover"}
                               </button>
                             );
                           })()}
@@ -2475,28 +2547,27 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                               onClick={() => {
                                 // Dismiss the Home tab alert
                                 if (lead.customerRecordId) dismissLeadNotification(lead.customerRecordId);
-                                // Push a "transferred" toast so the customer info panel auto-opens
-                                pushTransferredToast({
-                                  name: lead.name,
-                                  customerRecordId: lead.customerRecordId,
-                                  customerId: lead.customerId,
-                                  channel: lead.channel as AssignmentChannel,
-                                  label: lead.label,
-                                  priority: lead.priority,
-                                  preview: lead.preview,
-                                });
-                                // Accept the case in history-only mode (no channel tabs, Customer History active)
+                                if (lead.customerRecordId) dismissIncomingByCustomer(lead.customerRecordId);
+                                // Open in the left rail in review mode — same as other escalated cases
+                                const sa = staticAssignments.find((s) => s.customerRecordId === lead.customerRecordId);
+                                const botType = sa?.botType ?? lead.label ?? "Aria";
+                                const seedConversation = createConversationState(lead.customerRecordId, lead.channel, botType);
                                 acceptIssue({
-                                  id: lead.id,
+                                  id: sa?.id ?? lead.id,
                                   name: lead.name,
-                                  customerId: lead.customerId,
+                                  customerId: lead.customerId ?? "",
                                   customerRecordId: lead.customerRecordId,
-                                  channel: lead.channel as AssignmentChannel,
+                                  // For lead reviews, open as chat so the voice channel tab is NOT created.
+                                  channel: (lead.leadIntelligence ? "chat" : lead.channel) as AssignmentChannel,
                                   priority: lead.priority,
                                   preview: lead.preview,
-                                  status: "pending" as QueueAssignmentStatus,
+                                  status: "open" as QueueAssignmentStatus,
                                   waitTime: lead.time ?? "0m",
-                                  openAsHistoryOnly: true,
+                                  initialConversation: seedConversation,
+                                  label: botType,
+                                  aiConfidence: sa?.aiConfidence ?? lead.aiConfidence,
+                                  aiConfidenceReason: sa?.aiConfidenceReason ?? lead.aiConfidenceReason,
+                                  openAsPendingAcceptance: true,
                                   onCreated: (assignmentId) => {
                                     // Link the static assignment so the queue updates correctly
                                     const sa = staticAssignments.find((s) => s.customerRecordId === lead.customerRecordId);
@@ -2506,7 +2577,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                               }}
                               className="rounded-md border border-border bg-white px-3 py-1 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
                             >
-                              Review Lead
+                              Review
                             </button>
                           )}
                           {launchingCallLeadId === lead.id ? (
@@ -2673,7 +2744,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
           </div>
 
             {/* Horizontal stat cards */}
-            <div className="w-full max-w-4xl grid grid-cols-4 gap-4">
+            <div className="w-full max-w-4xl grid grid-cols-3 gap-4">
               {/* Schedule */}
               <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
                 <div className="flex items-center gap-2 mb-3">
@@ -2745,30 +2816,6 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                 </div>
               </div>
 
-              {/* Parked Work */}
-              <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#FFFAEB]">
-                    <PauseCircle className="h-3.5 w-3.5 text-[#F59E0B]" />
-                  </div>
-                  <p className="text-[13px] font-semibold text-[#101828] dark:text-[#E2E8F0]">Parked Work</p>
-                </div>
-                <div className="space-y-1.5 mb-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">Total Parked</span>
-                    <span className="text-[13px] font-semibold text-[#101828] dark:text-[#E2E8F0]">3</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[12px] text-[#667085] dark:text-[#8898AB]">High Priority</span>
-                    <span className="text-[13px] font-semibold text-[#E53935]">1</span>
-                  </div>
-                </div>
-                <div className="mt-auto border-t border-border pt-2.5">
-                  <p className="text-[11px] text-[#667085] dark:text-[#8898AB]">Oldest:</p>
-                  <p className="text-[12px] font-semibold text-[#101828] dark:text-[#E2E8F0] mt-0.5">David Kim</p>
-                  <p className="text-[11px] text-[#F59E0B]">1 day ago</p>
-                </div>
-              </div>
             </div>
 
             {/* AI input bar — sticky to bottom of scroll area */}
@@ -2810,10 +2857,10 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
         // 3. Resolved/dismissed cases still attributed to this agent (shown in queue via resolvedNormalised)
         //    but NOT transferred to someone else.
         const staticAssigned = staticNormalised.filter(
-          (r) => r.isAccepted && !r.isClosed && !bulkResolvedIds.has(r.id) && !rejectedIds.has(r.id),
+          (r) => r.isAccepted && !r.isClosed && !r.isPendingReview && !bulkResolvedIds.has(r.id) && !rejectedIds.has(r.id),
         );
         const liveAssigned = liveNormalised.filter(
-          (r) => r.isAccepted && !r.isParkedFromToast,
+          (r) => r.isAccepted && !r.isParkedFromToast && !r.isPendingReview,
         );
         const resolvedAssigned = resolvedNormalised.filter(
           (r) => r.assignedTo === CURRENT_AGENT_NAME,

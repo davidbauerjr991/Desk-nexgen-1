@@ -77,6 +77,7 @@ interface ConversationPanelProps {
   performAllActionsKey?: number;
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
+  onRejectAssignment?: () => void;
   /** True when the containing panel is ≥1280px wide — used to center conversation content. */
   isWidePanel?: boolean;
   /** Called whenever the agentTasks list changes length, so the parent can show/hide the portal slot. */
@@ -120,6 +121,198 @@ interface ConversationPanelProps {
   inlineFooter?: boolean;
   /** Called when the agent clicks an AI-suggested action card embedded in a message. */
   onAiActionClick?: (actionId: string) => void;
+  /** When true, the supervisor is actively guiding the conversation — hides the default AI review card so only the guided dispute card (appendContent) is shown. */
+  isGuidingConversation?: boolean;
+  /** When true, skip handoff card stagger/entrance animation (already played for this case). */
+  skipHandoffAnimation?: boolean;
+  /** Called when handoff stagger animation finishes — use to mark case as "already animated". */
+  onHandoffAnimationDone?: () => void;
+  /** Called when the agent clicks an internal note with actionType="openCustomerInfo". */
+  onOpenCustomerInfo?: () => void;
+}
+
+/** Animated handoff card — reveals sections one at a time, auto-collapses after a pause. */
+function HandoffCardAnimated({
+  messageId,
+  isHandoffExpanded,
+  onToggleExpanded,
+  onAutoCollapse,
+  onStepReveal,
+  skipAnimation = false,
+  author,
+  contextPart,
+  customerRecord,
+  customerName,
+  bullets,
+  trailingLines,
+}: {
+  messageId: number;
+  isHandoffExpanded: boolean;
+  onToggleExpanded: () => void;
+  onAutoCollapse: () => void;
+  /** Called each time a new section is revealed — use for scroll-to-bottom. */
+  onStepReveal?: () => void;
+  /** When true, skip entrance/stagger animation (already played for this case). */
+  skipAnimation?: boolean;
+  author?: string;
+  contextPart: string;
+  customerRecord: ReturnType<typeof getCustomerRecord> | null;
+  customerName: string;
+  bullets: string[];
+  trailingLines: string[];
+}) {
+  const totalSections = 1
+    + (customerRecord?.profile ? 1 : 0)
+    + (bullets.length > 0 ? 1 : 0)
+    + (trailingLines.length > 0 ? 1 : 0);
+  // Stagger animation: 0 = nothing, 1 = context, 2 = profile, 3 = snapshot, 4 = transfer
+  // If skipAnimation, start fully revealed
+  const [visibleStep, setVisibleStep] = useState(skipAnimation ? totalSections : 0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (skipAnimation) {
+      // Already animated — signal done immediately
+      onAutoCollapse();
+      return;
+    }
+    // Stagger reveal — 1.2s between each section for a measured build-up
+    const delays = [500, 1700, 2900, 4100];
+    const sectionCount = totalSections;
+
+    for (let i = 0; i < sectionCount; i++) {
+      const delay = delays[i] ?? delays[delays.length - 1] + 1200 * (i - delays.length + 1);
+      timersRef.current.push(setTimeout(() => {
+        setVisibleStep(i + 1);
+        onStepReveal?.();
+      }, delay));
+    }
+
+    // Signal animation complete after last section reveals so suggested next steps can appear
+    const doneDelay = (delays[sectionCount - 1] ?? 4100) + 800;
+    timersRef.current.push(setTimeout(() => {
+      onAutoCollapse(); // signals animation done
+      onStepReveal?.();
+    }, doneDelay));
+
+    return () => { timersRef.current.forEach(clearTimeout); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messageId, skipAnimation]);
+
+  // Track which step index maps to which section (depends on which sections exist)
+  let stepIdx = 0;
+  const contextStep = ++stepIdx;
+  const profileStep = customerRecord?.profile ? ++stepIdx : -1;
+  const snapshotStep = bullets.length > 0 ? ++stepIdx : -1;
+  const transferStep = trailingLines.length > 0 ? ++stepIdx : -1;
+
+  const sectionClass = (step: number) =>
+    cn(
+      "transition-all duration-700 ease-out",
+      visibleStep >= step ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 h-0 overflow-hidden",
+    );
+
+  return (
+    <div className={cn("rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] overflow-hidden", !skipAnimation && "animate-in fade-in duration-300")}>
+      {/* Clickable header — always visible */}
+      <button
+        type="button"
+        onClick={onToggleExpanded}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-2">
+          {author === "Emily" ? (
+            <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
+          ) : (
+            <img
+              src={author === "Jacob"
+                ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
+                : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
+              alt={`${author ?? "Aria"} avatar`}
+              className="h-5 w-5 rounded-full object-cover shrink-0"
+            />
+          )}
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#166744]">{author ?? "Aria"}</p>
+          <span className="rounded-full border border-[#24943E] px-2 py-0.5 text-[10px] font-medium text-[#166744]">Internal note</span>
+        </div>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[#166744]/60 transition-transform duration-200", isHandoffExpanded && "rotate-180")} />
+      </button>
+      {/* Collapsible body */}
+      <div className={cn("grid transition-all duration-300 ease-out", isHandoffExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="overflow-hidden">
+          <div className="px-3 pb-3 space-y-2.5">
+            {/* Case description */}
+            {contextPart && (
+              <div className={sectionClass(contextStep)}>
+                <p className="text-[13px] font-medium leading-5 text-[#166744] whitespace-pre-line">{contextPart}</p>
+              </div>
+            )}
+            {/* Customer Profile inline card */}
+            {customerRecord?.profile && (
+              <div className={sectionClass(profileStep)}>
+                <div className="rounded-lg border border-[#BBF7D0]/60 bg-white/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[11px] font-bold text-[#1260B0]">
+                        {customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-semibold text-[#111827] leading-tight">{customerName}</p>
+                        <p className="text-[10px] text-[#667085] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[9px] text-[#98A2B3]">Balance</p>
+                      <p className="text-[12px] font-semibold text-[#111827]">{customerRecord.profile.totalAUM}</p>
+                    </div>
+                  </div>
+                  {customerRecord.profile.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {customerRecord.profile.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border border-[#BFDBFE]" :
+                            tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E]" :
+                            "bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]",
+                          )}
+                        >
+                          {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Customer Snapshot bullets */}
+            {bullets.length > 0 && (
+              <div className={sectionClass(snapshotStep)}>
+                <div className="rounded-lg border border-[#BBF7D0]/60 bg-[#DCFCE7]/40 px-3 py-2.5">
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#166744]/70">Customer Snapshot</p>
+                  <ul className="space-y-1">
+                    {bullets.map((b, i) => (
+                      <li key={i} className="flex items-baseline gap-2 text-[12px] leading-[18px] text-[#166744]">
+                        <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#22C55E]" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {/* Transfer message */}
+            {trailingLines.length > 0 && (
+              <div className={sectionClass(transferStep)}>
+                <p className="text-[13px] font-medium leading-5 text-[#166744]">{trailingLines.join(" ")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Persists the selected event-detail note across channel/tab switches so the
@@ -142,6 +335,7 @@ export default function ConversationPanel({
   performAllActionsKey = 0,
   isPendingAcceptance = false,
   onAcceptAssignment,
+  onRejectAssignment,
   isWidePanel = false,
   onAgentTasksChange,
   agentAvatarUrl,
@@ -160,6 +354,10 @@ export default function ConversationPanel({
   voiceTopContent,
   voiceRightPanel,
   voiceContentOverlay,
+  isGuidingConversation = false,
+  skipHandoffAnimation = false,
+  onHandoffAnimationDone,
+  onOpenCustomerInfo,
   onVoiceOpeningLineClick,
   inlineFooter = false,
   onAiActionClick,
@@ -184,9 +382,36 @@ export default function ConversationPanel({
   // Dismiss only when the agent explicitly clicks an opening line or the X button.
   const showOpeningLines = isVoiceChannel && !!voiceOpeningLines?.length && !openingLinesDismissed;
 
-  // Inline review card approve phase — mirrors the toast card in Layout.tsx
-  const [inlineApprovePhase, setInlineApprovePhase] = useState<"idle" | "approving" | "resolved">("idle");
+  // Inline review card approve phase — mirrors the toast card in Layout.tsx.
+  // Derive initial state from persisted conversation data so navigation doesn't reset it.
+  const [inlineApprovePhase, setInlineApprovePhase] = useState<"idle" | "approving" | "resolved">(
+    () => conversation.guidedReviewCompleted ? "resolved" : "idle",
+  );
   const inlineApproveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Sync inlineApprovePhase when switching conversations (component stays mounted).
+  const prevGuidedReviewRef = useRef(conversation.guidedReviewCompleted);
+  if (conversation.guidedReviewCompleted !== prevGuidedReviewRef.current) {
+    prevGuidedReviewRef.current = conversation.guidedReviewCompleted;
+    if (conversation.guidedReviewCompleted && inlineApprovePhase !== "resolved") {
+      setInlineApprovePhase("resolved");
+    } else if (!conversation.guidedReviewCompleted && inlineApprovePhase === "resolved") {
+      setInlineApprovePhase("idle");
+    }
+  }
+  // Resolved card — Case Status dropdown + Dismiss (shown after guidedReviewCompleted)
+  const [resolvedInlineStatus, setResolvedInlineStatus] = useState("Resolved");
+  const [resolvedInlineStatusOpen, setResolvedInlineStatusOpen] = useState(false);
+
+  // Inline review card reject flow
+  const [rejectPhase, setRejectPhase] = useState<"idle" | "reasons" | "loading" | "revised">("idle");
+  const [selectedRejectReason, setSelectedRejectReason] = useState<string | null>(null);
+  const rejectReasons = [
+    "Cannot verify this information",
+    "Incorrect approach",
+    "Need more information",
+    "Risk is too high",
+    "Requires escalation",
+  ];
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -247,6 +472,9 @@ export default function ConversationPanel({
   const selectedNote = selectedNoteId !== null ? conversation.messages.find((m) => m.id === selectedNoteId && m.isInternal && !m.isHandoffCard) ?? null : null;
   const [agentTasks, setAgentTasks] = useState<AgentTask[]>([]);
   const [nextStepsRequested, setNextStepsRequested] = useState(false);
+  // Delays suggested next steps until handoff card auto-collapse animation finishes
+  const [handoffAnimationDone, setHandoffAnimationDone] = useState(false);
+  const hasHandoffCard = conversation.messages.some((m) => m.isHandoffCard);
   const [revealedTaskIds, setRevealedTaskIds] = useState<Set<string>>(new Set());
   const [checkedTaskIds, setCheckedTaskIds] = useState<Set<string>>(new Set());
   const [taskProgress, setTaskProgress] = useState<Record<string, { stepIndex: number; paused: boolean }>>({});
@@ -286,6 +514,78 @@ export default function ConversationPanel({
 
   const conversationRef = useRef(conversation);
   conversationRef.current = conversation;
+
+  // Inline review approve — performs the task in-place without transferring to the live agent.
+  // Appends the agent response and customer reply directly to the conversation.
+  const handleInlineApprove = () => {
+    inlineApproveTimersRef.current.forEach(clearTimeout);
+    inlineApproveTimersRef.current = [];
+    setRejectPhase("idle");
+    setInlineApprovePhase("approving");
+
+    const ch = conversation.label?.toLowerCase().includes("sms") ? "sms" as const : "chat" as const;
+
+    // 1. After 2.8s — mark as resolved, append internal note + agent response
+    inlineApproveTimersRef.current.push(
+      setTimeout(() => {
+        setInlineApprovePhase("resolved");
+        const conv = conversationRef.current;
+        const baseId = conv.messages.length
+          ? Math.max(...conv.messages.map((m) => m.id)) + 1
+          : 100;
+        const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+        onConversationChange?.({
+          ...conv,
+          _skipAutoAccept: true,
+          messages: [
+            ...conv.messages,
+            {
+              id: baseId,
+              role: "agent" as const,
+              content: `AI suggestion approved — Aria confirmed firmware backup compatibility for CloudMesh Pro v3 factory reset. Response sent to customer. — ${dateStr}`,
+              time: new Date().toISOString(),
+              isInternal: true,
+            },
+            {
+              id: baseId + 1,
+              role: "agent" as const,
+              content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
+              time: new Date().toISOString(),
+              channel: ch,
+            },
+          ],
+        });
+      }, 2800)
+    );
+
+    // 2. After 5.8s — customer reply with positive sentiment + star rating
+    inlineApproveTimersRef.current.push(
+      setTimeout(() => {
+        const conv = conversationRef.current;
+        const nextId = conv.messages.length
+          ? Math.max(...conv.messages.map((m) => m.id)) + 1
+          : 101;
+        onConversationChange?.({
+          ...conv,
+          _skipAutoAccept: true,
+          messages: [
+            ...conv.messages,
+            {
+              id: nextId,
+              role: "customer" as const,
+              content: "That's amazing, thank you!",
+              time: new Date().toISOString(),
+              channel: ch,
+              sentiment: "positive" as const,
+              starRating: 5,
+            },
+          ],
+          guidedReviewCompleted: true,
+        });
+      }, 5800)
+    );
+  };
+
   const notedTaskIdsRef = useRef<Set<string>>(new Set());
   const optionsResolveCompletedRef = useRef(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
@@ -551,27 +851,41 @@ export default function ConversationPanel({
     }
     if (freshTasks.length === 0) return;
 
-    setAgentTasks((prev) => {
-      const existingIds = new Set(prev.map((t) => t.id));
-      const newTasks = freshTasks.filter((t) => !existingIds.has(t.id));
-      if (newTasks.length === 0) return prev;
+    // Post-resolve tasks (e.g. "Set Case to Resolved" after a 5-star review) get
+    // an extra 1-second pause so the agent can register the positive feedback first.
+    // Both the container (setAgentTasks) and the reveal are delayed so the whole
+    // "Suggested Next Step" card appears together after the pause.
+    const isPostResolve = freshTasks.some((t) => t.id === "set-resolved");
+    const baseDelay = isPostResolve ? 1000 : 0;
 
-      // Stagger-reveal each new task with a 180ms delay between them.
-      taskRevealTimersRef.current.forEach(clearTimeout);
-      taskRevealTimersRef.current = [];
-      // Scroll to bottom immediately so the "Suggested Next Steps" header is visible,
-      // then again after each task card reveals so it stays in view as the list grows.
-      requestAnimationFrame(() => scrollToBottom("smooth"));
-      newTasks.forEach((task, i) => {
-        const timer = setTimeout(() => {
-          setRevealedTaskIds((ids) => new Set([...ids, task.id]));
-          requestAnimationFrame(() => scrollToBottom("smooth"));
-        }, 400 + i * 180);
-        taskRevealTimersRef.current.push(timer);
+    const addAndReveal = () => {
+      setAgentTasks((prev) => {
+        const existingIds = new Set(prev.map((t) => t.id));
+        const newTasks = freshTasks.filter((t) => !existingIds.has(t.id));
+        if (newTasks.length === 0) return prev;
+
+        // Stagger-reveal each new task with a delay between them.
+        taskRevealTimersRef.current.forEach(clearTimeout);
+        taskRevealTimersRef.current = [];
+        // Scroll to bottom when the first task reveals so the card is in view.
+        newTasks.forEach((task, i) => {
+          const timer = setTimeout(() => {
+            setRevealedTaskIds((ids) => new Set([...ids, task.id]));
+            requestAnimationFrame(() => scrollToBottom("smooth"));
+          }, 400 + i * 180);
+          taskRevealTimersRef.current.push(timer);
+        });
+
+        return [...prev, ...newTasks];
       });
+    };
 
-      return [...prev, ...newTasks];
-    });
+    if (baseDelay > 0) {
+      const delayTimer = setTimeout(addAndReveal, baseDelay);
+      taskRevealTimersRef.current.push(delayTimer);
+    } else {
+      addAndReveal();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nextStepsRequested, latestCustomerMessage?.id, conversation.label]);
 
@@ -1203,7 +1517,7 @@ export default function ConversationPanel({
           )}
           <div className={cn("flex-1 min-h-0 overflow-hidden", (isVoiceChannel && voiceRightPanel) ? "flex" : "flex flex-col")}>
 
-          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: isPendingAcceptance ? 0 : inlineFooter ? 16 : 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
+          <div ref={scrollAreaRef} className="flex-1 min-h-0 overflow-y-auto py-6" style={{ paddingBottom: isPendingAcceptance ? 120 : inlineFooter ? 16 : 120, ...(scrollTopPadding ? { paddingTop: scrollTopPadding } : {}) }}>
             <div className={cn("space-y-6 px-6", isWidePanel ? "m-8 mx-auto max-w-[800px]" : "m-8")}>
             <div className="text-left">
               <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -1392,134 +1706,75 @@ export default function ConversationPanel({
                         }
                       }
                       return (
-                        <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] overflow-hidden animate-in fade-in duration-300">
-                          {/* Clickable header — always visible */}
-                          <button
-                            type="button"
-                            onClick={() => setExpandedNoteIds((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(message.id)) next.delete(message.id);
-                              else next.add(message.id);
-                              return next;
-                            })}
-                            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-                          >
-                            <div className="flex items-center gap-2">
-                              {message.author === "Emily" ? (
-                                <img src={`${import.meta.env.BASE_URL}emily-avatar.jpg`} alt="Emily avatar" className="h-5 w-5 rounded-full object-cover shrink-0" />
-                              ) : (
-                                <img
-                                  src={message.author === "Jacob"
-                                    ? "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200"
-                                    : "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200"}
-                                  alt={`${message.author ?? "Aria"} avatar`}
-                                  className="h-5 w-5 rounded-full object-cover shrink-0"
-                                />
-                              )}
-                              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#166744]">{message.author ?? "Aria"}</p>
-                              <span className="rounded-full border border-[#24943E] px-2 py-0.5 text-[10px] font-medium text-[#166744]">Internal note</span>
-                            </div>
-                            <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[#166744]/60 transition-transform duration-200", isHandoffExpanded && "rotate-180")} />
-                          </button>
-                          {/* Collapsible body */}
-                          <div className={cn("grid transition-all duration-200 ease-out", isHandoffExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
-                            <div className="overflow-hidden">
-                              <div className="px-3 pb-3 space-y-2.5">
-                                {/* Case description */}
-                                {contextPart && <p className="text-[13px] font-medium leading-5 text-[#166744] whitespace-pre-line">{contextPart}</p>}
-                                {/* Customer Profile inline card — below the description */}
-                                {customerRecord?.profile && (
-                                  <div className="rounded-lg border border-[#BBF7D0]/60 bg-white/60 px-3 py-2.5">
-                                    <div className="flex items-center justify-between gap-3">
-                                      <div className="flex items-center gap-2.5">
-                                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[11px] font-bold text-[#1260B0]">
-                                          {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
-                                        </div>
-                                        <div>
-                                          <p className="text-[12px] font-semibold text-[#111827] leading-tight">{conversation.customerName}</p>
-                                          <p className="text-[10px] text-[#667085] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
-                                        </div>
-                                      </div>
-                                      <div className="text-right shrink-0">
-                                        <p className="text-[9px] text-[#98A2B3]">Balance</p>
-                                        <p className="text-[12px] font-semibold text-[#111827]">{customerRecord.profile.totalAUM}</p>
-                                      </div>
-                                    </div>
-                                    {customerRecord.profile.tags.length > 0 && (
-                                      <div className="mt-2 flex flex-wrap gap-1.5">
-                                        {customerRecord.profile.tags.map((tag) => (
-                                          <span
-                                            key={tag}
-                                            className={cn(
-                                              "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
-                                              tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border border-[#BFDBFE]" :
-                                              tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E]" :
-                                              "bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]",
-                                            )}
-                                          >
-                                            {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                {/* Customer Snapshot bullets */}
-                                {bullets.length > 0 && (
-                                  <div className="rounded-lg border border-[#BBF7D0]/60 bg-[#DCFCE7]/40 px-3 py-2.5">
-                                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[#166744]/70">Customer Snapshot</p>
-                                    <ul className="space-y-1">
-                                      {bullets.map((b, i) => (
-                                        <li key={i} className="flex items-baseline gap-2 text-[12px] leading-[18px] text-[#166744]">
-                                          <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#22C55E]" />
-                                          {b}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
-                                {/* Transfer message */}
-                                {trailingLines.length > 0 && (
-                                  <p className="text-[13px] font-medium leading-5 text-[#166744]">{trailingLines.join(" ")}</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <HandoffCardAnimated
+                          messageId={message.id}
+                          isHandoffExpanded={isHandoffExpanded}
+                          skipAnimation={skipHandoffAnimation}
+                          onToggleExpanded={() => setExpandedNoteIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(message.id)) next.delete(message.id);
+                            else next.add(message.id);
+                            return next;
+                          })}
+                          onAutoCollapse={() => {
+                            // Stagger animation complete — reveal suggested next steps
+                            setHandoffAnimationDone(true);
+                            onHandoffAnimationDone?.();
+                            // Scroll after next steps render
+                            setTimeout(() => scrollToBottom("smooth"), 150);
+                          }}
+                          onStepReveal={() => setTimeout(() => scrollToBottom("smooth"), 50)}
+                          author={message.author}
+                          contextPart={contextPart}
+                          customerRecord={customerRecord}
+                          customerName={conversation.customerName}
+                          bullets={bullets}
+                          trailingLines={trailingLines}
+                        />
                       );
                     })()}
 
-                    {/* Internal note — clickable to open slide-out detail panel */}
+                    {/* Internal note — clickable to open slide-out detail panel (or customer info) */}
                     {message.isInternal && !message.isHandoffCard && (
                       <div
                         className={cn(
                           "rounded-xl border border-dashed overflow-hidden transition-colors cursor-pointer",
-                          selectedNoteId === message.id
-                            ? "border-[#166CCA] bg-[#EBF4FD]/40"
-                            : "border-[#D0D5DD] bg-[#F9FAFB] hover:bg-[#F3F4F6]",
+                          message.actionType === "openCustomerInfo"
+                            ? "border-[#B45309]/40 bg-[#FFF8E1]/40 hover:bg-[#FFF8E1]/70"
+                            : selectedNoteId === message.id
+                              ? "border-[#166CCA] bg-[#EBF4FD]/40"
+                              : "border-[#D0D5DD] bg-[#F9FAFB] hover:bg-[#F3F4F6]",
                         )}
                       >
                         <button
                           type="button"
                           className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left"
-                          onClick={() => setSelectedNoteId((prev) => prev === message.id ? null : message.id)}
+                          onClick={() => {
+                            if (message.actionType === "openCustomerInfo") {
+                              onOpenCustomerInfo?.();
+                            } else {
+                              setSelectedNoteId((prev) => prev === message.id ? null : message.id);
+                            }
+                          }}
                         >
                           <div className={cn(
                             "shrink-0 h-7 w-7 rounded-full border flex items-center justify-center",
-                            selectedNoteId === message.id
-                              ? "bg-[#EBF4FD] border-[#BFDBFE]"
-                              : "bg-[#F2F4F7] border-[#E4E7EC]",
+                            message.actionType === "openCustomerInfo"
+                              ? "bg-[#FFF8E1] border-[#F59E0B]/30"
+                              : selectedNoteId === message.id
+                                ? "bg-[#EBF4FD] border-[#BFDBFE]"
+                                : "bg-[#F2F4F7] border-[#E4E7EC]",
                           )}>
-                            <NotebookPen className={cn("h-3.5 w-3.5", selectedNoteId === message.id ? "text-[#166CCA]" : "text-[#667085]")} />
+                            <NotebookPen className={cn("h-3.5 w-3.5", message.actionType === "openCustomerInfo" ? "text-[#B45309]" : selectedNoteId === message.id ? "text-[#166CCA]" : "text-[#667085]")} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085]">Internal Note</span>
+                              <span className={cn("text-[10px] font-semibold uppercase tracking-[0.08em]", message.actionType === "openCustomerInfo" ? "text-[#B45309]" : "text-[#667085]")}>Internal Note</span>
                               <span className="text-[10px] text-[#98A2B3]">{formatConversationMessageTimestamp(message.time)}</span>
                             </div>
-                            <p className="text-[13px] leading-5 text-[#344054]">{message.content}</p>
+                            <p className={cn("text-[13px] leading-5", message.actionType === "openCustomerInfo" ? "text-[#92400E] font-medium" : "text-[#344054]")}>{message.content}</p>
                           </div>
-                          <ChevronRight className={cn("mt-0.5 h-4 w-4 shrink-0 transition-colors", selectedNoteId === message.id ? "text-[#166CCA]" : "text-[#98A2B3]")} />
+                          <ChevronRight className={cn("mt-0.5 h-4 w-4 shrink-0 transition-colors", message.actionType === "openCustomerInfo" ? "text-[#B45309]" : selectedNoteId === message.id ? "text-[#166CCA]" : "text-[#98A2B3]")} />
                         </button>
                       </div>
                     )}
@@ -1652,8 +1907,9 @@ export default function ConversationPanel({
                   return messageEl;
                 })}
 
-                {/* Suggested Next Steps — always visible when tasks are available */}
-                {!hideInput && agentTasks.length > 0 && (() => {
+                {/* Suggested Next Steps — always visible when tasks are available (hidden during review) */}
+                {/* When a handoff card exists, wait for its animation to complete before showing */}
+                {!hideInput && !isPendingAcceptance && agentTasks.length > 0 && (!hasHandoffCard || handoffAnimationDone) && (() => {
                   const hasOptionsLayout = agentTasks.some((t) => t.optionLabel);
 
                   /* ── Options Layout (Marcus-style resolve flow) ── */
@@ -1791,8 +2047,9 @@ export default function ConversationPanel({
                   const taskSummary = (optionsResolveCompletedRef.current || conversation.guidedReviewCompleted)
                     ? "The customer confirmed they're satisfied. Ready to close out this case."
                     : assignmentEntry?.summary ?? "I've reviewed the conversation and identified the key actions needed to resolve this case. Here are my suggested next steps, or feel free to ask for more assistance.";
+                  const isPostResolveCard = agentTasks.some((t) => t.id === "set-resolved");
                   const nextStepsContent = (
-                  <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
+                  <div className={cn("overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]", (isPostResolveCard || (hasHandoffCard && !skipHandoffAnimation)) && "animate-in fade-in slide-in-from-bottom-3 duration-700")}>
                     <div className="px-4 pt-3 pb-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">
                         {agentTasks.length === 1 ? "Suggested Next Step" : "Suggested Next Steps"}
@@ -1950,8 +2207,8 @@ export default function ConversationPanel({
                 })()
                 }
 
-                {/* Inline AI review card — shown in place of the green handoff note during pending-acceptance mode */}
-                {isPendingAcceptance && (customerContext || aiConfidence !== undefined) && (
+                {/* Inline AI review card — now lives exclusively in the Customer Information panel; hidden for all review cases */}
+                {false && isPendingAcceptance && !isGuidingConversation && (customerContext || aiConfidence !== undefined) && (
                   <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] p-3 animate-in fade-in duration-300">
                     {/* Bot header */}
                     <div className="mb-1.5 flex items-center gap-2">
@@ -1969,12 +2226,114 @@ export default function ConversationPanel({
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{botLabel ?? "Aria"}</p>
                     </div>
 
-                    {/* Context text */}
-                    {customerContext && (
-                      <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
+                    {/* ── Context text / Revised action text ── */}
+                    {inlineApprovePhase === "idle" && (
+                      rejectPhase === "revised" ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                          <div className="flex items-center gap-1.5 rounded-lg border border-[#FEC84B] bg-[#FFFAEB] px-3 py-2 mb-2">
+                            <span className="text-[11px] font-semibold text-[#B54708]">Rejected</span>
+                            <span className="text-[11px] text-[#B54708]">— {selectedRejectReason}</span>
+                          </div>
+                          <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                            Based on your feedback, I&apos;ve revised my approach. Instead of proceeding with the original plan, I recommend we gather additional verification from the customer and consult the knowledge base for firmware-specific edge cases before taking action.
+                          </p>
+                        </div>
+                      ) : rejectPhase === "loading" ? (
+                        <div className="animate-in fade-in duration-200">
+                          <div className="flex items-center gap-1.5 rounded-lg border border-[#FEC84B] bg-[#FFFAEB] px-3 py-2 mb-2">
+                            <span className="text-[11px] font-semibold text-[#B54708]">Rejected</span>
+                            <span className="text-[11px] text-[#B54708]">— {selectedRejectReason}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-medium text-[#344054]">Generating revised approach</span>
+                            <span className="flex items-center gap-0.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:0ms]" />
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:150ms]" />
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#166CCA] animate-bounce [animation-delay:300ms]" />
+                            </span>
+                          </div>
+                        </div>
+                      ) : rejectPhase === "reasons" ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-2">Reason for Rejecting</p>
+                          <div className="space-y-0">
+                            {rejectReasons.map((reason) => (
+                              <button
+                                key={reason}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedRejectReason(reason);
+                                  setRejectPhase("loading");
+                                  setTimeout(() => setRejectPhase("revised"), 2400);
+                                }}
+                                className="w-full text-left px-0 py-2.5 text-[14px] text-[#344054] hover:text-[#166CCA] transition-colors border-b border-[#E4E7EC] last:border-b-0"
+                              >
+                                {reason}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : customerContext ? (
+                        <p className="text-[13px] font-medium leading-5 text-[#344054]">{customerContext}</p>
+                      ) : null
                     )}
 
-                    {/* AI Confidence meter + Approve button */}
+                    {/* ── Customer Profile + Snapshot card — always visible during review ── */}
+                    {inlineApprovePhase === "idle" && customerRecord?.profile && (
+                      <div className="mt-3 rounded-xl border border-[#BFDBFE]/60 bg-white overflow-hidden">
+                        {/* Profile row */}
+                        <div className="px-3 py-2.5">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[11px] font-bold text-[#1260B0]">
+                                {conversation.customerName.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-[12px] font-semibold text-[#111827] leading-tight">{conversation.customerName}</p>
+                                <p className="text-[10px] text-[#667085] leading-snug">{customerRecord.profile.department} · {customerRecord.profile.tenureYears} yr{customerRecord.profile.tenureYears !== 1 ? "s" : ""} tenure</p>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-[9px] text-[#98A2B3]">Balance</p>
+                              <p className="text-[12px] font-semibold text-[#111827]">{customerRecord.profile.totalAUM}</p>
+                            </div>
+                          </div>
+                          {customerRecord.profile.tags.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {customerRecord.profile.tags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium",
+                                    tag === "Premier" ? "bg-[#EBF4FD] text-[#1260B0] border border-[#BFDBFE]" :
+                                    tag.includes("IVR") ? "bg-[#EFFBF1] text-[#208337] border border-[#24943E]" :
+                                    "bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]",
+                                  )}
+                                >
+                                  {tag}{(tag.includes("Auth") || tag.includes("Biometrics")) ? " ✓" : ""}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        {/* Customer Snapshot */}
+                        {customerRecord.customerSnapshot && customerRecord.customerSnapshot.length > 0 && (
+                          <div className="border-t border-[#BFDBFE]/40 px-4 py-3">
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Snapshot</p>
+                            <ul className="space-y-1.5">
+                              {customerRecord.customerSnapshot.map((item, i) => (
+                                <li key={i} className="flex items-baseline gap-2 text-[11px] leading-[17px] text-[#344054]">
+                                  <span className="mt-[5px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#166CCA]" />
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ── AI Confidence meter + Approve/Reject buttons ── */}
                     {aiConfidence !== undefined && (
                       inlineApprovePhase === "approving" ? (
                         <div className="mt-3 flex items-center gap-2">
@@ -1986,54 +2345,144 @@ export default function ConversationPanel({
                           </span>
                         </div>
                       ) : inlineApprovePhase === "resolved" ? (
-                        <div className="mt-3 flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-[#208337]" />
-                          <span className="text-[12px] font-semibold text-[#208337]">Approved</span>
-                        </div>
-                      ) : (
+                        conversation.guidedReviewCompleted ? (
+                          <div className="mt-3 space-y-3 animate-in fade-in duration-500">
+                            <p className="text-[13px] font-medium leading-5 text-[#344054]">
+                              Wow! Great job, Jeff! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
+                            </p>
+                            {/* Case Status dropdown */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setResolvedInlineStatusOpen((v) => !v)}
+                                className={cn(
+                                  "flex w-full items-center justify-between rounded-lg border px-3 py-2 transition-colors",
+                                  resolvedInlineStatus === "Resolved" ? "border-[#24943E] bg-[#EFFBF1]" :
+                                  resolvedInlineStatus === "Pending"  ? "border-[#FFB800] bg-[#FFF6E0]" :
+                                  resolvedInlineStatus === "Escalated"? "border-[#E53935] bg-[#FDEAEA]" :
+                                                                       "border-[#BFDBFE] bg-white",
+                                )}
+                              >
+                                <span className={cn("text-[11px] font-semibold uppercase tracking-widest",
+                                  resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                                  resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                                  resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                                )}>Case Status</span>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={cn("h-2 w-2 rounded-full",
+                                    resolvedInlineStatus === "Resolved" ? "bg-[#208337]" :
+                                    resolvedInlineStatus === "Pending"  ? "bg-[#FFB800]" :
+                                    resolvedInlineStatus === "Escalated"? "bg-[#E32926]" : "bg-[#166CCA]",
+                                  )} />
+                                  <span className={cn("text-[12px] font-semibold",
+                                    resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                                    resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                                    resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                                  )}>{resolvedInlineStatus}</span>
+                                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform",
+                                    resolvedInlineStatus === "Resolved" ? "text-[#208337]" :
+                                    resolvedInlineStatus === "Pending"  ? "text-[#A37A00]" :
+                                    resolvedInlineStatus === "Escalated"? "text-[#C71D1A]" : "text-[#166CCA]",
+                                    resolvedInlineStatusOpen && "rotate-180",
+                                  )} />
+                                </div>
+                              </button>
+                              {resolvedInlineStatusOpen && (
+                                <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 z-30 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+                                  {[
+                                    { label: "Resolved",  dot: "bg-[#208337]", text: "text-[#208337]" },
+                                    { label: "Open",      dot: "bg-[#166CCA]", text: "text-[#166CCA]" },
+                                    { label: "Pending",   dot: "bg-[#FFB800]", text: "text-[#A37A00]" },
+                                    { label: "Escalated", dot: "bg-[#E32926]", text: "text-[#C71D1A]" },
+                                  ].map(({ label, dot, text }) => (
+                                    <button
+                                      key={label}
+                                      type="button"
+                                      onClick={() => { setResolvedInlineStatus(label); setResolvedInlineStatusOpen(false); }}
+                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-[#F9FAFB] transition-colors"
+                                    >
+                                      <span className={cn("h-2 w-2 rounded-full shrink-0", dot)} />
+                                      <span className={cn("text-[13px] font-medium", text)}>{label}</span>
+                                      {resolvedInlineStatus === label && (
+                                        <Check className="ml-auto h-3.5 w-3.5 text-[#166CCA]" />
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {/* Dismiss button */}
+                            <button
+                              type="button"
+                              onClick={() => onResolveAssignment?.()}
+                              className="w-full rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-3 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-[#208337]" />
+                            <span className="text-[12px] font-semibold text-[#208337]">Approved</span>
+                          </div>
+                        )
+                      ) : rejectPhase !== "reasons" && rejectPhase !== "loading" ? (
                         <>
                           <div className="mt-3 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 space-y-1.5">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">AI Confidence</span>
-                              <span className="text-[12px] font-bold text-[#166CCA]">{aiConfidence}%</span>
+                              <span className="text-[12px] font-bold text-[#166CCA]">{rejectPhase === "revised" ? Math.min((aiConfidence ?? 78) + 12, 98) : aiConfidence}%</span>
                             </div>
                             <div className="h-1.5 w-full rounded-full bg-[#E4E7EC] overflow-hidden">
-                              <div className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA]" style={{ width: `${aiConfidence}%` }} />
+                              <div className="h-full rounded-full bg-gradient-to-r from-[#166CCA] to-[#4B96DA] transition-all duration-500" style={{ width: `${rejectPhase === "revised" ? Math.min((aiConfidence ?? 78) + 12, 98) : aiConfidence}%` }} />
                             </div>
-                            {aiConfidenceReason && (
+                            {rejectPhase === "revised" ? (
+                              <p className="text-[10px] text-[#98A2B3] leading-relaxed">Revised approach accounts for agent feedback. Higher confidence after incorporating additional safeguards.</p>
+                            ) : aiConfidenceReason ? (
                               <p className="text-[10px] text-[#98A2B3] leading-relaxed">{aiConfidenceReason}</p>
-                            )}
+                            ) : null}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              inlineApproveTimersRef.current.forEach(clearTimeout);
-                              inlineApproveTimersRef.current = [];
-                              setInlineApprovePhase("approving");
-                              inlineApproveTimersRef.current.push(
-                                setTimeout(() => {
-                                  setInlineApprovePhase("resolved");
-                                  onAcceptAssignment?.();
-                                }, 2800)
-                              );
-                            }}
-                            className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
-                          >
-                            Approve
-                          </button>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={handleInlineApprove}
+                              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1259A8] transition-colors"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRejectPhase("reasons");
+                                setSelectedRejectReason(null);
+                              }}
+                              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
                         </>
-                      )
+                      ) : null
                     )}
 
-                    {/* If no confidence data, just show a plain Approve button */}
-                    {aiConfidence === undefined && (
-                      <button
-                        type="button"
-                        onClick={() => onAcceptAssignment?.()}
-                        className="mt-2 w-full rounded-lg border border-[#166CCA] bg-white px-3 py-2 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] transition-colors"
-                      >
-                        Approve
-                      </button>
+                    {/* If no confidence data, just show Approve/Reject buttons */}
+                    {aiConfidence === undefined && inlineApprovePhase === "idle" && rejectPhase !== "reasons" && rejectPhase !== "loading" && (
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleInlineApprove}
+                          className="flex-1 rounded-lg bg-[#166CCA] px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1259A8] transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRejectPhase("reasons")}
+                          className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-2.5 text-[13px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -2127,7 +2576,7 @@ export default function ConversationPanel({
                     </Accordion>
                   </div>
                 )}
-                {agentTasks.length > 0 && !suppressAgentTasks && (
+                {agentTasks.length > 0 && !suppressAgentTasks && !isPendingAcceptance && (
                   <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
                     <div className="px-4 pt-3 pb-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Steps</span>
@@ -2363,7 +2812,7 @@ export default function ConversationPanel({
         return inlineFooter ? chip : containerBounds ? createPortal(chip, document.body) : null;
       })()}
 
-      {!hideInput && !isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (inlineFooter || containerBounds) && (() => {
+      {!hideInput && !isPendingAcceptance && !isVoiceChannel && !isEmailChannel && (!isNarrowPanel || !showAiPanel || narrowTab === "conversation") && (inlineFooter || containerBounds) && (() => {
         const footerContent = (
           <div
             ref={footerRef}

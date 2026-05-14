@@ -58,6 +58,7 @@ import {
   PhoneOff,
   Plus,
   Search,
+  Send,
   Sparkles,
   Sun,
   Volume2,
@@ -66,7 +67,10 @@ import {
   MoreVertical,
   CheckCircle2,
   Building2,
+  CircleStop,
+  Eye,
   ExternalLink,
+  Info,
   ScrollText,
 } from "lucide-react";
 
@@ -1076,14 +1080,15 @@ function CaseTransferPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<"Department" | "Agent" | "Supervisor">("Department");
   const [assigned, setAssigned] = useState<string | null>(null);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
-
-  useEffect(() => {
+  // Compute position synchronously from the trigger ref to avoid first-frame jitter
+  const [pos] = useState(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) {
-      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-    }
-  }, [triggerRef]);
+    if (rect) return { bottom: window.innerHeight - rect.top + 6, right: window.innerWidth - rect.right };
+    return { bottom: 0, right: 0 };
+  });
+  // Fade-up entrance animation
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1112,8 +1117,8 @@ function CaseTransferPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[999999] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden"
-      style={{ top: pos.top, right: pos.right }}
+      className="fixed z-[999999] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden transition-all duration-200 ease-out"
+      style={{ bottom: pos.bottom, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -1297,14 +1302,15 @@ function DispositionPopover({
   const ref = useRef<HTMLDivElement>(null);
   const [disposition, setDisposition] = useState("");
   const [notes, setNotes] = useState("");
-  const [pos, setPos] = useState({ top: 0, right: 0 });
-
-  useEffect(() => {
+  // Compute position synchronously from the trigger ref to avoid first-frame jitter
+  const [pos] = useState(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) {
-      setPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
-    }
-  }, [triggerRef]);
+    if (rect) return { bottom: window.innerHeight - rect.top + 6, right: window.innerWidth - rect.right };
+    return { bottom: 0, right: 0 };
+  });
+  // Fade-up entrance animation
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -1320,8 +1326,8 @@ function DispositionPopover({
   return createPortal(
     <div
       ref={ref}
-      className="fixed z-[9999999] w-[320px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.16)] overflow-visible"
-      style={{ top: pos.top, right: pos.right }}
+      className="fixed z-[9999999] w-[320px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.16)] overflow-visible transition-all duration-200 ease-out"
+      style={{ bottom: pos.bottom, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -1646,6 +1652,7 @@ function DockedConversationPanel({
   onSummaryClose,
   isPendingAcceptance = false,
   onAcceptAssignment,
+  onRejectAssignment,
   casePreview,
   assignmentStatus,
   onAssignmentStatusChange,
@@ -1657,7 +1664,13 @@ function DockedConversationPanel({
   aiConfidenceReason,
   botLabel,
   customerContext,
+  onCloseReviewCase,
+  onGuideConversation,
+  isGuidingConversation = false,
   onAiActionClick,
+  onCloseCustomerInfoPanel,
+  onLaunchCall,
+  externalScrollTrigger = 0,
 }: {
   isOpen: boolean;
   conversation: SharedConversationData;
@@ -1697,6 +1710,7 @@ function DockedConversationPanel({
   onSummaryClose?: () => void;
   isPendingAcceptance?: boolean;
   onAcceptAssignment?: () => void;
+  onRejectAssignment?: () => void;
   casePreview?: string;
   assignmentStatus?: QueueAssignmentStatus;
   onAssignmentStatusChange?: (status: QueueAssignmentStatus) => void;
@@ -1715,8 +1729,20 @@ function DockedConversationPanel({
   botLabel?: string;
   /** Context summary from the bot for the inline review card. */
   customerContext?: string;
+  /** Close a review case from the rail without fully dismissing it (stays in home alerts). */
+  onCloseReviewCase?: () => void;
+  /** Open the guided conversation modal for this review case. */
+  onGuideConversation?: () => void;
+  /** Whether this review case is currently in guiding mode (amber banner). */
+  isGuidingConversation?: boolean;
   /** Called when the agent clicks an AI-suggested action card embedded in a message. */
   onAiActionClick?: (actionId: string) => void;
+  /** Animate the customer info panel closed (e.g. on Guide / Takeover from the review banner). */
+  onCloseCustomerInfoPanel?: () => void;
+  /** Called when the agent clicks "Launch Call" on a lead review banner. */
+  onLaunchCall?: () => void;
+  /** External scroll-to-bottom trigger (bumped by parent to scroll the conversation). */
+  externalScrollTrigger?: number;
 }) {
   const contentInitializedRef = useRef(false);
   const panelContainerRef = useRef<HTMLDivElement>(null);
@@ -1725,7 +1751,8 @@ function DockedConversationPanel({
   const [isAiPanelVisible, setIsAiPanelVisible] = useState(false);
   const [isNarrowPanel, setIsNarrowPanel] = useState(false);
   const [isHandoffSummaryOpen, setIsHandoffSummaryOpen] = useState(initialSummaryOpen ?? false);
-  const [summaryTab, setSummaryTab] = useState<CustomerChannel | "history" | "conversation">(activeChannel);
+  const [summaryTab, setSummaryTab] = useState<CustomerChannel | "history" | "conversation" | "overview">(activeChannel);
+  const [isLaunchingCall, setIsLaunchingCall] = useState(false);
   // Composite fade key so that BOTH tab switches AND case switches trigger a crossfade.
   const fadeKey = `${customerRecordId}::${summaryTab}`;
   const { deferredKey: deferredFadeKey, opacity: tabFadeOpacity, transition: tabFadeTransition, visibility: tabFadeVisibility } = useFadeTransition(fadeKey);
@@ -1735,7 +1762,384 @@ function DockedConversationPanel({
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
   const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(false);
   const [hasAgentTasks, setHasAgentTasks] = useState(false);
+  // Review-header Transfer flow state
+  const reviewTransferBtnRef = useRef<HTMLButtonElement>(null);
+  const [showReviewTransfer, setShowReviewTransfer] = useState(false);
+  const [reviewTransferTarget, setReviewTransferTarget] = useState<string | null>(null);
+  const [showReviewDisposition, setShowReviewDisposition] = useState<"transfer" | null>(null);
+  // ── Guided dispute flow state (Sofia) ────────────────────────────────────────
+  const DISPUTE_STEPS = [
+    "Verifying account and transaction details",
+    "Filing dispute for $2,159 in unauthorized charges",
+    "Issuing provisional credit to account",
+    "Sending dispute confirmation to Sofia",
+  ];
+  const [disputeChecked, setDisputeChecked] = useState(true);
+  const [disputeExpanded, setDisputeExpanded] = useState(true);
+  const [disputeRunning, setDisputeRunning] = useState(false);
+  const [disputePaused, setDisputePaused] = useState(false);
+  const [disputeStepIndex, setDisputeStepIndex] = useState(0);
+  const [disputeComplete, setDisputeComplete] = useState(false);
+  const disputeStepIndexRef = useRef(0);
+  const disputeTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [guidedScrollTrigger, setGuidedScrollTrigger] = useState(0);
+  useEffect(() => () => { disputeTimersRef.current.forEach(clearTimeout); }, []);
+  // Reset guided dispute state only when guiding is explicitly stopped on the
+  // SAME case (i.e. the agent ends guidance). Case switches are handled by the
+  // synchronous save/restore block above — we no longer reset on customerRecordId change.
+  const prevGuidingForResetRef = useRef(isGuidingConversation);
+  useEffect(() => {
+    if (!isGuidingConversation && prevGuidingForResetRef.current) {
+      // Guiding was just turned off on the current case — do the full reset
+      setDisputeChecked(true);
+      setDisputeExpanded(true);
+      setDisputeRunning(false);
+      setDisputePaused(false);
+      setDisputeStepIndex(0);
+      setDisputeComplete(false);
+      disputeStepIndexRef.current = 0;
+      disputeTimersRef.current.forEach(clearTimeout);
+      disputeTimersRef.current = [];
+      // Reset post-dispute guided flow state
+      setAiCommentIndex(0);
+      setAiComment(dbResponses[0] ?? "");
+      setAiCommentApproved(null);
+      setAiCommentRegenerating(false);
+      setSecondAiCommentIndex(1);
+      setSecondAiComment(dbResponses[1] ?? "");
+      setSecondAiCommentApproved(null);
+      setSecondAiCommentRegenerating(false);
+      setThirdAiCommentIndex(2);
+      setThirdAiComment(dbResponses[2] ?? "");
+      setThirdAiCommentApproved(null);
+      setThirdAiCommentRegenerating(false);
+      setSofiaAddressInjected(false);
+      setSofiaFirstReplyVisible(false);
+      setSofiaTyping(false);
+      setSofiaFinalReplyVisible(false);
+      setSecondCardReady(false);
+      setThirdCardReady(false);
+      setThirdActionsApproved(false);
+      setThirdBotCommentReady(false);
+      setThirdActionRejectPopoverOpen(false);
+      setCreditChecked(true);
+      setCreditExpanded(true);
+      setCreditAmount("2,159.00");
+      setCreditConfirmed(false);
+      setShippingChecked(true);
+      setShippingExpanded(true);
+      setSelectedShipping("3-5 days");
+      setShippingConfirmed(false);
+      setFourthCardReady(false);
+      setFourthAiComment(closingResponse);
+      setFourthAiCommentApproved(null);
+      setFourthAiCommentRegenerating(false);
+      setSofiaTakenOver(false);
+      setSofiaTransferChecked(false);
+      setSofiaTransferStepIndex(0);
+      setSofiaTransferComplete(false);
+      setReviewResolveChecked(false);
+      setReviewResolveStepIndex(0);
+      setReviewResolveComplete(false);
+      reviewResolveTimersRef.current.forEach(clearTimeout);
+      reviewResolveTimersRef.current = [];
+      approveTimersRef.current.forEach(clearTimeout);
+      approveTimersRef.current = [];
+      // Clear the saved snapshot for this case since guiding was explicitly stopped
+      guidedFlowSnapshotsRef.current.delete(customerRecordId);
+    }
+    prevGuidingForResetRef.current = isGuidingConversation;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuidingConversation]);
+
+  // Scroll conversation to bottom when guide mode activates so approval cards are in view
+  const prevGuidingRef = useRef(false);
+  useEffect(() => {
+    if (isGuidingConversation && !prevGuidingRef.current) {
+      // Small delay to let seeded messages render first
+      setTimeout(() => setGuidedScrollTrigger((n) => n + 1), 120);
+    }
+    prevGuidingRef.current = isGuidingConversation;
+  }, [isGuidingConversation]);
+
+  // Track which guided cards have already animated in per case, so switching
+  // tabs and returning doesn't replay the entrance animation.
+  const guidedAnimatedCardsRef = useRef(new Map<string, Set<string>>());
+  const getGuidedAnimClass = (cardKey: string) => {
+    const caseSet = guidedAnimatedCardsRef.current.get(customerRecordId);
+    if (caseSet?.has(cardKey)) return ""; // already animated — skip
+    // Mark as animated for next time
+    if (!guidedAnimatedCardsRef.current.has(customerRecordId)) {
+      guidedAnimatedCardsRef.current.set(customerRecordId, new Set());
+    }
+    guidedAnimatedCardsRef.current.get(customerRecordId)!.add(cardKey);
+    return "animate-in fade-in slide-in-from-bottom-3 duration-700";
+  };
+
+  // Track which cases have already played handoff card stagger animation
+  const handoffAnimatedCasesRef = useRef(new Set<string>());
+
+  const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
   const customerRecord = getCustomerRecord(customerRecordId);
+  // ── Guided conversation flow state (post-dispute: bot comments, actions, etc.) ──
+  const dbResponses = customerRecord?.escalationResponses ?? [];
+  const [aiCommentIndex, setAiCommentIndex] = useState(0);
+  const [aiComment, setAiComment] = useState(dbResponses[0] ?? "");
+  const [aiCommentApproved, setAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [aiCommentRegenerating, setAiCommentRegenerating] = useState(false);
+  const [secondAiCommentIndex, setSecondAiCommentIndex] = useState(1);
+  const [secondAiComment, setSecondAiComment] = useState(dbResponses[1] ?? "");
+  const [secondAiCommentApproved, setSecondAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [secondAiCommentRegenerating, setSecondAiCommentRegenerating] = useState(false);
+  const [thirdAiCommentIndex, setThirdAiCommentIndex] = useState(2);
+  const [thirdAiComment, setThirdAiComment] = useState(dbResponses[2] ?? "");
+  const [thirdAiCommentApproved, setThirdAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [thirdAiCommentRegenerating, setThirdAiCommentRegenerating] = useState(false);
+  const [sofiaAddressInjected, setSofiaAddressInjected] = useState(false);
+  const [sofiaFirstReplyVisible, setSofiaFirstReplyVisible] = useState(false);
+  const [sofiaTyping, setSofiaTyping] = useState(false);
+  const [secondCardReady, setSecondCardReady] = useState(false);
+  const [thirdCardReady, setThirdCardReady] = useState(false);
+  const [thirdActionsApproved, setThirdActionsApproved] = useState(false);
+  const [thirdBotCommentReady, setThirdBotCommentReady] = useState(false);
+  const [thirdActionRejectPopoverOpen, setThirdActionRejectPopoverOpen] = useState(false);
+  const [creditChecked, setCreditChecked] = useState(true);
+  const [creditExpanded, setCreditExpanded] = useState(true);
+  const [creditAmount, setCreditAmount] = useState("2,159.00");
+  const [creditConfirmed, setCreditConfirmed] = useState(false);
+  type ShippingSpeed = "3-5 days" | "overnight" | "one week";
+  const SHIPPING_OPTIONS: { label: string; value: ShippingSpeed; badge: string }[] = [
+    { label: "Standard (3–5 business days)", value: "3-5 days", badge: "Free" },
+    { label: "Overnight delivery", value: "overnight", badge: "Expedited" },
+    { label: "Economy (up to 1 week)", value: "one week", badge: "Economy" },
+  ];
+  const [shippingChecked, setShippingChecked] = useState(true);
+  const [shippingExpanded, setShippingExpanded] = useState(true);
+  const [selectedShipping, setSelectedShipping] = useState<ShippingSpeed | null>("3-5 days");
+  const [shippingConfirmed, setShippingConfirmed] = useState(false);
+
+  // ── Fourth AI response (empathetic closing / warm handoff after takeover) ──
+  const closingResponse = "You have nothing to apologize for, Sofia — that's a completely normal reaction. Your account is now fully secured, the temporary credit is in place, and your new card will arrive overnight. If anything else comes up, don't hesitate to reach out. Take care.";
+  const handoffResponse = "You have absolutely nothing to apologize for, Sofia — anyone would feel the same way. I want to make sure you're in the best hands, so I'm going to connect you with a specialist who can walk you through the next steps and make sure everything is fully resolved. They'll have all the context from our conversation. You're in good hands — one moment please.";
+  const [fourthCardReady, setFourthCardReady] = useState(false);
+  const [fourthAiComment, setFourthAiComment] = useState(closingResponse);
+  const [fourthAiCommentApproved, setFourthAiCommentApproved] = useState<"approved" | "rejected" | null>(null);
+  const [fourthAiCommentRegenerating, setFourthAiCommentRegenerating] = useState(false);
+  const [sofiaTakenOver, setSofiaTakenOver] = useState(false);
+  const [sofiaFinalReplyVisible, setSofiaFinalReplyVisible] = useState(false);
+  const [sofiaTransferChecked, setSofiaTransferChecked] = useState(false);
+  const [sofiaTransferStepIndex, setSofiaTransferStepIndex] = useState(0);
+  const [sofiaTransferComplete, setSofiaTransferComplete] = useState(false);
+  const sofiaTransferTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // ── Review-case "Suggested Next Step" resolve flow ────────────────────────
+  const [reviewResolveChecked, setReviewResolveChecked] = useState(false);
+  const [reviewResolveStepIndex, setReviewResolveStepIndex] = useState(0);
+  const [reviewResolveComplete, setReviewResolveComplete] = useState(false);
+  const [reviewResolveCardVisible, setReviewResolveCardVisible] = useState(false);
+  const reviewResolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // ── Persist guided flow state across case switches ─────────────────────────
+  type GuidedFlowSnapshot = {
+    disputeChecked: boolean; disputeExpanded: boolean; disputeRunning: boolean;
+    disputePaused: boolean; disputeStepIndex: number; disputeComplete: boolean;
+    aiCommentIndex: number; aiComment: string; aiCommentApproved: "approved" | "rejected" | null;
+    aiCommentRegenerating: boolean;
+    secondAiCommentIndex: number; secondAiComment: string; secondAiCommentApproved: "approved" | "rejected" | null;
+    secondAiCommentRegenerating: boolean;
+    thirdAiCommentIndex: number; thirdAiComment: string; thirdAiCommentApproved: "approved" | "rejected" | null;
+    thirdAiCommentRegenerating: boolean;
+    sofiaAddressInjected: boolean; sofiaFirstReplyVisible: boolean; sofiaTyping: boolean;
+    sofiaFinalReplyVisible: boolean;
+    secondCardReady: boolean; thirdCardReady: boolean; thirdActionsApproved: boolean;
+    thirdBotCommentReady: boolean; thirdActionRejectPopoverOpen: boolean;
+    creditChecked: boolean; creditExpanded: boolean; creditAmount: string; creditConfirmed: boolean;
+    shippingChecked: boolean; shippingExpanded: boolean; selectedShipping: ShippingSpeed | null;
+    shippingConfirmed: boolean;
+    fourthCardReady: boolean; fourthAiComment: string; fourthAiCommentApproved: "approved" | "rejected" | null;
+    fourthAiCommentRegenerating: boolean; sofiaTakenOver: boolean;
+    sofiaTransferChecked: boolean; sofiaTransferStepIndex: number; sofiaTransferComplete: boolean;
+    reviewResolveChecked: boolean; reviewResolveStepIndex: number; reviewResolveComplete: boolean;
+    reviewResolveCardVisible: boolean;
+  };
+  const guidedFlowSnapshotsRef = useRef(new Map<string, GuidedFlowSnapshot>());
+  const prevCaseIdRef = useRef(customerRecordId);
+
+  // When the active case changes, save the outgoing case's guided state and
+  // restore the incoming case's state (if previously saved).  This block runs
+  // synchronously during render — at this point the state values still belong
+  // to the *outgoing* case, which is exactly what we want to snapshot.
+  if (prevCaseIdRef.current !== customerRecordId) {
+    // Save outgoing case state
+    guidedFlowSnapshotsRef.current.set(prevCaseIdRef.current, {
+      disputeChecked, disputeExpanded, disputeRunning, disputePaused, disputeStepIndex, disputeComplete,
+      aiCommentIndex, aiComment, aiCommentApproved, aiCommentRegenerating,
+      secondAiCommentIndex, secondAiComment, secondAiCommentApproved, secondAiCommentRegenerating,
+      thirdAiCommentIndex, thirdAiComment, thirdAiCommentApproved, thirdAiCommentRegenerating,
+      sofiaAddressInjected, sofiaFirstReplyVisible, sofiaTyping, sofiaFinalReplyVisible,
+      secondCardReady, thirdCardReady, thirdActionsApproved, thirdBotCommentReady, thirdActionRejectPopoverOpen,
+      creditChecked, creditExpanded, creditAmount, creditConfirmed,
+      shippingChecked, shippingExpanded, selectedShipping, shippingConfirmed,
+      fourthCardReady, fourthAiComment, fourthAiCommentApproved, fourthAiCommentRegenerating, sofiaTakenOver,
+      sofiaTransferChecked, sofiaTransferStepIndex, sofiaTransferComplete,
+      reviewResolveChecked, reviewResolveStepIndex, reviewResolveComplete, reviewResolveCardVisible,
+    });
+    prevCaseIdRef.current = customerRecordId;
+
+    // Restore incoming case state if a snapshot exists
+    const saved = guidedFlowSnapshotsRef.current.get(customerRecordId);
+    if (saved) {
+      setDisputeChecked(saved.disputeChecked);
+      setDisputeExpanded(saved.disputeExpanded);
+      setDisputeRunning(saved.disputeRunning);
+      setDisputePaused(saved.disputePaused);
+      setDisputeStepIndex(saved.disputeStepIndex);
+      setDisputeComplete(saved.disputeComplete);
+      disputeStepIndexRef.current = saved.disputeStepIndex;
+      setAiCommentIndex(saved.aiCommentIndex);
+      setAiComment(saved.aiComment);
+      setAiCommentApproved(saved.aiCommentApproved);
+      setAiCommentRegenerating(saved.aiCommentRegenerating);
+      setSecondAiCommentIndex(saved.secondAiCommentIndex);
+      setSecondAiComment(saved.secondAiComment);
+      setSecondAiCommentApproved(saved.secondAiCommentApproved);
+      setSecondAiCommentRegenerating(saved.secondAiCommentRegenerating);
+      setThirdAiCommentIndex(saved.thirdAiCommentIndex);
+      setThirdAiComment(saved.thirdAiComment);
+      setThirdAiCommentApproved(saved.thirdAiCommentApproved);
+      setThirdAiCommentRegenerating(saved.thirdAiCommentRegenerating);
+      setSofiaAddressInjected(saved.sofiaAddressInjected);
+      setSofiaFirstReplyVisible(saved.sofiaFirstReplyVisible);
+      setSofiaTyping(saved.sofiaTyping);
+      setSofiaFinalReplyVisible(saved.sofiaFinalReplyVisible);
+      setSecondCardReady(saved.secondCardReady);
+      setThirdCardReady(saved.thirdCardReady);
+      setThirdActionsApproved(saved.thirdActionsApproved);
+      setThirdBotCommentReady(saved.thirdBotCommentReady);
+      setThirdActionRejectPopoverOpen(saved.thirdActionRejectPopoverOpen);
+      setCreditChecked(saved.creditChecked);
+      setCreditExpanded(saved.creditExpanded);
+      setCreditAmount(saved.creditAmount);
+      setCreditConfirmed(saved.creditConfirmed);
+      setShippingChecked(saved.shippingChecked);
+      setShippingExpanded(saved.shippingExpanded);
+      setSelectedShipping(saved.selectedShipping);
+      setShippingConfirmed(saved.shippingConfirmed);
+      setFourthCardReady(saved.fourthCardReady);
+      setFourthAiComment(saved.fourthAiComment);
+      setFourthAiCommentApproved(saved.fourthAiCommentApproved);
+      setFourthAiCommentRegenerating(saved.fourthAiCommentRegenerating);
+      setSofiaTakenOver(saved.sofiaTakenOver);
+      setSofiaTransferChecked(saved.sofiaTransferChecked);
+      setSofiaTransferStepIndex(saved.sofiaTransferStepIndex);
+      setSofiaTransferComplete(saved.sofiaTransferComplete);
+      setReviewResolveChecked(saved.reviewResolveChecked);
+      setReviewResolveStepIndex(saved.reviewResolveStepIndex);
+      setReviewResolveComplete(saved.reviewResolveComplete);
+      setReviewResolveCardVisible(saved.reviewResolveCardVisible);
+    } else {
+      // First visit to this case — reset AI response fields from the new customer's database
+      const newRecord = getCustomerRecord(customerRecordId);
+      const newResponses = newRecord?.escalationResponses ?? [];
+      setAiCommentIndex(0);
+      setAiComment(newResponses[0] ?? "");
+      setAiCommentApproved(null);
+      setAiCommentRegenerating(false);
+      setSecondAiCommentIndex(1);
+      setSecondAiComment(newResponses[1] ?? "");
+      setSecondAiCommentApproved(null);
+      setSecondAiCommentRegenerating(false);
+      setThirdAiCommentIndex(2);
+      setThirdAiComment(newResponses[2] ?? "");
+      setThirdAiCommentApproved(null);
+      setThirdAiCommentRegenerating(false);
+      // Reset other guided flow state to defaults
+      setDisputeChecked(true);
+      setDisputeExpanded(true);
+      setDisputeRunning(false);
+      setDisputePaused(false);
+      setDisputeStepIndex(0);
+      setDisputeComplete(false);
+      disputeStepIndexRef.current = 0;
+      setSofiaAddressInjected(false);
+      setSofiaFirstReplyVisible(false);
+      setSofiaTyping(false);
+      setSofiaFinalReplyVisible(false);
+      setSecondCardReady(false);
+      setThirdCardReady(false);
+      setThirdActionsApproved(false);
+      setThirdBotCommentReady(false);
+      setThirdActionRejectPopoverOpen(false);
+      setCreditChecked(true);
+      setCreditExpanded(true);
+      setCreditAmount("2,159.00");
+      setCreditConfirmed(false);
+      setShippingChecked(true);
+      setShippingExpanded(true);
+      setSelectedShipping("3-5 days");
+      setShippingConfirmed(false);
+      setFourthCardReady(false);
+      setFourthAiComment(closingResponse);
+      setFourthAiCommentApproved(null);
+      setFourthAiCommentRegenerating(false);
+      setSofiaTakenOver(false);
+      setSofiaTransferChecked(false);
+      setSofiaTransferStepIndex(0);
+      setSofiaTransferComplete(false);
+      setReviewResolveChecked(false);
+      setReviewResolveStepIndex(0);
+      setReviewResolveComplete(false);
+      setReviewResolveCardVisible(false);
+    }
+  }
+
+  // Delay showing the "Suggested Next Step" card by 1s after the 5-star review appears
+  useEffect(() => {
+    if (conversation.guidedReviewCompleted && !reviewResolveCardVisible) {
+      const t = setTimeout(() => {
+        setReviewResolveCardVisible(true);
+        setGuidedScrollTrigger((n) => n + 1);
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.guidedReviewCompleted]);
+
+  const approveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  useEffect(() => () => { approveTimersRef.current.forEach(clearTimeout); }, []);
+  // Keep a ref to the latest conversation so timer callbacks never see stale data
+  const conversationRef = useRef(conversation);
+  conversationRef.current = conversation;
+  // Helper to inject a message into the conversation via onConversationChange.
+  // Sets _skipAutoAccept so the parent handler doesn't auto-accept the pending assignment.
+  const injectGuidedMessage = useCallback((msg: { role: "agent" | "customer"; content: string; author?: string; isInternal?: boolean; sentiment?: string; starRating?: number }) => {
+    const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const current = conversationRef.current;
+    onConversationChange({
+      ...current,
+      _skipAutoAccept: true,
+      messages: [...current.messages, { id: Date.now(), ...msg, time } as ConversationMessage],
+    });
+    setGuidedScrollTrigger((n) => n + 1);
+  }, [onConversationChange]);
+  // Sofia takeover handler — called by the Takeover button instead of immediately
+  // accepting the assignment. Sets takeover state and swaps the AI response to a
+  // warm handoff. The actual acceptance is deferred until the handoff comment is approved.
+  const handleSofiaTakeover = useCallback(() => {
+    setSofiaTakenOver(true);
+    if (fourthAiCommentApproved === null) {
+      setFourthAiComment(handoffResponse);
+    }
+    if (!fourthCardReady) {
+      setFourthCardReady(true);
+    }
+    setGuidedScrollTrigger((n) => n + 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fourthAiCommentApproved, fourthCardReady]);
+
+  // Sofia typing state — managed locally since the parent's handleConversationStateChange
+  // overwrites isCustomerTyping. We merge this into the conversation prop passed to ConversationPanel.
+  // (sofiaTyping is already declared above)
   const [isWidePanel] = useState(true);
   const [panelHeight, setPanelHeight] = useState(0);
   const [panelBounds, setPanelBounds] = useState<{ left: number; top: number; width: number; height: number; headerBottom: number } | null>(null);
@@ -2624,9 +3028,987 @@ function DockedConversationPanel({
     };
   }, [isOpen]);
 
+  // ── Guided dispute authorization card (inline appendContent for Sofia) ──────
+  const guidedDisputeCard = isGuidingConversation && !disputeComplete ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("disputeCard"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Dispute Authorization</p>
+        </div>
+        <p className="text-[12px] text-[#344054] leading-relaxed px-1">
+          Sofia is indicating she did not make these charges and would like to initiate a dispute. Please review the steps below and approve to proceed.
+        </p>
+        {/* Initiate Dispute checkbox */}
+        <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              disabled={disputeRunning || disputeComplete}
+              onClick={() => { const next = !disputeChecked; setDisputeChecked(next); setDisputeExpanded(next); }}
+              className={cn(
+                "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                disputeChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+                (disputeRunning || disputeComplete) && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {disputeChecked && <Check className="h-2.5 w-2.5 text-white" />}
+            </button>
+            <span className={cn("flex-1 text-[13px] leading-5 text-[#111827]", disputeComplete && "line-through text-[#9CA3AF]")}>
+              Initiate Dispute
+            </span>
+            {disputeChecked && !disputeRunning && !disputeComplete && (
+              <button type="button" onClick={() => setDisputeExpanded((v) => !v)} className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors">
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", disputeExpanded && "rotate-180")} />
+              </button>
+            )}
+          </div>
+          {disputeChecked && disputeExpanded && (
+            <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+              <p className="text-[12px] font-semibold text-[#111827] mb-2.5">
+                {disputeRunning ? (disputePaused ? "Dispute paused" : "Filing Dispute...") : "Steps that will run on Approve"}
+              </p>
+              <div className="space-y-2.5">
+                {DISPUTE_STEPS.map((step, idx) => {
+                  const isStepComplete = disputeRunning && idx < disputeStepIndex;
+                  const isInProgress = disputeRunning && !disputePaused && idx === disputeStepIndex;
+                  const isPausedHere = disputeRunning && disputePaused && idx === disputeStepIndex;
+                  return (
+                    <div key={idx} className="flex items-center gap-2.5">
+                      <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                        {isStepComplete ? (
+                          <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center"><Check className="h-3.5 w-3.5 text-white" /></div>
+                        ) : isInProgress ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                        ) : isPausedHere ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#FFB800] bg-[#FFF6E0] flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="#A37A00"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                          </div>
+                        ) : (
+                          <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center", disputeRunning ? "border-[#E5E7EB]" : "border-[#BFDBFE]")}>
+                            {!disputeRunning && <span className="text-[10px] font-semibold text-[#166CCA]">{idx + 1}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[12px]",
+                        isStepComplete ? "text-[#6B7280] line-through" : (isInProgress || isPausedHere) ? "text-[#111827] font-medium" : disputeRunning ? "text-[#9CA3AF]" : "text-[#344054]",
+                      )}>{step}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {disputeComplete && (
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-[#208337]" />
+                  <span className="text-[11px] font-semibold text-[#208337]">Dispute successfully initiated — reference #FRD-2159-SM</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Approve / Reject */}
+        {!disputeRunning && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setGuidedScrollTrigger((n) => n + 1);
+                if (disputeChecked) {
+                  setDisputeRunning(true);
+                  setDisputePaused(false);
+                  disputeStepIndexRef.current = 0;
+                  disputeTimersRef.current.forEach(clearTimeout);
+                  disputeTimersRef.current = [];
+                  const runStep = (fromStep: number) => {
+                    for (let i = fromStep; i < DISPUTE_STEPS.length; i++) {
+                      const delay = (i - fromStep) * 1200 + 800;
+                      const t = setTimeout(() => { disputeStepIndexRef.current = i + 1; setDisputeStepIndex(i + 1); }, delay);
+                      disputeTimersRef.current.push(t);
+                    }
+                    const doneDelay = (DISPUTE_STEPS.length - fromStep) * 1200 + 800;
+                    const done = setTimeout(() => {
+                      setDisputeComplete(true);
+                      injectGuidedMessage({ role: "agent", content: "Dispute filed — reference #FRD-2159-SM · $2,159 in unauthorized charges submitted for review", isInternal: true });
+                      setGuidedScrollTrigger((n) => n + 1);
+                    }, doneDelay);
+                    disputeTimersRef.current.push(done);
+                  };
+                  (disputeTimersRef as any).runStep = runStep;
+                  runStep(0);
+                } else {
+                  setDisputeComplete(true);
+                }
+              }}
+              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => {}}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Reject
+            </button>
+          </div>
+        )}
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Bot Comment Card (after dispute completes) ────────────────────────
+  const sofiaBotCommentCard = isGuidingConversation && disputeComplete && aiCommentApproved !== "approved" ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("botComment1"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
+        </div>
+        <textarea
+          value={aiComment}
+          onChange={(e) => { setAiComment(e.target.value); setAiCommentApproved(null); }}
+          rows={5}
+          className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
+        />
+        {aiCommentRegenerating ? (
+          <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+            <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setAiCommentApproved("approved");
+                injectGuidedMessage({ role: "agent", author: botLabel ?? "Jacob", content: aiComment });
+                // Start Sofia reply chain
+                approveTimersRef.current.push(setTimeout(() => {
+                  setSofiaTyping(true);
+                  setGuidedScrollTrigger((n) => n + 1);
+                  approveTimersRef.current.push(setTimeout(() => {
+                    setSofiaTyping(false);
+                    injectGuidedMessage({
+                      role: "customer",
+                      content: "Okay, thank you. I appreciate you taking this seriously. I just need this resolved today — my rent is due tomorrow and I can't afford to be short. Please keep me updated.",
+                      sentiment: "positive",
+                    });
+                    setSofiaFirstReplyVisible(true);
+                    // Sofia proactively provides her mailing address
+                    approveTimersRef.current.push(setTimeout(() => {
+                      setSofiaTyping(true);
+                      setGuidedScrollTrigger((n) => n + 1);
+                      approveTimersRef.current.push(setTimeout(() => {
+                        setSofiaTyping(false);
+                        injectGuidedMessage({
+                          role: "customer",
+                          content: "Also — if you need my mailing address for the replacement card, it's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                        });
+                        setSofiaAddressInjected(true);
+                        approveTimersRef.current.push(setTimeout(() => {
+                          setThirdCardReady(true);
+                          setGuidedScrollTrigger((n) => n + 1);
+                        }, 2200));
+                      }, 2000));
+                    }, 2000));
+                  }, 2500));
+                }, 2000));
+              }}
+              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAiCommentRegenerating(true);
+                approveTimersRef.current.push(setTimeout(() => {
+                  const nextIndex = (aiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                  setAiCommentIndex(nextIndex);
+                  setAiComment(dbResponses[nextIndex] ?? dbResponses[0] ?? "");
+                  setAiCommentApproved(null);
+                  setAiCommentRegenerating(false);
+                }, 1800));
+              }}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Generate New
+            </button>
+          </div>
+        )}
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Second AI Response Card ───────────────────────────────────────────
+  const secondAiResponseBubble = isGuidingConversation && aiCommentApproved === "approved" && secondCardReady && secondAiCommentApproved !== "approved" ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("botComment2"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
+        </div>
+        <textarea
+          value={secondAiComment}
+          onChange={(e) => { setSecondAiComment(e.target.value); setSecondAiCommentApproved(null); }}
+          rows={4}
+          className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
+        />
+        {secondAiCommentRegenerating ? (
+          <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+            <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setSecondAiCommentApproved("approved");
+                injectGuidedMessage({ role: "agent", author: botLabel ?? "Jacob", content: secondAiComment });
+                // Sofia replies with her mailing address
+                if (!sofiaAddressInjected) {
+                  setSofiaAddressInjected(true);
+                  approveTimersRef.current.push(setTimeout(() => {
+                    setSofiaTyping(true);
+                    setGuidedScrollTrigger((n) => n + 1);
+                    approveTimersRef.current.push(setTimeout(() => {
+                      setSofiaTyping(false);
+                      injectGuidedMessage({
+                        role: "customer",
+                        content: "Of course. It's 847 Westmont Avenue, Apartment 2C, Chicago, IL 60614.",
+                      });
+                      approveTimersRef.current.push(setTimeout(() => {
+                        setThirdCardReady(true);
+                        setGuidedScrollTrigger((n) => n + 1);
+                      }, 2200));
+                    }, 2500));
+                  }, 2500));
+                }
+              }}
+              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSecondAiCommentRegenerating(true);
+                approveTimersRef.current.push(setTimeout(() => {
+                  const nextIndex = (secondAiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                  setSecondAiCommentIndex(nextIndex);
+                  setSecondAiComment(dbResponses[nextIndex] ?? dbResponses[1] ?? "");
+                  setSecondAiCommentApproved(null);
+                  setSecondAiCommentRegenerating(false);
+                }, 1800));
+              }}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Generate New
+            </button>
+          </div>
+        )}
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Third Card Phase 1 — Action Authorization (credit + shipping) ─────
+  const thirdActionAuthBubble = isGuidingConversation && thirdCardReady && thirdAiCommentApproved !== "approved" && !thirdActionsApproved ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("actionAuth"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Action Authorization</p>
+        </div>
+        <p className="text-[12px] text-[#344054] leading-relaxed px-1">
+          Sofia has confirmed her mailing address. Review the actions below to issue her temporary credit and a replacement card, then approve to proceed.
+        </p>
+
+        {/* Temporary credit */}
+        <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              disabled={creditConfirmed}
+              onClick={() => {
+                if (creditConfirmed) return;
+                const next = !creditChecked;
+                setCreditChecked(next);
+                setCreditExpanded(next);
+              }}
+              className={cn(
+                "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                creditChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+                creditConfirmed && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {creditChecked && <Check className="h-2.5 w-2.5 text-white" />}
+            </button>
+            <span className={cn(
+              "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+              creditConfirmed && "line-through text-[#9CA3AF]",
+            )}>
+              Issue Temporary Credit to Account
+            </span>
+            {creditChecked && !creditConfirmed && (
+              <button type="button" onClick={() => setCreditExpanded((v) => !v)} className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors">
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", creditExpanded && "rotate-180")} />
+              </button>
+            )}
+          </div>
+          {creditChecked && creditExpanded && (
+            <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2.5">
+              <p className="text-[12px] font-semibold text-[#111827]">Credit amount</p>
+              <div className={cn(
+                "flex items-center gap-2 rounded-lg border bg-white px-3 py-2 transition-colors",
+                creditConfirmed ? "border-[#E4E7EC] opacity-60"
+                  : (() => { const n = parseFloat(creditAmount.replace(/,/g, "")); return !isNaN(n) && n > 3000; })()
+                    ? "border-[#DC2626] ring-1 ring-[#DC2626]"
+                    : "border-[#BFDBFE] focus-within:border-[#166CCA] focus-within:ring-1 focus-within:ring-[#166CCA]",
+              )}>
+                <span className="text-[13px] font-semibold text-[#344054]">$</span>
+                <input
+                  type="text"
+                  value={creditAmount}
+                  readOnly={creditConfirmed}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.,]/g, "");
+                    setCreditAmount(val);
+                  }}
+                  className="flex-1 bg-transparent text-[13px] font-semibold text-[#344054] outline-none placeholder:text-[#98A2B3]"
+                  placeholder="0.00"
+                />
+                <span className="text-[11px] text-[#98A2B3] shrink-0">USD</span>
+              </div>
+              {(() => {
+                const numericAmount = parseFloat(creditAmount.replace(/,/g, ""));
+                return !isNaN(numericAmount) && numericAmount > 3000 ? (
+                  <p className="text-[10px] text-[#DC2626] leading-relaxed font-medium">
+                    Credit amount exceeds the $3,000 threshold. Please suggest a smaller amount to the customer.
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-[#98A2B3] leading-relaxed">
+                    Provisional credit will be applied immediately and held pending dispute resolution.
+                  </p>
+                );
+              })()}
+              {creditConfirmed && (
+                <div className="flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-[#208337]" />
+                  <span className="text-[11px] font-semibold text-[#208337]">
+                    Temporary credit of ${creditAmount} applied to Sofia's account
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Replacement card shipping speed */}
+        <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              disabled={shippingConfirmed}
+              onClick={() => {
+                if (shippingConfirmed) return;
+                const next = !shippingChecked;
+                setShippingChecked(next);
+                setShippingExpanded(next);
+              }}
+              className={cn(
+                "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                shippingChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+                shippingConfirmed && "opacity-60 cursor-not-allowed",
+              )}
+            >
+              {shippingChecked && <Check className="h-2.5 w-2.5 text-white" />}
+            </button>
+            <span className={cn(
+              "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+              shippingConfirmed && "line-through text-[#9CA3AF]",
+            )}>
+              Select Replacement Card Shipping Speed
+            </span>
+            {shippingChecked && !shippingConfirmed && (
+              <button type="button" onClick={() => setShippingExpanded((v) => !v)} className="shrink-0 text-[#98A2B3] hover:text-[#166CCA] transition-colors">
+                <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", shippingExpanded && "rotate-180")} />
+              </button>
+            )}
+          </div>
+          {shippingChecked && shippingExpanded && (
+            <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5 space-y-2">
+              <p className="text-[12px] font-semibold text-[#111827] mb-2">Shipping method</p>
+              {SHIPPING_OPTIONS.map((opt) => {
+                const isSelected = selectedShipping === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      if (shippingConfirmed) return;
+                      setSelectedShipping(opt.value);
+                      const deliveryText =
+                        opt.value === "overnight"
+                          ? "overnight — you'll have it tomorrow"
+                          : opt.value === "one week"
+                          ? "within up to one week"
+                          : "within 3–5 business days";
+                      setThirdAiComment(
+                        `Thank you, Sofia. I've applied a temporary credit of $2,159 to your account, your balance will be restored while we complete our investigation. You'll be able to make your rent payment without any issue. We've also permanently blocked your current card and are issuing a new one to your address on file — it will arrive ${deliveryText}. Is there anything else I can help you with?`
+                      );
+                    }}
+                    className={cn(
+                      "w-full flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors",
+                      isSelected && opt.value === "one week" && !shippingConfirmed
+                        ? "border-[#DC2626] bg-[#FEF2F2]"
+                        : isSelected ? "border-[#166CCA] bg-[#EBF4FD]" : "border-[#E4E7EC] bg-white hover:border-[#166CCA] hover:bg-[#F9FAFB]",
+                      shippingConfirmed && "opacity-60 cursor-default",
+                    )}
+                  >
+                    <span className={cn("text-[12px]",
+                      isSelected && opt.value === "one week" && !shippingConfirmed
+                        ? "font-semibold text-[#DC2626]"
+                        : isSelected ? "font-semibold text-[#1260B0]" : "text-[#344054]",
+                    )}>
+                      {opt.label}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] font-semibold px-2 py-0.5 rounded-full border",
+                      isSelected && opt.value === "one week" && !shippingConfirmed
+                        ? "bg-[#DC2626] border-[#DC2626] text-white"
+                        : isSelected ? "bg-[#166CCA] border-[#166CCA] text-white" : "bg-[#F2F4F7] border-[#E4E7EC] text-[#667085]",
+                    )}>
+                      {opt.badge}
+                    </span>
+                  </button>
+                );
+              })}
+              {!shippingConfirmed && selectedShipping === "one week" && (
+                <p className="text-[10px] text-[#DC2626] leading-relaxed font-medium mt-1">
+                  Based on the conversation the customer may not be able to wait this long.
+                </p>
+              )}
+              {shippingConfirmed && (
+                <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-[#208337]" />
+                  <span className="text-[11px] font-semibold text-[#208337]">
+                    Shipping confirmed —{" "}
+                    {selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy (up to 1 week)" : "Standard 3–5 business days"}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Approve/Reject */}
+        <div className="relative flex items-center gap-2">
+          {thirdActionRejectPopoverOpen && (
+            <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20 rounded-xl border border-[#E4E7EC] bg-white shadow-[0_8px_24px_rgba(16,24,40,0.12)] overflow-hidden">
+              <div className="px-3 py-2 border-b border-[#F2F4F7]">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Reason for rejecting</p>
+              </div>
+              {[
+                "Credit amount is incorrect",
+                "Cannot verify mailing address",
+                "Shipping speed not appropriate",
+                "Need supervisor approval",
+                "Requires additional verification",
+              ].map((reason) => (
+                <button
+                  key={reason}
+                  type="button"
+                  onClick={() => {
+                    setThirdActionRejectPopoverOpen(false);
+                    injectGuidedMessage({ role: "agent", content: `Agent rejected action authorization — Reason: ${reason}`, isInternal: true });
+                    // Reset actions back to defaults
+                    setShippingChecked(true);
+                    setShippingExpanded(true);
+                    setSelectedShipping("3-5 days");
+                    setShippingConfirmed(false);
+                    setCreditChecked(true);
+                    setCreditExpanded(true);
+                    setCreditAmount("2,159.00");
+                    setCreditConfirmed(false);
+                    setThirdActionsApproved(false);
+                    setThirdBotCommentReady(false);
+                  }}
+                  className="w-full px-3 py-2.5 text-left text-[13px] text-[#344054] hover:bg-[#F9FAFB] transition-colors"
+                >
+                  {reason}
+                </button>
+              ))}
+            </div>
+          )}
+          {(() => {
+            const numericCredit = parseFloat(creditAmount.replace(/,/g, ""));
+            const creditTooHigh = creditChecked && !creditConfirmed && !isNaN(numericCredit) && numericCredit > 3000;
+            const shippingTooSlow = shippingChecked && !shippingConfirmed && selectedShipping === "one week";
+            const hasValidationError = creditTooHigh || shippingTooSlow;
+            return (
+              <button
+                type="button"
+                disabled={hasValidationError}
+                onClick={() => {
+                  setThirdActionRejectPopoverOpen(false);
+                  if (creditChecked && !creditConfirmed) {
+                    setCreditConfirmed(true);
+                    injectGuidedMessage({ role: "agent", content: `Temporary credit of $${creditAmount} applied to Sofia's account — held pending dispute resolution`, isInternal: true });
+                  }
+                  if (shippingChecked && !shippingConfirmed) {
+                    setShippingConfirmed(true);
+                    const deliveryLabel = selectedShipping === "overnight" ? "Overnight delivery" : selectedShipping === "one week" ? "Economy — up to 1 week" : "Standard 3–5 business days";
+                    injectGuidedMessage({ role: "agent", content: `Replacement card issued to 847 Westmont Avenue, Apt 2C, Chicago, IL 60614 · ${deliveryLabel}`, isInternal: true });
+                  }
+                  setThirdActionsApproved(true);
+                  setGuidedScrollTrigger((n) => n + 1);
+                  approveTimersRef.current.push(setTimeout(() => {
+                    setThirdBotCommentReady(true);
+                    setGuidedScrollTrigger((n) => n + 1);
+                  }, 2200));
+                }}
+                className={cn(
+                  "flex-1 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-white transition-colors",
+                  hasValidationError ? "bg-[#166CCA]/50 cursor-not-allowed" : "bg-[#166CCA] hover:bg-[#1260B0]",
+                )}
+              >
+                Approve
+              </button>
+            );
+          })()}
+          <button
+            type="button"
+            onClick={() => setThirdActionRejectPopoverOpen((v) => !v)}
+            className={cn(
+              "flex-1 rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-colors",
+              thirdActionRejectPopoverOpen
+                ? "border-[#D0D5DD] bg-[#F2F4F7] text-[#344054]"
+                : "border-[#D0D5DD] bg-white text-[#344054] hover:bg-[#F2F4F7]",
+            )}
+          >
+            Reject
+          </button>
+        </div>
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Third Card Phase 2 — Bot Comment (after actions approved) ─────────
+  const thirdBotCommentBubble = isGuidingConversation && thirdCardReady && thirdBotCommentReady && thirdAiCommentApproved !== "approved" ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("botComment3"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
+        </div>
+        <textarea
+          value={thirdAiComment}
+          onChange={(e) => { setThirdAiComment(e.target.value); setThirdAiCommentApproved(null); }}
+          rows={4}
+          className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
+        />
+        {thirdAiCommentRegenerating ? (
+          <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+            <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setThirdAiCommentApproved("approved");
+                injectGuidedMessage({ role: "agent", author: botLabel ?? "Jacob", content: thirdAiComment });
+                // Sofia's final reply
+                approveTimersRef.current.push(setTimeout(() => {
+                  setSofiaTyping(true);
+                  setGuidedScrollTrigger((n) => n + 1);
+                  approveTimersRef.current.push(setTimeout(() => {
+                    setSofiaTyping(false);
+                    setSofiaFinalReplyVisible(true);
+                    injectGuidedMessage({
+                      role: "customer",
+                      content: "thank you. I'm sorry I got so upset. I was just really scared.",
+                      starRating: 5,
+                    });
+                    // Show fourth AI card after a brief delay
+                    approveTimersRef.current.push(setTimeout(() => {
+                      setFourthCardReady(true);
+                      setGuidedScrollTrigger((n) => n + 1);
+                    }, 2200));
+                  }, 2500));
+                }, 3000));
+              }}
+              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setThirdAiCommentRegenerating(true);
+                approveTimersRef.current.push(setTimeout(() => {
+                  const nextIndex = (thirdAiCommentIndex + 1) % Math.max(dbResponses.length, 1);
+                  setThirdAiCommentIndex(nextIndex);
+                  setThirdAiComment(dbResponses[nextIndex] ?? dbResponses[2] ?? "");
+                  setThirdAiCommentApproved(null);
+                  setThirdAiCommentRegenerating(false);
+                }, 1800));
+              }}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Generate New
+            </button>
+          </div>
+        )}
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Fourth AI response card (empathetic closing / warm handoff) ──────
+  const fourthBotCommentBubble = isGuidingConversation && fourthCardReady && fourthAiCommentApproved !== "approved" ? (
+    <div className={cn("px-4 py-3 flex items-start gap-2", getGuidedAnimClass("botComment4"))}>
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3 space-y-2.5">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">
+            {sofiaTakenOver ? "AI Warm Handoff" : "AI Next Response"}
+          </p>
+        </div>
+        <textarea
+          value={fourthAiComment}
+          onChange={(e) => { setFourthAiComment(e.target.value); setFourthAiCommentApproved(null); }}
+          rows={sofiaTakenOver ? 6 : 4}
+          className="w-full resize-none rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5 text-[12px] text-[#344054] leading-relaxed outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA] transition-colors"
+        />
+        {fourthAiCommentRegenerating ? (
+          <div className="flex items-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2">
+            <span className="h-3.5 w-3.5 rounded-full border-2 border-[#BFDBFE] border-t-[#166CCA] animate-spin shrink-0" />
+            <span className="text-[12px] text-[#1260B0] font-medium">Regenerating response…</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setFourthAiCommentApproved("approved");
+                injectGuidedMessage({ role: "agent", author: botLabel ?? "Jacob", content: fourthAiComment });
+                if (sofiaTakenOver) {
+                  // Agent took over — accept the assignment to transition into taken-over state
+                  onAcceptAssignment?.();
+                } else {
+                  // No takeover — mark guided review as complete so the resolve card appears
+                  const current = conversationRef.current;
+                  onConversationChange({ ...current, guidedReviewCompleted: true, _skipAutoAccept: true });
+                }
+                setGuidedScrollTrigger((n) => n + 1);
+              }}
+              className="flex-1 rounded-lg bg-[#166CCA] px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
+            >
+              {sofiaTakenOver ? "Approve and Take Over" : "Approve"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setFourthAiCommentRegenerating(true);
+                approveTimersRef.current.push(setTimeout(() => {
+                  // Toggle between closing and handoff
+                  setFourthAiComment(sofiaTakenOver ? handoffResponse : closingResponse);
+                  setFourthAiCommentApproved(null);
+                  setFourthAiCommentRegenerating(false);
+                }, 1800));
+              }}
+              className="flex-1 rounded-lg border border-[#D0D5DD] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#344054] hover:bg-[#F2F4F7] transition-colors"
+            >
+              Generate New
+            </button>
+          </div>
+        )}
+      </div>
+      <img src={jacobAvatar} alt="Jacob avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  ) : undefined;
+
+  // ── Guided: Takeover transfer next step card ─────────────────────────────────
+  const sofiaTransferSteps = ["Sending response to customer", "Adding internal handoff note", "Transferring to live agent"];
+  const sofiaTransferCard = sofiaTakenOver && fourthAiCommentApproved === "approved" && !sofiaTransferComplete ? (
+    <div className={cn("rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden", getGuidedAnimClass("sofiaTransferCard"))}>
+      <div className="px-4 pt-3 pb-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
+      </div>
+      <div className="px-4 pb-2">
+        <p className="text-[12px] text-[#667085] leading-5">Handoff message sent. Ready to transfer Sofia to a live agent.</p>
+      </div>
+      <div className="px-3 pb-3">
+        <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (sofiaTransferChecked) return;
+                setSofiaTransferChecked(true);
+                sofiaTransferTimersRef.current.forEach(clearTimeout);
+                sofiaTransferTimersRef.current = [];
+                sofiaTransferSteps.forEach((_, i) => {
+                  const t = setTimeout(() => setSofiaTransferStepIndex(i + 1), 1000 + i * 1200);
+                  sofiaTransferTimersRef.current.push(t);
+                });
+                const done = setTimeout(() => {
+                  setSofiaTransferComplete(true);
+                  setTimeout(() => onRemoveAssignment?.("Agent Sarah Mitchell"), 800);
+                }, 1000 + sofiaTransferSteps.length * 1200);
+                sofiaTransferTimersRef.current.push(done);
+              }}
+              className={cn(
+                "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                sofiaTransferChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+              )}
+            >
+              {sofiaTransferChecked && <Check className="h-2.5 w-2.5 text-white" />}
+            </button>
+            <span className={cn(
+              "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+              sofiaTransferComplete && "line-through text-[#9CA3AF]",
+            )}>
+              Transfer to Live Agent
+            </span>
+            {!sofiaTransferChecked && (
+              <button type="button" aria-label="Dismiss action" className="shrink-0 text-[#9CA3AF] hover:text-[#667085] transition-colors">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {sofiaTransferChecked && (
+            <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+              <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Transferring to agent...</p>
+              <div className="space-y-2.5">
+                {sofiaTransferSteps.map((step, idx) => {
+                  const isComplete = idx < sofiaTransferStepIndex;
+                  const isInProgress = idx === sofiaTransferStepIndex;
+                  return (
+                    <div key={idx} className="flex items-center gap-2.5">
+                      <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                        {isComplete ? (
+                          <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                            <Check className="h-3.5 w-3.5 text-white" />
+                          </div>
+                        ) : isInProgress ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                        ) : (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[12px]",
+                        isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                      )}>
+                        {step}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {!sofiaTransferChecked && (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (sofiaTransferChecked) return;
+              setSofiaTransferChecked(true);
+              sofiaTransferTimersRef.current.forEach(clearTimeout);
+              sofiaTransferTimersRef.current = [];
+              sofiaTransferSteps.forEach((_, i) => {
+                const t = setTimeout(() => setSofiaTransferStepIndex(i + 1), 1000 + i * 1200);
+                sofiaTransferTimersRef.current.push(t);
+              });
+              const done = setTimeout(() => {
+                setSofiaTransferComplete(true);
+                setTimeout(() => onRemoveAssignment?.("Agent Sarah Mitchell"), 800);
+              }, 1000 + sofiaTransferSteps.length * 1200);
+              sofiaTransferTimersRef.current.push(done);
+            }}
+            className="w-auto rounded-lg bg-[#166CCA] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1259A8] transition-colors"
+          >
+            Perform All Actions
+          </button>
+        </div>
+      )}
+    </div>
+  ) : undefined;
+
+  // ── Guided: Thinking placeholder bubble ───────────────────────────────────────
+  const guidedThinkingBubble = (
+    <div className="px-4 py-3 flex items-start gap-2 animate-in fade-in slide-in-from-bottom-3 duration-700">
+      <div className="flex-1 rounded-xl border border-[#166CCA] bg-[#EBF4FD] p-3">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Sparkles className="h-3 w-3 text-[#166CCA]" />
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">AI Next Response</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-1 py-1">
+          <span className="text-[12px] text-[#9CA3AF] italic">Composing response</span>
+          <span className="flex gap-[3px] items-center ml-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:0ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:150ms]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#9CA3AF] animate-bounce [animation-delay:300ms]" />
+          </span>
+        </div>
+      </div>
+      <img src={jacobAvatar} alt="AI avatar" className="shrink-0 mt-0.5 h-7 w-7 rounded-full object-cover" />
+    </div>
+  );
+
+  // ── Guided flow: computed visibility flags for thinking states ─────────────────
+  const showThinkingThird = isGuidingConversation && sofiaAddressInjected && !thirdCardReady && aiCommentApproved === "approved" && thirdAiCommentApproved !== "approved";
+  const showThinkingBetweenActions = isGuidingConversation && thirdActionsApproved && !thirdBotCommentReady && thirdAiCommentApproved !== "approved";
+  const showThinkingFourth = isGuidingConversation && thirdAiCommentApproved === "approved" && sofiaFinalReplyVisible && !fourthCardReady;
+
+  // ── Review-case "Suggested Next Step" card (shown after customer 5/5 reply) ──
+  const reviewResolveSteps = ["Setting case status to Resolved", "Removing agent assignment", "Updating case log"];
+  const reviewResolveCard = isPendingAcceptance && conversation.guidedReviewCompleted && reviewResolveCardVisible && !reviewResolveComplete ? (
+    <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700">
+      <div className="px-4 pt-3 pb-1">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
+      </div>
+      <div className="px-4 pb-2">
+        <p className="text-[12px] text-[#667085] leading-5">The customer confirmed they're satisfied. Ready to close out this case.</p>
+      </div>
+      <div className="px-3 pb-3">
+        <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (reviewResolveChecked) return;
+                setReviewResolveChecked(true);
+                onAssignmentStatusChange?.("resolved");
+                reviewResolveTimersRef.current.forEach(clearTimeout);
+                reviewResolveTimersRef.current = [];
+                reviewResolveSteps.forEach((_, i) => {
+                  const t = setTimeout(() => setReviewResolveStepIndex(i + 1), 1000 + i * 1200);
+                  reviewResolveTimersRef.current.push(t);
+                });
+                const done = setTimeout(() => {
+                  setReviewResolveComplete(true);
+                  setTimeout(() => onRemoveAssignment?.(), 800);
+                }, 1000 + reviewResolveSteps.length * 1200);
+                reviewResolveTimersRef.current.push(done);
+              }}
+              className={cn(
+                "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                reviewResolveChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+              )}
+            >
+              {reviewResolveChecked && <Check className="h-2.5 w-2.5 text-white" />}
+            </button>
+            <span className={cn(
+              "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+              reviewResolveComplete && "line-through text-[#9CA3AF]",
+            )}>
+              Set Case to Resolved — Dismiss &amp; Unassign
+            </span>
+            {!reviewResolveChecked && (
+              <button
+                type="button"
+                aria-label="Dismiss action"
+                className="shrink-0 text-[#9CA3AF] hover:text-[#667085] transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {reviewResolveChecked && (
+            <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+              <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Resolving &amp; dismissing...</p>
+              <div className="space-y-2.5">
+                {reviewResolveSteps.map((step, idx) => {
+                  const isComplete = idx < reviewResolveStepIndex;
+                  const isInProgress = idx === reviewResolveStepIndex;
+                  return (
+                    <div key={idx} className="flex items-center gap-2.5">
+                      <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                        {isComplete ? (
+                          <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                            <Check className="h-3.5 w-3.5 text-white" />
+                          </div>
+                        ) : isInProgress ? (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                        ) : (
+                          <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "text-[12px]",
+                        isComplete ? "text-[#6B7280] line-through" : isInProgress ? "text-[#111827] font-medium" : "text-[#9CA3AF]",
+                      )}>
+                        {step}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {reviewResolveComplete && (
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-[#EFFBF1] border border-[#24943E] px-3 py-2">
+                  <Check className="h-3.5 w-3.5 text-[#208337]" />
+                  <span className="text-[11px] font-semibold text-[#208337]">Case resolved and dismissed</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      {/* Perform All Actions button */}
+      {!reviewResolveChecked && (
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => {
+              if (reviewResolveChecked) return;
+              setReviewResolveChecked(true);
+              onAssignmentStatusChange?.("resolved");
+              reviewResolveTimersRef.current.forEach(clearTimeout);
+              reviewResolveTimersRef.current = [];
+              reviewResolveSteps.forEach((_, i) => {
+                const t = setTimeout(() => setReviewResolveStepIndex(i + 1), 1000 + i * 1200);
+                reviewResolveTimersRef.current.push(t);
+              });
+              const done = setTimeout(() => {
+                setReviewResolveComplete(true);
+                setTimeout(() => onRemoveAssignment?.(), 800);
+              }, 1000 + reviewResolveSteps.length * 1200);
+              reviewResolveTimersRef.current.push(done);
+            }}
+            className="w-auto rounded-lg bg-[#166CCA] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1259A8] transition-colors"
+          >
+            Perform All Actions
+          </button>
+        </div>
+      )}
+      {/* Ask Copilot input */}
+      <div className="px-3 pb-3">
+        <div className="flex items-center gap-2 rounded-xl border border-black/[0.06] bg-white px-3 py-2.5">
+          <Bot className="h-4 w-4 text-[#9CA3AF] shrink-0" />
+          <span className="text-[13px] text-[#9CA3AF]">Ask Copilot to perform another action</span>
+          <Send className="h-4 w-4 text-[#C4C9D4] shrink-0 ml-auto" />
+        </div>
+      </div>
+    </div>
+  ) : undefined;
+
   return (
     <div
       ref={panelContainerRef}
+      data-conversation-panel
       aria-hidden={!isOpen}
       className={cn(
         "relative min-h-0 overflow-visible",
@@ -2666,6 +4048,7 @@ function DockedConversationPanel({
                   >
                     <GripHorizontal className="h-4 w-4" />
                   </button>
+                  <CustomerInfoIconButton onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
                   <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
                   {/* Channel + history tabs in header */}
                   {(
@@ -2724,22 +4107,87 @@ function DockedConversationPanel({
                     </div>
                   )}
                 </div>
-                {/* Right side: customer info icon + status chip + close */}
+                {/* Right side: review mode shows escalation badge + timer + X; normal mode shows status chip + more-options */}
                 <div className="flex items-center gap-2 shrink-0">
-                  <CustomerInfoIconButton onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
-                  {assignmentStatus && onAssignmentStatusChange && (
-                    <div onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                      <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
-                    </div>
-                  )}
-                  {onRemoveAssignment && assignmentStatus && (
-                    <CaseMoreOptionsMenu
-                      onDismiss={(recipient) => onRemoveAssignment(recipient)}
-                      onClose={onClose}
-                    />
+                  {isPendingAcceptance ? (
+                    <>
+                      {conversation.guidedReviewCompleted ? (
+                        /* After customer gives 5/5, show a status dropdown chip like taken-over cases */
+                        assignmentStatus && onAssignmentStatusChange ? (
+                          <div onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                            <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
+                          </div>
+                        ) : null
+                      ) : customerRecordId === "terry" ? (
+                        <span className="flex items-center gap-1.5 rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#1D4ED8] uppercase whitespace-nowrap border border-[#BFDBFE]">
+                          <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
+                          Review In Process
+                        </span>
+                      ) : (
+                        <>
+                          <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#667085]"><Clock className="h-3.5 w-3.5" /><EscalationTimer customerId={customerRecordId} /></span>
+                          <span className="flex items-center gap-1.5 rounded-md bg-[#FFF8E1] px-2 py-1 text-[11px] font-semibold tracking-wide text-[#B45309] uppercase whitespace-nowrap">
+                            <TriangleAlert className="h-3.5 w-3.5 text-[#D97706]" />
+                            Escalated — Immediate Action Required
+                          </span>
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Close review case"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => { e.stopPropagation(); onCloseReviewCase?.(); }}
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[#7A7A7A] transition-colors hover:bg-[#F8F8F9] hover:text-[#333333]"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {assignmentStatus && onAssignmentStatusChange && (
+                        <div onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+                          <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
+                        </div>
+                      )}
+                      {onRemoveAssignment && assignmentStatus && (
+                        <CaseMoreOptionsMenu
+                          onDismiss={(recipient) => onRemoveAssignment(recipient)}
+                          onClose={onClose}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
+
+              {/* Review case alert banner — moved to bottom of conversation panel (see below content area) */}
+
+              {/* Review-header transfer popovers (portalled) */}
+              {showReviewTransfer && (
+                <CaseTransferPopover
+                  triggerRef={reviewTransferBtnRef}
+                  onClose={() => setShowReviewTransfer(false)}
+                  onSelect={(targetName) => {
+                    setShowReviewTransfer(false);
+                    setReviewTransferTarget(targetName);
+                    setShowReviewDisposition("transfer");
+                  }}
+                />
+              )}
+              {showReviewDisposition === "transfer" && (
+                <DispositionPopover
+                  triggerRef={reviewTransferBtnRef}
+                  mode="transfer"
+                  targetName={reviewTransferTarget ?? undefined}
+                  onConfirm={() => {
+                    const recipient = reviewTransferTarget ?? undefined;
+                    setShowReviewDisposition(null);
+                    setReviewTransferTarget(null);
+                    onRemoveAssignment?.(recipient);
+                  }}
+                  onCancel={() => { setShowReviewDisposition(null); setReviewTransferTarget(null); }}
+                />
+              )}
 
             </div>
 
@@ -2771,7 +4219,7 @@ function DockedConversationPanel({
                 ) : (
                   <ConversationPanel
                     key={visibleTab}
-                    conversation={conversation}
+                    conversation={sofiaTyping ? { ...conversation, isCustomerTyping: true } : conversation}
                     openChannels={openChannels}
                     activeChannel={visibleTab as CustomerChannel}
                     customerId={customerRecordId}
@@ -2785,11 +4233,33 @@ function DockedConversationPanel({
                     performAllActionsKey={performAllActionsKey}
                     isPendingAcceptance={isPendingAcceptance}
                     onAcceptAssignment={onAcceptAssignment}
+                    onRejectAssignment={onRejectAssignment}
                     isWidePanel={isWidePanel}
                     onAgentTasksChange={setHasAgentTasks}
                     suppressAgentTasks={isOptionsResolve}
                     onNextStepsRequested={() => setResolveBoxVisible(true)}
-                    appendContent={resolveBoxVisible ? (supervisorResolveBox ?? optionsResolveBox) : undefined}
+                    appendContent={
+                      isGuidingConversation && customerRecordId === "sofia" ? (
+                        <>
+                          {guidedDisputeCard}
+                          {sofiaBotCommentCard}
+                          {secondAiResponseBubble}
+                          {showThinkingThird && guidedThinkingBubble}
+                          {thirdActionAuthBubble}
+                          {showThinkingBetweenActions && guidedThinkingBubble}
+                          {thirdBotCommentBubble}
+                          {showThinkingFourth && guidedThinkingBubble}
+                          {fourthBotCommentBubble}
+                          {/* sofiaTransferCard removed — transfer now auto-fires on handoff approve */}
+                        </>
+                      ) : reviewResolveCard ? reviewResolveCard : (resolveBoxVisible ? (supervisorResolveBox ?? optionsResolveBox) : undefined)
+                    }
+                    scrollToBottomTrigger={guidedScrollTrigger + externalScrollTrigger}
+                    hideInput={isPendingAcceptance}
+                    isGuidingConversation={isGuidingConversation}
+                    skipHandoffAnimation={handoffAnimatedCasesRef.current.has(customerRecordId)}
+                    onHandoffAnimationDone={() => { handoffAnimatedCasesRef.current.add(customerRecordId); }}
+                    onOpenCustomerInfo={onOpenCustomerInfo}
                     forcedSuggestedReply={isOptionsResolve ? optionsForcedReply : null}
                     forcedSuggestionVariants={isOptionsResolve ? optionsForcedVariants : null}
                     aiConfidence={aiConfidence}
@@ -2804,6 +4274,108 @@ function DockedConversationPanel({
                     onAiActionClick={onAiActionClick}
                   />
                 )}
+
+                {/* Review case alert banner — fixed to bottom of conversation panel */}
+                {isPendingAcceptance && (() => {
+                  const isLeadReview = customerRecordId === "terry";
+                  return (
+                  <div className={cn(
+                    "shrink-0 flex items-start gap-3 border-t px-4 py-3 transition-colors duration-200",
+                    isGuidingConversation
+                      ? "border-[#FEC84B] bg-[#FFFCF0]"
+                      : "border-[#BFDBFE] bg-[#EFF6FF]",
+                  )}>
+                    {isGuidingConversation ? (
+                      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#FEC84B]/25">
+                        <TriangleAlert className="h-3.5 w-3.5 text-[#B54708]" />
+                      </div>
+                    ) : (
+                      <Info className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#2563EB]" />
+                    )}
+                    <div className="flex flex-1 flex-col gap-1 min-w-0">
+                      <span className={cn("text-[13px] font-semibold", isGuidingConversation ? "text-[#B54708]" : "text-[#1E293B]")}>
+                        {isGuidingConversation ? "Guiding this conversation" : isLeadReview ? "Reviewing this Lead" : "Reviewing this conversation"}
+                      </span>
+                      <span className={cn("text-[12px]", isGuidingConversation ? "text-[#92400E]/70" : "text-[#475569]")}>
+                        {isGuidingConversation
+                          ? "You are guiding the AI agent in real time"
+                          : isLeadReview
+                            ? "You are reviewing an AI-detected sales lead — launch a call when ready."
+                            : "You are reviewing the AI Agent's live conversation - immediate action is requested."}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isLeadReview ? (
+                        isLaunchingCall ? (
+                          <div className="inline-flex items-center gap-1.5 rounded-md border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-1.5 text-[12px] font-medium text-[#166CCA]">
+                            <div className="h-3 w-3 rounded-full border-[1.5px] border-[#166CCA]/30 border-t-[#166CCA] animate-spin" />
+                            Connecting call…
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsLaunchingCall(true);
+                              setTimeout(() => onLaunchCall?.(), 1800);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-transparent bg-[#166CCA] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition-colors hover:bg-[#1260B0]"
+                          >
+                            <Phone className="h-3.5 w-3.5" />
+                            Launch Call
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); onCloseCustomerInfoPanel?.(); onGuideConversation?.(); }}
+                            className={cn(
+                              "inline-flex items-center rounded-md border px-3 py-1.5 text-[12px] font-medium shadow-sm transition-colors",
+                              isGuidingConversation
+                                ? "border-[#FEC84B] bg-[#FEF3C7] text-[#B54708] hover:bg-[#FDE68A]"
+                                : "border-[#D1D5DB] bg-white text-[#374151] hover:bg-[#F9FAFB]",
+                            )}
+                          >
+                            {isGuidingConversation ? <><CircleStop className="inline h-3.5 w-3.5 mr-1.5 -mt-px" />Stop Guiding</> : "Guide Conversation"}
+                          </button>
+                          <button
+                            ref={reviewTransferBtnRef}
+                            type="button"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); setShowReviewTransfer(true); }}
+                            className="inline-flex items-center rounded-md border border-[#D1D5DB] bg-white px-3 py-1.5 text-[12px] font-medium text-[#374151] shadow-sm transition-colors hover:bg-[#F9FAFB]"
+                          >
+                            Transfer
+                          </button>
+                          {sofiaTakenOver ? (
+                            <span className="inline-flex items-center rounded-md border border-[#FEC84B] bg-[#FEF3C7] px-3 py-1.5 text-[12px] font-medium text-[#B54708]">
+                              Taken Over
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onCloseCustomerInfoPanel?.();
+                                if (isGuidingConversation && customerRecordId === "sofia") {
+                                  handleSofiaTakeover();
+                                } else {
+                                  onAcceptAssignment?.();
+                                }
+                              }}
+                              className="inline-flex items-center rounded-md border border-transparent bg-[#DC2626] px-3 py-1.5 text-[12px] font-medium text-white shadow-sm transition-colors hover:bg-[#B91C1C]"
+                            >
+                              Takeover
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  );
+                })()}
               </div>
 
               {/* Narrow/medium-mode summary drawer — removed (no media queries) */}
@@ -3581,7 +5153,7 @@ function DockedCustomerInfoPanel({
   showTrailingGap: boolean;
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
-  takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string } | null;
+  takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string; onApprove?: () => void; onReject?: () => void; onDismiss?: () => void; phase?: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected"; resolvedCaseStatus?: string; onResolvedCaseStatusChange?: (status: string) => void; rejectReason?: string | null; onPhaseChange?: (phase: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected", rejectReason?: string) => void; hideActions?: boolean; actionLabel?: string } | null;
 }) {
   const resizeStartRef = useRef({ mouseX: 0, width });
   const isResizingRef = useRef(false);
@@ -3743,7 +5315,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   /** When set, shows a live elapsed-time chip in the header. Dismissed on first interaction. */
   takeoverStartTime?: number | null;
   /** When set, shows the blue AI case overview card at the top of the Overview tab. */
-  takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string } | null;
+  takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string; onApprove?: () => void; onReject?: () => void; onDismiss?: () => void; phase?: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected"; resolvedCaseStatus?: string; onResolvedCaseStatusChange?: (status: string) => void; rejectReason?: string | null; onPhaseChange?: (phase: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected", rejectReason?: string) => void; hideActions?: boolean; actionLabel?: string } | null;
 }>(function CustomerInfoPopunder({
   position,
   size,
@@ -4402,11 +5974,138 @@ function LeadCaptureField({ label, value, onChange, disabled }: { label: string;
   );
 }
 
-function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
+/** Green internal-note handoff card for Terry's voice call — mirrors HandoffCardAnimated styling with staggered reveal. */
+function TerryHandoffCard({ callKey, skipAnimation = false, onAnimationComplete }: { callKey: string; skipAnimation?: boolean; onAnimationComplete?: () => void }) {
+  const record = getCustomerRecord("terry");
+  const sa = staticAssignments.find((s) => s.customerRecordId === "terry");
+  const contextText = sa?.customerContext ?? "";
+  const bullets = record?.customerSnapshot ?? [];
+
+  // Stagger reveal: 0→nothing, 1→context, 2→profile, 3→snapshot, 4→trailing
+  const totalSections = 1 + (record?.profile ? 1 : 0) + (bullets.length > 0 ? 1 : 0) + 1; // +1 for trailing
+  const [visibleStep, setVisibleStep] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    if (skipAnimation) {
+      // Already animated once — show everything immediately.
+      setVisibleStep(totalSections);
+      onAnimationComplete?.();
+      return;
+    }
+    const delays = [500, 1700, 2900, 4100];
+    for (let i = 0; i < totalSections; i++) {
+      const delay = delays[i] ?? delays[delays.length - 1] + 1200 * (i - delays.length + 1);
+      timersRef.current.push(setTimeout(() => {
+        setVisibleStep(i + 1);
+        if (i === totalSections - 1) onAnimationComplete?.();
+      }, delay));
+    }
+    return () => { timersRef.current.forEach(clearTimeout); };
+  }, [callKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  let stepIdx = 0;
+  const contextStep = ++stepIdx;
+  const profileStep = record?.profile ? ++stepIdx : -1;
+  const snapshotStep = bullets.length > 0 ? ++stepIdx : -1;
+  const trailingStep = ++stepIdx;
+
+  const sectionClass = (step: number) =>
+    cn(
+      "transition-all duration-700 ease-out",
+      visibleStep >= step ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 h-0 overflow-hidden",
+    );
+
+  return (
+    <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] overflow-hidden animate-in fade-in duration-300">
+      {/* Header — no bot avatar, just Internal Note badge */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded((p) => !p)}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#BBF7D0]/60">
+            <ClipboardList className="h-3 w-3 text-[#166744]" />
+          </div>
+          <span className="rounded-full border border-[#24943E] px-2 py-0.5 text-[10px] font-medium text-[#166744]">Internal note</span>
+        </div>
+        <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-[#166744]/60 transition-transform duration-200", isExpanded && "rotate-180")} />
+      </button>
+      {/* Collapsible body */}
+      <div className={cn("grid transition-all duration-300 ease-out", isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="overflow-hidden">
+          <div className="px-3 pb-3 space-y-2.5">
+            {/* Context */}
+            {contextText && (
+              <div className={sectionClass(contextStep)}>
+                <p className="text-[13px] font-medium leading-5 text-[#166744] whitespace-pre-line">{contextText}</p>
+              </div>
+            )}
+            {/* Customer Profile */}
+            {record?.profile && (
+              <div className={sectionClass(profileStep)}>
+                <div className="rounded-lg border border-[#BBF7D0]/60 bg-white/60 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#D1FAE5] text-[12px] font-semibold text-[#166744]">
+                        {record.initials ?? "TW"}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold text-[#166744]">{record.name ?? "Terry Williams"}</p>
+                        <p className="text-[11px] text-[#166744]/70">
+                          {record.profile.department ?? "Operations"} · {record.profile.tenureYears ? `${record.profile.tenureYears} yrs tenure` : "New prospect"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  {record.profile.tags && record.profile.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {record.profile.tags.map((tag) => (
+                        <span key={tag} className="rounded-full border border-[#24943E]/30 bg-[#EFFBF1] px-2 py-0.5 text-[10px] font-medium text-[#166744]">{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* Customer Snapshot */}
+            {bullets.length > 0 && (
+              <div className={sectionClass(snapshotStep)}>
+                <div className="rounded-lg border border-[#BBF7D0]/60 bg-white/30 px-3 py-2.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#166744]/80 mb-1.5">Customer Snapshot</p>
+                  <ul className="space-y-1">
+                    {bullets.map((b, i) => (
+                      <li key={i} className="flex items-start gap-2 text-[12px] leading-5 text-[#166744]">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#24943E]" />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {/* Trailing — connection notice */}
+            <div className={sectionClass(trailingStep)}>
+              <p className="text-[13px] font-medium text-[#166744]">You are now connected with Terry Williams.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TerryCallPanel({ lineCount, callKey, isCallActive, isPostCall = false, onLeadSaved, hideIdentityCard = false }: {
   lineCount: number;
   callKey: string;
   isCallActive: boolean;
+  /** When true, the call has ended and we're in post-call mode — show lead form prompt. */
+  isPostCall?: boolean;
   onLeadSaved?: () => void;
+  /** When true, suppress the Sales Intelligence identity card (replaced by green handoff card in conversation). */
+  hideIdentityCard?: boolean;
 }) {
   // stableLineCount lags behind lineCount while a customer line is being word-animated
   // (90 ms per word, matching TerryTranscriptPanel's interval). This ensures the Analysis
@@ -4513,8 +6212,8 @@ function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
 
   return (
     <>
-    {/* Sales Intelligence — identity card */}
-    <div className="flex flex-col gap-3 rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+    {/* Sales Intelligence — identity card (hidden when handoff card is injected into conversation) */}
+    {!hideIdentityCard && <div className="flex flex-col gap-3 rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-3.5 pb-0">
         <div className="flex items-center gap-2">
@@ -4569,7 +6268,7 @@ function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
           )}
         </div>
       </div>
-    </div>
+    </div>}
 
     {/* AI cards — Analysis + Suggested Response */}
     {currentSuggestion && (
@@ -4591,19 +6290,34 @@ function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
       </React.Fragment>
     )}
 
-    {/* Lead Capture Form — builds progressively as data is captured from the call */}
-    {phase >= 1 && (
-      <div className="flex flex-col rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+    {/* Post-call: Suggested Next Step → Create Lead Form */}
+    {isPostCall && !isLeadFormOpen && !isSaved && (
+      <div className="rounded-xl border border-[#BFDBFE] bg-[#EBF4FD] px-4 py-3.5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="flex items-center gap-1.5 mb-2">
+          <Sparkles className="h-3.5 w-3.5 text-[#166CCA] shrink-0" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Suggested Next Step</span>
+        </div>
+        <p className="text-[12.5px] leading-relaxed text-[#1D2939] mb-3">
+          AI captured key lead details during this call. Would you like to create a lead form for Terry Williams?
+        </p>
+        <button
+          type="button"
+          onClick={() => setIsLeadFormOpen(true)}
+          className="w-full rounded-lg bg-[#166CCA] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#1260B0] flex items-center justify-center gap-2"
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          Create Lead Form
+        </button>
+      </div>
+    )}
+
+    {/* Lead Capture Form — shown after agent clicks "Create Lead Form" post-call */}
+    {isLeadFormOpen && (
+      <div className="flex flex-col rounded-xl border border-[#E4E7EC] bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-400">
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Lead Capture</span>
-            {phase < 4 && (
-              <span className="flex items-center gap-1 rounded-full bg-[#FFF4E5] px-2 py-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#F79009] animate-pulse" />
-                <span className="text-[9px] font-semibold uppercase tracking-wide text-[#B54708]">Capturing</span>
-              </span>
-            )}
-            {phase >= 4 && !isSaved && (
+            {!isSaved && (
               <span className="flex items-center gap-1 rounded-full bg-[#EFFBF1] px-2 py-0.5">
                 <span className="text-[9px] font-semibold uppercase tracking-wide text-[#208337]">Complete</span>
               </span>
@@ -4612,38 +6326,21 @@ function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
         </div>
 
         <div className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-2.5">
-          {/* Phase 1 fields */}
           <LeadCaptureField label="Pain Point" value={formPainPoint} onChange={setFormPainPoint} />
           <LeadCaptureField label="Timeline" value={formTimeline} onChange={setFormTimeline} />
           <LeadCaptureField label="Urgency" value={formUrgency} onChange={setFormUrgency} />
-
-          {/* Phase 2 fields */}
-          {phase >= 2 && (
-            <>
-              <LeadCaptureField label="Budget" value={formBudget} onChange={setFormBudget} />
-              <LeadCaptureField label="Deal Type" value={formDealType} onChange={setFormDealType} />
-              <LeadCaptureField label="Decision Maker" value={formDecisionMaker} onChange={setFormDecisionMaker} />
-            </>
-          )}
-
-          {/* Phase 3 fields */}
-          {phase >= 3 && (
-            <>
-              <LeadCaptureField label="Next Step" value={formNextStep} onChange={setFormNextStep} />
-              <LeadCaptureField label="Engagement" value={formEngagement} onChange={setFormEngagement} />
-            </>
-          )}
-
-          {/* Phase 4 fields */}
-          {phase >= 4 && (
-            <div className="col-span-2">
-              <LeadCaptureField label="Contact Email" value={formEmail} onChange={setFormEmail} />
-            </div>
-          )}
+          <LeadCaptureField label="Budget" value={formBudget} onChange={setFormBudget} />
+          <LeadCaptureField label="Deal Type" value={formDealType} onChange={setFormDealType} />
+          <LeadCaptureField label="Decision Maker" value={formDecisionMaker} onChange={setFormDecisionMaker} />
+          <LeadCaptureField label="Next Step" value={formNextStep} onChange={setFormNextStep} />
+          <LeadCaptureField label="Engagement" value={formEngagement} onChange={setFormEngagement} />
+          <div className="col-span-2">
+            <LeadCaptureField label="Contact Email" value={formEmail} onChange={setFormEmail} />
+          </div>
         </div>
 
         {/* Save Lead / Lead Saved footer */}
-        {phase >= 4 && (!isSaved || isDirtyAfterSave) && (
+        {(!isSaved || isDirtyAfterSave) && (
           <div className="px-4 pb-3 pt-1 border-t border-[#F2F4F7] animate-in fade-in duration-400">
             <button
               type="button"
@@ -4654,7 +6351,7 @@ function TerryCallPanel({ lineCount, callKey, isCallActive, onLeadSaved }: {
             </button>
           </div>
         )}
-        {phase >= 4 && isSaved && !isDirtyAfterSave && (
+        {isSaved && !isDirtyAfterSave && (
           <div className="px-4 pb-3 pt-1 border-t border-[#F2F4F7]">
             <div className="flex items-center justify-center gap-2 rounded-lg bg-[#EFFBF1] border border-[#ABEFC6] px-4 py-2">
               <CheckCircle2 className="h-4 w-4 text-[#208337]" />
@@ -5608,6 +7305,7 @@ function ConversationPopunder({
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <GripHorizontal className="h-4 w-4 flex-shrink-0 text-[#7A7A7A]" />
+            <CustomerInfoIconButton onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
             <CustomerProfilePopover customerRecordId={customerRecordId} customerName={conversation.customerName} />
             {/* Channel + history tabs */}
             <div className="inline-flex items-center gap-0.5 rounded-xl bg-[#F2F4F7] dark:bg-[#0D1525] px-1 py-1 border border-black/[0.08] dark:border-white/[0.08]">
@@ -5668,7 +7366,6 @@ function ConversationPopunder({
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <CustomerInfoIconButton onOpenCustomerInfo={onOpenCustomerInfo} isCustomerInfoOpen={isCustomerInfoOpen} />
             {onDock && (
               <TooltipProvider>
                 <Tooltip>
@@ -6658,32 +8355,60 @@ function GroupedQueueCard({
       {group.isAnyActive && <span className="absolute inset-y-0 left-0 w-1 rounded-l-[8px]" style={{ backgroundColor: pc.stripe }} />}
 
       {/* Card header — name + task-level status + close */}
-      <div className="px-4 pb-2 pt-3">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          // Navigate to the first visible channel, or fall back to customer history
+          const visibleChannels = group.channels.filter((ch) => !(taskSummaryIds?.has(ch.id)) && !historyOnlyAssignmentIds.has(ch.id));
+          if (visibleChannels.length > 0) {
+            onSelectAssignment(visibleChannels[0].id);
+          } else if (group.channels.length > 0) {
+            // All channels are hidden (task-summary / history-only) — select first channel anyway
+            // so the panel opens, then it will show customer history
+            onSelectAssignment(group.channels[0].id);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const visibleChannels = group.channels.filter((ch) => !(taskSummaryIds?.has(ch.id)) && !historyOnlyAssignmentIds.has(ch.id));
+            if (visibleChannels.length > 0) {
+              onSelectAssignment(visibleChannels[0].id);
+            } else if (group.channels.length > 0) {
+              onSelectAssignment(group.channels[0].id);
+            }
+          }
+        }}
+        className="cursor-pointer px-4 pb-2 pt-3 transition-colors hover:bg-[#F8F8F9]"
+      >
         <div className="flex items-center gap-2">
           <span className="flex-1 text-[14px] font-semibold leading-5 text-[#333333]">{group.name}</span>
-          <div
-            className="flex shrink-0 items-center gap-1"
-            onClick={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
-          >
-            <ConversationStatusDropdown
-              status={caseStatus}
-              onStatusChange={handleGroupStatusChange}
-              onOpenChange={onStatusDropdownOpenChange}
-            />
-            <CaseMoreOptionsMenu
-              onDismiss={() => {
-                const allIds = group.channels.map((ch) => ch.id);
-                if (onRemoveAll) {
-                  onRemoveAll(allIds);
-                } else {
-                  allIds.forEach((id) => onRemove(id));
-                }
-              }}
-              iconSize="sm"
-            />
-          </div>
+          {!pendingChannelId && (
+            <div
+              className="flex shrink-0 items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <ConversationStatusDropdown
+                status={caseStatus}
+                onStatusChange={handleGroupStatusChange}
+                onOpenChange={onStatusDropdownOpenChange}
+              />
+              <CaseMoreOptionsMenu
+                onDismiss={() => {
+                  const allIds = group.channels.map((ch) => ch.id);
+                  if (onRemoveAll) {
+                    onRemoveAll(allIds);
+                  } else {
+                    allIds.forEach((id) => onRemove(id));
+                  }
+                }}
+                iconSize="sm"
+              />
+            </div>
+          )}
         </div>
         {/* Task description — task-level, shown once in the header.
             Use the first channel whose preview is a real task description (not a
@@ -6786,58 +8511,21 @@ function GroupedQueueCard({
                 )}
               </div>
 
-              {/* Last customer comment — omitted for voice and channels with no message history */}
-              {lastCustomerComment !== null && (
+              {/* Last customer comment — replaced with "Case In Review" for pending-acceptance cases */}
+              {pendingAcceptanceIds.has(item.id) ? (
+                <div className="text-[12px] leading-[1.4] text-[#166CCA] font-medium italic">
+                  Case In Review
+                </div>
+              ) : lastCustomerComment !== null ? (
                 <div className="line-clamp-2 text-[12px] leading-[1.4] text-[#5B5B5B]">
                   {lastCustomerComment}
                 </div>
-              )}
+              ) : null}
               {showActiveVoiceControls ? (
                 <ActiveVoiceAssignmentControls onOpenDisposition={openCallDisposition} />
               ) : null}
 
-              {/* Pending action buttons — Reject / Accept / Review */}
-              {item.id === pendingChannelId && (
-                <div
-                  className="mt-1 flex items-center gap-1.5"
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                >
-                  {showAgentPopover && agentPopoverRect && (
-                    <AgentSelectPopover
-                      triggerRect={agentPopoverRect}
-                      onClose={() => setShowAgentPopover(false)}
-                      onAssign={() => rejectPendingAssignment(item.id)}
-                    />
-                  )}
-                  <button
-                    ref={rejectBtnRef}
-                    type="button"
-                    onClick={() => {
-                      setAgentPopoverRect(rejectBtnRef.current?.getBoundingClientRect() ?? null);
-                      setShowAgentPopover((v) => !v);
-                    }}
-                    className="flex-1 rounded-md border border-border bg-white py-1.5 text-[11px] font-semibold text-[#344054] hover:bg-[#F9FAFB] transition-colors"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => acceptPendingAssignment(item.id)}
-                    className="flex-1 rounded-md bg-[#166CCA] py-1.5 text-[11px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => reviewPendingAssignment(item.id)}
-                    className="flex-1 rounded-md border border-[#166CCA] py-1.5 text-[11px] font-semibold text-[#166CCA] hover:bg-[#166CCA]/10 transition-colors"
-                  >
-                    Review
-                  </button>
-                </div>
-              )}
+              {/* Pending action buttons removed — approve/reject is now handled inline in the conversation panel */}
             </div>
           </div>
         );
@@ -9123,6 +10811,9 @@ export default function Layout({ children }: LayoutProps) {
 
   // Global escalation modal — renders on any page when agent clicks Review from a toast
   const [escalatedToastModal, setEscalatedToastModal] = useState<EscalatedCaseModalData | null>(null);
+  // Tracks which assignment is currently being "guided" via the review header button.
+  // When non-null, the review alert banner shows amber "Guiding" state.
+  const [guidingAssignmentId, setGuidingAssignmentId] = useState<string | null>(null);
   // Dismissal confirmation toast — shown bottom-right when agent clicks Dismiss after resolving a case
   const [dismissalToast, setDismissalToast] = useState<{ customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string } | null>(null);
 
@@ -9241,6 +10932,29 @@ export default function Layout({ children }: LayoutProps) {
   const transcriptTimerRef = useRef<number | null>(null);
   // For Terry's call, the demo doesn't auto-start — it waits for the agent to click an opening line.
   const [terryDemoStarted, setTerryDemoStarted] = useState(false);
+  // Tracks whether TerryHandoffCard has already animated so we skip stagger on tab switch remounts.
+  const terryHandoffAnimatedRef = useRef(false);
+  // Terry post-call: tracks when the lead form has been saved, for showing the resolve/dismiss card.
+  const [terryLeadSaved, setTerryLeadSaved] = useState(false);
+  const [terryResolveCardVisible, setTerryResolveCardVisible] = useState(false);
+  const [terryResolveChecked, setTerryResolveChecked] = useState(false);
+  const [terryResolveStepIndex, setTerryResolveStepIndex] = useState(0);
+  const [terryResolveComplete, setTerryResolveComplete] = useState(false);
+  const terryResolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [terryScrollTrigger, setTerryScrollTrigger] = useState(0);
+
+  // Delay showing the "Suggested Next Step" resolve card for Terry after lead is saved
+  useEffect(() => {
+    if (terryLeadSaved && !terryResolveCardVisible) {
+      const t = setTimeout(() => {
+        setTerryResolveCardVisible(true);
+        setTerryScrollTrigger((n) => n + 1);
+      }, 1000);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terryLeadSaved]);
+
   // Controls whether the right-side transcript panel is visible (user can close it and re-open via toggle).
   const [isTranscriptVisible, setIsTranscriptVisible] = useState(true);
   // Dynamically appended customer history items (e.g. "Lead Form Created" after saving the lead).
@@ -9290,6 +11004,8 @@ export default function Layout({ children }: LayoutProps) {
   const [assignmentItemsById, setAssignmentItemsById] = useState<Record<string, QueuePreviewItem>>({});
   const [visibleAssignmentIds, setVisibleAssignmentIds] = useState<QueuePreviewItem["id"][]>([]);
   const [pendingAcceptanceIds, setPendingAcceptanceIds] = useState<Set<string>>(new Set());
+  const [resolvedReviewCount, setResolvedReviewCount] = useState(0);
+  const [lastDismissedCase, setLastDismissedCase] = useState<{ customerName: string; outcome: "resolved" | "transferred" | "unassigned" } | null>(null);
   const [completedTodayCount, setCompletedTodayCount] = useState(0);
   const [resolvedAssignments, setResolvedAssignments] = useState<ResolvedAssignment[]>([]);
   const [isConversationPanelOpen, setIsConversationPanelOpen] = useState(true);
@@ -9354,7 +11070,24 @@ export default function Layout({ children }: LayoutProps) {
   // to drive the elapsed-time header chip. Cleared when opened via icon (non-takeover path).
   const [customerInfoTakeoverStartTime, setCustomerInfoTakeoverStartTime] = useState<number | null>(null);
   // Blue AI overview card shown at the top of the Overview tab when a case is taken over.
-  const [customerInfoTakeoverCard, setCustomerInfoTakeoverCard] = useState<{ botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string } | null>(null);
+  // Keyed by assignment ID so each case retains its own card state independently.
+  type TakeoverCardState = { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string; onApprove?: () => void; onReject?: () => void; onDismiss?: () => void; phase?: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected"; resolvedCaseStatus?: string; onResolvedCaseStatusChange?: (status: string) => void; rejectReason?: string | null; onPhaseChange?: (phase: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected", rejectReason?: string) => void; actionLabel?: string };
+  const [customerInfoTakeoverCards, setCustomerInfoTakeoverCards] = useState<Map<string, TakeoverCardState>>(new Map());
+  const setTakeoverCardForAssignment = useCallback((assignmentId: string, updater: ((prev: TakeoverCardState | undefined) => TakeoverCardState | null) | TakeoverCardState | null) => {
+    setCustomerInfoTakeoverCards(prev => {
+      const next = new Map(prev);
+      if (typeof updater === 'function') {
+        const result = updater(next.get(assignmentId));
+        if (result === null) next.delete(assignmentId);
+        else next.set(assignmentId, result);
+      } else if (updater === null) {
+        next.delete(assignmentId);
+      } else {
+        next.set(assignmentId, updater);
+      }
+      return next;
+    });
+  }, []);
   const [isCustomerInfoPanelAllowed, setIsCustomerInfoPanelAllowed] = useState(
     () => typeof window === "undefined" ? true : window.innerWidth >= CUSTOMER_INFO_PANEL_BREAKPOINT,
   );
@@ -9390,11 +11123,14 @@ export default function Layout({ children }: LayoutProps) {
   // Tracks the measured bottom of the conversation panel header, updated on takeover events.
   // Used to position the Customer Info popunder just below the conversation tabs.
   const conversationPanelHeaderBottomRef = useRef(120);
-  const [customerInfoPopunderPosition, setCustomerInfoPopunderPosition] = useState<CustomerInfoPopunderPosition>(() => ({
-    x: typeof window !== "undefined" ? window.innerWidth - 360 - CUSTOMER_INFO_POPOUNDER_MARGIN : 420,
-    y: 120,
-  }));
+  const [customerInfoPopunderPosition, setCustomerInfoPopunderPosition] = useState<CustomerInfoPopunderPosition>(() => {
+    if (typeof window === "undefined") return { x: 420, y: 120 };
+    const panel = document.querySelector("[data-conversation-panel]");
+    const leftEdge = panel ? panel.getBoundingClientRect().left : 420;
+    return { x: leftEdge + CUSTOMER_INFO_POPOUNDER_MARGIN, y: 120 };
+  });
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<QueuePreviewItem["id"]>(() => initialSelectedAssignmentId);
+  const customerInfoTakeoverCard = selectedAssignmentId ? (customerInfoTakeoverCards.get(selectedAssignmentId) ?? null) : null;
   const [overviewOpenByAssignmentId, setOverviewOpenByAssignmentId] = useState<Record<string, boolean>>({});
   const [assignmentStatusesById, setAssignmentStatusesById] = useState<Record<string, QueueAssignmentStatus>>(() => (
     Object.fromEntries(queuePreviewItems.map((item) => [item.id, "open"])) as Record<string, QueueAssignmentStatus>
@@ -9458,6 +11194,13 @@ export default function Layout({ children }: LayoutProps) {
       setActiveCallAssignmentId(voiceAssignmentId);
       setPendingCallAccountNumber("");
       setIsLeftRailOpen(true);
+      // Close the Customer Information panel to save space for the call UI
+      setIsCustomerInfoIconPopoverOpen(false);
+      setIsTakeoverInfoOpen(false);
+      setIsCustomerInfoPopunderOpen(false);
+      setIsCustomerInfoPanelOpen(false);
+      setIsCustomerInfoDockedToConversation(false);
+
       navigate("/activity");
       setCopilotPopunderPosition(getAnchoredCopilotPopunderPosition());
       setIsCopilotPopoverOpen(true);
@@ -9466,7 +11209,7 @@ export default function Layout({ children }: LayoutProps) {
       const li = capturedLeadItem.leadIntelligence;
       if (li) {
         const ariaAvatarUrl = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
-        setCustomerInfoTakeoverCard({
+        setTakeoverCardForAssignment(voiceAssignmentId, {
           botType: capturedLeadItem.label ?? "Aria",
           botAvatarUrl: ariaAvatarUrl,
           customerContext: li.ariaMessage ?? li.formMessage,
@@ -9905,7 +11648,7 @@ export default function Layout({ children }: LayoutProps) {
       return [] as CustomerChannel[];
     }
     const channels = visibleAssignments
-      .filter((a) => a.customerRecordId === selectedAssignment.customerRecordId)
+      .filter((a) => a.customerRecordId === selectedAssignment.customerRecordId && !historyOnlyAssignmentIds.has(a.id))
       .map((a) => a.channel);
     return [...new Set(channels)] as CustomerChannel[];
   }, [isPostCallHistoryMode, historyOnlyAssignmentIds, visibleAssignments, selectedAssignment.customerRecordId, selectedAssignment.id]);
@@ -9972,6 +11715,10 @@ export default function Layout({ children }: LayoutProps) {
     isCustomerInfoPanelOpen && !isCombinedInteractionPanel && isCustomerInfoPopunderOpen;
   const shouldPreserveFloatingCustomerInfoPanel =
     isCustomerInfoPanelOpen && isCustomerInfoPopunderOpen;
+  // True only when the customer info panel is actually rendered on screen — used for the icon active state.
+  const isCustomerInfoPanelActuallyVisible =
+    isConversationDockedCustomerInfoVisible ||
+    ((isActivityRoute || isDeskRoute) && !isCustomerInfoInConversationDockMode && (isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen));
   const conversationPanelMaxWidth = getDockedConversationMaxWidth({
     hasDesktopRightPanel: activeRightPanel !== null,
     customerInfoPanelWidth: isDeskCustomerInfoVisible ? dockedCustomerInfoWidth : 0,
@@ -10057,8 +11804,10 @@ export default function Layout({ children }: LayoutProps) {
         || currentLatestMessage?.id !== latestMessage.id
         || currentLatestMessage?.role !== latestMessage.role
       );
+    // Strip the transient _skipAutoAccept flag before persisting.
+    const { _skipAutoAccept, ...cleanConversation } = nextConversation;
     const persistedConversationState = {
-      ...nextConversation,
+      ...cleanConversation,
       isCustomerTyping: shouldScheduleCustomerReply,
     };
 
@@ -10068,8 +11817,9 @@ export default function Layout({ children }: LayoutProps) {
       setActivatedChannelIds((prev) => new Set([...prev, targetAssignmentId]));
     }
 
-    // If the agent sent a reply while reviewing a pending assignment, auto-accept it.
-    if (shouldScheduleCustomerReply && pendingAcceptanceIds.has(targetAssignmentId)) {
+    // If the agent sent a reply while reviewing a pending assignment, auto-accept it —
+    // but NOT when the message came from the inline approve flow (programmatic).
+    if (shouldScheduleCustomerReply && pendingAcceptanceIds.has(targetAssignmentId) && !_skipAutoAccept) {
       setPendingAcceptanceIds((prev) => {
         const next = new Set(prev);
         next.delete(targetAssignmentId);
@@ -10082,7 +11832,7 @@ export default function Layout({ children }: LayoutProps) {
       [targetConversationStateKey]: persistedConversationState,
     }));
 
-    if (!latestMessage || !shouldScheduleCustomerReply) {
+    if (!latestMessage || !shouldScheduleCustomerReply || _skipAutoAccept) {
       return;
     }
 
@@ -10148,12 +11898,26 @@ export default function Layout({ children }: LayoutProps) {
       });
       return;
     }
+    // If this was a review case (pending acceptance), track it for the home tab greeting
+    // and decrement the escalated rail badge (review cases are escalated but enter with
+    // status "open", so handleRemoveVisibleAssignment's escalated check won't catch them).
+    if (pendingAcceptanceIds.has(selectedAssignmentId)) {
+      setResolvedReviewCount((n) => n + 1);
+      setEscalatedRailCount((n) => Math.max(0, n - 1));
+      setPendingAcceptanceIds((prev) => {
+        const next = new Set(prev);
+        next.delete(selectedAssignmentId);
+        return next;
+      });
+    }
     // Remove escalation alert from home tab for known escalated cases
     const customerRecordId = selectedAssignment.customerRecordId;
     const staticId = staticAssignments.find((a) => a.customerRecordId === customerRecordId)?.id;
     if (staticId) pendingResolvedIds.add(staticId);
-    // Also decrement escalated badge if this was an escalated case
+    // Also advance the scenario escalation chain for known escalated cases
     if (customerRecordId === "marcus") setIsMarcusResolved(true);
+    if (customerRecordId === "jordan") setIsJordanResolved(true);
+    if (customerRecordId === "sofia") setIsSofiaResolved(true);
 
     // Gather data for the rich dismissal toast before removing the assignment
     const resolveAssignment = assignmentItemsById[selectedAssignmentId];
@@ -10254,7 +12018,24 @@ export default function Layout({ children }: LayoutProps) {
     );
     // Remove escalation alert from home tab by resolving the matching static assignment
     const dismissSa = staticAssignments.find((s) => s.customerRecordId === customerRecordId);
-    if (dismissSa) pendingResolvedIds.add(dismissSa.id);
+    if (dismissSa) {
+      pendingResolvedIds.add(dismissSa.id);
+      pendingQueueRejections.add(dismissSa.id);
+    }
+
+    // Clean up pending-acceptance state for all siblings so the review banner
+    // and "Case In Review" label disappear immediately.
+    setPendingAcceptanceIds((prev) => {
+      const next = new Set(prev);
+      siblingIds.forEach((id) => next.delete(id));
+      return next;
+    });
+
+    // Clear guiding state if the dismissed case was being guided
+    if (siblingIds.some((id) => id === guidingAssignmentId)) {
+      setGuidingAssignmentId(null);
+    }
+
     handleRemoveGroupedAssignments(siblingIds, transferRecipient);
 
     // Fire the dismissal confirmation toast
@@ -10264,9 +12045,11 @@ export default function Layout({ children }: LayoutProps) {
       const name = assignment?.name ?? sa?.name ?? customerRecordId;
       const custId = assignment?.customerId ?? sa?.customerId ?? customerRecordId;
       const preview = assignment?.preview ?? sa?.preview ?? "";
-      const botType = sa?.label ?? "Aria";
+      const botType = sa?.botType ?? "Aria";
       const channel = assignment?.channel ?? sa?.channel ?? "chat";
       const actions = sa?.aiOverview?.actions ?? [];
+      const outcome: "resolved" | "transferred" | "unassigned" = transferRecipient === null ? "unassigned" : transferRecipient ? "transferred" : "resolved";
+      setLastDismissedCase({ customerName: name, outcome });
       setDismissalToast({
         customerName: name,
         customerId: custId,
@@ -10379,11 +12162,17 @@ export default function Layout({ children }: LayoutProps) {
       return { x: 420, y: 120 };
     }
 
-    const width = Math.min(customerInfoPopunderSizeRef.current.width, window.innerWidth - CUSTOMER_INFO_POPOUNDER_MARGIN * 2);
+    // Anchor to the left side of the conversation panel, just below the header.
+    // The conversation panel starts after the left nav (~48px) + assignment rail (~varies).
+    // Use the CustomerInfoIconButton's position if available via anchorRect, otherwise
+    // estimate from the conversation panel's left edge.
+    const conversationPanelEl = document.querySelector("[data-conversation-panel]");
+    const leftEdge = conversationPanelEl
+      ? conversationPanelEl.getBoundingClientRect().left
+      : _anchorRect?.left ?? 420;
 
-    // Always anchor to the right edge, positioned just below the conversation panel header.
     return {
-      x: window.innerWidth - width - CUSTOMER_INFO_POPOUNDER_MARGIN,
+      x: leftEdge + CUSTOMER_INFO_POPOUNDER_MARGIN,
       y: conversationPanelHeaderBottomRef.current,
     };
   };
@@ -10835,6 +12624,91 @@ export default function Layout({ children }: LayoutProps) {
     setIsConversationPanelOpen(false);
   };
 
+  /** Toggle guide-conversation mode — preserves existing conversation and enables inline guided cards.
+   *  Only seeds a fresh conversation if none exists yet for this assignment. */
+  const guideReviewConversation = (assignmentId: string) => {
+    if (guidingAssignmentId === assignmentId) {
+      setGuidingAssignmentId(null);
+      return;
+    }
+    const assignment = assignmentItemsById[assignmentId];
+    if (!assignment) return;
+    const conversationStateKey = getConversationStateKey(assignmentId);
+    setConversationStatesByKey((current) => {
+      // If a conversation already exists for this assignment, keep it as-is
+      if (current[conversationStateKey]) return current;
+      // Otherwise seed with the pre-configured case messages
+      const sa = staticAssignments.find(
+        (s) => s.customerRecordId === assignment.customerRecordId || s.customerId === assignment.customerId,
+      );
+      const botType = sa?.botType ?? assignment.label ?? "Aria";
+      const channel = (assignment.channel === "sms" ? "sms" : "chat") as "chat" | "sms";
+      const seeded = createConversationState(assignment.customerRecordId, channel, botType === "Jacob" ? "Jacob" : botType === "Emily" ? "Emily" : "Aria");
+      // Strip the handoff/internal-note card — the agent is guiding, not taking over yet
+      const filteredSeeded = {
+        ...seeded,
+        messages: seeded.messages.filter((m: any) => !m.isHandoffCard),
+      };
+      return { ...current, [conversationStateKey]: filteredSeeded };
+    });
+    setGuidingAssignmentId(assignmentId);
+  };
+
+  /** Close a review (pending-acceptance) case from the rail without dismissing it.
+   *  The case stays in pendingAcceptanceIds and home-tab alerts so the agent can return to it. */
+  const closeReviewCase = (assignmentId: string) => {
+    // Reverse-lookup the static assignment that was accepted for this live assignment,
+    // then remove it from acceptedStaticsStore so the static row reverts to its
+    // unaccepted state — this keeps the escalation alert visible on the Home tab.
+    for (const [staticId, acceptedId] of acceptedStaticsStore.entries()) {
+      if (acceptedId === assignmentId) {
+        acceptedStaticsStore.delete(staticId);
+        break;
+      }
+    }
+
+    // Remove from visible rail
+    setVisibleAssignmentIds((currentIds) => {
+      const nextIds = currentIds.filter((id) => id !== assignmentId);
+      // Navigate to the next case, or fall back to home
+      if (selectedAssignmentId === assignmentId) {
+        setSelectedAssignmentId(nextIds[0] ?? initialSelectedAssignmentId);
+      }
+      return nextIds;
+    });
+    // Clean up the assignment item so the rail icon disappears
+    setAssignmentItemsById((currentItems) => {
+      const nextItems = { ...currentItems };
+      delete nextItems[assignmentId];
+      return nextItems;
+    });
+    // Also remove from pendingAcceptanceIds — the case is no longer "in review" in the rail.
+    // The static row will still show as escalated on the Home tab because acceptedStaticsStore
+    // was cleared above, so it reverts to its original unaccepted state.
+    setPendingAcceptanceIds((prev) => {
+      const next = new Set(prev);
+      next.delete(assignmentId);
+      return next;
+    });
+    // Archive conversation state so it can be restored if the agent re-opens the case
+    const conversationStateKey = getConversationStateKey(assignmentId);
+    const removedAssignment = assignmentItemsById[assignmentId];
+    setConversationStatesByKey((currentStates) => {
+      if (removedAssignment && currentStates[conversationStateKey]) {
+        const archiveKey = `${removedAssignment.customerRecordId}::${removedAssignment.channel}`;
+        channelStateArchiveRef.current.set(archiveKey, currentStates[conversationStateKey]);
+      }
+      const nextStates = { ...currentStates };
+      delete nextStates[conversationStateKey];
+      return nextStates;
+    });
+    setOverviewOpenByAssignmentId((current) => {
+      const next = { ...current };
+      delete next[assignmentId];
+      return next;
+    });
+  };
+
   const openConversationPanel = () => {
     if (isCombinedInteractionPanel) {
       openCombinedInteractionPanel("conversation");
@@ -11255,6 +13129,62 @@ export default function Layout({ children }: LayoutProps) {
     });
     setSelectedAssignmentId(assignmentId);
     const assignment = assignmentItemsById[assignmentId];
+
+    // ── Transform the conversation from review-mode seed → full takeover ──
+    // This replaces what the modal's onTakeover handler used to do.
+    if (assignment) {
+      const customerRecordId = assignment.customerRecordId;
+      const sa = staticAssignments.find(
+        (s) => s.customerRecordId === customerRecordId || s.customerId === assignment.customerId,
+      );
+      const botType = assignment.label ?? sa?.botType ?? "Service Bot";
+
+      // Read the current conversation (seed) and build the takeover version
+      const conversationStateKey = getConversationStateKey(assignmentId);
+      const currentConversation = conversationStatesByKey[conversationStateKey];
+      if (currentConversation && customerRecordId) {
+        const takeoverConversation = buildTakeoverConversation({
+          customerRecordId,
+          customerName: assignment.name,
+          botType,
+          channel: (assignment.channel === "sms" ? "sms" : "chat") as "chat" | "sms",
+          aiWhyNeeded: sa?.aiOverview?.whyNeeded ?? null,
+          modalConversation: currentConversation,
+        });
+        setConversationStatesByKey((current) => ({
+          ...current,
+          [conversationStateKey]: takeoverConversation,
+        }));
+        // Post-approval messages are now handled in ConversationPanel (handleInlineApprove)
+        // which appends the agent response + customer reply in-place without transferring.
+      }
+
+      // Dismiss the incoming toast and decrement the escalated badge
+      if (customerRecordId) dismissIncomingByCustomer(customerRecordId);
+      else removeIncoming(assignment.id);
+      setEscalatedRailCount((n) => Math.max(0, n - 1));
+      // Remove from ControlPanelPage queue
+      pendingQueueRejections.add(sa?.id ?? assignment.id);
+
+      // Show the "transferred" confirmation toast
+      const cachedItem = pendingTransferItemRef.current;
+      if (cachedItem?.customerRecordId === customerRecordId) {
+        pushTransferredToast(cachedItem);
+        pendingTransferItemRef.current = null;
+      } else {
+        pushTransferredToast({
+          id: assignment.id,
+          name: assignment.name,
+          customerId: assignment.customerId,
+          customerRecordId: customerRecordId ?? "",
+          channel: assignment.channel as AssignmentChannel,
+          label: botType,
+          priority: assignment.priority,
+          preview: assignment.preview,
+        });
+      }
+    }
+
     if (assignment?.channel === "voice") {
       setJoiningCallAssignmentId(assignmentId);
       setCallPopunderMode("setup");
@@ -11263,6 +13193,9 @@ export default function Layout({ children }: LayoutProps) {
     }
     navigate("/activity");
   };
+  // Keep a ref so closure-captured callbacks always invoke the latest version.
+  const acceptPendingAssignmentRef = useRef(acceptPendingAssignment);
+  acceptPendingAssignmentRef.current = acceptPendingAssignment;
 
   const rejectPendingAssignment = (assignmentId: string) => {
     removePending(assignmentId);
@@ -11373,64 +13306,50 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const monitorIncomingAssignment = (item: QueuePreviewItem) => {
-    // Cache the original item so that if the agent takes over via the modal we can
-    // push a transferred toast. The toast is intentionally NOT removed here —
-    // it stays visible until the agent clicks ✕ to dismiss or takes over the case.
+    // Dismiss the toast immediately — the case is moving to the left rail
+    removeIncoming(item.id);
     markActedOn(item.customerRecordId);
     pendingTransferItemRef.current = item;
-    // Always open the monitor modal on the current page — no navigation required
+
     const sa = staticAssignments.find(
       (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
     );
-    // If the case was already resolved via toast Approve, open the modal in resolved state
-    const effectiveStatus = item.statusLabel === "resolved" ? "resolved"
-      : item.statusLabel === "Escalated" ? "escalated"
-      : (sa?.status ?? "open");
-    setEscalatedToastModal({
+    const customerRecordId = sa?.customerRecordId ?? item.customerRecordId;
+    const botType = sa?.botType ?? "Service Bot";
+
+    // Build the seed conversation — same content the modal would have shown
+    const seedConversation = createConversationState(customerRecordId, item.channel, botType);
+
+    // Open the case in the left rail in pending-acceptance mode (review)
+    acceptIssue({
       id: sa?.id ?? item.id,
       name: item.name,
       customerId: item.customerId,
-      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
-      channel: item.channel,
+      customerRecordId,
+      channel: item.channel as AssignmentChannel,
       priority: item.priority,
-      botType: sa?.botType ?? "Service Bot",
-      waitTime: item.time,
       preview: item.preview,
-      customerContext: sa?.customerContext,
-      aiOverview: sa?.aiOverview ?? { actions: [] },
-      status: effectiveStatus,
+      status: "open" as QueueAssignmentStatus,
+      waitTime: item.time,
+      initialConversation: seedConversation,
+      label: botType,
+      aiConfidence: sa?.aiConfidence ?? item.aiConfidence,
+      aiConfidenceReason: sa?.aiConfidenceReason ?? item.aiConfidenceReason,
       escalatedAt: item.escalatedAt,
-      aiConfidence: sa?.aiConfidence,
-      aiConfidenceReason: sa?.aiConfidenceReason,
+      openAsPendingAcceptance: true,
+      onCreated: sa
+        ? (assignmentId) => { acceptedStaticsStore.set(sa.id, assignmentId); }
+        : undefined,
     });
+
+    // Customer Information panel is NOT auto-opened for reviewed cases —
+    // the inline AI review card in the conversation panel provides the context instead.
   };
 
-  // Approve directly from the toast — opens the modal with autoApprove so the sequence plays immediately
+  // Approve directly from the toast — opens in the left rail and immediately takes over
   const approveIncomingAssignment = (item: QueuePreviewItem) => {
-    markActedOn(item.customerRecordId);
     removeIncoming(item.id);
-    const sa = staticAssignments.find(
-      (s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId,
-    );
-    const effectiveStatus = item.statusLabel === "Escalated" ? "escalated" : (sa?.status ?? "open");
-    setEscalatedToastModal({
-      id: sa?.id ?? item.id,
-      name: item.name,
-      customerId: item.customerId,
-      customerRecordId: sa?.customerRecordId ?? item.customerRecordId,
-      channel: item.channel,
-      priority: item.priority,
-      botType: sa?.botType ?? "Service Bot",
-      waitTime: item.time,
-      preview: item.preview,
-      customerContext: sa?.customerContext,
-      aiOverview: sa?.aiOverview ?? { actions: [] },
-      status: effectiveStatus,
-      escalatedAt: item.escalatedAt,
-      aiConfidence: sa?.aiConfidence,
-      aiConfidenceReason: sa?.aiConfidenceReason,
-      autoApprove: true,
-    });
+    takeoverIncomingAssignment(item);
   };
 
   const takeoverIncomingAssignment = (item: QueuePreviewItem) => {
@@ -11533,6 +13452,11 @@ export default function Layout({ children }: LayoutProps) {
       isActive: false,
       createdAt: isoTimestamp,
       updatedAt: isoTimestamp,
+      ...(data.label ? { label: data.label } : {}),
+      ...(data.aiConfidence !== undefined ? { aiConfidence: data.aiConfidence } : {}),
+      ...(data.aiConfidenceReason ? { aiConfidenceReason: data.aiConfidenceReason } : {}),
+      ...(data.escalatedAt !== undefined ? { escalatedAt: data.escalatedAt } : {}),
+      ...(data.openAsPendingAcceptance ? { statusLabel: "Escalated" } : {}),
     };
 
     const conversationStateKey = getConversationStateKey(newItem.id);
@@ -11550,9 +13474,214 @@ export default function Layout({ children }: LayoutProps) {
     setAssignmentStatusesById((current) => ({ ...current, [newItem.id]: data.status }));
     setSelectedAssignmentId(newItem.id);
     setConversationStatesByKey((current) => ({ ...current, [conversationStateKey]: conversationState }));
+    // When opening as pending-acceptance (review mode), mark the assignment so
+    // ConversationPanel shows the inline AI review card instead of the reply input.
+    // Also auto-open the Customer Information panel so the agent has full context.
+    if (data.openAsPendingAcceptance) {
+      setPendingAcceptanceIds((prev) => new Set([...prev, newItem.id]));
+      // Populate the AI overview card for the Customer Information panel
+      const reviewSa = staticAssignments.find(
+        (s) => s.customerRecordId === (data.customerRecordId ?? data.customerId) || s.customerId === data.customerId,
+      );
+      const reviewBotType = data.label ?? reviewSa?.botType ?? "Aria";
+      const reviewCtx = reviewSa?.customerContext;
+      if (reviewCtx) {
+        const jacobAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F9f1a8ec85d5f478b9a015a2b7eece268?format=webp&width=800&height=1200";
+        const ariaAvatar = "https://cdn.builder.io/api/v1/image/assets%2F9d3d716b4b844ab4bcf3267b33310813%2F054057b71e64441097a4902d7dcea754?format=webp&width=800&height=1200";
+        const emilyAvatar = `${import.meta.env.BASE_URL}emily-avatar.jpg`;
+        const reviewBotAvatar = reviewBotType === "Jacob" ? jacobAvatar : reviewBotType === "Emily" ? emilyAvatar : ariaAvatar;
+        const capturedConvStateKey = conversationStateKey;
+        const capturedCustomerRecordId = data.customerRecordId ?? `issue-${data.id}`;
+        const capturedChannel = data.channel;
+        const isTakeoverOnly = capturedCustomerRecordId === "marcus" || capturedCustomerRecordId === "terry";
+        const isLeadReview = capturedCustomerRecordId === "terry";
+        setTakeoverCardForAssignment(newItem.id, {
+          botType: reviewBotType,
+          botAvatarUrl: reviewBotAvatar,
+          customerContext: reviewCtx,
+          aiConfidence: data.aiConfidence ?? reviewSa?.aiConfidence ?? 78,
+          aiConfidenceReason: data.aiConfidenceReason ?? reviewSa?.aiConfidenceReason ?? "Based on 3 similar resolved cases and firmware documentation match.",
+          phase: "idle",
+          ...(isTakeoverOnly ? { actionLabel: isLeadReview ? "Launch Call" : "Takeover" } : {}),
+          onApprove: isTakeoverOnly ? () => {
+            if (isLeadReview) {
+              // Show connecting animation on the card, then launch the call after a short delay
+              setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, isLaunching: true } : null);
+              setTimeout(() => {
+                setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, hideActions: true } : null);
+                const currentItems = assignmentItemsByIdRef.current;
+                const matchedItem = Object.values(currentItems).find((a) => a?.customerRecordId === capturedCustomerRecordId);
+                if (matchedItem) launchLeadCall(matchedItem);
+              }, 1800);
+            } else {
+              // Hide the button immediately for takeover (Marcus)
+              setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, hideActions: true } : null);
+              acceptPendingAssignmentRef.current(newItem.id);
+              // Animate the panel closed after a brief moment
+              setTimeout(() => {
+                customerInfoPopunderRef.current?.triggerClose();
+              }, 900);
+            }
+          } : () => {
+            // 1. Transition card to "approving" (loading dots)
+            setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, phase: "approving" } : null);
+
+            const ch = capturedChannel?.toLowerCase().includes("sms") ? "sms" as const : "chat" as const;
+
+            // 2. After 2.8s — inject internal note + AI response AND animate the panel closed simultaneously
+            setTimeout(() => {
+              setConversationStatesByKey((currentStates) => {
+                const conv = currentStates[capturedConvStateKey] ?? createConversationState(capturedCustomerRecordId, capturedChannel);
+                const baseId = conv.messages.length ? Math.max(...conv.messages.map((m: any) => m.id)) + 1 : 100;
+                const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                return {
+                  ...currentStates,
+                  [capturedConvStateKey]: {
+                    ...conv,
+                    messages: [
+                      ...conv.messages,
+                      {
+                        id: baseId,
+                        role: "agent" as const,
+                        author: reviewBotType,
+                        content: `AI suggestion approved — ${reviewBotType} confirmed firmware backup compatibility for CloudMesh Pro v3 factory reset. Response sent to customer. — ${dateStr}`,
+                        time: new Date().toISOString(),
+                        isInternal: true,
+                      },
+                      {
+                        id: baseId + 1,
+                        role: "agent" as const,
+                        author: reviewBotType,
+                        content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
+                        time: new Date().toISOString(),
+                        channel: ch,
+                      },
+                    ],
+                    isCustomerTyping: true,
+                  },
+                };
+              });
+              // Animate the customer info panel closed at the same moment
+              customerInfoPopunderRef.current?.triggerClose();
+            }, 2800);
+
+            // 3. After 5.8s — customer reply with positive sentiment + star rating + guidedReviewCompleted
+            //    THEN transition card to "resolved" (great job message)
+            setTimeout(() => {
+              setConversationStatesByKey((currentStates) => {
+                const conv = currentStates[capturedConvStateKey] ?? createConversationState(capturedCustomerRecordId, capturedChannel);
+                const nextId = conv.messages.length ? Math.max(...conv.messages.map((m: any) => m.id)) + 1 : 101;
+                return {
+                  ...currentStates,
+                  [capturedConvStateKey]: {
+                    ...conv,
+                    messages: [
+                      ...conv.messages,
+                      {
+                        id: nextId,
+                        role: "customer" as const,
+                        content: "That's amazing, thank you!",
+                        time: new Date().toISOString(),
+                        channel: ch,
+                        sentiment: "positive" as const,
+                        starRating: 5,
+                      },
+                    ],
+                    isCustomerTyping: false,
+                    guidedReviewCompleted: true,
+                  },
+                };
+              });
+              // Now that the customer has replied with 5/5, show the "Great job" card
+              setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, phase: "resolved" } : null);
+              // Set the assignment status to "resolved" so the header chip reflects it
+              setAssignmentStatusesById((current) => ({ ...current, [newItem.id]: "resolved" as QueueAssignmentStatus }));
+            }, 5800);
+          },
+          onReject: isTakeoverOnly ? undefined : () => rejectPendingAssignment(newItem.id),
+          onDismiss: () => {
+            // Track for the home tab greeting and decrement escalation badge
+            setResolvedReviewCount((n) => n + 1);
+            setEscalatedRailCount((n) => Math.max(0, n - 1));
+            // Remove from pending acceptance
+            setPendingAcceptanceIds((prev) => {
+              const next = new Set(prev);
+              next.delete(newItem.id);
+              return next;
+            });
+            // Mark known customers as resolved for home tab
+            const custRecId = data.customerRecordId ?? `issue-${data.id}`;
+            const staticId = staticAssignments.find((a) => a.customerRecordId === custRecId)?.id;
+            if (staticId) pendingResolvedIds.add(staticId);
+            if (custRecId === "marcus") setIsMarcusResolved(true);
+            if (custRecId === "jordan") setIsJordanResolved(true);
+            if (custRecId === "sofia") setIsSofiaResolved(true);
+
+            setTakeoverCardForAssignment(newItem.id, null);
+            // Remove the assignment (same as normal dismiss path)
+            handleRemoveVisibleAssignment(newItem.id);
+
+            // Show rich DismissalToast
+            const resolveSa = staticAssignments.find(
+              (s) => s.customerRecordId === custRecId || s.customerId === data.customerId,
+            );
+            const custId = data.customerId ?? resolveSa?.customerId ?? custRecId;
+            const preview = newItem.preview ?? resolveSa?.preview ?? "";
+            const botType = data.label ?? resolveSa?.botType ?? "Aria";
+            const chan = data.channel ?? resolveSa?.channel ?? "chat";
+            const actions = resolveSa?.aiOverview?.actions ?? [];
+            setDismissalToast({
+              customerName: data.name,
+              customerId: custId,
+              status: "resolved",
+              resolvedStatus: "Resolved",
+              actions,
+              preview,
+              botType,
+              channel: chan,
+            });
+          },
+          resolvedCaseStatus: "Resolved",
+          onResolvedCaseStatusChange: (status: string) => {
+            setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, resolvedCaseStatus: status } : null);
+          },
+          rejectReason: null,
+          onPhaseChange: (phase, reason) => {
+            if (phase === "reject-loading" && reason) {
+              // Agent selected a reject reason — show loading, then transition to revised after 2.4s
+              setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, phase: "reject-loading", rejectReason: reason } : null);
+              setTimeout(() => {
+                setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, phase: "rejected" } : null);
+              }, 2400);
+            } else {
+              setTakeoverCardForAssignment(newItem.id, prev => prev ? { ...prev, phase } : null);
+            }
+          },
+        });
+      }
+      // Open customer info after the panel has rendered so positioning is correct
+      requestAnimationFrame(() => {
+        if (!customerInfoHasBeenPositionedRef.current) {
+          setCustomerInfoPopunderPosition(getAnchoredCustomerInfoPopunderPosition());
+          customerInfoHasBeenPositionedRef.current = true;
+        }
+        setCustomerInfoTakeoverStartTime(null);
+        setIsCustomerInfoIconPopoverOpen(true);
+      });
+    }
     // When opening as history-only (e.g. a lead review), suppress channel tabs and start on Customer History.
     if (data.openAsHistoryOnly) {
       setHistoryOnlyAssignmentIds((prev) => new Set([...prev, newItem.id]));
+    }
+    // Lead reviews opened via pending-acceptance also suppress channel tabs
+    // (only Customer History is shown until the agent launches a call).
+    if (data.openAsPendingAcceptance) {
+      const leadSa = staticAssignments.find(
+        (s) => s.customerRecordId === (data.customerRecordId ?? data.customerId) || s.customerId === data.customerId,
+      );
+      if (leadSa?.leadIntelligence) {
+        setHistoryOnlyAssignmentIds((prev) => new Set([...prev, newItem.id]));
+      }
     }
     data.onCreated?.(newItem.id);
     setContentRevealTrigger((t) => t + 1);
@@ -12185,6 +14314,8 @@ export default function Layout({ children }: LayoutProps) {
       onMarcusCaseResolved: () => setIsMarcusResolved(true),
       showDismissalToast: (summary) => setDismissalToast(summary),
       pushTransferredToast,
+      resolvedReviewCount,
+      lastDismissedCase,
       historyOnlyAssignmentIds,
       launchLeadCall,
       isConversationPanelOpen,
@@ -12413,6 +14544,8 @@ export default function Layout({ children }: LayoutProps) {
       setIncomingNotifications,
       pendingMonitorCaseId,
       pendingTakeoverCaseId,
+      resolvedReviewCount,
+      lastDismissedCase,
     ],
   );
 
@@ -12829,7 +14962,7 @@ export default function Layout({ children }: LayoutProps) {
                   }
                 }}
                 onOpenCustomerInfo={openCustomerInfoIconPopover}
-                isCustomerInfoOpen={isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
+                isCustomerInfoOpen={isCustomerInfoPanelActuallyVisible}
 
                 onConversationStatusChange={handleConversationStatusChange}
                 onResolveAssignment={handleResolveAssignment}
@@ -12847,6 +14980,16 @@ export default function Layout({ children }: LayoutProps) {
                 onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
                 isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
                 onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
+                onRejectAssignment={() => rejectPendingAssignment(selectedAssignment.id)}
+                onCloseReviewCase={() => closeReviewCase(selectedAssignment.id)}
+                onGuideConversation={() => guideReviewConversation(selectedAssignment.id)}
+                isGuidingConversation={guidingAssignmentId === selectedAssignment.id}
+                onCloseCustomerInfoPanel={() => customerInfoPopunderRef.current?.triggerClose()}
+                onLaunchCall={selectedAssignment.customerRecordId === "terry" ? () => {
+                  // Set connecting animation on the customer info card too
+                  setTakeoverCardForAssignment(selectedAssignment.id, prev => prev ? { ...prev, isLaunching: true } : null);
+                  launchLeadCall(selectedAssignment);
+                } : undefined}
                 casePreview={selectedAssignment.preview}
                 assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
                 onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
@@ -12904,7 +15047,7 @@ export default function Layout({ children }: LayoutProps) {
                     s.customerId === selectedAssignment.customerId
                   )?.customerContext;
                   if (ctx) {
-                    setCustomerInfoTakeoverCard({
+                    setTakeoverCardForAssignment(selectedAssignment.id, {
                       botType: botLabel,
                       botAvatarUrl,
                       customerContext: ctx,
@@ -13006,12 +15149,12 @@ export default function Layout({ children }: LayoutProps) {
               onOpenDeskPanel={openDeskPanel}
               onOpenCall={layoutContextValue.toggleCallPopunder}
               onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
-              isCustomerInfoOpen={isConversationDockedCustomerInfoVisible || isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
+              isCustomerInfoOpen={isCustomerInfoPanelActuallyVisible}
               onOpenCustomerInfo={openCustomerInfoIconPopover}
               isCallActive={status === "In a Call" && activeCallAssignmentId === selectedAssignment.id}
               hasTranscript={selectedAssignment.customerRecordId !== "terry" && transcriptLines.length > 0}
               voiceOpeningLines={
-                status === "In a Call" && activeCallAssignmentId === selectedAssignment.id
+                status === "In a Call" && activeCallAssignmentId === selectedAssignment.id && !terryDemoStarted
                   ? (staticAssignments.find((s) =>
                       s.customerRecordId === selectedAssignment.customerRecordId ||
                       s.customerId === selectedAssignment.customerId
@@ -13019,12 +15162,20 @@ export default function Layout({ children }: LayoutProps) {
                   : null
               }
               voiceTopContent={
-                selectedAssignment.customerRecordId === "terry" && status === "In a Call" && activeCallAssignmentId === selectedAssignment.id
-                  ? <TerryCallPanel
-                      lineCount={transcriptLines.length}
-                      callKey={activeCallAssignmentId ?? "terry"}
-                      isCallActive={status === "In a Call"}
-                      onLeadSaved={() => {
+                selectedAssignment.customerRecordId === "terry" && (
+                  (status === "In a Call" && activeCallAssignmentId === selectedAssignment.id) ||
+                  (status !== "In a Call" && terryDemoStarted)
+                )
+                  ? <>
+                      <TerryHandoffCard callKey={activeCallAssignmentId ?? "terry"} skipAnimation={terryHandoffAnimatedRef.current} onAnimationComplete={() => { terryHandoffAnimatedRef.current = true; }} />
+                      <TerryCallPanel
+                        lineCount={transcriptLines.length}
+                        callKey={activeCallAssignmentId ?? "terry"}
+                        isCallActive={status === "In a Call"}
+                        isPostCall={status !== "In a Call" && terryDemoStarted}
+                        hideIdentityCard
+                        onLeadSaved={() => {
+                        setTerryLeadSaved(true);
                         setDynamicHistoryItems((prev) => {
                           // Don't duplicate if lead was already saved.
                           if (prev.some((h) => h.id === "terry-lead-form")) return prev;
@@ -13040,6 +15191,84 @@ export default function Layout({ children }: LayoutProps) {
                         });
                       }}
                     />
+                      {/* Post-lead-save: Suggested Next Step → Resolve & Dismiss */}
+                      {terryResolveCardVisible && !terryResolveComplete && (
+                        <div className="rounded-xl border border-black/[0.06] bg-[#F8F8F9] overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-700">
+                          <div className="px-4 pt-3 pb-1">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#333333]">Suggested Next Step</span>
+                          </div>
+                          <div className="px-4 pb-2">
+                            <p className="text-[12px] text-[#667085] leading-5">Lead form saved successfully. Ready to close out this case.</p>
+                          </div>
+                          <div className="px-3 pb-3">
+                            <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
+                              <div className="flex items-center gap-3 px-3 py-2.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (terryResolveChecked) return;
+                                    setTerryResolveChecked(true);
+                                    handleCaseStatusChange(selectedAssignment.customerRecordId, "resolved");
+                                    terryResolveTimersRef.current.forEach(clearTimeout);
+                                    terryResolveTimersRef.current = [];
+                                    const steps = ["Setting case status to Resolved", "Removing agent assignment", "Updating case log"];
+                                    steps.forEach((_, i) => {
+                                      const t = setTimeout(() => setTerryResolveStepIndex(i + 1), 1000 + i * 1200);
+                                      terryResolveTimersRef.current.push(t);
+                                    });
+                                    const done = setTimeout(() => {
+                                      setTerryResolveComplete(true);
+                                      setTimeout(() => handleDismissCase(selectedAssignment.customerRecordId), 800);
+                                    }, 1000 + steps.length * 1200);
+                                    terryResolveTimersRef.current.push(done);
+                                  }}
+                                  className={cn(
+                                    "shrink-0 h-[18px] w-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors",
+                                    terryResolveChecked ? "border-[#166CCA] bg-[#166CCA]" : "border-[#D0D5DD] bg-white hover:border-[#166CCA]",
+                                  )}
+                                >
+                                  {terryResolveChecked && <Check className="h-2.5 w-2.5 text-white" />}
+                                </button>
+                                <span className={cn(
+                                  "flex-1 text-[13px] leading-5 text-[#111827] transition-colors",
+                                  terryResolveComplete && "line-through text-[#9CA3AF]",
+                                )}>
+                                  Set Case to Resolved — Dismiss &amp; Unassign
+                                </span>
+                                {!terryResolveChecked && (
+                                  <button
+                                    type="button"
+                                    aria-label="Dismiss action"
+                                    className="shrink-0 text-[#9CA3AF] hover:text-[#667085] transition-colors"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                              {terryResolveChecked && (
+                                <div className="border-t border-black/[0.05] px-3 pb-3 pt-2.5">
+                                  <p className="mb-2.5 text-[12px] font-semibold text-[#111827]">Resolving &amp; dismissing...</p>
+                                  <div className="space-y-1.5">
+                                    {["Setting case status to Resolved", "Removing agent assignment", "Updating case log"].map((label, i) => (
+                                      <div key={label} className="flex items-center gap-2">
+                                        {terryResolveStepIndex > i ? (
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-[#208337] shrink-0 animate-in fade-in duration-300" />
+                                        ) : (
+                                          <Loader2 className="h-3.5 w-3.5 text-[#9CA3AF] shrink-0 animate-spin" />
+                                        )}
+                                        <span className={cn("text-[12px]", terryResolveStepIndex > i ? "text-[#208337]" : "text-[#667085]")}>
+                                          {label}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </>
                   : undefined
               }
               voiceContentOverlay={
@@ -13101,6 +15330,23 @@ export default function Layout({ children }: LayoutProps) {
                 onSummaryClose={() => setClosedSummaryIds((prev) => new Set([...prev, selectedAssignment.id]))}
               isPendingAcceptance={pendingAcceptanceIds.has(selectedAssignment.id)}
               onAcceptAssignment={() => acceptPendingAssignment(selectedAssignment.id)}
+              onRejectAssignment={() => rejectPendingAssignment(selectedAssignment.id)}
+              onCloseReviewCase={() => closeReviewCase(selectedAssignment.id)}
+              onGuideConversation={() => guideReviewConversation(selectedAssignment.id)}
+              isGuidingConversation={guidingAssignmentId === selectedAssignment.id}
+              onCloseCustomerInfoPanel={() => customerInfoPopunderRef.current?.triggerClose()}
+              externalScrollTrigger={terryScrollTrigger}
+              onLaunchCall={selectedAssignment.customerRecordId === "terry" ? () => {
+                setTakeoverCardForAssignment(selectedAssignment.id, prev => prev ? { ...prev, isLaunching: true } : null);
+                launchLeadCall(selectedAssignment);
+              } : undefined}
+              aiConfidence={selectedAssignment.aiConfidence}
+              aiConfidenceReason={selectedAssignment.aiConfidenceReason}
+              botLabel={selectedAssignment.label}
+              customerContext={staticAssignments.find((s) =>
+                s.customerRecordId === selectedAssignment.customerRecordId ||
+                s.customerId === selectedAssignment.customerId
+              )?.customerContext}
               casePreview={selectedAssignment.preview}
               assignmentStatus={getCaseStatus(selectedAssignment.customerRecordId)}
               onAssignmentStatusChange={(s) => handleCaseStatusChange(selectedAssignment.customerRecordId, s)}
@@ -13155,7 +15401,7 @@ export default function Layout({ children }: LayoutProps) {
                   s.customerId === selectedAssignment.customerId
                 )?.customerContext;
                 if (ctx) {
-                  setCustomerInfoTakeoverCard({
+                  setTakeoverCardForAssignment(selectedAssignment.id, {
                     botType: botLabel,
                     botAvatarUrl,
                     customerContext: ctx,
@@ -13187,7 +15433,7 @@ export default function Layout({ children }: LayoutProps) {
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onClose={() => setIsConversationDockedPanelOpen(false)}
               showTrailingGap={isMainCanvasVisible}
-              takeoverCard={customerInfoTakeoverCard}
+              takeoverCard={customerInfoTakeoverCard ? { ...customerInfoTakeoverCard, hideActions: guidingAssignmentId === selectedAssignment?.id } : customerInfoTakeoverCard}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -13235,7 +15481,7 @@ export default function Layout({ children }: LayoutProps) {
               isCallDisabled={status === "In a Call" || status !== "Available"}
               onClose={closeCustomerInfoPanel}
               showTrailingGap={isMainCanvasVisible}
-              takeoverCard={customerInfoTakeoverCard}
+              takeoverCard={customerInfoTakeoverCard ? { ...customerInfoTakeoverCard, hideActions: guidingAssignmentId === selectedAssignment?.id } : customerInfoTakeoverCard}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -13335,7 +15581,7 @@ export default function Layout({ children }: LayoutProps) {
           onSelectChannel={setActiveConversationChannel}
           onOpenDeskPanel={openDeskPanel}
           onOpenCall={layoutContextValue.toggleCallPopunder}
-          isCustomerInfoOpen={isDeskCustomerInfoPopunderVisible || isCustomerInfoIconPopoverOpen || isTakeoverInfoOpen}
+          isCustomerInfoOpen={isCustomerInfoPanelActuallyVisible}
           onOpenChannel={(channel) => openCustomerConversation(selectedAssignment.customerRecordId, channel)}
           onOpenCustomerInfo={openCustomerInfoIconPopover}
           onConversationStatusChange={handleConversationStatusChange}
@@ -13369,7 +15615,7 @@ export default function Layout({ children }: LayoutProps) {
           onOpenCall={layoutContextValue.toggleCallPopunder}
           isCallDisabled={status === "In a Call" || status !== "Available"}
           takeoverStartTime={customerInfoTakeoverStartTime}
-          takeoverCard={customerInfoTakeoverCard}
+          takeoverCard={customerInfoTakeoverCard ? { ...customerInfoTakeoverCard, hideActions: guidingAssignmentId === selectedAssignment?.id } : customerInfoTakeoverCard}
           onClose={() => { setIsCustomerInfoIconPopoverOpen(false); setIsTakeoverInfoOpen(false); setCustomerInfoTakeoverStartTime(null); closeCustomerInfoPanel(); }}
           onDock={(isCustomerInfoPanelAllowed || (isActivityRoute && isDockedConversationVisible)) ? () => { setIsCustomerInfoIconPopoverOpen(false); dockCustomerInfoPanel(); } : undefined}
           dragActivation={customerInfoDragActivation}
@@ -13558,7 +15804,7 @@ export default function Layout({ children }: LayoutProps) {
             }
             setIsCallPopunderOpen(false);
             setCallPopunderMode("setup");
-            setCustomerInfoTakeoverCard(null);
+            if (activeCallAssignmentId) setTakeoverCardForAssignment(activeCallAssignmentId, null);
             setIsTakeoverInfoOpen(false);
           }}
           onInteractStart={() => bringFloatingPanelToFront("call")}
@@ -13640,28 +15886,28 @@ export default function Layout({ children }: LayoutProps) {
           removeIncoming(item.id);
           // Dismiss the Home tab lead alert
           if (item.customerRecordId) layoutContextValue.dismissLeadNotification(item.customerRecordId);
-          // Push a "transferred" toast so the customer info panel auto-opens
-          layoutContextValue.pushTransferredToast({
-            name: item.name,
-            customerRecordId: item.customerRecordId,
-            customerId: item.customerId,
-            channel: item.channel as AssignmentChannel,
-            label: item.label,
-            priority: item.priority,
-            preview: item.preview,
-          });
-          // Accept the case in history-only mode (no channel tabs, Customer History active)
+          pendingTransferItemRef.current = item;
+          // Open in the left rail in review mode — same as other escalated cases
+          const sa = staticAssignments.find((s) => s.customerRecordId === item.customerRecordId || s.customerId === item.customerId);
+          const botType = sa?.botType ?? item.label ?? "Aria";
+          const seedConversation = createConversationState(item.customerRecordId, item.channel, botType);
           layoutContextValue.acceptIssue({
-            id: item.id,
+            id: sa?.id ?? item.id,
             name: item.name,
             customerId: item.customerId ?? "",
             customerRecordId: item.customerRecordId,
-            channel: item.channel as AssignmentChannel,
+            // For lead reviews, open as chat so the voice channel tab is NOT created.
+            // The agent can later launch a call from the banner button.
+            channel: (item.leadIntelligence ? "chat" : item.channel) as AssignmentChannel,
             priority: item.priority,
             preview: item.preview,
-            status: "pending" as QueueAssignmentStatus,
+            status: "open" as QueueAssignmentStatus,
             waitTime: item.time ?? "0m",
-            openAsHistoryOnly: true,
+            initialConversation: seedConversation,
+            label: botType,
+            aiConfidence: sa?.aiConfidence ?? item.aiConfidence,
+            aiConfidenceReason: sa?.aiConfidenceReason ?? item.aiConfidenceReason,
+            openAsPendingAcceptance: true,
             onCreated: (assignmentId) => {
               const sa = staticAssignments.find((s) => s.customerRecordId === item.customerRecordId);
               if (sa) acceptedStaticsStore.set(sa.id, assignmentId);
@@ -13689,7 +15935,7 @@ export default function Layout({ children }: LayoutProps) {
             setEscalatedRailCount((n) => Math.max(0, n - 1));
             // Remove from ControlPanelPage queue on next render — use static ID so the filter matches
             pendingQueueRejections.add(sa?.id ?? escalatedToastModal.id);
-            setEscalatedToastModal(null);
+            setEscalatedToastModal(null); setGuidingAssignmentId(null);
             // Always show the handoff toast — use the cached item if available (preserves
             // all icon/badge fields), otherwise reconstruct from the modal data + static assignment.
             const cachedItem = pendingTransferItemRef.current;
@@ -13750,7 +15996,7 @@ export default function Layout({ children }: LayoutProps) {
             else removeIncoming(escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
             pendingQueueRejections.add(escalatedToastModal.id);
-            setEscalatedToastModal(null);
+            setEscalatedToastModal(null); setGuidingAssignmentId(null);
             const sa = staticAssignments.find(
               (s) => s.customerRecordId === escalatedToastModal.customerRecordId || s.customerId === escalatedToastModal.customerId,
             );
@@ -13791,7 +16037,7 @@ export default function Layout({ children }: LayoutProps) {
             else removeIncoming(escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
             pendingQueueRejections.add(escalatedToastModal.id);
-            setEscalatedToastModal(null);
+            setEscalatedToastModal(null); setGuidingAssignmentId(null);
           }}
           onResolve={() => {
             // Queue the resolved ID so ControlPanelPage updates its list on next render.
@@ -13805,7 +16051,7 @@ export default function Layout({ children }: LayoutProps) {
             if (escalatedToastModal.customerRecordId === "marcus") setIsMarcusResolved(true);
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);
           }}
-          onClose={() => setEscalatedToastModal(null)}
+          onClose={() => { setEscalatedToastModal(null); setGuidingAssignmentId(null); }}
           onDismissed={(summary) => setDismissalToast(summary)}
         />
       )}
