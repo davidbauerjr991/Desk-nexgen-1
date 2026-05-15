@@ -10,6 +10,7 @@
  * Components read from this file instead of hardcoding scenario data inline.
  */
 
+import { CURRENT_AGENT_FIRST_NAME } from "./agent-roster";
 import type { InlineSuggestion } from "./conversation-types";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -147,7 +148,7 @@ const sofia: ScenarioConfig = {
     iconName: "MessageCircle",
   },
   customerReplies: [
-    // Fraud/takeover handoff — Jeff introducing himself after Sofia's case
+    // Fraud/takeover handoff — Sarah introducing herself after Sofia's case
     {
       agentKeywords: ["monitoring", "been following", "been watching", "stepped in"],
       agentExclude: [],
@@ -162,39 +163,39 @@ const sofia: ScenarioConfig = {
       variants: [
         {
           summary: "Lead with presence — let {firstName} know you've been here the whole time and she's safe.",
-          suggestedReply: "Hi {firstName}, this is Jeff. I've been with you through this entire conversation. You have absolutely nothing to apologize for — your account is safe. We've got you.",
+          suggestedReply: `Hi {firstName}, this is ${CURRENT_AGENT_FIRST_NAME}. I've been with you through this entire conversation. You have absolutely nothing to apologize for — your account is safe. We've got you.`,
         },
         {
           summary: "Validate her anger, confirm you saw everything, and make her feel protected.",
-          suggestedReply: "{firstName}, I'm Jeff. I've been following every step of this conversation and I want you to know — your anger is completely justified. Your account is secured, those charges are flagged, and I'm personally making sure this gets resolved.",
+          suggestedReply: `{firstName}, I'm ${CURRENT_AGENT_FIRST_NAME}. I've been following every step of this conversation and I want you to know — your anger is completely justified. Your account is secured, those charges are flagged, and I'm personally making sure this gets resolved.`,
         },
         {
           summary: "Reassure {firstName} that she's not alone and that everything is already being handled.",
-          suggestedReply: "Hi {firstName}, my name is Jeff. I've been right here watching this unfold and I want to be clear: none of this is your fault. Your money is protected, the charges are frozen, and I'm not going anywhere until you feel completely taken care of.",
+          suggestedReply: `Hi {firstName}, my name is ${CURRENT_AGENT_FIRST_NAME}. I've been right here watching this unfold and I want to be clear: none of this is your fault. Your money is protected, the charges are frozen, and I'm not going anywhere until you feel completely taken care of.`,
         },
         {
           summary: "Open with empathy and immediately address the rent concern — her most urgent worry.",
-          suggestedReply: "{firstName}, this is Jeff — I've been with you since Jacob first flagged the issue. I know rent is due tomorrow and I want to put your mind at ease: the $2,159 credit is already on your account. Your rent payment will go through. You're safe.",
+          suggestedReply: `{firstName}, this is ${CURRENT_AGENT_FIRST_NAME} — I've been with you since Jacob first flagged the issue. I know rent is due tomorrow and I want to put your mind at ease: the $2,159 credit is already on your account. Your rent payment will go through. You're safe.`,
         },
         {
           summary: "Introduce yourself warmly and make it personal — 11 years of loyalty matters.",
-          suggestedReply: "Hi {firstName}, I'm Jeff. After 11 years as a customer, you deserve better than this, and I'm sorry it happened. I've been monitoring this conversation from the start and I'm stepping in personally to make sure everything is made right.",
+          suggestedReply: `Hi {firstName}, I'm ${CURRENT_AGENT_FIRST_NAME}. After 11 years as a customer, you deserve better than this, and I'm sorry it happened. I've been monitoring this conversation from the start and I'm stepping in personally to make sure everything is made right.`,
         },
         {
           summary: "Keep it short and human — let {firstName} know she's heard and protected.",
-          suggestedReply: "{firstName}, this is Jeff. I've been here the whole time. What happened to your account is serious and we're treating it that way. You're protected and I'm here for whatever you need.",
+          suggestedReply: `{firstName}, this is ${CURRENT_AGENT_FIRST_NAME}. I've been here the whole time. What happened to your account is serious and we're treating it that way. You're protected and I'm here for whatever you need.`,
         },
         {
           summary: "Acknowledge the handoff, confirm no details are lost, and give {firstName} confidence.",
-          suggestedReply: "Hi {firstName}, I'm Jeff — I've been following your conversation with Jacob and you won't need to repeat a single thing. The fraudulent charges are frozen, your account is protected, and I'm personally overseeing the rest of this. We've got you.",
+          suggestedReply: `Hi {firstName}, I'm ${CURRENT_AGENT_FIRST_NAME} — I've been following your conversation with Jacob and you won't need to repeat a single thing. The fraudulent charges are frozen, your account is protected, and I'm personally overseeing the rest of this. We've got you.`,
         },
         {
           summary: "Lead with action — confirm what's already done and what happens next.",
-          suggestedReply: "{firstName}, my name is Jeff and I've been with you since the beginning of this conversation. Here's where we stand: both fraudulent charges are flagged, a $2,159 provisional credit is on your account, and a replacement card is being issued. You're in good hands.",
+          suggestedReply: `{firstName}, my name is ${CURRENT_AGENT_FIRST_NAME} and I've been with you since the beginning of this conversation. Here's where we stand: both fraudulent charges are flagged, a $2,159 provisional credit is on your account, and a replacement card is being issued. You're in good hands.`,
         },
         {
           summary: "Close with warmth and a direct line of support.",
-          suggestedReply: "Hi {firstName}, this is Jeff. I want you to know I've seen everything in this conversation and I'm taking personal responsibility for your case. Your account is safe, your money is protected, and I'll be your direct contact from here on out.",
+          suggestedReply: `Hi {firstName}, this is ${CURRENT_AGENT_FIRST_NAME}. I want you to know I've seen everything in this conversation and I'm taking personal responsibility for your case. Your account is safe, your money is protected, and I'll be your direct contact from here on out.`,
         },
       ],
     },
@@ -204,15 +205,15 @@ const sofia: ScenarioConfig = {
       variants: [
         {
           summary: "Lead with presence — let {firstName} know you've been here the whole time and she's safe.",
-          suggestedReply: "Hi {firstName}, this is Jeff. I've been with you through this entire conversation. You have absolutely nothing to apologize for — your account is safe. We've got you.",
+          suggestedReply: `Hi {firstName}, this is ${CURRENT_AGENT_FIRST_NAME}. I've been with you through this entire conversation. You have absolutely nothing to apologize for — your account is safe. We've got you.`,
         },
         {
           summary: "Validate her anger, confirm you saw everything, and make her feel protected.",
-          suggestedReply: "{firstName}, I'm Jeff. I've been following every step of this conversation and I want you to know — your anger is completely justified. Your account is secured, those charges are flagged, and I'm personally making sure this gets resolved.",
+          suggestedReply: `{firstName}, I'm ${CURRENT_AGENT_FIRST_NAME}. I've been following every step of this conversation and I want you to know — your anger is completely justified. Your account is secured, those charges are flagged, and I'm personally making sure this gets resolved.`,
         },
         {
           summary: "Reassure {firstName} that she's not alone and that everything is already being handled.",
-          suggestedReply: "Hi {firstName}, my name is Jeff. I've been right here watching this unfold and I want to be clear: none of this is your fault. Your money is protected, the charges are frozen, and I'm not going anywhere until you feel completely taken care of.",
+          suggestedReply: `Hi {firstName}, my name is ${CURRENT_AGENT_FIRST_NAME}. I've been right here watching this unfold and I want to be clear: none of this is your fault. Your money is protected, the charges are frozen, and I'm not going anywhere until you feel completely taken care of.`,
         },
       ],
     },
@@ -284,7 +285,7 @@ const terry: ScenarioConfig = {
   accountNumber: "NF-408-0174",
   transcriptLines: [
     { speaker: "customer", text: "Hello? This is Terry Williams.", elapsed: 1 },
-    { speaker: "agent",    text: "Hi Terry, this is Jeff from NovaTech — thanks for reaching out, I saw you were just on our pricing page. Perfect timing. What's driving the search right now?", elapsed: 5 },
+    { speaker: "agent",    text: `Hi Terry, this is ${CURRENT_AGENT_FIRST_NAME} from NovaTech — thanks for reaching out, I saw you were just on our pricing page. Perfect timing. What's driving the search right now?`, elapsed: 5 },
     { speaker: "customer", text: "Yeah, we've been on a legacy TMS for about six years. It's falling apart and our warehouse integrations are a nightmare. We're under pressure to have something new in place before Q4.", elapsed: 9 },
     { speaker: "agent",    text: "Got it — Q4 is tight but doable. Has budget been approved yet, or are you still in the evaluation phase?", elapsed: 24 },
     { speaker: "customer", text: "Budget's approved. We set aside around $400K annually for this. I just need to make sure the product can handle the complexity of our routing logic before I bring it to our CTO.", elapsed: 33 },
@@ -337,11 +338,11 @@ const elena: ScenarioConfig = {
     successLabel: "Bundle added to order — shipping express",
   },
   forcedSuggestion: {
-    defaultReply: "Hi Elena — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.",
+    defaultReply: `Hi Elena — I'm ${CURRENT_AGENT_FIRST_NAME}. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.`,
     variants: [
-      { summary: "Lead with empathy — confirm the fix and the credit upfront.", suggestedReply: "Hi Elena — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account." },
-      { summary: "Apologize warmly and confirm both resolution actions in one go.", suggestedReply: "Elena, hi — Jeff here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble." },
-      { summary: "Keep it brief and action-focused — show it's already handled.", suggestedReply: "Hi Elena, I'm Jeff. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up." },
+      { summary: "Lead with empathy — confirm the fix and the credit upfront.", suggestedReply: `Hi Elena — I'm ${CURRENT_AGENT_FIRST_NAME}. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.` },
+      { summary: "Apologize warmly and confirm both resolution actions in one go.", suggestedReply: `Elena, hi — ${CURRENT_AGENT_FIRST_NAME} here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble.` },
+      { summary: "Keep it brief and action-focused — show it's already handled.", suggestedReply: `Hi Elena, I'm ${CURRENT_AGENT_FIRST_NAME}. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up.` },
     ],
   },
   customerReplies: [
@@ -370,7 +371,7 @@ const elena: ScenarioConfig = {
       agentKeywords: ["added", "on its way", "enjoy every shot", "happy shooting"],
       customerContextIncludes: ["add that to my order"],
       reply: {
-        content: "This turned into a much better experience than I expected. Thank you, Jeff.",
+        content: `This turned into a much better experience than I expected. Thank you, ${CURRENT_AGENT_FIRST_NAME}.`,
         starRating: 5,
         aiAction: {
           label: "Resolve & Close Case",
@@ -389,15 +390,15 @@ const elena: ScenarioConfig = {
       variants: [
         {
           summary: "Lead with empathy — confirm the fix and the credit upfront.",
-          suggestedReply: "Hi {firstName} — I'm Jeff. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.",
+          suggestedReply: `Hi {firstName} — I'm ${CURRENT_AGENT_FIRST_NAME}. Genuinely sorry about this. Your replacement card ships today, arrives tomorrow by noon. I've added a $25 credit to your account.`,
         },
         {
           summary: "Apologize warmly and confirm both resolution actions in one go.",
-          suggestedReply: "{firstName}, hi — Jeff here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble.",
+          suggestedReply: `{firstName}, hi — ${CURRENT_AGENT_FIRST_NAME} here. I owe you an apology. The replacement 64GB card is already on its way and will be with you by noon tomorrow. I've also put a $25 credit on your account for the trouble.`,
         },
         {
           summary: "Keep it brief and action-focused — show it's already handled.",
-          suggestedReply: "Hi {firstName}, I'm Jeff. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up.",
+          suggestedReply: `Hi {firstName}, I'm ${CURRENT_AGENT_FIRST_NAME}. I've got good news — your replacement memory card ships today, arriving by noon tomorrow, and there's a $25 credit on your account. Sorry for the mix-up.`,
         },
       ],
     },

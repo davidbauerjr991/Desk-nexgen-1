@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ const addNewFieldConfig: Record<
   ],
   "work-item": [
     { key: "name", label: "Work Item Name", placeholder: "Resolve billing mismatch", type: "input" },
-    { key: "assignee", label: "Assignee", placeholder: "Jeff Comstock", type: "input" },
+    { key: "assignee", label: "Assignee", placeholder: CURRENT_AGENT_NAME, type: "input" },
     { key: "dueDate", label: "Due Date", placeholder: "03/15/26", type: "input" },
     { key: "relatedTo", label: "Related To", placeholder: "Ticket TCK-2091", type: "input" },
     { key: "details", label: "Details", placeholder: "Add work item details", type: "textarea" },

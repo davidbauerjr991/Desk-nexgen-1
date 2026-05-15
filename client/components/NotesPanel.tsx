@@ -10,6 +10,7 @@ import { getCustomerRecord } from "@/lib/customer-database";
 import { getScenarioConfig } from "@/lib/scenario-database";
 import { staticAssignments } from "@/lib/static-assignments";
 import { cn } from "@/lib/utils";
+import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 import { addNoteForCustomer, getNotesForCustomer, type CustomerNote } from "@/lib/notes-database";
 import {
   type CustomerTicket,
@@ -41,7 +42,7 @@ export type { CustomerTicket };
 export { getCustomerTickets, getRelevantCustomerTicket, getCustomerTicketById };
 
 const DEFAULT_NOTE_AGENT = {
-  name: "Jeff Comstock",
+  name: CURRENT_AGENT_NAME,
   id: "AGT-10984",
 };
 
@@ -185,7 +186,7 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeove
               {takeoverCard.phase === "resolved" ? (
                 <div className="space-y-3 animate-in fade-in duration-500">
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">
-                    Wow! Great job, Jeff! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
+                    Wow! Great job, Sarah! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
                   </p>
                   {/* Dismiss button */}
                   <button

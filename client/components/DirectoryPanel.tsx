@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CURRENT_AGENT_INITIALS, CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 import { type CustomerChannel, customerDatabase } from "@/lib/customer-database";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ type AgentTeam = {
 // ─── Seed data ────────────────────────────────────────────────────────────────
 
 export const directoryAgents: DirectoryAgent[] = [
-  { id: "agent-1", name: "Jeff Comstock",   initials: "JC", role: "Agent",      team: "Billing Support",    availability: "Available",  skills: ["Billing", "Account Management", "Escalations"],       activeCount: 2 },
+  { id: "agent-1", name: CURRENT_AGENT_NAME, initials: CURRENT_AGENT_INITIALS, role: "Agent",      team: "Billing Support",    availability: "Available",  skills: ["Billing", "Account Management", "Escalations"],       activeCount: 2 },
   { id: "agent-2", name: "Priya Mehra",     initials: "PM", role: "Agent",      team: "Digital Care",       availability: "Available",  skills: ["Technical Support", "API Integration", "Security"],   activeCount: 1 },
   { id: "agent-3", name: "Sam Torres",      initials: "ST", role: "Agent",      team: "Compliance Team",    availability: "Available",  skills: ["Compliance", "Data Exports", "Contract Renewals"],    activeCount: 3 },
   { id: "agent-4", name: "Kenji Watanabe",  initials: "KW", role: "Agent",      team: "Risk Response",      availability: "In a Call",  skills: ["Payments", "Fraud", "Wire Transfers"],                activeCount: 4 },

@@ -11,7 +11,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { getRelevantCustomerTicket, type CustomerTicket } from "@/components/NotesPanel";
 import { VoiceAIGuidanceCard, VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
+import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 import { getCustomerRecord, type CustomerChannel } from "@/lib/customer-database";
+import { staticAssignments } from "@/lib/static-assignments";
 import { getCustomerAssignmentEntry, resolveResponseVariantsByTaskId } from "@/lib/customer-assignment-tasks";
 import { getScenarioConfig } from "@/lib/scenario-database";
 import { cn } from "@/lib/utils";
@@ -365,9 +367,9 @@ export default function ConversationPanel({
 }: ConversationPanelProps) {
   const customerFirstName = conversation.customerName.split(" ")[0] ?? conversation.customerName;
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
-  // Always show Jeff Comstock as the agent — the logged-in user is always JC regardless
+  // Always show Sarah Jones as the agent — the logged-in user is always SJ regardless
   // of which agent the customer database has listed as the assigned agent.
-  const agentFullName = "Jeff Comstock";
+  const agentFullName = CURRENT_AGENT_NAME;
 
   const isVoiceChannel = activeChannel === "voice";
   const isEmailChannel = activeChannel === "email";
@@ -526,6 +528,26 @@ export default function ConversationPanel({
 
     const ch = conversation.label?.toLowerCase().includes("sms") ? "sms" as const : "chat" as const;
 
+    // Read escalation response from the customer record (data-driven)
+    const inlineCustomerRecord = customerId ? getCustomerRecord(customerId) : null;
+    const inlineAssignment = customerId
+      ? staticAssignments.find((s) => s.customerRecordId === customerId || s.customerId === customerId)
+      : null;
+    const inlineEscalationResponse = inlineCustomerRecord?.escalationResponses?.[0]
+      ?? "I've reviewed your case and taken the appropriate action. You should see the update reflected shortly.";
+    const inlinePreviewSummary = inlineAssignment?.preview ?? "case review";
+    const inlineBotName = inlineAssignment?.botType ?? "Aria";
+    const inlineCaseType = inlineAssignment?.caseType;
+    const inlineThankYou = inlineCaseType === "Compensation Claim" || inlineCaseType === "Refund Request"
+      ? "Thank you so much — I really appreciate you taking care of this."
+      : inlineCaseType === "Flight Disruption" || inlineCaseType === "Rebooking Request"
+      ? "That's a huge relief, thank you for getting this sorted so quickly!"
+      : inlineCaseType === "Accommodation Request"
+      ? "Thank you — that takes a big weight off. We really needed that tonight."
+      : inlineCaseType === "Baggage Issue"
+      ? "Oh great, that's really good to hear. Thank you for tracking that down!"
+      : "That's amazing, thank you!";
+
     // 1. After 2.8s — mark as resolved, append internal note + agent response
     inlineApproveTimersRef.current.push(
       setTimeout(() => {
@@ -543,14 +565,14 @@ export default function ConversationPanel({
             {
               id: baseId,
               role: "agent" as const,
-              content: `AI suggestion approved — Aria confirmed firmware backup compatibility for CloudMesh Pro v3 factory reset. Response sent to customer. — ${dateStr}`,
+              content: `AI suggestion approved — ${inlineBotName} reviewed and resolved: ${inlinePreviewSummary}. Response sent to customer. — ${dateStr}`,
               time: new Date().toISOString(),
               isInternal: true,
             },
             {
               id: baseId + 1,
               role: "agent" as const,
-              content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
+              content: inlineEscalationResponse,
               time: new Date().toISOString(),
               channel: ch,
             },
@@ -574,7 +596,7 @@ export default function ConversationPanel({
             {
               id: nextId,
               role: "customer" as const,
-              content: "That's amazing, thank you!",
+              content: inlineThankYou,
               time: new Date().toISOString(),
               channel: ch,
               sentiment: "positive" as const,
@@ -1709,6 +1731,14 @@ export default function ConversationPanel({
                       let trailingLines: string[] = [];
                       if (delimIdx === -1) {
                         contextPart = message.content;
+                        // Extract transfer text so it renders below the profile card, not above
+                        const transferPrefix = "I have transferred the assignment.";
+                        const transferIdx = contextPart.indexOf(transferPrefix);
+                        if (transferIdx !== -1) {
+                          const extracted = contextPart.slice(transferIdx).trim();
+                          contextPart = contextPart.slice(0, transferIdx).trimEnd();
+                          if (extracted) trailingLines.push(extracted);
+                        }
                       } else {
                         contextPart = message.content.slice(0, delimIdx).trimEnd();
                         const afterSnapshot = message.content.slice(delimIdx + snapshotDelimiter.length);
@@ -2368,7 +2398,7 @@ export default function ConversationPanel({
                         conversation.guidedReviewCompleted ? (
                           <div className="mt-3 space-y-3 animate-in fade-in duration-500">
                             <p className="text-[13px] font-medium leading-5 text-[#344054]">
-                              Wow! Great job, Jeff! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
+                              Wow! Great job, Sarah! Looks like we have another happy customer. I&apos;ve updated the case to resolved!
                             </p>
                             {/* Case Status dropdown */}
                             <div className="relative">

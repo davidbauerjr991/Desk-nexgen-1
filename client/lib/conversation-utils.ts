@@ -41,8 +41,8 @@ export function getSuggestedAgentTasks(conversation: SharedConversationData, lat
   // If no customer message yet, return universal fallback tasks
   if (!latestCustomerMessage) {
     return [
-      { id: "update-case-record", label: "Update Case Record" },
-      { id: "set-resolved", label: "Set Case to Resolved" },
+      { id: "update-itinerary", label: "Update Itinerary Record" },
+      { id: "rebook-flight", label: "Rebook on Next Available Flight" },
     ];
   }
 
@@ -52,42 +52,61 @@ export function getSuggestedAgentTasks(conversation: SharedConversationData, lat
 
   // Fallback: keyword-based generic tasks.
   const allContent = conversation.messages.map((m) => m.content).join(" ").toLowerCase();
-  const tasks: AgentTask[] = [];
+  const matched: AgentTask[] = [];
 
-  if (["ticket", "case", "error", "retry", "blocked", "declined", "failed", "issue", "problem"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "create-ticket", label: "Create ADP Ticket" });
+  if (["flight", "cancel", "delay", "rebook", "connection", "missed", "stranded", "grounded", "diverted"].some((k) => allContent.includes(k))) {
+    matched.push({ id: "rebook-flight", label: "Rebook on Next Available Flight" });
   }
 
-  if (["account", "billing", "payment", "record", "status", "profile", "update", "crm", "salesforce"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "update-salesforce", label: "Update Salesforce Record" });
+  if (["route", "alternative", "connection", "itinerary", "path", "options", "fastest", "quickest"].some((k) => allContent.includes(k))) {
+    matched.push({ id: "map-route", label: "Map Quickest Route" });
   }
 
-  if (["discount", "coupon", "compensation", "charged twice", "double charge", "trouble", "frustrated", "inconvenience", "sorry", "billing"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "send-coupon", label: "Send Discount Coupon" });
+  if (["voucher", "compensation", "inconvenience", "sorry", "frustrated", "hours", "waiting", "stuck"].some((k) => allContent.includes(k))) {
+    matched.push({ id: "issue-voucher", label: "Issue Travel Voucher" });
   }
 
-  if (["supervisor", "escalate", "manager", "speak to someone", "call me"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "escalate", label: "Escalate to Supervisor" });
+  if (["hotel", "accommodation", "sleep", "overnight", "stay", "stranded", "nowhere"].some((k) => allContent.includes(k))) {
+    matched.push({ id: "issue-hotel", label: "Issue Hotel Voucher" });
   }
 
-  if (["callback", "call back", "schedule", "appointment", "call me"].some((k) => allContent.includes(k))) {
-    tasks.push({ id: "callback", label: "Schedule Callback" });
+  if (["bag", "baggage", "luggage", "suitcase", "lost", "missing", "delayed bag"].some((k) => allContent.includes(k))) {
+    matched.push({ id: "trace-baggage", label: "Initiate Baggage Trace" });
   }
 
+  // Only show "Close & Resolve Case" when the customer responds with positive/resolution sentiment
   const latestContent = latestCustomerMessage.content.toLowerCase();
-  if (["thank you", "thanks", "that's great", "that was helpful", "resolved", "satisfied", "happy", "all set", "appreciate", "perfect", "wonderful", "great help", "problem solved", "sorted"].some((k) => latestContent.includes(k))) {
-    tasks.push({ id: "set-resolved", label: "Set Case to Resolved" });
+  const isPositiveReview = ["thank you", "thanks", "that's great", "that was helpful", "resolved", "satisfied", "happy", "all set", "appreciate", "perfect", "wonderful", "great help", "problem solved", "sorted"].some((k) => latestContent.includes(k));
+
+  // Ensure at least enough tasks to pick from — add universal fallbacks if needed
+  const allTravelTasks: AgentTask[] = [
+    { id: "rebook-flight", label: "Rebook on Next Available Flight" },
+    { id: "map-route", label: "Map Quickest Route" },
+    { id: "issue-voucher", label: "Issue Travel Voucher" },
+    { id: "issue-hotel", label: "Issue Hotel Voucher" },
+    { id: "update-itinerary", label: "Update Itinerary Record" },
+    { id: "trace-baggage", label: "Initiate Baggage Trace" },
+  ];
+  for (const fallback of allTravelTasks) {
+    if (!matched.some((t) => t.id === fallback.id)) {
+      matched.push(fallback);
+    }
   }
 
-  // Always ensure at least two tasks — universal fallbacks fill any gaps
-  if (!tasks.some((t) => t.id === "update-case-record")) {
-    tasks.push({ id: "update-case-record", label: "Update Case Record" });
-  }
-  if (!tasks.some((t) => t.id === "set-resolved")) {
-    tasks.push({ id: "set-resolved", label: "Set Case to Resolved" });
+  // Deterministic shuffle seeded by customer name so the selection is stable per case
+  const seed = conversation.customerName.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const shuffled = matched.slice().sort((a, b) => {
+    const ha = ((seed * 31 + a.id.charCodeAt(0)) % 1000) - ((seed * 31 + b.id.charCodeAt(0)) % 1000);
+    return ha;
+  });
+
+  // Cap at 3 tasks; if positive review, replace the last slot with Close & Resolve
+  const picked = shuffled.slice(0, isPositiveReview ? 2 : 3);
+  if (isPositiveReview) {
+    picked.push({ id: "close-case", label: "Close & Resolve Case" });
   }
 
-  return tasks;
+  return picked;
 }
 
 export function getSuggestionVariant<T>(variants: T[], refreshKey: number) {
@@ -104,24 +123,24 @@ export function applySuggestionEdit(
   const updateClauses: string[] = [];
   const replyClauses: string[] = [];
 
-  if (normalizedInstruction.includes("attachment") || normalizedInstruction.includes("file") || normalizedInstruction.includes("screenshot")) {
-    updateClauses.push("mention that the customer can attach a file or screenshot in this thread");
-    replyClauses.push("If it helps, please attach a screenshot or file here and I'll review it with you right away.");
+  if (normalizedInstruction.includes("voucher") || normalizedInstruction.includes("compensation") || normalizedInstruction.includes("goodwill")) {
+    updateClauses.push("include a travel voucher or compensation offer for the disruption");
+    replyClauses.push("I'm also issuing a travel voucher to cover meals and essentials while we get this sorted out.");
   }
 
-  if (normalizedInstruction.includes("ticket") || normalizedInstruction.includes("case")) {
-    updateClauses.push("confirm that you will update the support ticket as part of the next step");
-    replyClauses.push("I'll document this in the support ticket so the latest update is captured while we continue here.");
+  if (normalizedInstruction.includes("hotel") || normalizedInstruction.includes("accommodation") || normalizedInstruction.includes("overnight")) {
+    updateClauses.push("arrange overnight hotel accommodation near the airport");
+    replyClauses.push("I'll also arrange a hotel near the airport so you have somewhere comfortable to stay tonight.");
   }
 
-  if (normalizedInstruction.includes("account number") || normalizedInstruction.includes("account #") || normalizedInstruction.includes("account")) {
-    updateClauses.push(`ask ${customerFirstName} to confirm the account number needed for verification`);
-    replyClauses.push("Please share the account number tied to this request so I can verify the record before the next step.");
+  if (normalizedInstruction.includes("booking") || normalizedInstruction.includes("confirmation") || normalizedInstruction.includes("itinerary")) {
+    updateClauses.push(`confirm the updated booking details and send ${customerFirstName} the revised itinerary`);
+    replyClauses.push("I'll send you the updated itinerary with all the revised booking details as soon as everything is confirmed.");
   }
 
-  if (normalizedInstruction.includes("billing") || normalizedInstruction.includes("payment")) {
-    updateClauses.push("include a billing verification step before the customer retries");
-    replyClauses.push("I'm also going to verify the billing details tied to the latest attempt before we move forward.");
+  if (normalizedInstruction.includes("bag") || normalizedInstruction.includes("luggage") || normalizedInstruction.includes("baggage")) {
+    updateClauses.push("initiate a baggage trace and provide a tracking reference");
+    replyClauses.push("I'm also starting a trace on your luggage and I'll send you tracking updates as soon as we have a location.");
   }
 
   if (updateClauses.length === 0) {
@@ -160,301 +179,250 @@ export function getInlineSuggestionVariants(
     if (scenarioVariants) return scenarioVariants;
   }
 
-  if (normalizedMessage.includes("same error") || normalizedMessage.includes("tried again") || normalizedMessage.includes("retry") || normalizedMessage.includes("retried") || normalizedMessage.includes("still")) {
+  // ── Storm / travel disruption keyword-matched suggestions ──────────────
+
+  if (normalizedMessage.includes("cancel") || normalizedMessage.includes("grounded") || normalizedMessage.includes("can't fly") || normalizedMessage.includes("not flying")) {
     return [
       {
-        summary:
-          "Recommend confirming the latest account status, then offer a manual refresh so the customer can retry without leaving the conversation.",
-        suggestedReply:
-          "I've confirmed the latest account status on my side. I'm running a manual refresh now so you can retry without leaving this conversation.",
+        summary: `Acknowledge the cancellation, introduce yourself, and confirm you're already looking at rebooking options for ${customerFirstName}.`,
+        suggestedReply: `Hi ${customerFirstName}, I'm Sarah and I'm here to help. I can see your flight was cancelled due to the storm — I'm already pulling up the best rebooking options for you.`,
       },
       {
-        summary:
-          "Acknowledge that the retry failed again, confirm you are checking the latest status, and keep the customer in the same thread while you reset the flow.",
-        suggestedReply:
-          "Thanks for trying that again. I'm checking the latest status now, and I'll reset the flow from my side so you can retry here without starting over.",
+        summary: `Lead with empathy for the cancellation, confirm you have the itinerary details, and set expectations for a quick rebooking.`,
+        suggestedReply: `I'm so sorry about the cancellation, ${customerFirstName}. I have your itinerary in front of me and I'm working on getting you rebooked on the fastest available route right now.`,
       },
       {
-        summary:
-          "Show ownership of the repeated failure, explain you are refreshing the account state, and give the customer one immediate next step.",
-        suggestedReply:
-          "I can see the same error is still blocking the attempt. I'm refreshing the account state now, and I'll let you know as soon as it's ready for one more retry.",
+        summary: `Reassure ${customerFirstName} that you're taking ownership of the rebooking and will have options within moments.`,
+        suggestedReply: `I understand how frustrating this is. I'm taking ownership of your rebooking right now and I'll have the best available options for you in just a moment.`,
       },
       {
-        summary:
-          "Validate the customer's frustration, confirm you are escalating the check internally, and set a short response time expectation.",
-        suggestedReply:
-          "I understand this has happened more than once and that's frustrating. I'm escalating the check on my end now and I'll have an update for you within just a few minutes.",
+        summary: `Confirm the cancellation, explain you're checking alternate routes, and reassure the traveler they won't need to wait in the airport queue.`,
+        suggestedReply: `I can confirm your flight was impacted by the storm. You don't need to wait in the airport rebooking queue — I'm checking alternate routes for you right now and I'll have options shortly.`,
       },
       {
-        summary:
-          "Confirm you can see the repeated error pattern, explain you are reviewing the underlying cause, and reassure the customer you will not ask them to retry blindly.",
-        suggestedReply:
-          "I can see the repeated error pattern on the account. I'm reviewing the underlying cause now, and I won't ask you to retry until I know exactly what needs to change.",
+        summary: `Introduce yourself warmly, acknowledge the disruption, and commit to finding the fastest path to the traveler's destination.`,
+        suggestedReply: `Hi ${customerFirstName}, this is Sarah with Voyager support. I know this storm has thrown everything off — let me find the fastest way to get you where you need to be.`,
       },
       {
-        summary:
-          "Acknowledge the persistence of the issue, explain that you are clearing any cached state on the account, and ask the customer to stand by.",
-        suggestedReply:
-          "I hear you — the same issue keeps coming back. I'm clearing any cached state on the account right now. Please stand by and I'll confirm when it's ready for another attempt.",
+        summary: `Show empathy for the disruption, confirm you have full visibility into the storm impact, and promise a personalized rebooking plan.`,
+        suggestedReply: `I completely understand — this storm has affected thousands of travelers and I want to make sure you're taken care of. I'm building a personalized rebooking plan for you right now.`,
       },
       {
-        summary:
-          "Take direct ownership, confirm the specific step where the error occurs, and commit to staying on the issue until it is resolved.",
-        suggestedReply:
-          "I'm taking direct ownership of this. I've identified the step where the error is occurring and I'm working on it now. I'll stay with you until this is resolved.",
+        summary: `Acknowledge the stress of a cancellation, confirm you're already working on alternatives, and invite the traveler to share any preferences.`,
+        suggestedReply: `I'm really sorry you're dealing with this. I'm already looking at alternative flights and connections — do you have any preferences on timing or routing I should factor in?`,
       },
       {
-        summary:
-          "Show empathy for the repeated attempts, confirm you are pulling the full error log, and give the customer a clear next action.",
-        suggestedReply:
-          "I appreciate your patience through multiple attempts. I'm pulling the full error log now so I can find the root cause and give you one clear next step.",
+        summary: `Lead with a warm introduction, validate the frustration, and reassure the traveler you'll handle everything from here.`,
+        suggestedReply: `Hey ${customerFirstName}, I'm Sarah — I'm going to take care of this for you. I can see the storm impact on your itinerary and I'm already working on getting you rebooked.`,
       },
       {
-        summary:
-          "Reassure the customer that no action is needed on their end right now, confirm you are running a backend reset, and give a short time estimate.",
-        suggestedReply:
-          "No action needed on your end right now. I'm running a backend reset on the account, and it should be ready for a clean retry within the next two to three minutes.",
+        summary: `Confirm the cancellation details, reassure the traveler that rebooking is your top priority, and set a short time expectation.`,
+        suggestedReply: `I've confirmed the cancellation on your flight. Rebooking you is my top priority — I'll have the best available options ready for you within the next few minutes.`,
       },
     ];
   }
 
-  if (normalizedMessage.includes("charged twice") || normalizedMessage.includes("double charge")) {
+  if (normalizedMessage.includes("bag") || normalizedMessage.includes("luggage") || normalizedMessage.includes("suitcase") || normalizedMessage.includes("lost")) {
     return [
       {
-        summary: "Reassure the customer they will not be charged twice, then guide them through a safe retry.",
-        suggestedReply:
-          "You will not be charged twice for the same upgrade attempt. I'll verify the previous authorization, then I'll let you know the safest time to retry.",
+        summary: `Acknowledge the missing baggage, confirm you're starting a trace, and reassure ${customerFirstName} you'll keep them updated.`,
+        suggestedReply: `I'm sorry about your baggage, ${customerFirstName}. I'm initiating a trace right now and I'll keep you updated via SMS as soon as we have a location. Let's get this sorted.`,
       },
       {
-        summary: "Reduce anxiety about duplicate billing, confirm you are reviewing the payment authorization, and set up the next action clearly.",
-        suggestedReply:
-          "I understand the concern. I'm reviewing the previous authorization now to make sure there isn't a duplicate charge, and then I'll guide you through the next safe step.",
+        summary: `Show empathy for the baggage situation, confirm you have the routing details, and explain the trace process.`,
+        suggestedReply: `I understand how stressful it is to be without your luggage, especially during all this disruption. I have your routing details and I'm starting the baggage trace immediately.`,
       },
       {
-        summary: "Confirm you are checking the billing history, reassure them the original attempt is being reviewed, and avoid asking them to retry too early.",
-        suggestedReply:
-          "I'm checking the billing history on my side first so we do not risk a duplicate charge. Once I confirm the original attempt status, I'll tell you whether it's safe to retry.",
+        summary: `Lead with reassurance, confirm that baggage delays are common during storm disruptions, and explain what happens next.`,
+        suggestedReply: `With the storm causing widespread rerouting, baggage delays are unfortunately common right now. I'm starting a trace on your bags and I'll also issue a voucher for any essentials you need in the meantime.`,
       },
       {
-        summary: "Immediately address the duplicate charge concern, confirm you are placing a hold on further retries until billing is verified.",
-        suggestedReply:
-          "I want to address the possible duplicate charge first. I'm placing a hold on any further retries until I've verified both authorization records. I'll update you here shortly.",
+        summary: `Introduce yourself, acknowledge the missing bags, and commit to resolving it quickly.`,
+        suggestedReply: `Hi ${customerFirstName}, I'm Sarah. I can see your bags didn't make it to your current location — I'm on it. I'll start the trace now and have an update for you shortly.`,
       },
       {
-        summary: "Confirm you can see both charge attempts, explain you are reviewing which one settled, and reassure the customer any duplicate will be reversed.",
-        suggestedReply:
-          "I can see both attempts on the account. I'm reviewing which one settled so we can confirm there's no duplicate. If there is, I'll make sure it gets reversed.",
+        summary: `Confirm the baggage issue and proactively offer a voucher for essentials while the trace is underway.`,
+        suggestedReply: `I'm tracking down your luggage right now. While we wait for the trace results, I'd like to issue you a voucher for essentials — I know being without your bags is the last thing you need.`,
       },
       {
-        summary: "Set clear expectations about the billing review process, reassure the customer no further charges will occur, and give a time estimate.",
-        suggestedReply:
-          "No further charges will occur while I review this. I'll have a clear answer on the billing status within a few minutes and I'll update you here.",
+        summary: `Reassure the traveler that most storm-delayed bags are recovered quickly, and explain the next steps.`,
+        suggestedReply: `Good news is that most bags delayed by weather disruptions are located within 24 hours. I've started the trace and I'll send you tracking updates by SMS as soon as we have a location.`,
       },
       {
-        summary: "Acknowledge the customer's concern directly, confirm the specific charge amounts you are reviewing, and explain the next step.",
-        suggestedReply:
-          "I completely understand why that's concerning. I'm reviewing the charge amounts from both attempts now and I'll confirm which one processed and whether anything needs to be reversed.",
+        summary: `Acknowledge the frustration, take ownership, and set clear expectations for the trace timeline.`,
+        suggestedReply: `I completely understand the frustration. I'm taking ownership of this — the baggage trace is underway and I'll personally follow up with you once we have a confirmed location.`,
       },
       {
-        summary: "Apologize for the confusion, confirm you are escalating to the billing team if needed, and keep the customer informed.",
-        suggestedReply:
-          "I apologize for the confusion around the charges. I'm reviewing this now and if I need to escalate to the billing team I'll loop them in immediately and keep you updated here.",
+        summary: `Validate the concern, confirm the trace is starting, and let the traveler know about compensation options.`,
+        suggestedReply: `I'm sorry this happened. The trace is starting now and I'll also make sure you're covered for any immediate expenses while your bags are in transit.`,
       },
       {
-        summary: "Validate the concern, confirm the account is safe from further charges, and commit to a resolution within the current conversation.",
-        suggestedReply:
-          "Your account is protected from any further charges while I sort this out. I'm committed to resolving the billing question before we close this conversation.",
+        summary: `Lead with empathy, confirm the trace process, and offer to arrange delivery once the bags are located.`,
+        suggestedReply: `I know this is really inconvenient. I'm putting the trace through now, and once we locate your bags I'll arrange delivery directly to wherever you're staying.`,
       },
     ];
   }
 
-  if (normalizedMessage.includes("billing") || normalizedMessage.includes("zip") || normalizedMessage.includes("match")) {
+  if (normalizedMessage.includes("hotel") || normalizedMessage.includes("sleep") || normalizedMessage.includes("overnight") || normalizedMessage.includes("stay") || normalizedMessage.includes("accommodation")) {
     return [
       {
-        summary: "Confirm the billing details on file, then guide the customer to the field most likely causing the mismatch.",
-        suggestedReply:
-          "I can see a billing detail mismatch on the latest attempt. Please confirm the billing zip code on the card, and I'll stay with you while you try it again.",
+        summary: `Confirm you're arranging overnight accommodation and reassure ${customerFirstName} you'll handle the logistics.`,
+        suggestedReply: `I'm checking availability at our partner hotels near the airport right now, ${customerFirstName}. I'll have a room confirmed for you shortly — you shouldn't have to worry about finding a place to stay.`,
       },
       {
-        summary: "Point the customer to the billing field most likely causing the failure and keep the instruction focused on one correction at a time.",
-        suggestedReply:
-          "The latest attempt looks like it failed on a billing detail check. Please verify the billing zip code exactly as it appears with your card issuer, and I'll stay with you for the retry.",
+        summary: `Acknowledge the need for accommodation, confirm you're issuing a hotel voucher, and explain what's included.`,
+        suggestedReply: `Absolutely — let me get you set up with a hotel voucher right away. I'm checking our partner properties near the airport and I'll send you the confirmation with check-in details.`,
       },
       {
-        summary: "Keep the response specific, ask for the most important billing confirmation, and reduce the chance of another mismatch.",
-        suggestedReply:
-          "Before we try again, please confirm the billing zip code tied to the card. That is the field most likely causing the mismatch I'm seeing on the payment check.",
+        summary: `Lead with empathy for the overnight situation, confirm you're arranging a hotel, and offer meal vouchers as well.`,
+        suggestedReply: `I know being stuck overnight is exhausting. I'm arranging a hotel near the airport for you now, and I'll also include a meal voucher to cover dinner and breakfast.`,
       },
       {
-        summary: "Explain what a billing mismatch means in plain terms, then ask the customer to double-check the address on file with their bank.",
-        suggestedReply:
-          "A billing mismatch usually means the address or zip code entered doesn't match what your bank has on file. Can you double-check the billing address registered with your card issuer?",
+        summary: `Reassure the traveler that accommodation is covered, and explain you're finding the best available option.`,
+        suggestedReply: `Don't worry about accommodation — that's on us. I'm finding the best available hotel near the airport and I'll have everything confirmed for you in just a moment.`,
       },
       {
-        summary: "Confirm you are updating the billing details from your side where possible, and ask the customer to confirm the card's registered details.",
-        suggestedReply:
-          "I'm reviewing what we have on file and I want to make sure the details match your card exactly. Can you confirm the billing address and zip code as your card issuer has it?",
+        summary: `Confirm the hotel arrangement, mention shuttle or transport options, and set expectations for confirmation.`,
+        suggestedReply: `I'm booking a room for you now at one of our partner hotels with airport shuttle service. You'll receive the confirmation and check-in details by email within a few minutes.`,
       },
       {
-        summary: "Reduce friction by narrowing down whether the issue is the name, address, or zip code, and focus the customer on one field at a time.",
-        suggestedReply:
-          "Let's narrow this down together. Can you first confirm whether the cardholder name on the card matches what you entered? That's sometimes the source of the mismatch.",
+        summary: `Show understanding for the overnight disruption, confirm you're handling everything, and offer a warm tone.`,
+        suggestedReply: `I'm really sorry you're dealing with an overnight delay. Let me take care of the hotel — I'll find somewhere comfortable and send you all the details so you can get some rest.`,
       },
       {
-        summary: "Reassure the customer that billing mismatches are common and fixable, then walk them through the two most likely fields to correct.",
-        suggestedReply:
-          "Billing mismatches are common and easy to fix. The two fields that usually cause this are the billing zip code and the cardholder name — can you confirm both match your card exactly?",
+        summary: `Acknowledge the accommodation request, confirm availability check, and proactively include transport.`,
+        suggestedReply: `Great question — let me sort that out for you right now. I'm checking partner hotels near the airport and I'll include ground transport details so you can get there easily.`,
       },
       {
-        summary: "Ask the customer to try a different card if the billing details cannot be verified, and keep the conversation moving.",
-        suggestedReply:
-          "If you're not able to confirm the billing details on that card, it may be quicker to try a different payment method. I can stay with you through either option.",
+        summary: `Lead with reassurance, confirm the hotel voucher process, and set a short timeline for confirmation.`,
+        suggestedReply: `You're absolutely covered for overnight accommodation. I'm issuing a hotel voucher now and you should have the booking confirmation within the next few minutes.`,
       },
       {
-        summary: "Confirm you are temporarily updating the billing record to attempt a clean match, and ask the customer to stand by.",
-        suggestedReply:
-          "I'm making a note on the billing record to flag the mismatch for review. In the meantime, please double-check the zip code and try the payment again — I'll stay here with you.",
+        summary: `Validate the traveler's concern about where to stay, take ownership, and commit to a quick resolution.`,
+        suggestedReply: `I completely understand — let me handle this for you. I'm securing a hotel room right now and I'll make sure you have everything you need for tonight.`,
       },
     ];
   }
 
-  if (normalizedMessage.includes("today") || normalizedMessage.includes("urgent") || normalizedMessage.includes("meeting")) {
+  if (normalizedMessage.includes("urgent") || normalizedMessage.includes("meeting") || normalizedMessage.includes("business") || normalizedMessage.includes("critical") || normalizedMessage.includes("important") || normalizedMessage.includes("deadline")) {
     return [
       {
-        summary: "Acknowledge the urgency, confirm the next action, and keep the customer in the conversation while you resolve it.",
-        suggestedReply:
-          "I understand this is time-sensitive. I'm checking the blocking step now, and I'll keep you updated here so you can complete the upgrade as quickly as possible.",
+        summary: `Acknowledge the time-sensitive nature, confirm you're prioritizing the fastest route, and reassure the traveler.`,
+        suggestedReply: `I understand this is time-critical, ${customerFirstName}. I'm prioritizing the absolute fastest route to get you there — whether that's the next flight out or an alternative connection. I'll have options for you in just a moment.`,
       },
       {
-        summary: "Lead with urgency, explain that you are actively checking the blocker, and reassure the customer they will not need to repeat everything.",
-        suggestedReply:
-          "I know this is urgent. I'm reviewing the blocking step right now, and I'll stay with you here so we can move this forward without making you repeat the process.",
+        summary: `Lead with urgency, confirm you're checking all transport options, and commit to meeting the traveler's timeline.`,
+        suggestedReply: `I know you have a tight deadline. I'm checking every available option right now — flights, alternate hubs, even ground transport — to find the fastest way to get you there on time.`,
       },
       {
-        summary: "Recognize the deadline, confirm immediate ownership, and give the customer confidence that the next update is coming soon.",
-        suggestedReply:
-          "Thanks for flagging the urgency. I'm on the blocking issue now, and I'll update you here with the next step as soon as I confirm what's holding it up.",
+        summary: `Validate the urgency, confirm immediate action, and set expectations for a fast turnaround.`,
+        suggestedReply: `I'm treating this as top priority. Let me map out the quickest possible route for you — I'll have the best options ready within the next few minutes.`,
       },
       {
-        summary: "Prioritize the time constraint, confirm you are expediting the review, and give a realistic time estimate.",
-        suggestedReply:
-          "I'm treating this as a priority given the time constraint. I'm expediting the review on my end and expect to have a resolution or a clear next step for you within the next few minutes.",
+        summary: `Show empathy for the pressure, confirm you're working on it, and give confidence that you'll find a solution.`,
+        suggestedReply: `I completely understand the pressure — missing a critical commitment is the last thing you need. I'm on it right now and I'm going to find the fastest way to get you where you need to be.`,
       },
       {
-        summary: "Acknowledge the deadline, skip unnecessary back-and-forth, and commit to the fastest possible path to resolution.",
-        suggestedReply:
-          "Given your deadline I want to skip any unnecessary steps. I'm going straight to the fastest resolution path on my end and I'll have an update for you momentarily.",
+        summary: `Acknowledge the deadline, confirm you're pulling all available routes, and invite the traveler to share preferences.`,
+        suggestedReply: `Given your deadline, I'm pulling every available route right now. Are you flexible on connections, or would you prefer a direct flight even if it departs a bit later?`,
       },
       {
-        summary: "Validate the urgency and confirm that you are escalating internally to meet the customer's timeline.",
-        suggestedReply:
-          "I hear you — this needs to be done today. I'm escalating internally right now to make sure we can meet your timeline. I'll have a direct update for you shortly.",
+        summary: `Lead with confidence, confirm the urgency is understood, and set a short response window.`,
+        suggestedReply: `Understood — I'm on this right now. I'll have the fastest available option identified for you within the next couple of minutes. We'll get you there.`,
       },
       {
-        summary: "Show empathy for the deadline pressure, confirm the one step blocking resolution, and commit to completing it immediately.",
-        suggestedReply:
-          "I understand the pressure you're under. There's one blocking step I need to clear on my side, and I'm working on it right now. I'll be back with you in just a moment.",
+        summary: `Validate the time constraint, confirm you're escalating to priority rebooking, and reassure the traveler.`,
+        suggestedReply: `I hear you — this needs to happen fast. I'm escalating your rebooking to priority status right now so we can get you on the earliest possible departure.`,
       },
       {
-        summary: "Confirm you are removing any queued delays on the account and give the customer a clear window to complete their task.",
-        suggestedReply:
-          "I'm removing any queued delays on the account so you have a clean window to complete this today. I'll confirm as soon as it's ready and walk you through the final step.",
+        summary: `Acknowledge the critical timing, skip formalities, and go straight to action.`,
+        suggestedReply: `Let's get you moving. I'm checking the next available departures right now and I'll come back with the fastest option — no time to waste.`,
       },
       {
-        summary: "Offer to stay on the conversation actively until the deadline is met, so the customer knows they have continuous support.",
-        suggestedReply:
-          "I'm going to stay active on this conversation until we get this resolved for you today. Tell me where things are right now and I'll take it from there.",
+        summary: `Show understanding of the business impact, confirm you're exploring all options including alternate airports.`,
+        suggestedReply: `I understand there's a lot riding on this. I'm looking at all options including alternate airports and connecting routes to find the absolute fastest path to your destination.`,
       },
     ];
   }
 
-  if (normalizedMessage.includes("worked") || normalizedMessage.includes("thank you")) {
+  if (normalizedMessage.includes("thank") || normalizedMessage.includes("worked") || normalizedMessage.includes("great") || normalizedMessage.includes("appreciate") || normalizedMessage.includes("perfect")) {
     return [
       {
-        summary: "Confirm the issue is resolved and tell the customer what to watch for next.",
-        suggestedReply:
-          "Glad that worked. Your upgrade should now continue normally, and I'll stay available here in case anything else comes up.",
+        summary: `Acknowledge the thanks, confirm everything is set, and wish the traveler well.`,
+        suggestedReply: `You're very welcome, ${customerFirstName}! I'm glad we got everything sorted. Your updated itinerary is all set — have a safe trip and don't hesitate to reach out if anything changes.`,
       },
       {
-        summary: "Close the loop clearly, confirm the path forward is back on track, and keep the tone supportive.",
-        suggestedReply:
-          "Great, that means the issue is resolved and the upgrade flow should continue normally from here. I'll stay available in case anything unexpected comes up.",
+        summary: `Respond warmly, confirm the rebooking is complete, and offer to help with anything else.`,
+        suggestedReply: `Happy to help! Your new itinerary is confirmed and you should have everything you need. Is there anything else I can assist with before I close this out?`,
       },
       {
-        summary: "Acknowledge the positive update and let the customer know what should happen next so the thread can wind down cleanly.",
-        suggestedReply:
-          "Happy to hear that worked. Everything should move forward normally now, but I'll remain here if you need help with the next step.",
+        summary: `Close the conversation on a positive note, confirm the details are in the app, and wish them well.`,
+        suggestedReply: `I'm glad we could get this taken care of. All the updated details are in your Voyager app. Safe travels, ${customerFirstName} — and reach out anytime if you need us!`,
       },
       {
-        summary: "Confirm resolution and set expectations about what a successful completion looks like, so the customer knows what to expect.",
-        suggestedReply:
-          "That's great news. You should see the change reflected on your account within a few minutes. Feel free to reach back out if anything looks off.",
+        summary: `Acknowledge the positive response, confirm everything is in order, and offer a warm close.`,
+        suggestedReply: `That's great to hear! Everything is confirmed on my end. I hope the rest of your journey goes smoothly — we're always here if you need anything.`,
       },
       {
-        summary: "Acknowledge the customer's thanks, confirm the case is resolved, and offer a warm close.",
-        suggestedReply:
-          "You're welcome — I'm glad we got that sorted out. Is there anything else I can help you with before I close the case?",
+        summary: `Respond to the thanks, summarize what was done, and end on a positive note.`,
+        suggestedReply: `My pleasure — that's what I'm here for. Your rebooking and vouchers are all set. Wishing you smooth skies from here, ${customerFirstName}!`,
       },
       {
-        summary: "Confirm success, summarize what was done, and let the customer know how to follow up if needed.",
-        suggestedReply:
-          "Perfect. I've noted the resolution on your account. If the same issue comes up again or anything else needs attention, don't hesitate to reach back out.",
+        summary: `Offer a warm close, confirm no further action is needed, and invite the traveler to come back anytime.`,
+        suggestedReply: `You're all set! No further action needed on your end. It was great helping you today — have a wonderful trip and don't hesitate to reach out if anything comes up.`,
       },
       {
-        summary: "Celebrate the success briefly, confirm there are no further actions needed on the customer's end, and offer to close the conversation.",
-        suggestedReply:
-          "Excellent — no further action needed on your end. I'll go ahead and mark this as resolved unless you have anything else you'd like to cover.",
+        summary: `Celebrate the resolution briefly, confirm the case is closed, and wish the traveler safe travels.`,
+        suggestedReply: `So glad we got this resolved for you. Your case is all wrapped up and your new itinerary is ready to go. Safe travels! ✈️`,
       },
       {
-        summary: "Respond warmly to the thanks, confirm the issue is fully closed, and invite the customer to return if needed.",
-        suggestedReply:
-          "My pleasure — that's exactly what I'm here for. The issue is fully resolved on my end. Feel free to come back anytime if you need further assistance.",
+        summary: `Acknowledge the positive feedback warmly and close the loop.`,
+        suggestedReply: `Thank you — I'm really glad I could help. Everything is confirmed and you're good to go. Reach out anytime if you need us, ${customerFirstName}!`,
       },
       {
-        summary: "Confirm the fix, note any follow-up steps the customer should be aware of, and end on a positive note.",
-        suggestedReply:
-          "Glad that's working now. Just keep an eye out for a confirmation email in the next few minutes. It was great helping you today.",
+        summary: `Respond with warmth, confirm everything is finalized, and end the interaction positively.`,
+        suggestedReply: `It was my pleasure to help! All your travel details are updated and confirmed. I hope the rest of your trip is smooth sailing — take care!`,
       },
     ];
   }
 
+  // ── Default fallback: warm, travel/storm-appropriate introduction ──────
   return [
     {
-      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s latest update and giving them one clear next step.`,
-      suggestedReply: "Thanks for the update. I'm checking the latest attempt now and I'll give you the next step in just a moment.",
+      summary: `Introduce yourself warmly, acknowledge the disruption, and let ${customerFirstName} know you're here to help get them where they need to go.`,
+      suggestedReply: `Hi ${customerFirstName}, I'm Sarah and I'm here to help. I know the storm has caused a lot of disruption — let me take a look at your itinerary and we'll get you where you need to be.`,
     },
     {
-      summary: `Recommend confirming ${conversation.customerName.split(" ")[0]}'s latest update, then setting expectations for the next follow-up in this thread.`,
-      suggestedReply: "Thanks for the update. I'm reviewing the latest activity now, and I'll follow up here with the clearest next step in just a moment.",
+      summary: `Lead with empathy for the travel disruption, confirm you have ${customerFirstName}'s details, and commit to finding a solution.`,
+      suggestedReply: `Hi ${customerFirstName}, I can see your travel has been impacted by the storm. I have your booking details in front of me and I'm already looking at the best options to get you back on track.`,
     },
     {
-      summary: `Recommend acknowledging ${conversation.customerName.split(" ")[0]}'s message and giving them one immediate action while you continue checking the issue.`,
-      suggestedReply: "I appreciate the update. I'm checking the latest attempt now and I'll reply here with the best next step shortly.",
+      summary: `Introduce yourself and take immediate ownership of the situation so ${customerFirstName} knows they're in good hands.`,
+      suggestedReply: `Hey ${customerFirstName}, this is Sarah with Voyager. I'm going to take care of this for you — let me pull up your itinerary and I'll have your options ready in just a moment.`,
     },
     {
-      summary: `Confirm you have received ${conversation.customerName.split(" ")[0]}'s message and let them know you are actively reviewing the details before responding.`,
-      suggestedReply: "Got it, thank you. I'm reviewing the details on my end right now and I'll come back to you with the clearest path forward shortly.",
+      summary: `Greet the traveler warmly, acknowledge the storm situation, and set expectations for a quick resolution.`,
+      suggestedReply: `Hi there, ${customerFirstName}! I'm Sarah and I'm here to sort this out. I know the Minneapolis storm has thrown a lot of plans off — let's see what we can do to get yours back on track.`,
     },
     {
-      summary: `Show ${conversation.customerName.split(" ")[0]} that you are actively engaged, confirm you are checking the account, and set a short response window.`,
-      suggestedReply: "I'm on it. Let me pull up the account details and I'll have a more specific update for you in just a moment.",
+      summary: `Open with reassurance, confirm you're actively reviewing the situation, and invite the traveler to share what they need most.`,
+      suggestedReply: `Hi ${customerFirstName}, I'm Sarah. I'm already reviewing your travel details and the latest storm updates. What's most important to you right now — getting rebooked, or do you need accommodation first?`,
     },
     {
-      summary: `Acknowledge ${conversation.customerName.split(" ")[0]}'s message promptly, confirm ownership of the next step, and avoid asking for information you may already have.`,
-      suggestedReply: "Thanks for letting me know. I'm checking what I need on my end and will follow up here as soon as I have something concrete for you.",
+      summary: `Introduce yourself, validate the disruption, and reassure the traveler you'll handle everything.`,
+      suggestedReply: `Hi ${customerFirstName}, I'm Sarah and I'll be helping you today. I know this storm has been incredibly disruptive — you don't need to worry about the logistics, I'll handle everything from here.`,
     },
     {
-      summary: `Keep ${conversation.customerName.split(" ")[0]} informed without over-promising, confirm you are checking the relevant details, and invite them to ask if they have other questions.`,
-      suggestedReply: "I hear you. I'm reviewing everything related to this and I'll be back with a clear next step shortly. Let me know if there's anything else you'd like me to look at in the meantime.",
+      summary: `Greet the traveler, acknowledge the challenging situation, and offer a clear next step.`,
+      suggestedReply: `Hey ${customerFirstName}, I'm Sarah. I can see your travel was affected by the winter storm. Let me review your itinerary and I'll come back with the best path forward within the next minute or two.`,
     },
     {
-      summary: `Acknowledge the message, confirm you are taking the right action on the account, and reassure ${conversation.customerName.split(" ")[0]} they are in good hands.`,
-      suggestedReply: "Thanks for the message. I'm taking a look at the account right now and I'll make sure we get this sorted out for you as quickly as possible.",
+      summary: `Open with warmth and confidence, show you understand the scale of the disruption, and commit to personalized help.`,
+      suggestedReply: `Hi ${customerFirstName}! I'm Sarah, and I know this has been a tough day for a lot of travelers. I'm here to give you my full attention and make sure we get you sorted out as quickly as possible.`,
     },
     {
-      summary: `Use a reassuring tone, confirm you understand the situation, and let ${conversation.customerName.split(" ")[0]} know the next update is imminent.`,
-      suggestedReply: "I completely understand. I'm working through the details now and you'll have an update from me very shortly — I want to make sure I give you the right answer.",
+      summary: `Introduce yourself and reassure the traveler that they've reached the right person to resolve their situation.`,
+      suggestedReply: `Hi ${customerFirstName}, you've reached the right person. I'm Sarah and I'm going to take care of your travel situation. Let me pull everything up and we'll figure out the best next step together.`,
     },
   ];
 }

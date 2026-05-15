@@ -52,6 +52,13 @@ export const TASK_COMPLETION_NOTES: Record<string, string> = {
   "goodwill-credit": "$25 goodwill credit applied to Elena's account",
   "qa-report": "QA report filed — packing discrepancy flagged for order #EV-44071",
   "options-resolve": "Resolution actioned for order #WB-88214: Full refund issued — Marcus free to reorder at his convenience. Goodwill discount code CARE20 (20%) applied to account.",
+  "rebook-flight": "Passenger rebooked on next available flight",
+  "map-route": "Quickest route mapped and sent to traveler",
+  "issue-voucher": "Travel voucher issued for meals and lounge access",
+  "issue-hotel": "Hotel voucher issued for overnight accommodation",
+  "trace-baggage": "Baggage trace initiated — tracking reference created",
+  "update-itinerary": "Itinerary record updated with revised travel details",
+  "close-case": "Case closed and resolved",
 };
 
 export const TASK_COMPLETION_REPLIES: Record<string, string> = {
@@ -67,6 +74,13 @@ export const TASK_COMPLETION_REPLIES: Record<string, string> = {
   "goodwill-credit": "I've also applied a $25 credit to your account as a gesture of goodwill for the inconvenience. It will reflect on your next statement.",
   "qa-report": "I've flagged the packing discrepancy with our warehouse team so we can prevent this from happening again.",
   "options-resolve": "I've processed the resolution for Marcus's order. The refund has been issued and a goodwill discount has been applied. Is there anything else you'd like to do before wrapping up?",
+  "rebook-flight": "I've rebooked you on the next available flight. You'll receive your updated boarding pass and confirmation shortly. Is there anything else I can help with?",
+  "map-route": "I've mapped the quickest route to your destination and sent the details to your contact on file. Would you like me to arrange anything else for the journey?",
+  "issue-voucher": "I've issued a travel voucher for meals and lounge access — it's been sent to your email. Is there anything else you need while you wait?",
+  "issue-hotel": "I've issued a hotel voucher for overnight accommodation near the airport. Check-in details have been sent to your email. Is there anything else I can help with?",
+  "trace-baggage": "I've initiated a baggage trace and created a tracking reference. You'll receive updates via SMS as your luggage is located and rerouted. Is there anything else?",
+  "update-itinerary": "I've updated your itinerary with all the revised travel details. You can view the changes in your Voyager app. Anything else I can do?",
+  "close-case": "This case has been resolved and closed. Thank you for your patience during the disruption — we hope the rest of your trip goes smoothly!",
 };
 
 export const TASK_ACTION_TITLES: Record<string, string> = {
@@ -85,6 +99,13 @@ export const TASK_ACTION_TITLES: Record<string, string> = {
   "issue-temp-credit": "Applying Temporary Credit...",
   "issue-replacement-card": "Issuing Replacement Card...",
   "options-resolve": "Resolving...",
+  "rebook-flight": "Rebooking Flight...",
+  "map-route": "Mapping Quickest Route...",
+  "issue-voucher": "Issuing Travel Voucher...",
+  "issue-hotel": "Issuing Hotel Voucher...",
+  "trace-baggage": "Initiating Baggage Trace...",
+  "update-itinerary": "Updating Itinerary...",
+  "close-case": "Closing Case...",
 };
 
 export const TASK_STEPS: Record<string, string[]> = {
@@ -170,13 +191,57 @@ export const TASK_STEPS: Record<string, string[]> = {
     "Updating default shipping address to Austin",
     "Sending confirmation to Marcus",
   ],
+  "rebook-flight": [
+    "Searching available flights to destination",
+    "Checking seat availability and cabin class",
+    "Transferring booking to new flight",
+    "Sending updated boarding pass to traveler",
+  ],
+  "map-route": [
+    "Pulling real-time flight and ground transport data",
+    "Evaluating alternate hub connections",
+    "Calculating fastest route to final destination",
+    "Sending route options to traveler",
+  ],
+  "issue-voucher": [
+    "Verifying traveler eligibility",
+    "Generating travel voucher code",
+    "Applying voucher to traveler's account",
+    "Sending voucher confirmation via email",
+  ],
+  "issue-hotel": [
+    "Checking partner hotel availability near airport",
+    "Reserving room and confirming rate",
+    "Generating hotel voucher with check-in details",
+    "Sending accommodation confirmation to traveler",
+  ],
+  "trace-baggage": [
+    "Pulling baggage tag and routing records",
+    "Initiating trace across connected carriers",
+    "Creating baggage tracking reference",
+    "Sending trace updates to traveler via SMS",
+  ],
+  "update-itinerary": [
+    "Pulling current itinerary record",
+    "Applying flight, hotel, and voucher changes",
+    "Syncing updated itinerary to traveler's app",
+    "Logging all changes to case record",
+  ],
+  "close-case": [
+    "Verifying all actions are complete",
+    "Updating case status to resolved",
+    "Removing from active queue",
+  ],
 };
 
 // Maps natural-language copilot requests to known task IDs.
 export const COPILOT_TASK_MATCHERS: Array<{ keywords: string[]; task: AgentTask }> = [
-  { keywords: ["ticket", "case", "adp", "support ticket", "create ticket", "open ticket"], task: { id: "create-ticket", label: "Create ADP Ticket" } },
-  { keywords: ["salesforce", "crm", "record", "account", "update salesforce"], task: { id: "update-salesforce", label: "Update Salesforce Record" } },
-  { keywords: ["coupon", "discount", "voucher", "promo", "send coupon"], task: { id: "send-coupon", label: "Send Discount Coupon" } },
+  { keywords: ["rebook", "flight", "next flight", "rebook flight", "alternative flight"], task: { id: "rebook-flight", label: "Rebook on Next Available Flight" } },
+  { keywords: ["route", "quickest", "fastest", "alternative route", "map route", "connection"], task: { id: "map-route", label: "Map Quickest Route" } },
+  { keywords: ["voucher", "travel voucher", "compensation", "goodwill", "issue voucher"], task: { id: "issue-voucher", label: "Issue Travel Voucher" } },
+  { keywords: ["hotel", "accommodation", "hotel voucher", "overnight", "lodging"], task: { id: "issue-hotel", label: "Issue Hotel Voucher" } },
+  { keywords: ["baggage", "luggage", "bag", "trace", "lost bag", "missing luggage"], task: { id: "trace-baggage", label: "Initiate Baggage Trace" } },
+  { keywords: ["itinerary", "update itinerary", "record", "ticket", "update ticket"], task: { id: "update-itinerary", label: "Update Itinerary Record" } },
   { keywords: ["escalat", "supervisor", "manager", "escalate"], task: { id: "escalate", label: "Escalate to Supervisor" } },
   { keywords: ["callback", "call back", "schedule call", "schedule callback"], task: { id: "callback", label: "Schedule Callback" } },
 ];

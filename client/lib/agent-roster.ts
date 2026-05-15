@@ -11,13 +11,16 @@ export interface Agent {
   activeCount: number; // current assignment count
 }
 
-export const CURRENT_AGENT_NAME = "Jeff Comstock";
+export const CURRENT_AGENT_NAME = "Sarah Jones";
+export const CURRENT_AGENT_FIRST_NAME = CURRENT_AGENT_NAME.split(" ")[0];
+export const CURRENT_AGENT_INITIALS = CURRENT_AGENT_NAME.split(" ").map((w) => w[0]).join("");
+export const CURRENT_AGENT_EMAIL_ID = CURRENT_AGENT_NAME.toUpperCase().replace(" ", ".");
 
 export const agentRoster: Agent[] = [
   {
     id: "agent-1",
-    name: "Jeff Comstock",
-    initials: "JC",
+    name: CURRENT_AGENT_NAME,
+    initials: CURRENT_AGENT_INITIALS,
     availability: "Available",
     skills: ["Billing", "Account Management", "Escalations"],
     activeCount: 2,

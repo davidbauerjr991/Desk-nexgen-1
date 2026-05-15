@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 import { cn } from "@/lib/utils";
 
 const LOAD_STEPS = [
@@ -114,7 +115,7 @@ export default function LoginPage() {
           darkMode ? "bg-[#0F172A]" : "bg-[#F7F7F7]",
         )}>
           <p className={cn("text-[15px] font-bold", darkMode ? "text-white" : "text-[#101828]")}>
-            Welcome Back, Jeff Comstock
+            Welcome Back, {CURRENT_AGENT_NAME}
           </p>
 
           {/* Last login */}

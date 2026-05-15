@@ -14,6 +14,7 @@ import { createConversationState, getCustomerRecord } from "@/lib/customer-datab
 import { priorityStyles } from "@/lib/priority-styles";
 import {
   Agent,
+  CURRENT_AGENT_FIRST_NAME,
   agentRoster,
   supervisorRoster,
   availabilityOrder,
@@ -284,7 +285,7 @@ export function EscalatedCaseModal({
       {showResolvedMessage ? (
         <>
           <p className="text-[13px] font-medium leading-5 text-[#344054]">
-            Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+            {`Wow! Great job, ${CURRENT_AGENT_FIRST_NAME}! Looks like we have another happy customer. I've updated the case to resolved!`}
           </p>
           {/* Case Status dropdown */}
           <div className="relative">
@@ -1722,7 +1723,7 @@ export function EscalatedCaseModal({
                       </p>
                     </div>
                     <p className="text-[13px] font-medium leading-5 text-[#344054]">
-                      Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+                      {`Wow! Great job, ${CURRENT_AGENT_FIRST_NAME}! Looks like we have another happy customer. I've updated the case to resolved!`}
                     </p>
                     {/* Case Status dropdown */}
                     <div className="relative">

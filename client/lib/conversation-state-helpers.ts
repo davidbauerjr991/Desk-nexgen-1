@@ -45,30 +45,30 @@ export function createCustomConversationState(
 export const taskAiOverviewByCustomerId: Record<string, { actions: string[]; whyNeeded: string }> = {
   noah: {
     actions: [
-      "Reviewed the full SMS thread and extracted the core data-export failure from Noah's messages.",
-      "Cross-referenced Noah's account permissions and recent failed export job logs.",
-      "Confirmed the issue is tied to a quarterly report generation timeout — not a permissions error.",
-      "Prepared a step-by-step remediation draft and flagged the relevant knowledge base article.",
+      "Reviewed the full SMS thread and identified Noah's cancelled VY-4012 (MSP→ORD) due to the winter storm.",
+      "Cross-referenced Noah's business travel profile and confirmed a critical client meeting in Chicago tomorrow AM.",
+      "Scanned available rebooking options — VY-4055 (6:15 AM) is the first post-storm MSP→ORD departure.",
+      "Mapped alternative ground routes (Amtrak, rental car) as backup if morning flights are further delayed.",
     ],
-    whyNeeded: "The export failure requires a manual queue reset that the AI cannot trigger autonomously. A human agent is needed to confirm the correct reporting period, initiate the fix, and validate the output before sending it to Noah.",
+    whyNeeded: "Noah has a time-sensitive business meeting that requires selecting the most reliable routing option. A human agent is needed to evaluate the rebooking alternatives, confirm the best option with Noah, and authorize any accommodation or vouchers for the overnight wait.",
   },
   olivia: {
     actions: [
-      "Reviewed the full chat thread and identified a billing discrepancy tied to a mid-cycle plan upgrade.",
-      "Checked Olivia's subscription history and confirmed the pro-rated charge was applied incorrectly.",
-      "Assessed tone — Olivia is frustrated after two prior contacts on the same issue.",
-      "Drafted an apology response and prepared a credit memo for agent review.",
+      "Reviewed the full chat thread and identified Olivia's family stranded at MSP after VY-2287 cancellation.",
+      "Checked family profile — two children (ages 5 and 8) traveling; special assistance may be needed.",
+      "Assessed tone — Olivia is highly frustrated after 3 hours waiting with no proactive updates.",
+      "Identified rebooking options to Orlando and flagged nearby hotels with family-friendly amenities.",
     ],
-    whyNeeded: "Olivia has contacted support twice for the same billing issue without resolution. She is showing clear frustration signals. A human agent is needed to acknowledge the repeated failure, issue the correct credit, and personally confirm the account is now accurate.",
+    whyNeeded: "Olivia is traveling with young children in a high-stress situation. A human agent is needed to select the best family-friendly rebooking option, authorize hotel and meal vouchers, and provide the personal reassurance that the AI cannot deliver in this emotional context.",
   },
   ethan: {
     actions: [
-      "Reviewed the SMS thread and identified a wire transfer flagged incorrectly by the fraud filter.",
-      "Cross-referenced Ethan's transaction history and confirmed the transfer destination is a known payee.",
-      "Checked compliance flags and found no active holds — the block appears to be a false positive.",
-      "Prepared a suggested resolution path and escalation note for the payments team.",
+      "Reviewed the SMS thread and identified Ethan's cancelled connecting flight VY-3301 (MSP→SFO via DEN).",
+      "Cross-referenced Ethan's VIP Gold loyalty status — eligible for priority rebooking and lounge access.",
+      "Checked available direct MSP→SFO flights and alternate routing through ORD and DFW hubs.",
+      "Prepared loyalty point redemption summary — 84,000 points available for a cabin upgrade on rebooked flight.",
     ],
-    whyNeeded: "Releasing a flagged wire transfer requires agent-level authorisation that cannot be granted autonomously. A human agent must verify Ethan's identity, confirm the payee details, and manually clear the hold in the payments system.",
+    whyNeeded: "Ethan's VIP Gold status entitles him to priority handling, and his upgrade request using loyalty points requires agent-level authorization. A human agent is needed to select the optimal route, process the points redemption, and ensure the VIP experience meets expectations.",
   },
 };
 
@@ -346,33 +346,43 @@ export function getAgentNextSteps(conversation: SharedConversationData): string[
   const content = latestCustomerMessage?.content?.toLowerCase() ?? "";
   const isFrustrated = latestCustomerMessage?.sentiment === "frustrated";
 
-  if (content.includes("billing") || content.includes("charged") || content.includes("payment")) {
+  if (content.includes("cancel") || content.includes("flight") || content.includes("delay") || content.includes("rebook")) {
     return [
-      "Update Salesforce Record with the billing discrepancy details",
-      "Create ADP Ticket to document the charge issue",
-      "Send Discount Coupon as goodwill if a billing error is confirmed",
-      "Set Case to Resolved after communicating the outcome",
+      "Rebook on Next Available Flight with the best available routing",
+      "Map Quickest Route — check alternate hubs and ground transport options",
+      "Issue Travel Voucher for meals and lounge access during the wait",
+      "Update Itinerary Record with the new flight and connection details",
     ];
   }
-  if (isFrustrated || content.includes("frustrated") || content.includes("escalat")) {
+  if (isFrustrated || content.includes("frustrated") || content.includes("escalat") || content.includes("hours") || content.includes("waiting")) {
     return [
       "Escalate to Supervisor given the elevated frustration signals",
-      "Update Salesforce Record with the escalation notes",
-      "Set Case to Resolved once the supervisor has taken over",
+      "Issue Travel Voucher as goodwill for the extended disruption",
+      "Issue Hotel Voucher if overnight accommodation is needed",
+      "Update Itinerary Record with the escalation notes and resolution",
     ];
   }
-  if (content.includes("error") || content.includes("failed") || content.includes("retry")) {
+  if (content.includes("bag") || content.includes("luggage") || content.includes("lost") || content.includes("missing")) {
     return [
-      "Create ADP Ticket to document the error and assign it for investigation",
-      "Update Salesforce Record with the root cause and remediation steps",
-      "Schedule Callback to verify the issue is resolved after the fix is applied",
+      "Initiate Baggage Trace to locate and reroute checked luggage",
+      "Issue Travel Voucher for essential items while baggage is in transit",
+      "Update Itinerary Record with the baggage trace reference number",
+      "Schedule Callback to confirm delivery once baggage is located",
+    ];
+  }
+  if (content.includes("hotel") || content.includes("accommodation") || content.includes("sleep") || content.includes("overnight")) {
+    return [
+      "Issue Hotel Voucher for overnight accommodation near the airport",
+      "Rebook on Next Available Flight for earliest morning departure",
+      "Issue Travel Voucher for meals and ground transport to the hotel",
+      "Update Itinerary Record with accommodation and revised departure details",
     ];
   }
   return [
-    "Update Salesforce Record with the latest interaction details",
-    "Create ADP Ticket to log the open issue for the support team",
-    "Schedule Callback to follow up on the resolution",
-    "Set Case to Resolved once the customer confirms the issue is closed",
+    "Rebook on Next Available Flight based on the traveler's destination",
+    "Map Quickest Route — identify fastest path to final destination",
+    "Issue Travel Voucher for meals and comfort during the disruption",
+    "Update Itinerary Record with all changes and resolution details",
   ];
 }
 

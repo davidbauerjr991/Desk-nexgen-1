@@ -1,4 +1,5 @@
 import { MoreHorizontal, Paperclip } from "lucide-react";
+import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getCustomerRecord } from "@/lib/customer-database";
@@ -32,7 +33,7 @@ export function EmailConversationView({
   onSend: () => void;
 }) {
   const customerRecord = customerId ? getCustomerRecord(customerId) : null;
-  const agentName = customerRecord?.overview.assignedAgent ?? "Jeff Comstock";
+  const agentName = customerRecord?.overview.assignedAgent ?? CURRENT_AGENT_NAME;
   const agentEmail = getEmailAddress(agentName);
   const customerEmail = getEmailAddress(conversation.customerName);
   const firstCustomerEmail = conversation.messages.find((message) => message.role === "customer");

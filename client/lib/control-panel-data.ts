@@ -2,7 +2,8 @@
 
 import type { Channel, Priority, AiOverview } from "@/lib/static-assignments";
 
-export const CURRENT_AGENT_NAME = "Jeff Comstock";
+// Re-export from the single source of truth
+export { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
 
 export const priorityStyles: Record<Priority, string> = {
   Critical: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
@@ -28,70 +29,70 @@ export const channelIconMap: Record<Channel, any> = {
 };
 
 export const companyByCustomerId: Record<string, string> = {
-  alex: "Apex Financial Group",
-  sarah: "Summit Healthcare Inc.",
-  priya: "Priya Sharma (Personal)",
-  david: "BlueLine Logistics",
-  priyaNair: "Coastal Realty Partners",
-  olivia: "Meridian Tech Solutions",
-  noah: "Noah Patel (Personal)",
-  ethan: "Westfield Capital",
+  alex: "Voyager Business Travel",
+  sarah: "Voyager Family Plans",
+  priya: "Solo Traveler",
+  david: "Voyager Corporate Group",
+  priyaNair: "International Transit",
+  olivia: "Voyager Family Vacation",
+  noah: "Business Travel — TechVentures Inc.",
+  ethan: "VIP Gold Member — Voyager Loyalty",
 };
 
 // Customer context per live customerRecordId
 export const liveCustomerContext: Record<string, string> = {
-  noah: "Individual account. Technically proficient user. First data-export failure. Sentiment: Frustrated but methodical — expects a clear resolution path.",
-  olivia: "Mid-market tech client. Growing subscription. Billing discrepancy tied to a mid-cycle plan upgrade. Sentiment: Confused but calm — has contacted support twice already.",
-  ethan: "High-value client. Frequent wire transfers to known payees. Transaction flagged as a false positive. Sentiment: Concerned — expects swift manual clearance.",
+  noah: "Solo business traveler. Flight VY-2103 MSP→SFO canceled. Has a critical client pitch tomorrow at 9am Pacific. Rebooked twice already — both alternatives also canceled. Sentiment: Stressed but composed — needs a definitive solution, not more options that fall through.",
+  olivia: "Family of 4 including 2 children (ages 3 and 7). Connecting flight VY-1847 MSP→MIA canceled. Resort check-in deadline is tomorrow noon. Running low on children's supplies. Sentiment: Anxious and exhausted — needs hotel accommodation tonight and confirmed rebooking.",
+  ethan: "VIP Gold loyalty member. Three consecutive flights canceled (VY-3301, VY-3455, VY-3612). Has been at MSP for 11 hours. Demanding executive escalation. Sentiment: Furious — loyalty status not being honored, expects priority resolution immediately.",
 };
 
 export const liveAiOverview: Record<string, AiOverview> = {
   noah: {
     actions: [
-      "Reviewed the full SMS thread and extracted the core data-export failure from Noah's messages.",
-      "Cross-referenced Noah's account permissions and recent failed export job logs.",
-      "Confirmed the issue is tied to a quarterly report generation timeout — not a permissions error.",
-      "Prepared a step-by-step remediation draft and flagged the relevant knowledge base article.",
+      "Reviewed Noah's rebooking history — VY-2103 and two subsequent alternatives (VY-2288, VY-2401) all canceled due to MSP ground stop.",
+      "Scanned available inventory across all partner carriers for MSP→SFO routes within next 18 hours.",
+      "Identified one remaining option: VY-4022 departing MSP at 06:15 tomorrow via DEN, arriving SFO 10:48 — tight but feasible for his 9am meeting if he takes ground transport.",
+      "Prepared rebooking authorization and hotel voucher for overnight stay at MSP Marriott.",
     ],
     whyNeeded:
-      "The export failure requires a manual queue reset that the AI cannot trigger autonomously. A human agent is needed to confirm the correct reporting period, initiate the fix, and validate the output before sending it to Noah.",
+      "Noah has been rebooked twice already and both flights were canceled. A third rebooking on a tight connection requires human judgment to assess feasibility and authorize the overnight accommodation voucher — exceeding the automated approval threshold.",
     nextSteps: [
-      "Confirm the correct reporting period with Noah",
-      "Initiate a manual queue reset for the failed export job",
-      "Validate the export output before delivering it",
-      "Send the completed report and close the case",
+      "Confirm the VY-4022 via DEN routing works for Noah's 9am commitment",
+      "Issue the hotel voucher for MSP Marriott and confirm check-in",
+      "Lock the seat on VY-4022 before inventory clears",
+      "Provide Noah with a direct contact number in case of further disruption",
     ],
   },
   olivia: {
     actions: [
-      "Reviewed the full chat thread and identified a billing discrepancy tied to a mid-cycle plan upgrade.",
-      "Checked Olivia's subscription history and confirmed the pro-rated charge was applied incorrectly.",
-      "Assessed tone — Olivia is frustrated after two prior contacts on the same issue.",
-      "Drafted an apology response and prepared a credit memo for agent review.",
+      "Reviewed Olivia's booking — family of 4 on VY-1847 MSP→MIA, canceled due to winter storm ground stop at MSP.",
+      "Checked hotel availability near MSP for tonight — confirmed 1 family room at MSP Hilton Garden Inn with crib and rollaway bed.",
+      "Searched rebooking options — earliest confirmed MSP→MIA seat availability is VY-1920 departing 11:40 tomorrow, arriving MIA 16:55.",
+      "Prepared family accommodation package: hotel voucher, meal vouchers for 4, and children's comfort kit request to Guest Services.",
     ],
     whyNeeded:
-      "Olivia has contacted support twice for the same billing issue without resolution. She is showing clear frustration signals. A human agent is needed to acknowledge the repeated failure, issue the correct credit, and personally confirm the account is now accurate.",
+      "Olivia is traveling with two young children and is running low on supplies. The resort check-in deadline is tomorrow noon, which the earliest available flight will miss. A human agent is needed to coordinate the hotel stay, authorize the family voucher package, and contact the resort about a late check-in exception.",
     nextSteps: [
-      "Acknowledge the repeated billing failure and apologise",
-      "Issue the correct credit and confirm the amount with Olivia",
-      "Verify the account balance is now accurate",
-      "Confirm resolution and close the case with a personal note",
+      "Confirm the MSP Hilton Garden Inn booking and arrange shuttle transport from terminal",
+      "Issue meal vouchers and request children's comfort kits from Guest Services",
+      "Rebook on VY-1920 and contact the resort to negotiate a late check-in",
+      "Provide Olivia with a direct support line for any overnight needs with the children",
     ],
   },
   ethan: {
     actions: [
-      "Reviewed Ethan's transaction history and flagged wire transfer activity.",
-      "Compared the flagged transaction against known payee list — recipient is in whitelist.",
-      "Assessed fraud risk as low; issue is a false positive from rule-tuning change.",
-      "Drafted a wire transfer clearance request and prepared account release instructions.",
+      "Reviewed Ethan's itinerary — three consecutive cancellations (VY-3301, VY-3455, VY-3612) over the past 11 hours at MSP.",
+      "Verified Ethan's VIP Gold loyalty status — entitled to priority rebooking, lounge access, and complimentary accommodation during irregular operations.",
+      "Searched priority inventory — identified VY-5010 departing MSP at 07:00 tomorrow with first-class availability, arriving destination at 10:15.",
+      "Flagged account for executive escalation review and prepared a compensation package: 15,000 bonus miles, first-class upgrade, and VIP lounge immediate access.",
     ],
     whyNeeded:
-      "Ethan's high-value wire transfer was flagged by our anti-fraud system, even though the recipient is in his whitelist. A human agent is needed to manually clear the transaction and resolve the issue quickly to maintain his confidence.",
+      "Ethan is a VIP Gold member who has endured three cancellations and 11 hours at the airport without receiving the priority treatment his loyalty tier guarantees. A human agent is needed to personally acknowledge the service failure, authorize the compensation package, and ensure the next rebooking is locked and guaranteed.",
     nextSteps: [
-      "Verify the recipient is in Ethan's trusted payee whitelist",
-      "Manually clear the flagged transaction",
-      "Explain the false positive and confirm his account is no longer restricted",
-      "Offer a service credit or goodwill gesture for the inconvenience",
+      "Personally acknowledge the service failure and apologize for the loyalty tier not being honored",
+      "Confirm the VY-5010 first-class rebooking and lock the seat immediately",
+      "Issue the compensation package: 15,000 bonus miles, lounge access, and hotel voucher",
+      "Provide Ethan with a direct executive support line and confirm no further cancellations on VY-5010",
     ],
   },
 };

@@ -1,4 +1,6 @@
 import type { ConversationMessage, SharedConversationData } from "@/components/ConversationPanel";
+import { staticAssignments } from "@/lib/static-assignments";
+import type { StaticAssignment } from "@/lib/static-assignments";
 
 export type CustomerChannel = "chat" | "sms" | "whatsapp" | "email" | "voice";
 export type CustomerQueueIcon = "phone" | "clipboardList" | "messageSquare";
@@ -126,6 +128,14 @@ export type CustomerProfile = {
   fraudRiskScore: number; // 0–100 (higher = higher risk)
   priorDisputeCount: number;
   cardBlocked: boolean;
+  /** Travel-specific fields — populated for storm/Voyager customers */
+  tripsBooked?: number;
+  loyaltyTier?: string;
+  loyaltyPoints?: number;
+  homeAirport?: string;
+  travelType?: string;
+  /** When true, queue profile cards render travel fields instead of AUM/balance */
+  isTravelProfile?: boolean;
 };
 
 export type CustomerAccount = {
@@ -241,7 +251,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 5,
       totalAUM: "$1,240,800.00",
       financialReadiness: 78,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Business Banking Advisor",
       tags: ["Premier", "IVR Auth"],
       fraudRiskScore: 34,
@@ -265,7 +275,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(415) 555-4092",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 10:26 AM",
       address: "245 Market St, Apt 8C, San Francisco, CA 94105",
@@ -1260,7 +1270,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 4,
       totalAUM: "$628,400.00",
       financialReadiness: 91,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Wealth Management Advisor",
       tags: ["Premier", "Voice Biometrics"],
       fraudRiskScore: 12,
@@ -1284,7 +1294,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(512) 555-0172",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 8:44 AM",
       address: "1812 Nueces St, Austin, TX 78701",
@@ -1351,7 +1361,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
         id: "priya-h2",
         title: "Annual financial plan review",
         timestamp: "Feb 21, 2026 · 10:00 AM",
-        detail: "Completed annual plan review with Jeff Comstock. Roth IRA conversion strategy flagged for follow-up in Q2.",
+        detail: "Completed annual plan review with Sarah Jones. Roth IRA conversion strategy flagged for follow-up in Q2.",
         dot: "purple",
       },
       {
@@ -2240,7 +2250,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 5,
       totalAUM: "$512,200.00",
       financialReadiness: 76,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Retail Banking Advisor",
       tags: ["IVR Auth"],
       fraudRiskScore: 9,
@@ -2264,7 +2274,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(720) 555-0115",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 2:49 PM",
       address: "1980 Wazee St, Denver, CO 80202",
@@ -2452,7 +2462,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     customerHistory: [
       { id: "hannah-h1", title: "Retail Banking account opened", timestamp: "Jan 2021", detail: "Hannah opened a Retail Banking account and enrolled in IVR authentication. Initial deposit of $22,000.", dot: "green" },
       { id: "hannah-h2", title: "Savings goal configured", timestamp: "Apr 2021", detail: "Hannah set up an automated monthly savings goal of $500 toward an emergency fund. Target reached within 18 months.", dot: "purple" },
-      { id: "hannah-h3", title: "Advisor assigned — Jeff Comstock", timestamp: "Jun 2022", detail: "Hannah was paired with Jeff Comstock following a review of her growing portfolio. Advisor relationship confirmed.", dot: "purple" },
+      { id: "hannah-h3", title: "Advisor assigned — Sarah Jones", timestamp: "Jun 2022", detail: "Hannah was paired with Sarah Jones following a review of her growing portfolio. Advisor relationship confirmed.", dot: "purple" },
       { id: "hannah-h4", title: "Fee waiver requested — annual maintenance", timestamp: "Sep 2023", detail: "Hannah requested a waiver for the annual account maintenance fee. Approved as a retention gesture for a 5-year customer.", dot: "gray" },
       { id: "hannah-h5", title: "Invoice discrepancy reported", timestamp: "Jan 2026", detail: "Hannah flagged a billing mismatch on her account statement. Agent identified a duplicate line item and initiated a correction.", dot: "orange" },
       { id: "hannah-h6", title: "Corrected invoice confirmed", timestamp: "Mar 2026", detail: "Corrected invoice was issued and Hannah confirmed receipt. Case closed with no outstanding balance discrepancy.", dot: "green" },
@@ -3184,7 +3194,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 3,
       totalAUM: "$2,875,000.00",
       financialReadiness: 62,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Wealth Advisor",
       tags: ["Premier", "High-Value"],
       fraudRiskScore: 72,
@@ -3208,7 +3218,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(312) 555-0877",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 10:11 AM",
       address: "1420 N Lake Shore Dr, Unit 22B, Chicago, IL 60610",
@@ -3446,7 +3456,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 11,
       totalAUM: "$4,280.00",
       financialReadiness: 42,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Fraud & Security Specialist",
       tags: ["Checking Account", "Debit Card", "Fraud Alert"],
       fraudRiskScore: 94,
@@ -3468,7 +3478,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(602) 555-0147",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:52 AM",
       address: "1134 W McDowell Rd, Phoenix, AZ 85007",
@@ -3510,7 +3520,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
         id: "sofia-escalated",
         title: "Case escalated — human agent required",
         timestamp: "Today · 9:52 AM",
-        detail: "Jacob escalated to Jeff Comstock for dispute authorization and immediate customer support.",
+        detail: "Jacob escalated to Sarah Jones for dispute authorization and immediate customer support.",
         tone: "critical",
         sortOrder: 5,
       },
@@ -3748,14 +3758,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
       {
         id: "sofia-h10",
         type: "handoff",
-        title: "Escalated to Jeff Comstock — fraud specialist",
+        title: "Escalated to Sarah Jones — fraud specialist",
         timestamp: "Today · 9:52 AM",
-        detail: "Jacob escalated to Jeff Comstock (Fraud & Security Specialist) to authorize the dispute, apply provisional credit of $2,159.47, block card ****7714, and issue a replacement card. Rent deadline tomorrow adds critical urgency.",
+        detail: "Jacob escalated to Sarah Jones (Fraud & Security Specialist) to authorize the dispute, apply provisional credit of $2,159.47, block card ****7714, and issue a replacement card. Rent deadline tomorrow adds critical urgency.",
         dot: "red",
         customerMessage: "I want to speak to someone who can actually FIX this right now.",
         meta: [
           { label: "Case #", value: "CST-12045" },
-          { label: "Escalated to", value: "Jeff Comstock — Fraud & Security Specialist" },
+          { label: "Escalated to", value: "Sarah Jones — Fraud & Security Specialist" },
           { label: "Actions required", value: "Authorize dispute, provisional credit, block card, issue replacement" },
           { label: "Provisional credit", value: "$2,159.47" },
           { label: "Urgency", value: "Rent due Apr 21 — same-day resolution required" },
@@ -3766,7 +3776,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
           subject: "Escalation — fraud dispute, provisional credit, card block",
           notes: [
             { author: "Jacob (Fraud Engine)", time: "Today · 9:52 AM", isInternal: true, text: "Transferring to fraud specialist. Context: 11-year customer, first fraud dispute — two unauthorized charges ($1,847.32 + $312.15 = $2,159.47) from TechXpress Electronics, Orlando FL. Card-present fraud at unknown out-of-state merchant. Customer confirmed both unauthorized. Rent payment due tomorrow (Apr 21). Actions required: (1) authorize dispute on FRD-04204, (2) apply provisional credit $2,159.47 immediately, (3) block card ****7714, (4) issue replacement card to address on file. Goodwill acknowledgment recommended — 11-year clean history." },
-            { author: "System", time: "Today · 9:52 AM", isInternal: true, text: "Case CST-12045 assigned to Jeff Comstock (Fraud & Security Specialist). Priority: Critical. Customer is live in chat and awaiting response." },
+            { author: "System", time: "Today · 9:52 AM", isInternal: true, text: "Case CST-12045 assigned to Sarah Jones (Fraud & Security Specialist). Priority: Critical. Customer is live in chat and awaiting response." },
           ],
         },
       },
@@ -3917,7 +3927,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 2,
       totalAUM: "$89.99",
       financialReadiness: 68,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Home Services Advisor",
       tags: ["Home Broadband", "CloudMesh Pro v3", "Fiber 500"],
       fraudRiskScore: 12,
@@ -3939,7 +3949,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(512) 555-0183",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 9:44 AM",
       address: "2847 Ridgewood Dr, Austin, TX 78704",
@@ -4407,7 +4417,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
         customerMessage: "Wait — I have port forwarding rules set up for my home office. Will those be wiped if I do a factory reset?",
         meta: [
           { label: "Case #", value: "CST-11621" },
-          { label: "Escalated to", value: "Jeff Comstock" },
+          { label: "Escalated to", value: "Sarah Jones" },
           { label: "Reason", value: "Port forwarding config backup behavior on firmware 4.0.8 requires expert confirmation" },
           { label: "Status", value: "Live — awaiting agent response" },
         ],
@@ -4417,7 +4427,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
           subject: "Escalation — port forwarding backup unresolved pre-factory-reset",
           notes: [
             { author: "Aria (Bot)", time: "Today · 9:44 AM", isInternal: true, text: "Escalating to human agent. Customer is mid-factory-reset sequence and has raised concern about losing 6 custom port forwarding rules critical to home office VPN/NAS. Config backup exists from Feb 2024 on firmware 4.0.8. Customer's query: will this backup restore correctly to firmware 4.1.2 post-factory-reset? This is outside my confidence threshold — requires expert confirmation before proceeding." },
-            { author: "System", time: "Today · 9:44 AM", isInternal: true, text: "Case CST-11621 created and assigned to Jeff Comstock (Tier 2 — Network Specialist). Priority: Critical. Customer is live and waiting. Do not proceed with factory reset without agent confirmation." },
+            { author: "System", time: "Today · 9:44 AM", isInternal: true, text: "Case CST-11621 created and assigned to Sarah Jones (Tier 2 — Network Specialist). Priority: Critical. Customer is live and waiting. Do not proceed with factory reset without agent confirmation." },
           ],
         },
       },
@@ -4632,7 +4642,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(512) 555-0193",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 10:14 AM",
       address: "2847 Ridgewood Ave, Austin, TX 78704",
@@ -4922,14 +4932,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
       {
         id: "marcus-h10",
         type: "handoff",
-        title: "Escalated to Jeff Comstock — time-sensitive",
+        title: "Escalated to Sarah Jones — time-sensitive",
         timestamp: "Today · 10:14 AM",
-        detail: "Emily escalated to Jeff Comstock (Senior Care). Resolution paths: reship overnight to Austin, full refund + reorder, or carrier intercept attempt. Birthday deadline Saturday — goodwill gesture recommended.",
+        detail: "Emily escalated to Sarah Jones (Senior Care). Resolution paths: reship overnight to Austin, full refund + reorder, or carrier intercept attempt. Birthday deadline Saturday — goodwill gesture recommended.",
         dot: "red",
         customerMessage: "I need a real person.",
         meta: [
           { label: "Case #", value: "CST-13317" },
-          { label: "Escalated to", value: "Jeff Comstock — Senior Care" },
+          { label: "Escalated to", value: "Sarah Jones — Senior Care" },
           { label: "Reason", value: "Package in transit to wrong address — time-sensitive birthday gift" },
           { label: "Resolution paths", value: "Reship overnight, refund + reorder, or carrier intercept" },
           { label: "Goodwill", value: "CARE20 — 20% off next order recommended" },
@@ -5149,7 +5159,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       },
     },
     seedHasTransferMessage: true,
-    takeoverDraft: "Hi Marcus, this is Jeff. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time.",
+    takeoverDraft: "Hi Marcus, this is Sarah. I've reviewed everything and I want to help you fix this. I can see the party is Saturday — let's make sure your dad gets his gift in time.",
     customerSnapshot: [
       "7-year customer with $1.5M+ in combined accounts",
       "Premier Business Banking client with high activity",
@@ -6009,7 +6019,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 4,
       totalAUM: "$495,685.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Standard"],
       fraudRiskScore: 75,
@@ -6033,7 +6043,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(285) 555-1265",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:05 AM",
       address: "500 Peachtree Rd, Atlanta, GA 30308",
@@ -7059,7 +7069,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 7,
       totalAUM: "$941,370.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Premier"],
       fraudRiskScore: 70,
@@ -7083,7 +7093,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(370) 555-1530",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 9:05 AM",
       address: "200 SW 5th Ave, Portland, OR 97204",
@@ -8109,7 +8119,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 2,
       totalAUM: "$1,387,055.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Standard"],
       fraudRiskScore: 65,
@@ -8133,7 +8143,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(455) 555-1795",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:05 AM",
       address: "88 Broad St, New York, NY 10004",
@@ -9159,7 +9169,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 5,
       totalAUM: "$1,832,740.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Premier"],
       fraudRiskScore: 60,
@@ -9183,7 +9193,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(540) 555-2060",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:05 AM",
       address: "300 Canal St, New Orleans, LA 70130",
@@ -10209,7 +10219,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 8,
       totalAUM: "$278,425.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Standard"],
       fraudRiskScore: 55,
@@ -10233,7 +10243,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(625) 555-2325",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 9:05 AM",
       address: "44 Broadway, New York, NY 10006",
@@ -11259,7 +11269,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 3,
       totalAUM: "$724,110.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Premier"],
       fraudRiskScore: 50,
@@ -11283,7 +11293,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(710) 555-2590",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:05 AM",
       address: "88 Pine Ridge Rd, Charlotte, NC 28202",
@@ -12309,7 +12319,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 6,
       totalAUM: "$1,169,795.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Standard"],
       fraudRiskScore: 45,
@@ -12333,7 +12343,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(795) 555-2855",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 9:05 AM",
       address: "220 W Washington St, Indianapolis, IN 46204",
@@ -13359,7 +13369,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 1,
       totalAUM: "$1,615,480.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Premier"],
       fraudRiskScore: 40,
@@ -13383,7 +13393,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(280) 555-3120",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today, 9:05 AM",
       address: "500 Capital Mall Dr, Sacramento, CA 95814",
@@ -14409,7 +14419,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 4,
       totalAUM: "$61,165.00",
       financialReadiness: 40,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Account Manager",
       tags: ["Standard"],
       fraudRiskScore: 35,
@@ -14433,7 +14443,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(365) 555-3385",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 9:05 AM",
       address: "230 N Michigan Ave, Chicago, IL 60601",
@@ -14851,7 +14861,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(408) 555-0174",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "he",
       lastContactTime: "Today (inbound callback request)",
       address: "1200 Harbor Bay Pkwy, San Jose, CA 95002",
@@ -14937,7 +14947,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       tenureYears: 0,
       totalAUM: "$1,849.00",
       financialReadiness: 72,
-      financialAdvisor: "Jeff Comstock",
+      financialAdvisor: "Sarah Jones",
       advisorTitle: "Senior Customer Care Specialist",
       tags: ["Photography", "First-Time Buyer", "High-Value Order"],
       fraudRiskScore: 2,
@@ -14959,7 +14969,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
     overview: {
       contactNumber: "(415) 555-0247",
-      assignedAgent: "Jeff Comstock",
+      assignedAgent: "Sarah Jones",
       pronoun: "she",
       lastContactTime: "Today, 10:18 AM",
       address: "1482 Mariposa St, San Francisco, CA 94107",
@@ -15101,14 +15111,14 @@ export const customerDatabase: CustomerSeedRecord[] = [
       updatedAt: "2026-05-14T10:22:00",
     },
     escalationResponses: [
-      "Hi Elena, I'm Jeff. I've reviewed everything and I want to start by saying I'm sorry about this. You made a significant investment and the kit should have arrived complete and ready to use. That's on us. Your 64GB card is shipping today — you'll have it tomorrow by noon. I've also added a $25 credit to your account for the inconvenience.",
+      "Hi Elena, I'm Sarah. I've reviewed everything and I want to start by saying I'm sorry about this. You made a significant investment and the kit should have arrived complete and ready to use. That's on us. Your 64GB card is shipping today — you'll have it tomorrow by noon. I've also added a $25 credit to your account for the inconvenience.",
     ],
     conversations: {
       chat: {
         label: "Chat",
         timelineLabel: "Web chat · Today, 10:18 AM",
         draft:
-          "Hi Elena, I'm Jeff. I've reviewed everything and I want to start by saying I'm sorry about this. You made a significant investment and the kit should have arrived complete — that's on us.",
+          "Hi Elena, I'm Sarah. I've reviewed everything and I want to start by saying I'm sorry about this. You made a significant investment and the kit should have arrived complete — that's on us.",
         messages: [
           {
             id: 1,
@@ -15180,7 +15190,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       sms: {
         label: "SMS",
         timelineLabel: "SMS · Today, 10:18 AM",
-        draft: "Hi Elena, I'm Jeff from customer care. Your replacement 64GB card is shipping today — you'll have it tomorrow by noon.",
+        draft: "Hi Elena, I'm Sarah from customer care. Your replacement 64GB card is shipping today — you'll have it tomorrow by noon.",
         messages: [
           { id: 1, role: "customer", content: "Hi, I'm missing the memory card from my Luminos Pro camera kit order #EV-44071.", time: "10:18 AM" },
           { id: 2, role: "agent", author: "Aria", content: "I'm sorry about that, Elena. I've confirmed the discrepancy. A specialist will be in touch shortly to get this resolved.", time: "10:19 AM" },
@@ -15189,7 +15199,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       whatsapp: {
         label: "WhatsApp",
         timelineLabel: "WhatsApp · Today, 10:18 AM",
-        draft: "Hi Elena, I'm Jeff — your replacement memory card is on its way. You'll have it tomorrow.",
+        draft: "Hi Elena, I'm Sarah — your replacement memory card is on its way. You'll have it tomorrow.",
         messages: [
           { id: 1, role: "customer", content: "Hi, I got my Luminos Pro kit but the memory card is missing. Order #EV-44071.", time: "10:18 AM" },
           { id: 2, role: "agent", author: "Aria", content: "I'm sorry about that, Elena. I've flagged this and a senior specialist will take care of it for you right away.", time: "10:19 AM" },
@@ -15198,7 +15208,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
     },
     resolveFlow: {
       type: "supervisor",
-      supervisorName: "Jeff Comstock",
+      supervisorName: "Sarah Jones",
       steps: [
         "Ship overnight replacement 64GB memory card to Elena's address",
         "Apply $25 goodwill credit to customer account",
@@ -15217,8 +15227,621 @@ export const customerDatabase: CustomerSeedRecord[] = [
 
 export const defaultCustomerId = customerDatabase.find((customer) => customer.queue.isActive)?.id ?? customerDatabase[0]?.id ?? "alex";
 
-export function getCustomerRecord(customerId: string) {
-  return customerDatabase.find((customer) => customer.id === customerId) ?? customerDatabase[0];
+// ─── Dynamic fallback for customers without a full seed record ──────────────
+// When the queue contains storm-disruption cases (or any cases whose
+// customerRecordId has no matching entry in customerDatabase), we build a
+// minimal record on the fly from the static assignment so the conversation
+// panel shows the correct name, relevant messages, and matching context
+// instead of falling back to the first database entry (Alex Kowalski).
+// Records are cached so repeated lookups return the same object.
+
+const dynamicRecordCache = new Map<string, CustomerSeedRecord>();
+
+function buildCustomerSnapshot(ctx: string, name: string, caseType: string): string[] {
+  const firstName = name.split(" ")[0] ?? name;
+  const bullets: string[] = [];
+  const lctx = ctx.toLowerCase();
+
+  // Traveler type / identity
+  if (lctx.includes("infant") || lctx.includes("baby") || lctx.includes("family") || lctx.includes("child")) {
+    bullets.push("Traveling with young children — requires family-friendly rebooking options");
+  } else if (lctx.includes("pregnant")) {
+    bullets.push(`${firstName} is pregnant — needs medical clearance for any rebooking past 36 weeks`);
+  } else if (lctx.includes("elderly") || lctx.includes("aged 7") || lctx.includes("aged 8")) {
+    bullets.push("Elderly traveler — may need extra assistance with rebooking process and ground transport");
+  } else if (lctx.includes("unaccompanied") || lctx.includes("minor")) {
+    bullets.push("Unaccompanied minor — requires UM program guardian coordination at all transfer points");
+  } else if (lctx.includes("wheelchair") || lctx.includes("spinal") || lctx.includes("accessible")) {
+    bullets.push("Accessibility requirements — needs aisle wheelchair, accessible lavatory, and ground-level boarding");
+  } else if (lctx.includes("surgeon") || lctx.includes("doctor") || lctx.includes("dr.") || lctx.includes("medical")) {
+    bullets.push(`${firstName} has an urgent medical commitment — time-sensitive, requires priority routing`);
+  } else if (lctx.includes("cfo") || lctx.includes("executive") || lctx.includes("board")) {
+    bullets.push("C-suite executive — expects priority service commensurate with business travel profile");
+  } else if (lctx.includes("corporate") || lctx.includes("group") || lctx.includes("coordinator")) {
+    bullets.push("Corporate group coordinator — needs a single coordinated solution for the entire party");
+  } else if (lctx.includes("student") || lctx.includes("visa") || lctx.includes("f-1")) {
+    bullets.push("International student on transit visa — facing time-sensitive immigration constraints");
+  } else if (lctx.includes("honeymoon") || lctx.includes("wedding") || lctx.includes("anniversary")) {
+    bullets.push("Traveling for a milestone celebration — emotionally invested, high service recovery potential");
+  } else if (lctx.includes("nurse") || lctx.includes("hospital") || lctx.includes("icu") || lctx.includes("pediatric")) {
+    bullets.push(`${firstName} is a healthcare worker needed at their facility — deeply committed to reaching destination`);
+  } else {
+    bullets.push(`${firstName} is a Voyager traveler impacted by the Minneapolis winter storm disruption`);
+  }
+
+  // Loyalty / tier
+  if (lctx.includes("diamond")) {
+    bullets.push("Voyager Diamond loyalty member — top-tier status, expects priority handling");
+  } else if (lctx.includes("platinum")) {
+    bullets.push("Voyager Platinum loyalty member — high-value customer, priority rebooking eligible");
+  } else if (lctx.includes("gold")) {
+    bullets.push("Voyager Gold loyalty member — eligible for lounge access and priority standby");
+  } else if (lctx.includes("loyalty") || lctx.includes("miles")) {
+    bullets.push("Active loyalty program member — eligible for priority standby and lounge access");
+  }
+
+  // Sentiment / urgency
+  if (lctx.includes("furious") || lctx.includes("threatening")) {
+    bullets.push("Sentiment: Highly frustrated — at risk of churn, requires immediate de-escalation");
+  } else if (lctx.includes("panicked") || lctx.includes("extremely worried")) {
+    bullets.push("Sentiment: Panicked — needs calm reassurance alongside urgent action");
+  } else if (lctx.includes("stressed") || lctx.includes("anxious")) {
+    bullets.push("Sentiment: Anxious — provide clear, step-by-step guidance to reduce uncertainty");
+  } else if (lctx.includes("exhausted") || lctx.includes("frustrated") || lctx.includes("disappointed")) {
+    bullets.push("Sentiment: Exhausted and frustrated — empathize before problem-solving");
+  } else if (lctx.includes("calm but firm") || lctx.includes("professional")) {
+    bullets.push("Sentiment: Professional and composed — prefers efficient, solution-focused interaction");
+  } else if (lctx.includes("committed") || lctx.includes("willing")) {
+    bullets.push("Sentiment: Deeply committed — willing to take any route, just needs to arrive");
+  } else {
+    bullets.push("Sentiment: Concerned — proactive communication will help maintain confidence");
+  }
+
+  // Special needs / logistics
+  if (lctx.includes("medication") || lctx.includes("cpap") || lctx.includes("medical")) {
+    bullets.push("Has medical/medication needs — accommodation must include pharmacy access");
+  }
+  if (lctx.includes("organ") || lctx.includes("transplant") || lctx.includes("surgery")) {
+    bullets.push("Time-critical medical transport — patient's life depends on timely arrival");
+  }
+  if (lctx.includes("non-refundable")) {
+    bullets.push("Has non-refundable downstream reservations at risk — rebooking window is limited");
+  }
+  if (lctx.includes("no smartphone") || lctx.includes("kiosk")) {
+    bullets.push("Limited digital access — use email or SMS for confirmations, no app notifications");
+  }
+
+  // Case-type specific
+  if (caseType === "Baggage Issue") {
+    bullets.push("Baggage separated during rerouting — trace and forward to final destination required");
+  }
+  if (caseType === "Refund Request" || caseType === "Compensation Claim" || caseType === "Billing Dispute") {
+    bullets.push("Seeking financial resolution — prioritize refund processing and compensation offer");
+  }
+  if (caseType === "Service Outage") {
+    bullets.push("Affected by system outage — unable to self-serve via website or app, needs manual rebooking");
+  }
+
+  // Keep it to 4–5 bullets max
+  return bullets.slice(0, 5);
+}
+
+function buildDynamicProfile(ctx: string, name: string): CustomerSeedRecord["profile"] {
+  const lctx = ctx.toLowerCase();
+  const seed = name.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+
+  // Determine travel type / department
+  let travelType = "Personal";
+  let department = "Travel Services";
+  if (lctx.includes("corporate") || lctx.includes("cfo") || lctx.includes("executive") || lctx.includes("business")) {
+    department = "Business Travel"; travelType = "Business";
+  } else if (lctx.includes("family") || lctx.includes("honeymoon") || lctx.includes("vacation") || lctx.includes("wedding")) {
+    department = "Leisure Travel"; travelType = "Leisure";
+  } else if (lctx.includes("student") || lctx.includes("visa")) {
+    department = "International Travel"; travelType = "International";
+  } else if (lctx.includes("group") || lctx.includes("coordinator")) {
+    department = "Group Bookings"; travelType = "Corporate Group";
+  } else if (lctx.includes("medical") || lctx.includes("surgeon") || lctx.includes("hospital") || lctx.includes("nurse")) {
+    department = "Priority Travel"; travelType = "Essential";
+  }
+
+  // Determine tenure
+  let tenureYears = 2;
+  if (lctx.includes("diamond") || lctx.includes("780k")) tenureYears = 12;
+  else if (lctx.includes("platinum") || lctx.includes("430k")) tenureYears = 8;
+  else if (lctx.includes("gold")) tenureYears = 5;
+  else if (lctx.includes("loyalty") || lctx.includes("miles")) tenureYears = 4;
+  else if (lctx.includes("first") || lctx.includes("newlywed") || lctx.includes("student")) tenureYears = 1;
+  else {
+    tenureYears = (seed % 6) + 1; // 1–6 years
+  }
+
+  // Determine loyalty tier and points
+  let loyaltyTier = "Standard";
+  let loyaltyPoints = (seed % 30 + 5) * 1000; // 5k–34k
+  if (lctx.includes("diamond") || lctx.includes("780k")) { loyaltyTier = "Diamond"; loyaltyPoints = 780000; }
+  else if (lctx.includes("platinum") || lctx.includes("430k")) { loyaltyTier = "Platinum"; loyaltyPoints = 430000; }
+  else if (lctx.includes("gold")) { loyaltyTier = "Gold"; loyaltyPoints = 84000; }
+  else if (lctx.includes("loyalty") || lctx.includes("miles")) { loyaltyTier = "Silver"; loyaltyPoints = 52000; }
+
+  // Trips booked — correlated with tenure and tier
+  let tripsBooked = Math.max(1, (seed % 8) + tenureYears);
+  if (loyaltyTier === "Diamond") tripsBooked = 47 + (seed % 20);
+  else if (loyaltyTier === "Platinum") tripsBooked = 28 + (seed % 15);
+  else if (loyaltyTier === "Gold") tripsBooked = 14 + (seed % 10);
+  else if (loyaltyTier === "Silver") tripsBooked = 8 + (seed % 6);
+
+  // Home airport from context
+  let homeAirport = "MSP";
+  const destMatch = ctx.match(/MSP[→\s]+([A-Z]{3})/);
+  if (destMatch) homeAirport = destMatch[1]; // Destination is where they're going — home is where they started... keep MSP as origin
+
+  // Determine tags
+  const tags: string[] = ["Storm Disruption"];
+  if (loyaltyTier !== "Standard") tags.unshift(loyaltyTier);
+  if (lctx.includes("wheelchair") || lctx.includes("accessible") || lctx.includes("spinal")) tags.push("Accessibility");
+  if (lctx.includes("unaccompanied") || lctx.includes("minor")) tags.push("UM Program");
+  if (lctx.includes("medical") || lctx.includes("pregnant") || lctx.includes("medication") || lctx.includes("surgeon") || lctx.includes("nurse") || lctx.includes("hospital")) tags.push("Medical Priority");
+  if (lctx.includes("corporate") || lctx.includes("group")) tags.push("Corporate Account");
+  if (lctx.includes("visa") || lctx.includes("international")) tags.push("Visa Sensitive");
+
+  return {
+    department,
+    tenureYears,
+    totalAUM: `${loyaltyPoints.toLocaleString()} pts`,
+    financialReadiness: 0,
+    financialAdvisor: "—",
+    advisorTitle: "—",
+    tags,
+    fraudRiskScore: 0,
+    priorDisputeCount: 0,
+    cardBlocked: false,
+    isTravelProfile: true,
+    tripsBooked,
+    loyaltyTier,
+    loyaltyPoints,
+    homeAirport,
+    travelType,
+  };
+}
+
+// ── Dynamic customer history builder ──────────────────────────────────────────
+// Generates realistic travel-history timeline items based on the assignment context
+// so that the "Customer History" tab is populated for every queue case.
+
+function buildDynamicCustomerHistory(assignment: StaticAssignment): CustomerHistoryItem[] {
+  const ctx = assignment.customerContext;
+  const lctx = ctx.toLowerCase();
+  const name = assignment.name;
+  const firstName = name.split(" ")[0] ?? name;
+  const id = assignment.customerRecordId ?? assignment.customerId;
+
+  // Deterministic seed from name
+  let seed = 0;
+  for (let i = 0; i < name.length; i++) seed = (seed * 31 + name.charCodeAt(i)) & 0x7fffffff;
+
+  // Extract flight reference and route from context
+  const flightMatch = ctx.match(/VY-\d+/);
+  const flightRef = flightMatch?.[0] ?? "VY-" + (1000 + (seed % 9000));
+  const routeMatch = ctx.match(/([A-Z]{3})[→\s]+([A-Z]{3})/);
+  const origin = routeMatch?.[1] ?? "MSP";
+  const destination = routeMatch?.[2] ?? "SFO";
+
+  // Build loyalty tier from context (same logic as buildDynamicProfile)
+  let loyaltyTier = "Standard";
+  if (lctx.includes("diamond")) loyaltyTier = "Diamond";
+  else if (lctx.includes("platinum")) loyaltyTier = "Platinum";
+  else if (lctx.includes("gold")) loyaltyTier = "Gold";
+  else if (lctx.includes("loyalty") || lctx.includes("miles")) loyaltyTier = "Silver";
+
+  // Determine tenure (same as buildDynamicProfile)
+  let tenureYears = 2;
+  if (loyaltyTier === "Diamond") tenureYears = 12;
+  else if (loyaltyTier === "Platinum") tenureYears = 8;
+  else if (loyaltyTier === "Gold") tenureYears = 5;
+  else if (loyaltyTier === "Silver") tenureYears = 4;
+  else if (lctx.includes("first") || lctx.includes("newlywed") || lctx.includes("student")) tenureYears = 1;
+  else tenureYears = (seed % 6) + 1;
+
+  const items: CustomerHistoryItem[] = [];
+  let itemIdx = 0;
+
+  // ── 1. Today: Storm-disrupted flight (always present) ──────────────────────
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: `Flight ${flightRef} ${origin}→${destination} canceled`,
+    timestamp: "Today · 6:12 AM",
+    detail: `${firstName}'s flight ${flightRef} from ${origin} to ${destination} was canceled due to the winter storm affecting Minneapolis–Saint Paul. ${firstName} was automatically placed in the rebooking queue.`,
+    dot: "red",
+    type: "system",
+    phase: "Current Disruption",
+  });
+
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: `${firstName} contacted Voyager support`,
+    timestamp: "Today · 10:24 AM",
+    detail: `${firstName} reached out via ${assignment.channel} regarding the disrupted travel plans. Case assigned to queue.`,
+    dot: "orange",
+  });
+
+  // ── 2. Yesterday / recent: Pre-trip activity ──────────────────────────────
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: "Online check-in completed",
+    timestamp: "Yesterday · 3:45 PM",
+    detail: `${firstName} completed online check-in for flight ${flightRef} and selected seat ${seed % 6 + 14}${["A", "B", "C", "D", "E", "F"][seed % 6]}.`,
+    dot: "green",
+    type: "web",
+  });
+
+  // Baggage-related history if context mentions baggage
+  if (lctx.includes("bag") || lctx.includes("luggage") || lctx.includes("checked")) {
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: "Extra baggage purchased",
+      timestamp: "Yesterday · 3:48 PM",
+      detail: `${firstName} purchased additional checked baggage allowance (+1 bag, 23 kg) for $35 via the Voyager app.`,
+      dot: "gray",
+      type: "purchase",
+    });
+  }
+
+  // Meal or allergy-related
+  if (lctx.includes("allergy") || lctx.includes("allergen") || lctx.includes("meal") || lctx.includes("dietary")) {
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: "Special meal request submitted",
+      timestamp: "Yesterday · 4:02 PM",
+      detail: `${firstName} submitted a special meal request (allergen-free) for flight ${flightRef} through the Voyager website.`,
+      dot: "gray",
+      type: "web",
+    });
+  }
+
+  // Seat change if premium
+  if (lctx.includes("premium") || lctx.includes("first-class") || lctx.includes("upgrade") || lctx.includes("business")) {
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: "Seat upgrade purchased",
+      timestamp: seed % 2 === 0 ? "2 days ago · 11:20 AM" : "3 days ago · 9:15 AM",
+      detail: `${firstName} upgraded from economy to premium economy for an additional $${180 + (seed % 120)} on flight ${flightRef}.`,
+      dot: "purple",
+      type: "purchase",
+    });
+  }
+
+  // ── 3. Booking event (1-4 weeks ago) ──────────────────────────────────────
+  const bookingWeeks = Math.max(1, (seed % 4) + 1);
+  const bookingDate = bookingWeeks === 1 ? "1 week ago" : `${bookingWeeks} weeks ago`;
+
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: `Flight ${flightRef} booked`,
+    timestamp: `${bookingDate} · ${9 + (seed % 3)}:${(seed % 60).toString().padStart(2, "0")} AM`,
+    detail: `${firstName} booked flight ${flightRef} ${origin}→${destination}${lctx.includes("connecting") || lctx.includes("connection") ? " (connecting itinerary)" : ""} via the Voyager website. Booking confirmation sent to email.`,
+    dot: "green",
+    type: "purchase",
+  });
+
+  // Hotel booking if context mentions hotel, resort, accommodation
+  if (lctx.includes("hotel") || lctx.includes("resort") || lctx.includes("accommodation") || lctx.includes("all-inclusive")) {
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: "Hotel reservation added to trip",
+      timestamp: `${bookingDate} · ${10 + (seed % 2)}:${((seed + 15) % 60).toString().padStart(2, "0")} AM`,
+      detail: `${firstName} added a hotel reservation to the trip itinerary through the Voyager travel bundle. Confirmation sent.`,
+      dot: "green",
+    });
+  }
+
+  // ── 4. Browsing / research activity (before booking) ─────────────────────
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: `Searched flights to ${destination}`,
+    timestamp: `${bookingWeeks + 1} weeks ago · ${2 + (seed % 5)}:${((seed + 30) % 60).toString().padStart(2, "0")} PM`,
+    detail: `${firstName} searched for flights from ${origin} to ${destination} on the Voyager website. Viewed ${3 + (seed % 5)} flight options and compared prices.`,
+    dot: "gray",
+    type: "search",
+  });
+
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: "Browsed travel deals page",
+    timestamp: `${bookingWeeks + 1} weeks ago · ${1 + (seed % 4)}:${((seed + 45) % 60).toString().padStart(2, "0")} PM`,
+    detail: `${firstName} visited the Voyager seasonal deals page and viewed destination guides for ${["Florida", "California", "Hawaii", "Colorado", "New York", "Texas", "Atlanta", "Boston"][seed % 8]}.`,
+    dot: "gray",
+  });
+
+  // ── 5. Prior trip history (older) ─────────────────────────────────────────
+  const monthsAgo = 2 + (seed % 4);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const priorMonth = months[(12 + 4 - monthsAgo) % 12]; // roughly months before May 2026
+  const priorYear = monthsAgo > 4 ? "2025" : "2026";
+
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: "Previous trip completed",
+    timestamp: `${priorMonth} ${8 + (seed % 20)}, ${priorYear} · 6:30 PM`,
+    detail: `${firstName} completed a round-trip flight ${["MSP→LAX→MSP", "MSP→JFK→MSP", "MSP→ORD→MSP", "MSP→DEN→MSP", "MSP→ATL→MSP", "MSP→SEA→MSP", "MSP→MIA→MSP", "MSP→SFO→MSP"][seed % 8]}. Trip rated 4.${seed % 5 + 5}/5 in post-trip survey.`,
+    dot: "green",
+    type: "shipping",
+  });
+
+  // Prior support interaction for loyalty members
+  if (loyaltyTier !== "Standard") {
+    const supportMonth = months[(12 + 4 - monthsAgo - 2) % 12];
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: loyaltyTier === "Diamond" || loyaltyTier === "Platinum"
+        ? `Upgraded to ${loyaltyTier} tier`
+        : `Earned ${loyaltyTier} loyalty status`,
+      timestamp: `${supportMonth} 1, ${tenureYears > 2 ? "2025" : "2024"} · 12:00 PM`,
+      detail: `${firstName} reached ${loyaltyTier} tier in the Voyager Horizons loyalty program based on qualifying flights and spending.`,
+      dot: "purple",
+      type: "registration",
+    });
+  }
+
+  // Medical / accessibility note if relevant
+  if (lctx.includes("wheelchair") || lctx.includes("accessible") || lctx.includes("spinal") || lctx.includes("cpap") || lctx.includes("medication") || lctx.includes("medical") || lctx.includes("pregnant") || lctx.includes("autistic") || lctx.includes("diabetic") || lctx.includes("transplant")) {
+    items.push({
+      id: `${id}-h${++itemIdx}`,
+      title: "Special assistance profile updated",
+      timestamp: `${priorMonth} ${1 + (seed % 10)}, ${priorYear} · 10:15 AM`,
+      detail: `${firstName}'s travel profile was updated with special assistance requirements. Preferences saved for future bookings.`,
+      dot: "blue",
+      type: "registration",
+    });
+  }
+
+  // ── 6. Account creation ───────────────────────────────────────────────────
+  const joinYear = 2026 - tenureYears;
+  items.push({
+    id: `${id}-h${++itemIdx}`,
+    title: "Voyager account created",
+    timestamp: `${months[(seed + 3) % 12]} ${1 + (seed % 28)}, ${joinYear} · ${9 + (seed % 3)}:00 AM`,
+    detail: `${firstName} created a Voyager Horizons account and enrolled in the loyalty program. Welcome bonus of 5,000 points credited.`,
+    dot: "gray",
+    type: "registration",
+  });
+
+  return items;
+}
+
+function buildDynamicCustomerRecord(assignment: StaticAssignment): CustomerSeedRecord {
+  const nameParts = assignment.name.split(" ").filter(Boolean);
+  const initials = nameParts.map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const firstName = nameParts[0] ?? assignment.name;
+
+  // Extract flight info from preview/context for natural conversation messages
+  const flightMatch = assignment.preview.match(/VY-\d+/) ?? assignment.customerContext.match(/VY-\d+/);
+  const flightRef = flightMatch?.[0] ?? "your flight";
+  const routeMatch = assignment.customerContext.match(/([A-Z]{3})[→\s]+([A-Z]{3})/);
+  const origin = routeMatch?.[1] ?? "MSP";
+  const destination = routeMatch?.[2] ?? "";
+
+  // Build contextual conversation messages from the case details
+  const customerOpener = buildCustomerOpener(assignment, flightRef, origin, destination);
+  const botResponse = buildBotResponse(assignment, firstName, flightRef);
+  const customerFollowup = buildCustomerFollowup(assignment);
+
+  const channelLabel = assignment.channel === "sms" ? "SMS"
+    : assignment.channel === "whatsapp" ? "WhatsApp"
+    : assignment.channel.charAt(0).toUpperCase() + assignment.channel.slice(1);
+
+  const baseMessages: ConversationMessage[] = [
+    { id: 1, role: "customer", content: customerOpener, time: "10:24 AM" },
+    { id: 2, role: "agent", content: botResponse, time: "10:25 AM" },
+    { id: 3, role: "customer", content: customerFollowup, time: "10:26 AM", sentiment: "frustrated" as const },
+  ];
+
+  const makeChannelConversation = (label: string, timelineLabel: string) => ({
+    label,
+    timelineLabel,
+    draft: "",
+    messages: baseMessages,
+  });
+
+  // Build rich profile and customer snapshot from the assignment context
+  const profile = buildDynamicProfile(assignment.customerContext, assignment.name);
+  const customerSnapshot = buildCustomerSnapshot(assignment.customerContext, assignment.name, assignment.caseType);
+
+  // Determine pronoun from context
+  let pronoun: "she" | "he" | "they" = "they";
+  const lctx = assignment.customerContext.toLowerCase();
+  if (lctx.includes(" she ") || lctx.includes(" her ") || lctx.includes("pregnant") || lctx.includes("dorothy") || lctx.includes("wife") || lctx.includes("mother")) {
+    pronoun = "she";
+  } else if (lctx.includes(" he ") || lctx.includes(" his ") || lctx.includes("husband") || lctx.includes("father") || lctx.includes(" him ")) {
+    pronoun = "he";
+  }
+
+  return {
+    id: assignment.customerRecordId ?? assignment.customerId,
+    initials,
+    name: assignment.name,
+    customerId: assignment.customerId,
+    lastUpdated: new Date().toLocaleString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }),
+    profile,
+    conversationTopics: [assignment.preview],
+    contact: {
+      email: `${firstName.toLowerCase()}.${(nameParts[1] ?? "customer").toLowerCase()}@email.com`,
+      phone: "(612) 555-0000",
+      address: { street: "—", city: "Minneapolis", state: "MN", zip: "55111", country: "US" },
+    },
+    accounts: [],
+    overview: {
+      contactNumber: "(612) 555-0000",
+      assignedAgent: "Unassigned",
+      pronoun,
+      lastContactTime: "Today, 10:24 AM",
+      address: "Minneapolis–Saint Paul International Airport (MSP)",
+    },
+    interactionTimeline: [
+      {
+        id: `${assignment.customerRecordId}-storm`,
+        title: "Winter storm disruption",
+        timestamp: "Today · 6:00 AM",
+        detail: "Major winter storm hit Minneapolis overnight. Customer's travel plans disrupted.",
+        tone: "critical" as const,
+        sortOrder: 1,
+      },
+      {
+        id: `${assignment.customerRecordId}-contact`,
+        title: `Customer contacted Voyager via ${channelLabel}`,
+        timestamp: "Today · 10:24 AM",
+        detail: assignment.preview,
+        tone: "default" as const,
+        sortOrder: 2,
+      },
+      {
+        id: `${assignment.customerRecordId}-ai`,
+        title: `${assignment.botType} began triage`,
+        timestamp: "Today · 10:25 AM",
+        detail: assignment.aiOverview.actions[0] ?? "AI assistant began reviewing the customer's situation.",
+        tone: "info" as const,
+        sortOrder: 3,
+      },
+    ],
+    customerHistory: buildDynamicCustomerHistory(assignment),
+    queue: {
+      time: assignment.waitTime,
+      preview: assignment.preview,
+      priority: assignment.priority,
+      priorityClassName: assignment.priority === "Critical" ? "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]"
+        : assignment.priority === "High" ? "border-[#FFB800] bg-[#FFF6E0] text-[#A37A00]"
+        : assignment.priority === "Medium" ? "border-[#BFDBFE] bg-[#EBF4FD] text-[#166CCA]"
+        : "border-[#24943E] bg-[#EFFBF1] text-[#208337]",
+      badgeColor: assignment.priority === "Critical" ? "#E53935"
+        : assignment.priority === "High" ? "#FFB800"
+        : assignment.priority === "Medium" ? "#166CCA"
+        : "#208337",
+      icon: assignment.channel === "voice" ? "phone" as const
+        : assignment.channel === "email" ? "clipboardList" as const
+        : "messageSquare" as const,
+      isActive: false,
+      createdAt: "Today, 10:24 AM",
+      updatedAt: "Today, 10:24 AM",
+    },
+    conversations: {
+      chat: makeChannelConversation("Chat", "Web chat · Today, 10:24 AM"),
+      sms: makeChannelConversation("SMS", "SMS · Today, 10:24 AM"),
+      whatsapp: makeChannelConversation("WhatsApp", "WhatsApp · Today, 10:24 AM"),
+      email: makeChannelConversation("Email", "Email · Today, 10:24 AM"),
+    },
+    escalationResponses: [buildEscalationResponse(assignment, firstName)],
+    customerSnapshot,
+  };
+}
+
+function buildCustomerOpener(assignment: StaticAssignment, flightRef: string, origin: string, destination: string): string {
+  const caseType = assignment.caseType;
+  const route = destination ? `${origin} to ${destination}` : `out of ${origin}`;
+
+  if (caseType === "Flight Disruption" || caseType === "Rebooking Request") {
+    return `Hi, my flight ${flightRef} from ${route} was canceled because of the storm and I need help getting rebooked as soon as possible.`;
+  }
+  if (caseType === "Accommodation Request") {
+    return `Hi, I'm stranded at the airport after my flight ${flightRef} was canceled. I need help finding a hotel for tonight — the gate agents said to contact you.`;
+  }
+  if (caseType === "Baggage Issue") {
+    return `Hi, my bags were put on a different flight after ${flightRef} was canceled and rerouted. I have no idea where my luggage is right now.`;
+  }
+  if (caseType === "Refund Request" || caseType === "Compensation Claim" || caseType === "Billing Dispute") {
+    return `Hi, my flight ${flightRef} was canceled due to the storm and I'd like to request a refund. I've been waiting at the airport for hours with no resolution.`;
+  }
+  if (caseType === "Service Outage") {
+    return `Hi, I've been trying to rebook online but the website and app keep crashing. I can't get through to anyone and my flight ${flightRef} was canceled hours ago.`;
+  }
+  // Generic fallback
+  return `Hi, I need help — my travel plans have been completely disrupted by the Minneapolis storm and I'm not sure what to do next.`;
+}
+
+function buildBotResponse(assignment: StaticAssignment, firstName: string, flightRef: string): string {
+  const botName = assignment.botType;
+  const firstAction = assignment.aiOverview.actions[0] ?? "";
+
+  if (firstAction) {
+    // Use the first AI action as a natural response, slightly rephrased
+    return `I'm sorry about the disruption, ${firstName}. I've been looking into your situation — ${firstAction.charAt(0).toLowerCase()}${firstAction.slice(1).replace(/\.$/, "")}. Let me see what options are available.`;
+  }
+  return `I'm sorry about the disruption, ${firstName}. I'm reviewing your booking for ${flightRef} now and checking available alternatives.`;
+}
+
+function buildCustomerFollowup(assignment: StaticAssignment): string {
+  const context = assignment.customerContext.toLowerCase();
+
+  if (context.includes("infant") || context.includes("baby") || context.includes("child") || context.includes("family")) {
+    return "I appreciate the help, but I have kids with me and we really can't wait much longer. Is there someone who can handle this directly?";
+  }
+  if (context.includes("medical") || context.includes("medication") || context.includes("wheelchair") || context.includes("pregnant")) {
+    return "Thank you, but this is a medical situation and I really need to speak with someone who can prioritize this. Time is critical.";
+  }
+  if (context.includes("business") || context.includes("meeting") || context.includes("presentation") || context.includes("board")) {
+    return "I understand you're working on it, but I have a critical business commitment I cannot miss. Can I speak with a specialist who can expedite this?";
+  }
+  if (context.includes("vip") || context.includes("loyalty") || context.includes("gold") || context.includes("platinum")) {
+    return "I've been a loyal customer for years and this is the third time today I've been told to wait. I need this escalated to someone who can actually resolve it.";
+  }
+  if (context.includes("unaccompanied") || context.includes("minor")) {
+    return "This involves an unaccompanied child and I'm extremely worried. Please connect me with someone who can take responsibility for this right now.";
+  }
+  if (context.includes("honeymoon") || context.includes("wedding") || context.includes("anniversary")) {
+    return "We've been planning this trip for months and everything is falling apart. Can someone help us figure out an alternative before we lose our reservations?";
+  }
+  // Generic frustrated follow-up
+  return "I've been waiting for hours and I really need to speak with someone who can help resolve this. The automated options aren't working for my situation.";
+}
+
+function buildEscalationResponse(assignment: StaticAssignment, firstName: string): string {
+  const caseType = assignment.caseType;
+  const nextStep = assignment.aiOverview.nextSteps[0] ?? "";
+  const flightMatch = assignment.customerContext.match(/VY-\d+/) ?? assignment.preview.match(/VY-\d+/);
+  const flightRef = flightMatch?.[0] ?? "your flight";
+
+  if (caseType === "Flight Disruption" || caseType === "Rebooking Request") {
+    return `${firstName}, I've reviewed your booking and found an available alternate route. I'm holding the seat for you now and will send the updated itinerary details momentarily. We'll make sure you get where you need to go.`;
+  }
+  if (caseType === "Accommodation Request") {
+    return `${firstName}, I've secured a hotel room near the airport for tonight with complimentary shuttle service. I'm sending you the confirmation details and meal vouchers now. We'll get your rebooking sorted first thing in the morning.`;
+  }
+  if (caseType === "Baggage Issue") {
+    return `${firstName}, I've located your bags — they were rerouted and are currently at the connecting airport. I've arranged for them to be forwarded to your final destination on the next available flight, and I'll send you the tracking details now.`;
+  }
+  if (caseType === "Refund Request" || caseType === "Billing Dispute") {
+    return `${firstName}, I've processed your refund request for the canceled flight. The amount will be returned to your original payment method within 5-7 business days. I'm also sending you a travel credit for the inconvenience.`;
+  }
+  if (caseType === "Compensation Claim") {
+    return `${firstName}, I've reviewed your compensation claim and approved it based on the disruption details. I'm issuing a travel voucher and bonus loyalty miles to your account now, along with a written confirmation.`;
+  }
+  if (caseType === "Service Outage") {
+    return `${firstName}, I apologize for the system difficulties. I've completed your rebooking manually and you're confirmed on the next available flight. I'm sending your updated boarding pass and confirmation number now.`;
+  }
+  // Generic storm response
+  return `${firstName}, I've reviewed your situation and taken care of everything on our end. I'm sending you the updated details now — please check your email for the confirmation. Don't hesitate to reach out if you need anything else.`;
+}
+
+export function getCustomerRecord(customerId: string): CustomerSeedRecord {
+  // First check the explicit customer database (scenario customers + legacy records)
+  const dbRecord = customerDatabase.find((customer) => customer.id === customerId);
+  if (dbRecord) return dbRecord;
+
+  // Check the dynamic cache (previously generated storm/fallback records)
+  const cached = dynamicRecordCache.get(customerId);
+  if (cached) return cached;
+
+  // Try to build a dynamic record from the matching static assignment
+  const assignment = staticAssignments.find(
+    (s) => s.customerRecordId === customerId || s.customerId === customerId,
+  );
+  if (assignment) {
+    const record = buildDynamicCustomerRecord(assignment);
+    dynamicRecordCache.set(customerId, record);
+    return record;
+  }
+
+  // Absolute fallback — should not reach here for known queue items
+  return customerDatabase[0];
 }
 
 export function getRandomizedCustomerInteractionTimeline(customerId: string, count = 4) {

@@ -38,6 +38,7 @@ import ConversationPanel from "@/components/ConversationPanel";
 import { EscalationTimer } from "@/components/EscalationTimer";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { CopilotResponseCard } from "@/components/CopilotResponseCard";
+import { trendItems, type TrendItem } from "@/lib/trend-database";
 import {
   CURRENT_AGENT_NAME,
   priorityStyles,
@@ -587,6 +588,131 @@ type RowData = StaticAssignment & {
   onTakeoverAccept: (handoffConversation: SharedConversationData) => void;
 };
 
+// ─── TrendDetailModal ─────────────────────────────────────────────────────────
+
+function TrendDetailModal({
+  trend,
+  currentIndex,
+  total,
+  onClose,
+  onNavigate,
+}: {
+  trend: TrendItem;
+  currentIndex: number;
+  total: number;
+  onClose: () => void;
+  onNavigate: (index: number) => void;
+}) {
+  const [isClosing, setIsClosing] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 180);
+  }, [isClosing, onClose]);
+
+  // Scroll body back to top when navigating between trends
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [trend.id]);
+
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < total - 1;
+
+  const severityBadge = {
+    critical: "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]",
+    high: "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]",
+    moderate: "border-[#BFDBFE] bg-[#EFF6FF] text-[#1E40AF]",
+    info: "border-[#D1D5DB] bg-[#F9FAFB] text-[#374151]",
+  }[trend.severity];
+
+  const severityLabel = {
+    critical: "Critical",
+    high: "High",
+    moderate: "Moderate",
+    info: "Info",
+  }[trend.severity];
+
+  return createPortal(
+    <div
+      className={`fixed inset-0 z-[99999999] flex items-center justify-center bg-white/60 backdrop-blur-[2px] px-4 ${isClosing ? "animate-backdrop-fade-out" : ""}`}
+      onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+    >
+      <div className={`w-full max-w-xl max-h-[85vh] rounded-2xl bg-white shadow-[0_24px_64px_rgba(0,0,0,0.18)] overflow-hidden flex flex-col ${isClosing ? "animate-modal-fade-out" : "animate-in fade-in slide-in-from-bottom-4 duration-300"}`}>
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-5 pb-4 border-b border-[#F2F4F7] shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EBF4FD]">
+              <TrendingUp className="h-[18px] w-[18px] text-[#166CCA]" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-[15px] font-semibold text-[#101828] leading-tight">{trend.modalTitle}</p>
+                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold border", severityBadge)}>
+                  {severityLabel}
+                </span>
+              </div>
+              <p className="text-[12px] text-[#667085] mt-0.5">Updated {trend.updatedAt}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[#98A2B3] transition-colors hover:bg-[#F2F4F7] hover:text-[#344054]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {/* Body */}
+        <div ref={bodyRef} className="flex-1 overflow-y-auto px-6 py-5">
+          <div dangerouslySetInnerHTML={{ __html: trend.modalBody }} />
+        </div>
+        {/* Footer — prev/next + close */}
+        <div className="shrink-0 border-t border-[#F2F4F7] px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!hasPrev}
+              onClick={() => onNavigate(currentIndex - 1)}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
+                hasPrev
+                  ? "border-[#E4E7EC] text-[#344054] hover:bg-[#F2F4F7]"
+                  : "border-[#F2F4F7] text-[#D0D5DD] cursor-not-allowed",
+              )}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-[12px] text-[#667085] tabular-nums">{currentIndex + 1} / {total}</span>
+            <button
+              type="button"
+              disabled={!hasNext}
+              onClick={() => onNavigate(currentIndex + 1)}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
+                hasNext
+                  ? "border-[#E4E7EC] text-[#344054] hover:bg-[#F2F4F7]"
+                  : "border-[#F2F4F7] text-[#D0D5DD] cursor-not-allowed",
+              )}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="rounded-lg bg-[#166CCA] px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[#1260B0]"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 // ─── BulkResponseModal ────────────────────────────────────────────────────────
 
 
@@ -752,6 +878,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [isResolutionOpen, setIsResolutionOpen] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
@@ -860,6 +987,52 @@ function QueueCard({ caseData }: { caseData: RowData }) {
             <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
           </div>
         )}
+        {/* Customer Profile — collapsible, below context */}
+        {(() => {
+          const rec = getCustomerRecord(caseData.customerRecordId ?? "");
+          if (!rec?.profile) return null;
+          const p = rec.profile;
+          return (
+            <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+              <button type="button" onClick={() => setIsProfileOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isProfileOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Identity + Balance row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
+                          {caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-[#111827] leading-tight truncate">{caseData.name}</p>
+                          <p className="text-[11px] text-[#667085] leading-snug">{p.department} · {p.tenureYears} yr{p.tenureYears !== 1 ? "s" : ""} tenure</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{p.totalAUM}</p>
+                      </div>
+                    </div>
+                    {/* Tags */}
+                    {p.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.tags.map((tag) => (
+                          <span key={tag} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Attempted Resolution */}
         <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
@@ -957,6 +1130,7 @@ function QueueCard({ caseData }: { caseData: RowData }) {
 function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: boolean }) {
   const { pushTransferredToast } = useLayoutContext();
   const [isResolutionOpen, setIsResolutionOpen] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
@@ -1051,6 +1225,50 @@ function MonitorCard({ caseData, isActive }: { caseData: RowData; isActive: bool
                 <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
               </div>
             )}
+            {/* Customer Profile — collapsible, below context */}
+            {(() => {
+              const rec = getCustomerRecord(caseData.customerRecordId ?? "");
+              if (!rec?.profile) return null;
+              const p = rec.profile;
+              return (
+                <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+                  <button type="button" onClick={() => setIsProfileOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                    <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isProfileOpen && "rotate-180")} />
+                  </button>
+                  <div className={cn("grid transition-all duration-200 ease-out", isProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                    <div className="overflow-hidden">
+                      <div className="px-4 pb-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
+                              {caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-[#111827] leading-tight truncate">{caseData.name}</p>
+                              <p className="text-[11px] text-[#667085] leading-snug">{p.department} · {p.tenureYears} yr{p.tenureYears !== 1 ? "s" : ""} tenure</p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                            <p className="text-[13px] font-semibold text-[#111827]">{p.totalAUM}</p>
+                          </div>
+                        </div>
+                        {p.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {p.tags.map((tag) => (
+                              <span key={tag} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
               <button type="button" onClick={() => setIsResolutionOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Snapshot</p>
@@ -1310,6 +1528,7 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
   const [transferTriggerRect, setTransferTriggerRect] = useState<DOMRect | null>(null);
   const transferBtnRef = useRef<HTMLButtonElement>(null);
   const [isAttemptedResolutionOpen, setIsAttemptedResolutionOpen] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(true);
   const [copilotQuery, setCopilotQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [copilotPhase, setCopilotPhase] = useState<"idle" | "thinking" | "done">("idle");
@@ -1452,6 +1671,51 @@ function CaseDetailPanel({ caseData, onClose }: { caseData: RowData; onClose: ()
             <p className="text-[12px] leading-5 text-[#344054]">{caseData.customerContext}</p>
           </div>
         )}
+
+        {/* Customer Profile — collapsible, below context */}
+        {(() => {
+          const rec = getCustomerRecord(caseData.customerRecordId ?? "");
+          if (!rec?.profile) return null;
+          const p = rec.profile;
+          return (
+            <div className="rounded-xl border border-[#E4E7EC] bg-white overflow-hidden">
+              <button type="button" onClick={() => setIsProfileOpen((v) => !v)} className="flex w-full items-center justify-between px-4 py-3 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">Customer Profile</p>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-[#1260B0] transition-transform duration-200", isProfileOpen && "rotate-180")} />
+              </button>
+              <div className={cn("grid transition-all duration-200 ease-out", isProfileOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#C5DEF5] text-[13px] font-bold text-[#1260B0]">
+                          {caseData.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-[#111827] leading-tight truncate">{caseData.name}</p>
+                          <p className="text-[11px] text-[#667085] leading-snug">{p.department} · {p.tenureYears} yr{p.tenureYears !== 1 ? "s" : ""} tenure</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] text-[#98A2B3]">Balance</p>
+                        <p className="text-[13px] font-semibold text-[#111827]">{p.totalAUM}</p>
+                      </div>
+                    </div>
+                    {p.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.tags.map((tag) => (
+                          <span key={tag} className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-[#EBF4FD] text-[#166CCA] border border-[#BFDBFE]">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Attempted Resolution */}
         <div className="rounded-xl border border-[#BFDBFE] bg-white overflow-hidden">
@@ -1768,9 +2032,9 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
   const navigate = useNavigate();
   const peakEscalationCountRef = useRef(0);
   const [homeTrendSlide, setHomeTrendSlide] = useState(0);
-  const homeTrendSlideCount = 5;
+  const [activeTrendIndex, setActiveTrendIndex] = useState<number | null>(null);
   useEffect(() => {
-    const id = setInterval(() => setHomeTrendSlide((s) => (s + 1) % homeTrendSlideCount), 8000);
+    const id = setInterval(() => setHomeTrendSlide((s) => (s + 1) % trendItems.length), 8000);
     return () => clearInterval(id);
   }, []);
   const [activePageTab, setActivePageTab] = useState<DeskPageTab>("queue");
@@ -2360,18 +2624,18 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
             <div className="w-full max-w-4xl">
               <h2 className="text-xl font-semibold text-[#101828] dark:text-[#E2E8F0]">
                 {escalationCount > 1
-                  ? `You have ${escalationCount} escalations, Jeff`
+                  ? `You have ${escalationCount} escalations, Sarah`
                   : escalationCount === 1
-                    ? "You have an escalation, Jeff"
+                    ? "You have an escalation, Sarah"
                     : hadEscalations
                       ? lastDismissedCase?.outcome === "transferred"
-                        ? `Great handoff, Jeff`
+                        ? `Great handoff, Sarah`
                         : lastDismissedCase?.outcome === "resolved"
-                          ? `Well handled, Jeff`
-                          : "Nice work, Jeff"
+                          ? `Well handled, Sarah`
+                          : "Nice work, Sarah"
                       : activeLeadNotifications.length > 0
-                        ? "You have a new Lead, Jeff"
-                        : "Good morning, Jeff"}
+                        ? "You have a new Lead, Sarah"
+                        : "Good morning, Sarah"}
               </h2>
               <p className="mt-0.5 text-[13px] text-[#667085] dark:text-[#8898AB]">
                 {escalationCount > 0
@@ -2705,41 +2969,53 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
             </div>
 
             {/* Trend Detection card */}
-            {(() => {
-              const trendSlides = [
-                "Login failure rates are up 18% compared to yesterday. Most failures are occurring between 08:00–10:00. Consider pre-emptively routing authentication cases to your fastest agents during this window.",
-                "Average handle time for billing cases has dropped by 22 seconds this week. Your team is resolving payment disputes faster — keep reinforcing the current approach.",
-                "3 cases have been waiting over 45 minutes without agent contact. Prioritise these immediately to avoid SLA breaches and escalation risk.",
-                "Customer satisfaction scores for chat interactions are trending 8% higher than voice this month. Consider channel-routing lower-complexity cases to chat where possible.",
-                "Peak case volume typically hits between 11:00–13:00. Ensure full agent coverage during this window to prevent queue build-up.",
-              ];
-              return (
-                <div className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col">
-                  <div className="mb-2.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
-                  </div>
-                  <p
-                    key={homeTrendSlide}
-                    className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] flex-1 min-h-[72px] animate-in fade-in slide-in-from-bottom-2 duration-300"
-                  >
-                    {trendSlides[homeTrendSlide]}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-3">
-                    {trendSlides.map((_, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setHomeTrendSlide(i)}
-                        className={cn(
-                          "rounded-full transition-all duration-200",
-                          i === homeTrendSlide ? "h-1.5 w-5 bg-[#166CCA]" : "h-1.5 w-1.5 bg-[#D0D5DD] dark:bg-[#2A3448] hover:bg-[#BFDBFE]",
-                        )}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
+            <button
+              type="button"
+              onClick={() => setActiveTrendIndex(homeTrendSlide)}
+              className="rounded-xl border border-border bg-white dark:bg-[#0F1629] dark:border-[#1E293B] shadow-sm p-4 flex flex-col text-left transition-colors hover:border-[#BFDBFE] hover:shadow-md cursor-pointer"
+            >
+              <div className="mb-2.5 flex items-center justify-between">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#98A2B3] dark:text-[#64748B]">Trend Detection</p>
+                {trendItems[homeTrendSlide] && (
+                  <span className={cn(
+                    "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-semibold border",
+                    trendItems[homeTrendSlide].severity === "critical" ? "border-[#FECACA] bg-[#FEF2F2] text-[#991B1B]"
+                      : trendItems[homeTrendSlide].severity === "high" ? "border-[#FDE68A] bg-[#FFFBEB] text-[#92400E]"
+                      : "border-[#BFDBFE] bg-[#EFF6FF] text-[#1E40AF]",
+                  )}>
+                    {trendItems[homeTrendSlide].severity === "critical" ? "Critical" : trendItems[homeTrendSlide].severity === "high" ? "High" : "Moderate"}
+                  </span>
+                )}
+              </div>
+              <p
+                key={homeTrendSlide}
+                className="text-[12px] leading-[1.65] text-[#344054] dark:text-[#CBD5E1] flex-1 min-h-[72px] animate-in fade-in slide-in-from-bottom-2 duration-300"
+              >
+                {trendItems[homeTrendSlide]?.summary}
+              </p>
+              <div className="flex items-center gap-1.5 mt-3" onClick={(e) => e.stopPropagation()}>
+                {trendItems.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setHomeTrendSlide(i)}
+                    className={cn(
+                      "rounded-full transition-all duration-200",
+                      i === homeTrendSlide ? "h-1.5 w-5 bg-[#166CCA]" : "h-1.5 w-1.5 bg-[#D0D5DD] dark:bg-[#2A3448] hover:bg-[#BFDBFE]",
+                    )}
+                  />
+                ))}
+              </div>
+            </button>
+            {activeTrendIndex !== null && trendItems[activeTrendIndex] && (
+              <TrendDetailModal
+                trend={trendItems[activeTrendIndex]}
+                currentIndex={activeTrendIndex}
+                total={trendItems.length}
+                onClose={() => setActiveTrendIndex(null)}
+                onNavigate={(i) => { setActiveTrendIndex(i); setHomeTrendSlide(i); }}
+              />
+            )}
 
           </div>
 
@@ -2818,32 +3094,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
 
             </div>
 
-            {/* AI input bar — sticky to bottom of scroll area */}
-            <div className="sticky bottom-0 w-full max-w-4xl pt-3 pb-1">
-              <div className="rounded-xl border border-[#E4E7EC] bg-white/80 dark:bg-[#0F1629]/80 dark:border-[#1E293B] shadow-[0_-2px_16px_rgba(0,0,0,0.06)] transition-colors duration-150 hover:bg-white hover:border-[#D0D5DD] dark:hover:bg-[#0F1629] dark:hover:border-[#334155]">
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <Sparkles className="h-4 w-4 shrink-0 text-[#166CCA]" />
-                  <input
-                    type="text"
-                    placeholder="What would you like to do today?"
-                    className="flex-1 bg-transparent text-[13px] text-[#344054] dark:text-[#CBD5E1] placeholder:text-[#98A2B3] outline-none"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && e.currentTarget.value.trim()) {
-                        openCopilot();
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => openCopilot()}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#166CCA] text-white transition-colors hover:bg-[#1260B0]"
-                    aria-label="Ask AI"
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* AI input bar — hidden for now (may re-enable later) */}
 
           </div>
         );

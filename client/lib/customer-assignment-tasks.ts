@@ -55,50 +55,45 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
   },
 
   "noah patel": {
-    summary: "Noah is a low fraud risk customer experiencing a technical failure with a quarterly report export. Sentiment is mildly frustrated — this appears to be a timeout issue, not user error. Here are my suggested actions, or ask me for more assistance.",
+    summary: "Noah is a Business Travel customer stranded at MSP after VY-4012 was cancelled due to the winter storm. He has a critical client meeting in Chicago tomorrow morning. Atlas has identified three rebooking options — agent review needed to select the best route. Here are my suggested actions, or ask me for more assistance.",
     nextSteps: [
-      "Create ADP Ticket to log the quarterly export timeout and request a manual queue reset",
-      "Update Salesforce Record with the confirmed root cause — timeout, not a permissions error",
-      "Schedule Callback to verify the report generates successfully after the queue reset",
-      "Set Case to Resolved once Noah confirms the data export has completed",
+      "Rebook on Next Available Flight — VY-4055 departs MSP→ORD at 6:15 AM (first post-storm departure)",
+      "Map Quickest Route — ground transport via Amtrak or rental car as backup if morning flights are delayed",
+      "Issue Travel Voucher for meal and lounge access during the overnight wait at MSP",
+      "Update Itinerary Record with the new routing and any hotel accommodation details",
     ],
     suggestedActions: [
-      { id: "create-ticket", label: "Create ADP Ticket" },
-      { id: "update-salesforce", label: "Update Salesforce Record" },
-      { id: "callback", label: "Schedule Callback" },
-      { id: "set-resolved", label: "Set Case to Resolved" },
+      { id: "rebook-flight", label: "Rebook on Next Available Flight" },
+      { id: "map-route", label: "Map Quickest Route" },
+      { id: "issue-voucher", label: "Issue Travel Voucher" },
     ],
   },
 
   "olivia reed": {
-    summary: "Olivia is a low fraud risk customer who has contacted support twice for the same billing issue without resolution. Frustration level is high — a goodwill gesture alongside the fix is strongly recommended. Here are my suggested actions, or ask me for more assistance.",
+    summary: "Olivia's family vacation itinerary is disrupted — VY-2287 (MSP→MCO) was cancelled and her two children (ages 5 and 8) are tired and upset. She's been waiting 3 hours at MSP with no update. Frustration is high — prioritize a rebooking that keeps the family together and issue accommodation if no same-day flight is available. Here are my suggested actions, or ask me for more assistance.",
     nextSteps: [
-      "Update Salesforce Record with the corrected billing cycle and credit memo details",
-      "Send Discount Coupon as goodwill for the repeated billing issue and Olivia's frustration",
-      "Escalate to Supervisor if the credit cannot be issued at agent level",
-      "Set Case to Resolved once Olivia confirms the billing correction",
+      "Rebook on Next Available Flight — find a family-friendly option with adjacent seating to Orlando",
+      "Issue Hotel Voucher for overnight stay near MSP if no same-day flights are available",
+      "Issue Travel Voucher for meals and essentials for the family during the delay",
     ],
     suggestedActions: [
-      { id: "update-salesforce", label: "Update Salesforce Record" },
-      { id: "send-coupon", label: "Send Discount Coupon" },
-      { id: "escalate", label: "Escalate to Supervisor" },
-      { id: "set-resolved", label: "Set Case to Resolved" },
+      { id: "rebook-flight", label: "Rebook on Next Available Flight" },
+      { id: "issue-hotel", label: "Issue Hotel Voucher" },
+      { id: "issue-voucher", label: "Issue Travel Voucher" },
     ],
   },
 
   "ethan zhang": {
-    summary: "Ethan is a low fraud risk developer whose wire transfer was incorrectly blocked by a false positive on the fraud filter. Tone is professional and patient — expedite the override to keep trust. Here are my suggested actions, or ask me for more assistance.",
+    summary: "Ethan is a VIP Gold loyalty member whose connecting flight VY-3301 (MSP→SFO via DEN) was cancelled. He's requesting a direct reroute and has 84,000 loyalty points he'd like to use for an upgrade. Tone is professional but firm — VIP handling is expected. Here are my suggested actions, or ask me for more assistance.",
     nextSteps: [
-      "Escalate to Payments Team to manually clear the fraud filter false positive",
-      "Update Salesforce Record with the verification details and false positive finding",
-      "Create ADP Ticket to log the fraud filter override for compliance records",
-      "Set Case to Resolved once Ethan's wire transfer has been cleared",
+      "Rebook on Next Available Flight — prioritize direct MSP→SFO options for VIP Gold status",
+      "Map Quickest Route — check alternate hubs (ORD, DFW) for faster connections to SFO",
+      "Issue Travel Voucher for VIP lounge access and meal credit during the rebooking wait",
     ],
     suggestedActions: [
-      { id: "escalate", label: "Escalate to Supervisor" },
-      { id: "update-salesforce", label: "Update Salesforce Record" },
-      { id: "create-ticket", label: "Create ADP Ticket" },
-      { id: "set-resolved", label: "Set Case to Resolved" },
+      { id: "rebook-flight", label: "Rebook on Next Available Flight" },
+      { id: "map-route", label: "Map Quickest Route" },
+      { id: "issue-voucher", label: "Issue Travel Voucher" },
     ],
   },
 
@@ -180,13 +175,11 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
       "Update Salesforce Record with the corrected billing history and $12,600 credit memo",
       "Create ADP Ticket to escalate the billing ERP sync error to the engineering team",
       "Send Discount Coupon as goodwill compensation for three months of billing disruption",
-      "Set Case to Resolved once the credit is confirmed on Kevin's account",
     ],
     suggestedActions: [
       { id: "update-salesforce", label: "Update Salesforce Record" },
       { id: "create-ticket", label: "Create ADP Ticket" },
       { id: "send-coupon", label: "Send Discount Coupon" },
-      { id: "set-resolved", label: "Set Case to Resolved" },
     ],
   },
 

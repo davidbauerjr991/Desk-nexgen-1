@@ -128,7 +128,7 @@ import { getEscalationStart, recordEscalationStart } from "@/lib/escalation-time
 import { SCENARIO_CHANNEL } from "@/lib/scenario-channel";
 import type { AppMsg, CaseKey, ControllerMsg } from "@/lib/scenario-channel";
 import { toast } from "sonner";
-import { CURRENT_AGENT_NAME } from "@/lib/agent-roster";
+import { CURRENT_AGENT_NAME, CURRENT_AGENT_FIRST_NAME, CURRENT_AGENT_INITIALS } from "@/lib/agent-roster";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import {
   type FloatingPanelId,
@@ -5845,7 +5845,7 @@ function TerryTranscriptPanel({
             <div key={line.id} className={cn("flex flex-col gap-0.5", line.speaker === "agent" ? "items-end" : "items-start")}>
               <div className="flex items-center gap-1.5">
                 <span className={cn("text-[10px] font-semibold uppercase tracking-wide", line.speaker === "agent" ? "text-[#166CCA]" : "text-[#667085]")}>
-                  {line.speaker === "agent" ? "Jeff Comstock" : customerName}
+                  {line.speaker === "agent" ? CURRENT_AGENT_NAME : customerName}
                 </span>
                 <span className="text-[10px] text-[#98A2B3]">{formatElapsed(line.elapsed)}</span>
               </div>
@@ -6705,7 +6705,7 @@ function TranscriptPopunder({
                   <div key={line.id} className={cn("flex flex-col gap-0.5", line.speaker === "agent" ? "items-end" : "items-start")}>
                     <div className="flex items-center gap-1.5">
                       <span className={cn("text-[10px] font-semibold uppercase tracking-wide", line.speaker === "agent" ? "text-[#166CCA]" : "text-[#667085]")}>
-                        {line.speaker === "agent" ? "Jeff Comstock" : customerName}
+                        {line.speaker === "agent" ? CURRENT_AGENT_NAME : customerName}
                       </span>
                       <span className="text-[10px] text-[#98A2B3]">{formatElapsed(line.elapsed)}</span>
                     </div>
@@ -6891,7 +6891,7 @@ function DockedTranscriptPanel({
                       <div key={line.id} className={cn("flex flex-col gap-0.5", line.speaker === "agent" ? "items-end" : "items-start")}>
                         <div className="flex items-center gap-1.5">
                           <span className={cn("text-[10px] font-semibold uppercase tracking-wide", line.speaker === "agent" ? "text-[#166CCA]" : "text-[#667085]")}>
-                            {line.speaker === "agent" ? "Jeff Comstock" : customerName}
+                            {line.speaker === "agent" ? CURRENT_AGENT_NAME : customerName}
                           </span>
                           <span className="text-[10px] text-[#98A2B3]">{formatElapsed(line.elapsed)}</span>
                         </div>
@@ -7722,7 +7722,7 @@ function QueueAssignmentCard({
 // ─── Inline agent roster (for the Reject → Assign popover) ───────────────────
 
 const inlineAgents = [
-  { id: "a1", name: "Jeff Comstock",     initials: "JC", availability: "Available" as const, active: 2 },
+  { id: "a1", name: CURRENT_AGENT_NAME, initials: CURRENT_AGENT_INITIALS, availability: "Available" as const, active: 2 },
   { id: "a2", name: "Priya Mehra",    initials: "PM", availability: "Available" as const, active: 1 },
   { id: "a3", name: "Sam Torres",     initials: "ST", availability: "Available" as const, active: 3 },
   { id: "a4", name: "Kenji Watanabe", initials: "KW", availability: "In a Call" as const, active: 4 },
@@ -8689,7 +8689,7 @@ type NotifAgentAvailability = "Available" | "In a Call" | "Away" | "Offline";
 type NotifAgent = { id: string; name: string; initials: string; availability: NotifAgentAvailability; skills: string[]; activeCount: number };
 
 const notifAgentRoster: NotifAgent[] = [
-  { id: "agent-1", name: "Jeff Comstock",   initials: "JC", availability: "Available",  skills: ["Billing", "Account Management", "Escalations"],        activeCount: 2 },
+  { id: "agent-1", name: CURRENT_AGENT_NAME, initials: CURRENT_AGENT_INITIALS, availability: "Available",  skills: ["Billing", "Account Management", "Escalations"],        activeCount: 2 },
   { id: "agent-2", name: "Priya Mehra",     initials: "PM", availability: "Available",  skills: ["Technical Support", "API Integration", "Security"],    activeCount: 1 },
   { id: "agent-3", name: "Sam Torres",      initials: "ST", availability: "Available",  skills: ["Compliance", "Data Exports", "Contract Renewals"],     activeCount: 3 },
   { id: "agent-4", name: "Kenji Watanabe",  initials: "KW", availability: "In a Call", skills: ["Payments", "Fraud", "Wire Transfers"],                  activeCount: 4 },
@@ -9556,7 +9556,7 @@ function IncomingAssignmentCard({
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[#1260B0]">{item.label ?? "Aria"}</p>
                   </div>
                   <p className="text-[13px] font-medium leading-5 text-[#344054]">
-                    Wow! Great job, Jeff! Looks like we have another happy customer. I've updated the case to resolved!
+                    {`Wow! Great job, ${CURRENT_AGENT_FIRST_NAME}! Looks like we have another happy customer. I've updated the case to resolved!`}
                   </p>
                   {/* Case Status dropdown */}
                   <div className="relative mt-3">
@@ -10811,7 +10811,7 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
 
   // ── Generic matchers (not scenario-specific) ─────────────────────────────
 
-  // Fraud/takeover handoff — Jeff introducing himself
+  // Fraud/takeover handoff — Sarah introducing herself
   if (
     (normalizedMessage.includes("monitoring") || normalizedMessage.includes("been following") || normalizedMessage.includes("been watching") || normalizedMessage.includes("stepped in")) &&
     (normalizedMessage.includes("fraud") || normalizedMessage.includes("credit") || normalizedMessage.includes("protected") || normalizedMessage.includes("dispute") || normalizedMessage.includes("seriously"))
@@ -10820,10 +10820,10 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
   }
 
   if (
-    normalizedMessage.includes("i'm jeff") || normalizedMessage.includes("i am jeff") ||
-    normalizedMessage.includes("this is jeff") || normalizedMessage.includes("my name is jeff")
+    normalizedMessage.includes(`i'm ${CURRENT_AGENT_FIRST_NAME.toLowerCase()}`) || normalizedMessage.includes(`i am ${CURRENT_AGENT_FIRST_NAME.toLowerCase()}`) ||
+    normalizedMessage.includes(`this is ${CURRENT_AGENT_FIRST_NAME.toLowerCase()}`) || normalizedMessage.includes(`my name is ${CURRENT_AGENT_FIRST_NAME.toLowerCase()}`)
   ) {
-    return "Thank you so much, Jeff! I'm so glad you were able to help. I feel a lot better knowing it's being handled.";
+    return `Thank you so much, ${CURRENT_AGENT_FIRST_NAME}! I'm so glad you were able to help. I feel a lot better knowing it's being handled.`;
   }
 
   if (
@@ -11479,7 +11479,6 @@ export default function Layout({ children }: LayoutProps) {
   const fireJordanEscalation = useCallback(() => {
     if (escalationFired) return;
     escalationFired = true;
-    jordanFiredRef.current = true;
     fireScenarioEscalation("jordan", jordanFiredRef, "static-11");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -11487,7 +11486,6 @@ export default function Layout({ children }: LayoutProps) {
   const fireSofiaEscalation = useCallback(() => {
     if (escalation2Fired) return;
     escalation2Fired = true;
-    sofiaFiredRef.current = true;
     fireScenarioEscalation("sofia", sofiaFiredRef, "static-sofia");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -11495,7 +11493,6 @@ export default function Layout({ children }: LayoutProps) {
   const fireMarcusEscalation = useCallback(() => {
     if (escalation3Fired) return;
     escalation3Fired = true;
-    marcusFiredRef.current = true;
     fireScenarioEscalation("marcus", marcusFiredRef, "static-marcus");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -11504,7 +11501,6 @@ export default function Layout({ children }: LayoutProps) {
   const fireTerryEscalation = useCallback(() => {
     if (escalation4Fired) return;
     escalation4Fired = true;
-    terryFiredRef.current = true;
     fireScenarioEscalation("terry", terryFiredRef, "static-terry");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -11513,7 +11509,6 @@ export default function Layout({ children }: LayoutProps) {
   const fireElenaEscalation = useCallback(() => {
     if (escalation5Fired) return;
     escalation5Fired = true;
-    elenaFiredRef.current = true;
     fireScenarioEscalation("elena", elenaFiredRef, "static-elena");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -12564,7 +12559,7 @@ export default function Layout({ children }: LayoutProps) {
       if (transcriptCallStartRef.current === null) {
         transcriptCallStartRef.current = Date.now();
         transcriptScriptRef.current = isTerryCall ? TERRY_TRANSCRIPT_LINES : MOCK_TRANSCRIPT_LINES;
-        // For Terry, seed the greeting + Jeff's first response immediately on click.
+        // For Terry, seed the greeting + Sarah's first response immediately on click.
         // For other calls, reset to empty.
         if (!isTerryCall) {
           setTranscriptLines([]);
@@ -13610,7 +13605,7 @@ export default function Layout({ children }: LayoutProps) {
           botAvatarUrl: reviewBotAvatar,
           customerContext: reviewCtx,
           aiConfidence: data.aiConfidence ?? reviewSa?.aiConfidence ?? 78,
-          aiConfidenceReason: data.aiConfidenceReason ?? reviewSa?.aiConfidenceReason ?? "Based on 3 similar resolved cases and firmware documentation match.",
+          aiConfidenceReason: data.aiConfidenceReason ?? reviewSa?.aiConfidenceReason ?? "Based on similar resolved cases and available resolution data.",
           phase: "idle",
           ...(isTakeoverOnly ? { actionLabel: isLeadReview ? "Launch Call" : "Takeover" } : {}),
           onApprove: isTakeoverOnly ? () => {
@@ -13638,6 +13633,23 @@ export default function Layout({ children }: LayoutProps) {
 
             const ch = capturedChannel?.toLowerCase().includes("sms") ? "sms" as const : "chat" as const;
 
+            // Read the customer record's escalation response (data-driven, not hardcoded)
+            const approveCustomerRecord = getCustomerRecord(capturedCustomerRecordId);
+            const escalationResponse = approveCustomerRecord.escalationResponses?.[0]
+              ?? `I've reviewed your case and taken the appropriate action. You should see the update reflected shortly.`;
+            const previewSummary = reviewSa?.preview ?? "case review";
+            const internalNoteText = (dateStr: string) =>
+              `AI suggestion approved — ${reviewBotType} reviewed and resolved: ${previewSummary}. Response sent to customer. — ${dateStr}`;
+            const customerThankYou = reviewSa?.caseType === "Compensation Claim" || reviewSa?.caseType === "Refund Request"
+              ? "Thank you so much — I really appreciate you taking care of this."
+              : reviewSa?.caseType === "Flight Disruption" || reviewSa?.caseType === "Rebooking Request"
+              ? "That's a huge relief, thank you for getting this sorted so quickly!"
+              : reviewSa?.caseType === "Accommodation Request"
+              ? "Thank you — that takes a big weight off. We really needed that tonight."
+              : reviewSa?.caseType === "Baggage Issue"
+              ? "Oh great, that's really good to hear. Thank you for tracking that down!"
+              : "That's amazing, thank you!";
+
             // 2. After 2.8s — inject internal note + AI response AND animate the panel closed simultaneously
             setTimeout(() => {
               setConversationStatesByKey((currentStates) => {
@@ -13654,7 +13666,7 @@ export default function Layout({ children }: LayoutProps) {
                         id: baseId,
                         role: "agent" as const,
                         author: reviewBotType,
-                        content: `AI suggestion approved — ${reviewBotType} confirmed firmware backup compatibility for CloudMesh Pro v3 factory reset. Response sent to customer. — ${dateStr}`,
+                        content: internalNoteText(dateStr),
                         time: new Date().toISOString(),
                         isInternal: true,
                       },
@@ -13662,7 +13674,7 @@ export default function Layout({ children }: LayoutProps) {
                         id: baseId + 1,
                         role: "agent" as const,
                         author: reviewBotType,
-                        content: "Great news — I checked with our team and confirmed that your port forwarding settings are automatically backed up in your firmware version, so they'll be fully restored after the reset. You're safe to proceed.",
+                        content: escalationResponse,
                         time: new Date().toISOString(),
                         channel: ch,
                       },
@@ -13690,7 +13702,7 @@ export default function Layout({ children }: LayoutProps) {
                       {
                         id: nextId,
                         role: "customer" as const,
-                        content: "That's amazing, thank you!",
+                        content: customerThankYou,
                         time: new Date().toISOString(),
                         channel: ch,
                         sentiment: "positive" as const,
@@ -14852,7 +14864,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               <span className="relative shrink-0" aria-hidden="true">
                 <img
-                  src="https://randomuser.me/api/portraits/men/32.jpg"
+                  src="/agent-avatar.jpg"
                   alt="Agent avatar"
                   className="h-8 w-8 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.15)]"
                 />
@@ -16238,7 +16250,7 @@ export default function Layout({ children }: LayoutProps) {
                   <path d="M23.7188 5.89062C23.8757 5.89077 24.0015 6.01655 24 6.17188C23.8494 15.8941 15.9182 23.7747 6.13379 23.9238C5.97839 23.9255 5.85077 23.7999 5.85059 23.6445V19.3848C5.85059 19.2325 5.97502 19.1097 6.12891 19.1064C13.2448 18.9606 19.0048 13.236 19.1523 6.16602C19.1556 6.01217 19.2788 5.88872 19.4326 5.88867L23.7188 5.89062ZM12.2559 0.0771484C13.8714 0.0772122 15.1804 1.37836 15.1807 2.98242C15.1807 4.58668 13.8716 5.88861 12.2559 5.88867C10.6401 5.88867 9.33008 4.58672 9.33008 2.98242C9.33031 1.37832 10.6402 0.0771484 12.2559 0.0771484ZM2.92578 0.0761719C4.5412 0.0763851 5.85033 1.3775 5.85059 2.98145C5.85059 4.58561 4.54135 5.88748 2.92578 5.8877C1.31003 5.8877 0 4.58574 0 2.98145C0.000253194 1.37736 1.31018 0.0761719 2.92578 0.0761719Z" fill="#2196F3"/>
                 </svg>
                 <div>
-                  <p className="text-[15px] font-semibold text-[#101828] dark:text-[#E2E8F0]">Good morning, Jeff</p>
+                  <p className="text-[15px] font-semibold text-[#101828] dark:text-[#E2E8F0]">{`Good morning, ${CURRENT_AGENT_FIRST_NAME}`}</p>
                   <p className="text-[12px] text-[#667085] dark:text-[#8898AB]">Here's what's waiting for you today</p>
                 </div>
               </div>
