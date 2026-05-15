@@ -10848,6 +10848,9 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
         },
       };
     }
+
+    // Elena catch-all: never fall through to generic matchers
+    return "Thank you — I appreciate you looking into this for me.";
   }
 
   // ── Marcus Webb — happy reply after any resolution (refund/reship/intercept) ──
