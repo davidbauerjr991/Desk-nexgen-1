@@ -177,11 +177,13 @@ export interface LayoutContextValue {
   clearPendingTakeoverCaseId: () => void;
   /** Decrement the escalated rail badge count by 1 (min 0). Call when a case is resolved without going through the active rail. */
   decrementEscalatedCount: () => void;
-  /** Signal that Jordan's (Aria's) case has been resolved — triggers the second escalation (Sofia / Jacob). */
+  /** Signal that Alex Sanderson's (Emily's) case has been resolved — triggers the second escalation (Jordan / Aria). */
+  onAlexSandersonCaseResolved: () => void;
+  /** Signal that Jordan's (Aria's) case has been resolved — triggers the third escalation (Sofia / Jacob). */
   onJordanCaseResolved: () => void;
-  /** Signal that Sofia's (Jacob's) case has been resolved — triggers the third escalation (Marcus / Emily). */
+  /** Signal that Sofia's (Jacob's) case has been resolved — triggers the fourth escalation (Marcus / Emily). */
   onSofiaCaseResolved: () => void;
-  /** Signal that Marcus's (Emily's) case has been resolved — triggers the fourth escalation (Terry / Aria). */
+  /** Signal that Marcus's (Emily's) case has been resolved — triggers the fifth escalation (Terry / Aria). */
   onMarcusCaseResolved: () => void;
   /** Show the dismissal confirmation toast (bottom-right) with case summary + external system writes. */
   showDismissalToast: (summary: { customerName: string; customerId: string; status: string; resolvedStatus: string; actions: string[]; preview: string; botType: string; channel: string }) => void;

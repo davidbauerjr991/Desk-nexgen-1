@@ -462,9 +462,112 @@ const elena: ScenarioConfig = {
   ],
 };
 
+const alex_sanderson: ScenarioConfig = {
+  escalation: {
+    id: "escalation-static-alex-sanderson",
+    customerRecordId: "alex_sanderson",
+    channel: "chat",
+    initials: "AS",
+    name: "Alex Sanderson",
+    customerId: "CST-15001",
+    label: "Emily",
+    lastUpdated: "3m",
+    time: "3m",
+    preview: "Mechanical delay on VY-4450 — LHR→FCO connection at risk, partner upgrade exceeds auth threshold",
+    statusLabel: "Escalated",
+    priority: "Critical",
+    priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+    badgeColor: "#E32926",
+    iconName: "MessageCircle",
+  },
+  completionTaskIds: ["authorize-partner-upgrade", "rebook-partner-airline", "send-confirmation"],
+  recommendedAction: "Authorize the premium cabin upgrade on British Airways (BA-292 + BA-548), rebook Alex on the partner routing MSP→LHR→FCO, and send the updated itinerary and boarding passes.",
+  forcedSuggestion: {
+    defaultReply: `Hi Alex — I'm ${CURRENT_AGENT_FIRST_NAME}. I've been reviewing your situation and I have good news. I've authorized the premium cabin upgrade on British Airways and rebooked you: BA-292 to Heathrow departing at 11:45, connecting to BA-548 arriving in Rome at 09:20 tomorrow morning. Your updated boarding passes are on the way.`,
+    variants: [
+      {
+        summary: "Lead with the solution — confirm the reroute and upgrade upfront.",
+        suggestedReply: `Hi Alex — I'm ${CURRENT_AGENT_FIRST_NAME}. I've been reviewing your situation and I have good news. I've authorized the premium cabin upgrade on British Airways and rebooked you: BA-292 to Heathrow departing at 11:45, connecting to BA-548 arriving in Rome at 09:20 tomorrow morning. Your updated boarding passes are on the way.`,
+      },
+      {
+        summary: "Acknowledge the disruption, then pivot to the fix with confidence.",
+        suggestedReply: `Alex, hi — ${CURRENT_AGENT_FIRST_NAME} here. I know the mechanical delay on VY-4450 threw a wrench in your plans, but we've got you covered. I've approved the British Airways reroute with a premium cabin upgrade — BA-292 out of MSP at 11:45, connecting through Heathrow to Rome. You'll be there by 09:20 tomorrow. Boarding passes are being sent now.`,
+      },
+      {
+        summary: "Keep it warm and personal — reference Rome and his anniversary trip.",
+        suggestedReply: `Hi Alex, I'm ${CURRENT_AGENT_FIRST_NAME}. Emily flagged your case to me because the best available routing required a premium upgrade approval. Done — you're rebooked on British Airways through Heathrow, arriving in Rome at 09:20 tomorrow morning. Your anniversary plans are back on track.`,
+      },
+    ],
+  },
+  customerReplies: [
+    // After agent confirms the reroute and upgrade
+    {
+      agentKeywords: ["british airways", "ba-292", "rebooked", "premium", "upgrade", "authorized"],
+      agentExclude: [],
+      customerContextExcludes: ["thank you"],
+      reply: "That's incredible — I was honestly bracing for the worst when I heard about the delay. Thank you for getting this sorted so quickly. Rome here we come!",
+    },
+    // After agent sends confirmation / boarding passes
+    {
+      agentKeywords: ["boarding pass", "itinerary", "sent", "email", "voyager app"],
+      customerContextIncludes: ["thank you"],
+      reply: {
+        content: "Just got the notification — everything looks perfect. This is exactly why we fly with Voyager. Thank you!",
+        starRating: 5,
+        aiAction: {
+          label: "Resolve & Close Case",
+          description: "Customer gave a 5-star rating. Auto-resolve, dismiss, and unassign this case.",
+          actionId: "auto-resolve-dismiss",
+        },
+      },
+    },
+  ],
+  customerReplyFallback: "Thank you — I appreciate you looking into this. Just want to make sure I get to Rome on time.",
+  suggestionVariants: [
+    {
+      customerName: "Alex Sanderson",
+      keywords: ["mechanical", "delay", "connection", "rome", "heathrow", "partner", "upgrade", "british airways", "threshold"],
+      variants: [
+        {
+          summary: "Lead with the solution — confirm the reroute and upgrade upfront.",
+          suggestedReply: `Hi {firstName} — I'm ${CURRENT_AGENT_FIRST_NAME}. I've been reviewing your situation and I have good news. I've authorized the premium cabin upgrade on British Airways and rebooked you: BA-292 to Heathrow departing at 11:45, connecting to BA-548 arriving in Rome at 09:20 tomorrow morning. Your updated boarding passes are on the way.`,
+        },
+        {
+          summary: "Acknowledge the disruption, then pivot to the fix with confidence.",
+          suggestedReply: `{firstName}, hi — ${CURRENT_AGENT_FIRST_NAME} here. I know the mechanical delay on VY-4450 threw a wrench in your plans, but we've got you covered. I've approved the British Airways reroute with a premium cabin upgrade — BA-292 out of MSP at 11:45, connecting through Heathrow to Rome. You'll be there by 09:20 tomorrow. Boarding passes are being sent now.`,
+        },
+        {
+          summary: "Keep it warm and personal — reference Rome and his anniversary trip.",
+          suggestedReply: `Hi {firstName}, I'm ${CURRENT_AGENT_FIRST_NAME}. Emily flagged your case to me because the best available routing required a premium upgrade approval. Done — you're rebooked on British Airways through Heathrow, arriving in Rome at 09:20 tomorrow morning. Your anniversary plans are back on track.`,
+        },
+      ],
+    },
+    // After customer expresses relief / gratitude
+    {
+      customerName: "Alex Sanderson",
+      keywords: ["incredible", "bracing", "rome here we come", "sorted"],
+      variants: [
+        {
+          summary: "Confirm boarding passes are sent and close warmly.",
+          suggestedReply: "I've just sent your updated boarding passes and full itinerary to your email and the Voyager app. Have an amazing trip to Rome, {firstName}!",
+        },
+        {
+          summary: "Wrap up with confirmation details and a warm sendoff.",
+          suggestedReply: "Your boarding passes for BA-292 and BA-548 are in your inbox and your Voyager app. Gate B22, boarding starts at 11:15. Enjoy Rome, {firstName}!",
+        },
+        {
+          summary: "Keep it brief — confirm everything's sent and wish him well.",
+          suggestedReply: "Everything's been sent to your email and the Voyager app — you're all set. Have an incredible anniversary, {firstName}!",
+        },
+      ],
+    },
+  ],
+};
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 export const SCENARIO_CONFIGS: Record<string, ScenarioConfig> = {
+  alex_sanderson,
   jordan,
   sofia,
   marcus,

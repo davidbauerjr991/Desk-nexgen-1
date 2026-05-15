@@ -249,6 +249,8 @@ const COPILOT_FALLBACK_RESPONSE = "Based on the case analysis, the customer's is
 // assignment record shows the correct "Assigned to" instead of the current agent.
 let pendingTransferRecipient: string | null = null;
 
+// Prevents the Alex Sanderson (Emily) escalation from re-firing.
+let escalationAlexFired = false;
 // Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
 // Prevents the Sofia Martinez (Jacob) escalation from re-firing after Jordan's case resolves.
@@ -260,6 +262,7 @@ let escalation4Fired = false;
 // Prevents the Elena Vasquez (Aria) cross-sell escalation from re-firing.
 let escalation5Fired = false;
 // Resolved flags — read by the BroadcastChannel HELLO handler to report current state.
+let alexSandersonResolvedFlag = false;
 let jordanResolvedFlag = false;
 let sofiaResolvedFlag = false;
 let marcusResolvedFlag = false;
@@ -10952,11 +10955,17 @@ export default function Layout({ children }: LayoutProps) {
   // Scenario escalations are controlled exclusively by the Scenario Controller tab.
   // The standalone auto-fire timers have been removed — scenarios only fire via
   // fireJordanEscalation / fireSofiaEscalation / fireMarcusEscalation (called on TRIGGER msg).
+  const [isAlexSandersonResolved, setIsAlexSandersonResolved] = useState(false);
   const [isJordanResolved, setIsJordanResolved] = useState(false);
   const [isSofiaResolved, setIsSofiaResolved] = useState(false);
   const [isMarcusResolved, setIsMarcusResolved] = useState(false);
 
   // Broadcast resolved status to the Scenario Controller whenever a case resolves.
+  useEffect(() => {
+    if (!isAlexSandersonResolved) return;
+    alexSandersonResolvedFlag = true;
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "alex_sanderson", status: "resolved" } satisfies AppMsg);
+  }, [isAlexSandersonResolved]);
   useEffect(() => {
     if (!isJordanResolved) return;
     jordanResolvedFlag = true;
@@ -11472,9 +11481,17 @@ export default function Layout({ children }: LayoutProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const alexSandersonFiredRef = useRef(false);
   const jordanFiredRef = useRef(false);
   const sofiaFiredRef = useRef(false);
   const marcusFiredRef = useRef(false);
+
+  const fireAlexSandersonEscalation = useCallback(() => {
+    if (escalationAlexFired) return;
+    escalationAlexFired = true;
+    fireScenarioEscalation("alex_sanderson", alexSandersonFiredRef, "static-alex-sanderson");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fireJordanEscalation = useCallback(() => {
     if (escalationFired) return;
@@ -11528,6 +11545,7 @@ export default function Layout({ children }: LayoutProps) {
           ch.postMessage({
             type: "APP_READY",
             statuses: {
+              alex_sanderson: escalationAlexFired ? (alexSandersonResolvedFlag ? "resolved" : "active") : "idle",
               jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
               sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
               marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
@@ -11541,6 +11559,7 @@ export default function Layout({ children }: LayoutProps) {
         setIsControllerConnected(false);
       }
       if (msg.type === "TRIGGER") {
+        if (msg.case === "alex_sanderson") fireAlexSandersonEscalation();
         if (msg.case === "jordan") fireJordanEscalation();
         if (msg.case === "sofia")  fireSofiaEscalation();
         if (msg.case === "marcus") fireMarcusEscalation();
@@ -11554,7 +11573,7 @@ export default function Layout({ children }: LayoutProps) {
       ch.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation, fireElenaEscalation]);
+  }, [fireAlexSandersonEscalation, fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation, fireElenaEscalation]);
 
   // When the agent transitions to Available while the controller is already connected,
   // send APP_READY so the controller unlocks buttons and starts auto-timers.
@@ -11564,9 +11583,11 @@ export default function Layout({ children }: LayoutProps) {
     scenarioChannelRef.current?.postMessage({
       type: "APP_READY",
       statuses: {
+        alex_sanderson: escalationAlexFired ? (alexSandersonResolvedFlag ? "resolved" : "active") : "idle",
         jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
         sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
-        marcus: escalation3Fired ? "active" : "idle",
+        marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
+        terry:  escalation4Fired ? "active" : "idle",
         elena:  escalation5Fired ? "active" : "idle",
       },
     } satisfies AppMsg);
@@ -14431,6 +14452,7 @@ export default function Layout({ children }: LayoutProps) {
       pendingTakeoverCaseId,
       clearPendingTakeoverCaseId,
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
+      onAlexSandersonCaseResolved: () => setIsAlexSandersonResolved(true),
       onJordanCaseResolved: () => setIsJordanResolved(true),
       onSofiaCaseResolved: () => setIsSofiaResolved(true),
       onMarcusCaseResolved: () => setIsMarcusResolved(true),

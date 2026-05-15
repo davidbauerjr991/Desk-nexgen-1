@@ -59,6 +59,9 @@ export const TASK_COMPLETION_NOTES: Record<string, string> = {
   "trace-baggage": "Baggage trace initiated — tracking reference created",
   "update-itinerary": "Itinerary record updated with revised travel details",
   "close-case": "Case closed and resolved",
+  "authorize-partner-upgrade": "Premium cabin upgrade authorized — British Airways BA-292 + BA-548",
+  "rebook-partner-airline": "Alex rebooked: BA-292 MSP→LHR, BA-548 LHR→FCO — arrives Rome 09:20+1",
+  "send-confirmation": "Updated itinerary and boarding passes sent to Alex's email and Voyager app",
 };
 
 export const TASK_COMPLETION_REPLIES: Record<string, string> = {
@@ -81,6 +84,9 @@ export const TASK_COMPLETION_REPLIES: Record<string, string> = {
   "trace-baggage": "I've initiated a baggage trace and created a tracking reference. You'll receive updates via SMS as your luggage is located and rerouted. Is there anything else?",
   "update-itinerary": "I've updated your itinerary with all the revised travel details. You can view the changes in your Voyager app. Anything else I can do?",
   "close-case": "This case has been resolved and closed. Thank you for your patience during the disruption — we hope the rest of your trip goes smoothly!",
+  "authorize-partner-upgrade": "Alex, great news — I've authorized the premium cabin upgrade on British Airways. You're confirmed on BA-292 departing at 11:45 with a connecting flight to Rome.",
+  "rebook-partner-airline": "Your new itinerary is locked in: BA-292 MSP→LHR departing 11:45, connecting to BA-548 LHR→FCO arriving 09:20 tomorrow morning. You'll be in Rome with time to spare.",
+  "send-confirmation": "I've sent your updated boarding passes and full itinerary to your email and the Voyager app. Is there anything else I can help with before you head to the gate?",
 };
 
 export const TASK_ACTION_TITLES: Record<string, string> = {
@@ -106,6 +112,9 @@ export const TASK_ACTION_TITLES: Record<string, string> = {
   "trace-baggage": "Initiating Baggage Trace...",
   "update-itinerary": "Updating Itinerary...",
   "close-case": "Closing Case...",
+  "authorize-partner-upgrade": "Authorizing Premium Upgrade...",
+  "rebook-partner-airline": "Rebooking on British Airways...",
+  "send-confirmation": "Sending Confirmation...",
 };
 
 export const TASK_STEPS: Record<string, string[]> = {
@@ -231,6 +240,24 @@ export const TASK_STEPS: Record<string, string[]> = {
     "Verifying all actions are complete",
     "Updating case status to resolved",
     "Removing from active queue",
+  ],
+  "authorize-partner-upgrade": [
+    "Verifying Alex's Platinum tier and upgrade eligibility",
+    "Calculating fare differential for BA premium cabin",
+    "Submitting authorization request to partner desk",
+    "Confirming premium upgrade on BA-292 + BA-548",
+  ],
+  "rebook-partner-airline": [
+    "Releasing VY-4450 MSP→LHR seat hold",
+    "Booking BA-292 MSP→LHR departing 11:45",
+    "Booking BA-548 LHR→FCO arriving 09:20+1",
+    "Confirming seat assignments on both segments",
+  ],
+  "send-confirmation": [
+    "Generating updated itinerary document",
+    "Attaching new boarding passes for BA-292 and BA-548",
+    "Sending confirmation to Alex's email",
+    "Syncing itinerary to Voyager app",
   ],
 };
 

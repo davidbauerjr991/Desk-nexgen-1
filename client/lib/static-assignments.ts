@@ -1835,4 +1835,41 @@ export const staticAssignments: StaticAssignment[] = [
     },
     assignedTo: null,
   },
+  {
+    id: "static-alex-sanderson",
+    name: "Alex Sanderson",
+    customerId: "CST-15001",
+    customerRecordId: "alex_sanderson",
+    company: "Business Travel",
+    botType: "Emily",
+    caseType: "Rebooking Request",
+    agentType: "virtual",
+    channel: "chat",
+    priority: "Critical",
+    status: "open",
+    preview: "Mechanical delay on VY-4450 — LHR→FCO connection at risk, partner upgrade exceeds auth threshold",
+    waitTime: "3m",
+    customerContext:
+      "Alex Sanderson is a Voyager Platinum member (430K miles, 8-year customer). His flight VY-4450 MSP→LHR has just reported a mechanical issue — a 2-hour delay has been announced. His onward connection VY-7821 LHR→FCO (Rome) departs 90 minutes after the original LHR arrival and will now be missed. Alex has spent months planning this trip to Rome — it's deeply personal. I've evaluated all remaining routing options. The fastest viable path is MSP→LHR on British Airways BA-292 departing in 55 minutes, connecting to BA-548 LHR→FCO. This route requires a premium cabin upgrade on the BA segments — total incremental cost £1,840 ($2,310), which exceeds my automated authorization limit of $500. I've packaged everything for a specialist: the routing, fare comparison, Alex's loyalty profile, and my recommendation. This needs human approval before the BA booking window closes.",
+    aiConfidence: 94,
+    aiConfidenceReason: "High confidence in recommended routing. BA-292 has confirmed premium availability. Authorization required only due to cost threshold — all other factors support this resolution.",
+    aiOverview: {
+      actions: [
+        "Detected mechanical issue (engine bleed air valve) on VY-4450 MSP→LHR — 2-hour delay confirmed by operations.",
+        "Evaluated Alex's full itinerary: VY-4450 MSP→LHR connecting to VY-7821 LHR→FCO. Connection window has collapsed from 90 min to negative — he will miss VY-7821.",
+        "Searched 14 alternate routings across Voyager and partner airlines. Identified 3 viable options ranked by arrival time in Rome.",
+        "Best option: British Airways BA-292 MSP→LHR (departs 11:45, premium cabin) connecting BA-548 LHR→FCO (arrives 09:20+1). Gets Alex to Rome only 2 hours later than his original plan.",
+        "Flagged: BA premium cabin upgrade costs £1,840 ($2,310) — exceeds my $500 automated authorization threshold. Escalating for human approval.",
+      ],
+      whyNeeded:
+        "The optimal re-routing for this Platinum member requires a partner airline premium cabin upgrade that exceeds the automated spending threshold. This is a guardrail by design — not a failure. A human specialist must authorize the £1,840 expenditure on British Airways. The BA-292 booking window closes in approximately 50 minutes.",
+      nextSteps: [
+        "Review Emily's recommended BA routing and authorize the premium cabin upgrade ($2,310)",
+        "Confirm rebooking on BA-292 MSP→LHR + BA-548 LHR→FCO before the booking window closes",
+        "Issue Voyager travel voucher for the inconvenience (Platinum member, proactive goodwill)",
+        "Update Alex's itinerary and send confirmation with new boarding passes",
+      ],
+    },
+    assignedTo: null,
+  },
 ];

@@ -17,14 +17,24 @@ type CaseConfig = {
 
 const CASES: CaseConfig[] = [
   {
+    key: "alex_sanderson",
+    initials: "AS",
+    name: "Alex Sanderson",
+    customerId: "CST-15001",
+    issue: "Mechanical delay on VY-4450 — LHR→FCO connection at risk, partner upgrade exceeds auth threshold",
+    bot: "Emily",
+    triggerLabel: "Fires on app ready",
+    defaultDelay: 5,
+  },
+  {
     key: "jordan",
     initials: "JD",
     name: "Jordan Davis",
     customerId: "CST-11621",
     issue: "Router dropping all connections — port forwarding config at risk during factory reset",
     bot: "Aria",
-    triggerLabel: "Fires on app ready",
-    defaultDelay: 5,
+    triggerLabel: "Fires after Alex resolves",
+    defaultDelay: 8,
   },
   {
     key: "sofia",
@@ -284,6 +294,7 @@ export default function ScenarioControllerPage() {
   const [connected, setConnected] = useState(false);
 
   const [caseStatuses, setCaseStatuses] = useState<Record<CaseKey, CaseStatus>>({
+    alex_sanderson: "idle",
     jordan: "idle",
     sofia: "idle",
     marcus: "idle",
@@ -297,16 +308,18 @@ export default function ScenarioControllerPage() {
   useEffect(() => { globalAutoRef.current = globalAuto; }, [globalAuto]);
 
   const [delays, setDelays] = useState<Record<CaseKey, number>>({
-    jordan: CASES[0].defaultDelay,
-    sofia:  CASES[1].defaultDelay,
-    marcus: CASES[2].defaultDelay,
-    terry:  CASES[3].defaultDelay,
-    elena:  CASES[4].defaultDelay,
+    alex_sanderson: CASES[0].defaultDelay,
+    jordan: CASES[1].defaultDelay,
+    sofia:  CASES[2].defaultDelay,
+    marcus: CASES[3].defaultDelay,
+    terry:  CASES[4].defaultDelay,
+    elena:  CASES[5].defaultDelay,
   });
   const delaysRef = useRef(delays);
   useEffect(() => { delaysRef.current = delays; }, [delays]);
 
   const [countdowns, setCountdowns] = useState<Record<CaseKey, number | null>>({
+    alex_sanderson: null,
     jordan: null,
     sofia:  null,
     marcus: null,
@@ -364,13 +377,13 @@ export default function ScenarioControllerPage() {
 
   /** Cancel all active countdowns and reset queued cases to idle. */
   const cancelAllCountdowns = useCallback(() => {
-    (["jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
+    (["alex_sanderson", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
       clearCaseInterval(key);
     });
-    setCountdowns({ jordan: null, sofia: null, marcus: null, terry: null, elena: null });
+    setCountdowns({ alex_sanderson: null, jordan: null, sofia: null, marcus: null, terry: null, elena: null });
     setCaseStatuses((prev) => {
       const next = { ...prev };
-      (["jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
+      (["alex_sanderson", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
         if (next[key] === "queued") next[key] = "idle";
       });
       return next;
@@ -425,7 +438,9 @@ export default function ScenarioControllerPage() {
     }
     // Auto switched ON — start countdown for the first eligible idle case
     setCaseStatuses((statuses) => {
-      if (statuses.jordan === "idle" && connectedRef.current) {
+      if (statuses.alex_sanderson === "idle" && connectedRef.current) {
+        setTimeout(() => startCountdown("alex_sanderson", delaysRef.current.alex_sanderson), 0);
+      } else if (statuses.jordan === "idle" && statuses.alex_sanderson === "resolved" && connectedRef.current) {
         setTimeout(() => startCountdown("jordan", delaysRef.current.jordan), 0);
       } else if (statuses.sofia === "idle" && statuses.jordan === "resolved" && connectedRef.current) {
         setTimeout(() => startCountdown("sofia", delaysRef.current.sofia), 0);
@@ -442,17 +457,29 @@ export default function ScenarioControllerPage() {
 
   // ── Auto-trigger chain (only when globalAuto is ON) ─────────────────────────
 
-  // Jordan: start once connected when auto is on
+  // Alex Sanderson: start once connected when auto is on
+  const alexStartedRef = useRef(false);
+  useEffect(() => {
+    if (!connected || alexStartedRef.current) return;
+    if (caseStatuses.alex_sanderson !== "idle") { alexStartedRef.current = true; return; }
+    alexStartedRef.current = true;
+    if (globalAutoRef.current) {
+      startCountdown("alex_sanderson", delaysRef.current.alex_sanderson);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected]);
+
+  // Jordan: start when Alex resolves and auto is on
   const jordanStartedRef = useRef(false);
   useEffect(() => {
-    if (!connected || jordanStartedRef.current) return;
+    if (caseStatuses.alex_sanderson !== "resolved" || jordanStartedRef.current) return;
     if (caseStatuses.jordan !== "idle") { jordanStartedRef.current = true; return; }
     jordanStartedRef.current = true;
     if (globalAutoRef.current) {
       startCountdown("jordan", delaysRef.current.jordan);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connected]);
+  }, [caseStatuses.alex_sanderson]);
 
   // Sofia: start when Jordan resolves and auto is on
   const sofiaStartedRef = useRef(false);
