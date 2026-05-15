@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import CustomerInfoPanel, { CustomerOverviewCard } from "@/components/CustomerInfoPanel";
 import RecentInteractionsPanel from "@/components/RecentInteractionsPanel";
 import { getCustomerRecord } from "@/lib/customer-database";
+import { getScenarioConfig } from "@/lib/scenario-database";
 import { staticAssignments } from "@/lib/static-assignments";
 import { cn } from "@/lib/utils";
 import { addNoteForCustomer, getNotesForCustomer, type CustomerNote } from "@/lib/notes-database";
@@ -343,17 +344,15 @@ function OverviewTabContent({ customerId, customerName, onCopilotSubmit, takeove
                       )}
                     </div>
                   )}
-                  {/* Recommended Action — Elena only */}
-                  {customerId === "elena" && (
+                  {/* Recommended Action — scenario-specific */}
+                  {(() => { const recAction = getScenarioConfig(customerId)?.recommendedAction; return recAction ? (
                     <div className="rounded-xl border border-[#E4E7EC] bg-white p-3 space-y-1.5">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085]">Recommended Action</p>
-                      <p className="text-[12px] leading-relaxed text-[#344054]">
-                        Ship the overnight replacement to Elena's address, apply a $25 goodwill credit to her account, and file a QA report flagging the packing discrepancy to the warehouse team.
-                      </p>
+                      <p className="text-[12px] leading-relaxed text-[#344054]">{recAction}</p>
                     </div>
-                  )}
-                  {/* Approve / Reject — hidden for Elena */}
-                  {customerId !== "elena" && !takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
+                  ) : null; })()}
+                  {/* Approve / Reject — hidden when scenario has recommended action */}
+                  {!getScenarioConfig(customerId)?.recommendedAction && !takeoverCard.hideActions && (takeoverCard.onApprove || takeoverCard.onReject) && (
                     <div className="flex items-center gap-2">
                       {takeoverCard.isLaunching ? (
                         <div className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#EBF4FD] border border-[#BFDBFE] px-3 py-2.5 text-[13px] font-semibold text-[#166CCA]">

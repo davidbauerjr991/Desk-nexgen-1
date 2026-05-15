@@ -13,6 +13,7 @@ import { getRelevantCustomerTicket, type CustomerTicket } from "@/components/Not
 import { VoiceAIGuidanceCard, VoiceGuidancePanel } from "@/components/VoiceGuidanceContent";
 import { getCustomerRecord, type CustomerChannel } from "@/lib/customer-database";
 import { getCustomerAssignmentEntry, resolveResponseVariantsByTaskId } from "@/lib/customer-assignment-tasks";
+import { getScenarioConfig } from "@/lib/scenario-database";
 import { cn } from "@/lib/utils";
 import {
   type ConversationMessage,
@@ -1029,11 +1030,13 @@ export default function ConversationPanel({
       const completionReply = TASK_COMPLETION_REPLIES[taskId];
       if (completionReply) setPostActionSuggestion(completionReply);
 
-      // Elena: mark tasks as completed once all 3 resolution tasks are done
+      // Elena: mark tasks as completed once all resolution tasks are done
       // so they don't regenerate when the customer responds.
+      const elenaCompletionIds = getScenarioConfig("elena")?.completionTaskIds ?? [];
       if (
         customerId === "elena" &&
-        ["ship-replacement", "goodwill-credit", "qa-report"].every((id) => notedTaskIdsRef.current.has(id))
+        elenaCompletionIds.length > 0 &&
+        elenaCompletionIds.every((id) => notedTaskIdsRef.current.has(id))
       ) {
         elenaTasksCompletedRef.current = true;
       }
@@ -2459,17 +2462,15 @@ export default function ConversationPanel({
                               <p className="text-[10px] text-[#98A2B3] leading-relaxed">{aiConfidenceReason}</p>
                             ) : null}
                           </div>
-                          {/* Recommended Action — Elena only */}
-                          {customerId === "elena" && (
+                          {/* Recommended Action — scenario-specific (e.g. Elena) */}
+                          {(() => { const recAction = getScenarioConfig(customerId)?.recommendedAction; return recAction ? (
                             <div className="mt-2.5 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5">
                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1">Recommended Action</p>
-                              <p className="text-[12px] leading-relaxed text-[#344054]">
-                                Ship the overnight replacement to Elena's address, apply a $25 goodwill credit to her account, and file a QA report flagging the packing discrepancy to the warehouse team.
-                              </p>
+                              <p className="text-[12px] leading-relaxed text-[#344054]">{recAction}</p>
                             </div>
-                          )}
-                          {/* Approve / Reject — hidden for Elena */}
-                          {customerId !== "elena" && (
+                          ) : null; })()}
+                          {/* Approve / Reject — hidden when scenario has its own recommended action */}
+                          {!getScenarioConfig(customerId)?.recommendedAction && (
                           <div className="mt-2 flex gap-2">
                             <button
                               type="button"
