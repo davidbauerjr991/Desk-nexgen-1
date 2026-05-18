@@ -3,8 +3,8 @@ import {
   Search,
   Globe,
   MessageCircle,
-  ShoppingCart,
-  Package,
+  Plane,
+  Luggage,
   UserCheck,
   Ticket,
   Mail,
@@ -30,8 +30,8 @@ const historyTypeConfig: Record<
   search: { icon: Search, accent: "#667085", iconBg: "#F2F4F7" },
   web: { icon: Globe, accent: "#667085", iconBg: "#F2F4F7" },
   chat: { icon: MessageCircle, accent: "#166CCA", iconBg: "#EBF4FD" },
-  purchase: { icon: ShoppingCart, accent: "#208337", iconBg: "#F0FDF4" },
-  shipping: { icon: Package, accent: "#667085", iconBg: "#F2F4F7" },
+  purchase: { icon: Plane, accent: "#208337", iconBg: "#F0FDF4" },
+  shipping: { icon: Luggage, accent: "#667085", iconBg: "#F2F4F7" },
   registration: { icon: UserCheck, accent: "#208337", iconBg: "#F0FDF4" },
   ticket: { icon: Ticket, accent: "#F59E0B", iconBg: "#FFFBEB" },
   email: { icon: Mail, accent: "#F59E0B", iconBg: "#FFFBEB" },
@@ -281,7 +281,7 @@ const renderInteractionContent = (interaction: CustomerHistoryInteraction, custo
               {interaction.trackingNumber}
             </p>
           </div>
-          <Package className="h-4 w-4 text-[#98A2B3]" />
+          <Luggage className="h-4 w-4 text-[#98A2B3]" />
         </div>
         <div className="space-y-0">
           {interaction.events.map((ev, i) => (

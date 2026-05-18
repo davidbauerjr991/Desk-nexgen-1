@@ -15433,7 +15433,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
             id: 5,
             role: "agent",
             author: "Emily",
-            content: "I've found an option that would work — a British Airways premium cabin seat through Heathrow that connects to Rome and gets you there on time. However, the fare difference exceeds what I'm authorized to approve automatically. I'm bringing in a specialist who can authorize this upgrade for you right away.",
+            content: "Understood, Alex. Let me transfer you to one of our representatives who can help you with this right away.",
             time: "9:58 AM",
           },
           {

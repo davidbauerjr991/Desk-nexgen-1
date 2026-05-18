@@ -480,6 +480,9 @@ export default function ConversationPanel({
   const hasHandoffCard = conversation.messages.some((m) => m.isHandoffCard);
   const [revealedTaskIds, setRevealedTaskIds] = useState<Set<string>>(new Set());
   const [checkedTaskIds, setCheckedTaskIds] = useState<Set<string>>(new Set());
+  const [uncheckedStepIndices, setUncheckedStepIndices] = useState<Set<number>>(new Set());
+  const [stepInputValues, setStepInputValues] = useState<Record<string, string>>({ fareClass: "Basic", upgradeCost: "200" });
+  const [fareClassError, setFareClassError] = useState(false);
   const [taskProgress, setTaskProgress] = useState<Record<string, { stepIndex: number; paused: boolean }>>({});
   const [hoveredProgressStep, setHoveredProgressStep] = useState<string | null>(null);
   const [postActionSuggestion, setPostActionSuggestion] = useState<string | null>(null);
@@ -963,6 +966,22 @@ export default function ConversationPanel({
       if (progress.paused) return;
       const steps = TASK_STEPS[taskId] ?? [];
       if (progress.stepIndex >= steps.length) return; // all done
+
+      // Fare class validation: pause at step 1 for authorize-partner-upgrade if "Basic" is still selected
+      if (taskId === "options-resolve" && progress.stepIndex === 1) {
+        const selectedOpt = agentTasks.find((t) => t.optionLabel && checkedTaskIds.has(t.id));
+        if (selectedOpt?.id === "authorize-partner-upgrade" && (stepInputValues.fareClass ?? "Basic") === "Basic") {
+          // Pause and show error after the spinner finishes animating
+          const errorTimer = setTimeout(() => {
+            setFareClassError(true);
+            setTaskProgress((prev) => ({ ...prev, [taskId]: { ...prev[taskId], paused: true } }));
+            setTimeout(() => scrollToBottom("smooth"), 100);
+          }, 1800);
+          timers.push(errorTimer);
+          return;
+        }
+      }
+
       const timer = setTimeout(() => {
         setTaskProgress((prev) => {
           const current = prev[taskId];
@@ -1118,6 +1137,10 @@ export default function ConversationPanel({
           }
         }
         next.add(taskId);
+        // Reset step checkboxes when switching option selection
+        if (isOptionsLayout && clickedTask?.optionLabel) {
+          setUncheckedStepIndices(new Set());
+        }
         // Options-layout tasks don't start progress on check — the "Perform Task" button does.
         if (!isOptionsLayout) {
           setTaskProgress((p) => ({ ...p, [taskId]: { stepIndex: 0, paused: false } }));
@@ -2197,15 +2220,109 @@ export default function ConversationPanel({
                             <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                               <div className="px-4 py-3">
                                 <p className="text-[12px] font-semibold text-[#111827] mb-2.5">Steps that will run on Approve</p>
-                                <div className="space-y-2.5">
-                                  {resolveSteps.map((step, idx) => (
-                                    <div key={idx} className="flex items-center gap-2.5">
-                                      <div className="shrink-0 h-6 w-6 rounded-full border-2 border-[#BFDBFE] flex items-center justify-center">
-                                        <span className="text-[10px] font-semibold text-[#166CCA]">{idx + 1}</span>
+                                <div className="space-y-2">
+                                  {resolveSteps.map((step, idx) => {
+                                    const isStepChecked = !uncheckedStepIndices.has(idx);
+                                    return (
+                                      <div key={idx}>
+                                      <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2.5 text-left group"
+                                        onClick={() => {
+                                          setUncheckedStepIndices((prev) => {
+                                            const next = new Set(prev);
+                                            if (next.has(idx)) {
+                                              next.delete(idx);
+                                            } else {
+                                              next.add(idx);
+                                            }
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        <div
+                                          className={`shrink-0 h-[18px] w-[18px] rounded-[4px] border-2 flex items-center justify-center transition-colors ${
+                                            isStepChecked
+                                              ? "border-[#166CCA] bg-[#166CCA]"
+                                              : "border-[#D1D5DB] bg-white group-hover:border-[#9CA3AF]"
+                                          }`}
+                                        >
+                                          {isStepChecked && (
+                                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                          )}
+                                        </div>
+                                        <span className={`text-[12px] transition-colors ${isStepChecked ? "text-[#344054]" : "text-[#9CA3AF] line-through"}`}>
+                                          {step.includes("{{upgradeCost}}") ? (
+                                            <>
+                                              {step.split("{{upgradeCost}}")[0]}
+                                              <span className="inline-flex items-center mx-0.5">
+                                                <span className={cn(
+                                                  "inline-flex items-center rounded border text-[12px] font-medium focus-within:ring-1",
+                                                  (() => {
+                                                    const raw = (stepInputValues.upgradeCost ?? "200").replace(/[^0-9.]/g, "");
+                                                    const num = parseFloat(raw);
+                                                    return !isNaN(num) && num > 2310
+                                                      ? "border-[#DC2626] bg-[#FEF2F2] focus-within:ring-[#DC2626]/30"
+                                                      : "border-[#D1D5DB] bg-[#F9FAFB] focus-within:ring-[#166CCA]/30 focus-within:border-[#166CCA]";
+                                                  })()
+                                                )}>
+                                                  <span className="pl-1.5 text-[12px] text-[#6B7280] select-none">$</span>
+                                                  <input
+                                                    type="text"
+                                                    value={(stepInputValues.upgradeCost ?? "200").replace(/^\$/, "")}
+                                                    onChange={(e) => {
+                                                      const val = e.target.value.replace(/[^0-9.,]/g, "");
+                                                      setStepInputValues((prev) => ({ ...prev, upgradeCost: val }));
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className={cn(
+                                                      "w-[60px] py-0.5 pr-1.5 bg-transparent text-[12px] font-medium focus:outline-none",
+                                                      (() => {
+                                                        const raw = (stepInputValues.upgradeCost ?? "200").replace(/[^0-9.]/g, "");
+                                                        const num = parseFloat(raw);
+                                                        return !isNaN(num) && num > 2310 ? "text-[#DC2626]" : "text-[#111827]";
+                                                      })()
+                                                    )}
+                                                  />
+                                                </span>
+                                              </span>
+                                              {step.split("{{upgradeCost}}")[1]}
+                                            </>
+                                          ) : step.includes("{{fareClass}}") ? (
+                                            <>
+                                              {step.split("{{fareClass}}")[0]}
+                                              <select
+                                                value={stepInputValues.fareClass ?? "Basic"}
+                                                onChange={(e) => setStepInputValues((prev) => ({ ...prev, fareClass: e.target.value }))}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="inline-block px-1.5 py-0.5 mx-0.5 rounded border border-[#D1D5DB] bg-[#F9FAFB] text-[12px] text-[#111827] font-medium focus:outline-none focus:border-[#166CCA] focus:ring-1 focus:ring-[#166CCA]/30 cursor-pointer"
+                                              >
+                                                <option value="Full">Full</option>
+                                                <option value="High">High</option>
+                                                <option value="Discounted">Discounted</option>
+                                                <option value="Deep-discounted">Deep-discounted</option>
+                                                <option value="Basic">Basic</option>
+                                              </select>
+                                              {step.split("{{fareClass}}")[1]}
+                                            </>
+                                          ) : step}
+                                        </span>
+                                      </button>
+                                      {/* Error below step when upgrade cost exceeds $2,310 */}
+                                      {step.includes("{{upgradeCost}}") && (() => {
+                                        const raw = (stepInputValues.upgradeCost ?? "200").replace(/[^0-9.]/g, "");
+                                        const num = parseFloat(raw);
+                                        return !isNaN(num) && num > 2310;
+                                      })() && (
+                                        <p className="mt-1 ml-[30px] text-[11px] text-[#DC2626] font-medium">
+                                          Amount exceeds the maximum upgrade cost of $2,310.
+                                        </p>
+                                      )}
                                       </div>
-                                      <span className="text-[12px] text-[#344054]">{step}</span>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>
@@ -2225,19 +2342,58 @@ export default function ConversationPanel({
                                     const isStepCompleted = stepIdx < resolveProgress.stepIndex;
                                     const isStepInProgress = stepIdx === resolveProgress.stepIndex;
                                     return (
-                                      <div key={stepIdx} className="flex items-center gap-2.5">
-                                        <div className="shrink-0 h-6 w-6 flex items-center justify-center">
-                                          {isStepCompleted ? (
-                                            <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
-                                              <Check className="h-3.5 w-3.5 text-white" />
-                                            </div>
-                                          ) : isStepInProgress ? (
-                                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
-                                          ) : (
-                                            <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
-                                          )}
+                                      <div key={stepIdx}>
+                                        <div className="flex items-center gap-2.5">
+                                          <div className="shrink-0 h-6 w-6 flex items-center justify-center">
+                                            {isStepCompleted ? (
+                                              <div className="h-6 w-6 rounded-full bg-[#0B9A8A] flex items-center justify-center">
+                                                <Check className="h-3.5 w-3.5 text-white" />
+                                              </div>
+                                            ) : fareClassError && stepIdx === 1 && resolveProgress.paused ? (
+                                              <div className="h-6 w-6 rounded-full bg-[#DC2626] flex items-center justify-center">
+                                                <span className="text-white text-[13px] font-bold">!</span>
+                                              </div>
+                                            ) : isStepInProgress ? (
+                                              <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB] border-t-[#0B9A8A] animate-spin" />
+                                            ) : (
+                                              <div className="h-6 w-6 rounded-full border-2 border-[#E5E7EB]" />
+                                            )}
+                                          </div>
+                                          <span className={cn("text-[13px] leading-5", isStepCompleted ? "text-[#6B7280] line-through" : fareClassError && stepIdx === 1 && resolveProgress.paused ? "text-[#DC2626] font-medium" : "text-[#111827]")}>{step.replace("{{fareClass}}", stepInputValues.fareClass ?? "Basic").replace("{{upgradeCost}}", "$" + (stepInputValues.upgradeCost ?? "200"))}</span>
                                         </div>
-                                        <span className={cn("text-[13px] leading-5", isStepCompleted ? "text-[#6B7280] line-through" : "text-[#111827]")}>{step}</span>
+                                        {/* Fare class error alert — shown inline after step 1 when paused */}
+                                        {fareClassError && stepIdx === 1 && resolveProgress.paused && (
+                                          <div className="mt-2.5 ml-[34px] rounded-xl border border-[#FECACA] bg-[#FEF2F2] p-3 animate-in fade-in slide-in-from-top-1 duration-300">
+                                            <div>
+                                                <p className="text-[13px] font-semibold text-[#991B1B]">Wrong fare class selected for the upgraded routing. One click correction available.</p>
+                                                <div className="flex items-center gap-2 mt-2.5">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setFareClassError(false);
+                                                      setStepInputValues((prev) => ({ ...prev, fareClass: "Full" }));
+                                                      setTaskProgress((prev) => ({ ...prev, "options-resolve": { stepIndex: 2, paused: false } }));
+                                                      setTimeout(() => scrollToBottom("smooth"), 100);
+                                                    }}
+                                                    className="rounded-lg bg-[#DC2626] px-4 py-1.5 text-[12px] font-semibold text-white hover:bg-[#B91C1C] transition-colors"
+                                                  >
+                                                    Approve
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setFareClassError(false);
+                                                      setTaskProgress((prev) => ({ ...prev, "options-resolve": { stepIndex: 2, paused: false } }));
+                                                      setTimeout(() => scrollToBottom("smooth"), 100);
+                                                    }}
+                                                    className="rounded-lg border border-[#DC2626] bg-transparent px-4 py-1.5 text-[12px] font-semibold text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                                                  >
+                                                    Deny
+                                                  </button>
+                                                </div>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -2309,17 +2465,28 @@ export default function ConversationPanel({
                         )}
 
                         {/* "Perform Task" button — visible when a resolution option is selected */}
-                        {hasAnySelection && !resolveProgress && !optionsAlert && (
-                          <div className="px-3 pb-3 pt-1">
-                            <button
-                              type="button"
-                              onClick={handleOptionsPerformTask}
-                              className="w-full rounded-xl bg-[#166CCA] py-3 text-[14px] font-semibold text-white hover:bg-[#1260B0] transition-colors"
-                            >
-                              Perform Task
-                            </button>
-                          </div>
-                        )}
+                        {hasAnySelection && !resolveProgress && !optionsAlert && (() => {
+                          const rawCost = (stepInputValues.upgradeCost ?? "200").replace(/[^0-9.]/g, "");
+                          const costNum = parseFloat(rawCost);
+                          const isOverLimit = selectedOption?.id === "authorize-partner-upgrade" && !isNaN(costNum) && costNum > 2310;
+                          return (
+                            <div className="px-3 pb-3 pt-1">
+                              <button
+                                type="button"
+                                onClick={handleOptionsPerformTask}
+                                disabled={isOverLimit}
+                                className={cn(
+                                  "w-full rounded-xl py-3 text-[14px] font-semibold transition-colors",
+                                  isOverLimit
+                                    ? "bg-[#D1D5DB] text-[#9CA3AF] cursor-not-allowed"
+                                    : "bg-[#166CCA] text-white hover:bg-[#1260B0]"
+                                )}
+                              >
+                                Perform Task
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   }

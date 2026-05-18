@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Eye, FileDown, FilePlus2, Phone, Sparkles, Ticket, X } from "lucide-react";
+import { ChevronDown, ClipboardList, Eye, FileDown, FilePlus2, Phone, Sparkles, Ticket, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -554,6 +554,12 @@ interface TakeoverCardData {
   isLaunching?: boolean;
 }
 
+/** A live internal note from the current conversation session. */
+export interface LiveInternalNote {
+  content: string;
+  time: string;
+}
+
 interface NotesPanelProps {
   initialTab?: string;
   initialTicketId?: string;
@@ -562,6 +568,8 @@ interface NotesPanelProps {
   customerId?: string;
   customerName?: string;
   takeoverCard?: TakeoverCardData;
+  /** Internal notes generated during the current session (shown at bottom of History tab). */
+  liveInternalNotes?: LiveInternalNote[];
 }
 
 export default function NotesPanel({
@@ -572,6 +580,7 @@ export default function NotesPanel({
   customerId,
   customerName,
   takeoverCard,
+  liveInternalNotes = [],
 }: NotesPanelProps) {
   const availableTickets = useMemo(() => getCustomerTickets(customerId), [customerId]);
   const requestedTicket = useMemo(() => getCustomerTicketById(initialTicketId, customerId), [customerId, initialTicketId]);
@@ -1038,18 +1047,44 @@ export default function NotesPanel({
 
       {activeTab === "History" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          <ScrollArea className="flex-1">
           {(() => {
             const rec = customerId ? getCustomerRecord(customerId) : null;
             const historyItems = rec?.customerHistory ?? [];
-            if (historyItems.length === 0) {
+            if (historyItems.length === 0 && liveInternalNotes.length === 0) {
               return (
                 <div className="flex min-h-[280px] flex-1 items-center justify-center text-xs text-[#9CA3AF]">
                   No history to display
                 </div>
               );
             }
-            return <CustomerHistoryTimeline historyItems={historyItems} />;
+            return (
+              <>
+                {historyItems.length > 0 && <CustomerHistoryTimeline historyItems={historyItems} />}
+                {liveInternalNotes.length > 0 && (
+                  <div className="px-4 pb-4">
+                    {historyItems.length > 0 && (
+                      <div className="mb-3 border-t border-dashed border-[#E5E7EB]" />
+                    )}
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9CA3AF]">Session Notes</p>
+                    <div className="space-y-2">
+                      {liveInternalNotes.map((note, idx) => (
+                        <div key={idx} className="rounded-lg border border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-3">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <ClipboardList className="h-3.5 w-3.5 text-[#9CA3AF]" />
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.04em] text-[#9CA3AF]">Internal Note</span>
+                            <span className="text-[10px] text-[#9CA3AF]">{note.time}</span>
+                          </div>
+                          <p className="text-[12px] leading-relaxed text-[#4B5563]">{note.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            );
           })()}
+          </ScrollArea>
         </div>
       )}
 

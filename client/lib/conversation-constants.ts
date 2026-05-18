@@ -201,10 +201,10 @@ export const TASK_STEPS: Record<string, string[]> = {
     "Sending confirmation to Marcus",
   ],
   "rebook-flight": [
-    "Searching available flights to destination",
-    "Checking seat availability and cabin class",
-    "Transferring booking to new flight",
-    "Sending updated boarding pass to traveler",
+    "Confirm flight availability",
+    "Confirm cabin class",
+    "Transfer booking to new flight",
+    "Send updated boarding pass to Alex",
   ],
   "map-route": [
     "Pulling real-time flight and ground transport data",
@@ -242,10 +242,10 @@ export const TASK_STEPS: Record<string, string[]> = {
     "Removing from active queue",
   ],
   "authorize-partner-upgrade": [
-    "Verifying Alex's Platinum tier and upgrade eligibility",
-    "Calculating fare differential for BA premium cabin",
-    "Submitting authorization request to partner desk",
-    "Confirming premium upgrade on BA-292 + BA-548",
+    "Verify Alex's Platinum Tier & upgrade eligibility — cover {{upgradeCost}}",
+    "Apply {{fareClass}} fare class",
+    "Submit authorization request to partner desk",
+    "Send Confirmation To Alex",
   ],
   "rebook-partner-airline": [
     "Releasing VY-4450 MSP→LHR seat hold",

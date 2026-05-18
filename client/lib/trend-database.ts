@@ -81,24 +81,24 @@ const OUTAGE_MAP_SVG = `
 
 export const trendItems: TrendItem[] = [
   {
-    id: "storm-power-outage",
+    id: "winter-snow-storm",
     summary:
-      "Major power outage across the Minneapolis–Saint Paul metro area is affecting 84,000+ stranded passengers at MSP. Ground operations are severely limited — expect extended delays on all outbound flights.",
-    modalTitle: "Power Outage — Minneapolis–Saint Paul Metro",
+      "A major winter snow storm across the Minneapolis–Saint Paul metro area is affecting 84,000+ stranded passengers at MSP. Ground operations are severely limited — expect extended delays on all outbound flights.",
+    modalTitle: "Winter Snow Storm — Minneapolis–Saint Paul Metro",
     severity: "critical",
     updatedAt: "Today · 6:45 AM CST",
     modalBody: `
       <div class="space-y-4">
         <div class="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3">
-          <p class="text-[12px] font-semibold text-[#991B1B] mb-1">Critical Infrastructure Alert</p>
-          <p class="text-[12px] text-[#7F1D1D] leading-relaxed">A major winter storm knocked out power to over 200,000 homes and businesses in the Twin Cities metro area at approximately 02:30 CST. MSP Airport is running on backup generators with limited terminal capacity.</p>
+          <p class="text-[12px] font-semibold text-[#991B1B] mb-1">Critical Weather Alert</p>
+          <p class="text-[12px] text-[#7F1D1D] leading-relaxed">A major winter snow storm has blanketed the Twin Cities metro area since approximately 02:30 CST, with 14+ inches of accumulation and sustained 45 mph winds. MSP Airport ground operations are severely limited with reduced terminal capacity.</p>
         </div>
         ${OUTAGE_MAP_SVG}
         <div class="space-y-2">
           <p class="text-[11px] font-semibold uppercase tracking-widest text-[#667085]">Key Facts</p>
           <ul class="space-y-1.5 text-[12px] text-[#344054] leading-relaxed">
-            <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]"></span>Xcel Energy reports 214,000 customers without power; restoration ETA 18–24 hours</li>
-            <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]"></span>MSP Airport operating on emergency generators — Terminals 1 & 2 at ~40% lighting capacity</li>
+            <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]"></span>14+ inches of snow with sustained 45 mph winds; NWS blizzard warning in effect until 18:00 CST</li>
+            <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]"></span>MSP Airport visibility below minimums — ground stops in effect, Terminals 1 & 2 at reduced capacity</li>
             <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F59E0B]"></span>De-icing operations suspended since 04:00; runway 30L/12R cleared, 30R/12L still closed</li>
             <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F59E0B]"></span>Hotel availability within 15 miles of MSP is at 2% — most properties fully booked</li>
             <li class="flex items-start gap-2"><span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3B82F6]"></span>Voyager operations center has activated Level 3 (mass disruption) response protocol</li>
@@ -117,7 +117,7 @@ export const trendItems: TrendItem[] = [
       <div class="space-y-4">
         <div class="rounded-lg border border-[#FECACA] bg-[#FEF2F2] p-3">
           <p class="text-[12px] font-semibold text-[#991B1B] mb-1">Operations Alert</p>
-          <p class="text-[12px] text-[#7F1D1D] leading-relaxed">The winter storm has triggered a cascading failure across MSP operations. 142 of 187 scheduled Voyager departures are canceled. Downstream hubs (ORD, DFW, ATL) are also reporting delays on MSP-origin routes.</p>
+          <p class="text-[12px] text-[#7F1D1D] leading-relaxed">The winter snow storm has triggered a cascading failure across MSP operations. 142 of 187 scheduled Voyager departures are canceled. Downstream hubs (ORD, DFW, ATL) are also reporting delays on MSP-origin routes.</p>
         </div>
         <div class="grid grid-cols-3 gap-3">
           <div class="rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] p-3 text-center">
@@ -192,7 +192,7 @@ export const trendItems: TrendItem[] = [
     id: "customer-sentiment-shift",
     summary:
       "Negative sentiment in inbound messages has spiked to 73% (up from a baseline of 22%). Travelers stranded 8+ hours are showing the highest frustration. Lead with empathy and offer proactive compensation before customers request it.",
-    modalTitle: "Customer Sentiment Alert — Storm Impact",
+    modalTitle: "Customer Sentiment Alert — Snow Storm Impact",
     severity: "high",
     updatedAt: "Today · 9:00 AM CST",
     modalBody: `
@@ -237,7 +237,7 @@ export const trendItems: TrendItem[] = [
   {
     id: "baggage-separation-wave",
     summary:
-      "Baggage separation incidents have increased 580% since 04:00 CST. Storm rebookings are routing passengers through alternate hubs but checked luggage is not following. Initiate proactive baggage traces for all rebooked passengers.",
+      "Baggage separation incidents have increased 580% since 04:00 CST. Snow storm rebookings are routing passengers through alternate hubs but checked luggage is not following. Initiate proactive baggage traces for all rebooked passengers.",
     modalTitle: "Baggage Separation Wave — Rerouted Passengers",
     severity: "moderate",
     updatedAt: "Today · 9:30 AM CST",
@@ -245,7 +245,7 @@ export const trendItems: TrendItem[] = [
       <div class="space-y-4">
         <div class="rounded-lg border border-[#DBEAFE] bg-[#EFF6FF] p-3">
           <p class="text-[12px] font-semibold text-[#1E40AF] mb-1">Baggage Operations Alert</p>
-          <p class="text-[12px] text-[#1E3A8A] leading-relaxed">When passengers are rerouted through alternate hubs, interlined and checked baggage often remains on the original routing. The storm has created a massive backlog of separated bags at MSP and downstream hubs.</p>
+          <p class="text-[12px] text-[#1E3A8A] leading-relaxed">When passengers are rerouted through alternate hubs, interlined and checked baggage often remains on the original routing. The snow storm has created a massive backlog of separated bags at MSP and downstream hubs.</p>
         </div>
         <div class="grid grid-cols-3 gap-3">
           <div class="rounded-lg border border-[#E4E7EC] bg-[#F9FAFB] p-3 text-center">

@@ -2521,7 +2521,14 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
 
   const allRows = [...baseRows, ...resolvedNormalised]
     .filter((a) => issueTab === "all" || a.status === issueTab)
-    .sort((a, b) => (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99));
+    .sort((a, b) => {
+      // Primary: priority (Critical → High → Medium → Low)
+      const priDiff = (priorityRank[a.priority] ?? 99) - (priorityRank[b.priority] ?? 99);
+      if (priDiff !== 0) return priDiff;
+      // Secondary: status (open before pending — keeps un-fired scenarios after active cases)
+      const statusDiff = (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99);
+      return statusDiff;
+    });
 
   // If the currently-selected case is no longer visible after a filter change,
   // fall back to the first row in the filtered list.

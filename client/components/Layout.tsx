@@ -5080,6 +5080,13 @@ function CombinedInteractionPanel({
   const resolvedPanelTitle = panelTitle ?? (showConversationTab ? "Conversation & Customer" : "App Space");
   const customerTabLabel = showConversationTab ? "Customer" : "Customer Information";
 
+  const liveInternalNotes = useMemo(() =>
+    conversation.messages
+      .filter((m) => m.isInternal)
+      .map((m) => ({ content: m.content, time: m.time })),
+    [conversation.messages],
+  );
+
   return (
     <div
       aria-hidden={!isOpen}
@@ -5164,6 +5171,7 @@ function CombinedInteractionPanel({
               initialTicketId={panelSelection?.ticketId}
               customerId={customerRecordId}
               customerName={customerName}
+              liveInternalNotes={liveInternalNotes}
             />
           </TabsContent>
           {showCanvasTab && (
@@ -5250,6 +5258,7 @@ function DockedCustomerInfoPanel({
   isEqualSplit = false,
   equalSplitWidth,
   takeoverCard = null,
+  conversation,
 }: {
   isOpen: boolean;
   width: number;
@@ -5263,6 +5272,7 @@ function DockedCustomerInfoPanel({
   isCallDisabled: boolean;
   onClose: () => void;
   onUndockStart: (event: React.MouseEvent<HTMLElement>) => void;
+  conversation?: SharedConversationData;
   showTrailingGap: boolean;
   isEqualSplit?: boolean;
   equalSplitWidth?: number;
@@ -5273,6 +5283,13 @@ function DockedCustomerInfoPanel({
   const contentInitializedRef = useRef(false);
   const [isContentVisible, setIsContentVisible] = useState(isOpen);
   const [isContentEntered, setIsContentEntered] = useState(isOpen);
+
+  const dockedLiveInternalNotes = useMemo(() =>
+    conversation?.messages
+      .filter((m) => m.isInternal)
+      .map((m) => ({ content: m.content, time: m.time })) ?? [],
+    [conversation?.messages],
+  );
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -5398,6 +5415,7 @@ function DockedCustomerInfoPanel({
               customerId={customerRecordId}
               customerName={customerName}
               takeoverCard={takeoverCard ?? undefined}
+              liveInternalNotes={dockedLiveInternalNotes}
             />
           </>
         ) : null}
@@ -5429,6 +5447,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   takeoverStartTime?: number | null;
   /** When set, shows the blue AI case overview card at the top of the Overview tab. */
   takeoverCard?: { botType: string; botAvatarUrl: string; customerContext: string; aiConfidence: number; aiConfidenceReason: string; onApprove?: () => void; onReject?: () => void; onDismiss?: () => void; phase?: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected"; resolvedCaseStatus?: string; onResolvedCaseStatusChange?: (status: string) => void; rejectReason?: string | null; onPhaseChange?: (phase: "idle" | "approving" | "resolved" | "reject-reasons" | "reject-loading" | "rejected", rejectReason?: string) => void; hideActions?: boolean; actionLabel?: string } | null;
+  conversation?: SharedConversationData;
 }>(function CustomerInfoPopunder({
   position,
   size,
@@ -5447,6 +5466,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   onInteractStart,
   takeoverStartTime = null,
   takeoverCard = null,
+  conversation: popunderConversation,
 }, ref) {
   // Two-div architecture:
   //   containerRef  — outer, position-only div. Owns transform:translate(x,y) and explicit
@@ -5457,6 +5477,10 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
   //   innerRef      — inner content div. Owns CSS entry/exit animations and all visual chrome.
   //                   Its animation transform is on a separate element from the positioning
   //                   transform, so there is no compositor conflict.
+  const popunderLiveInternalNotes = useMemo(() =>
+    popunderConversation?.messages.filter((m) => m.isInternal).map((m) => ({ content: m.content, time: m.time })) ?? [],
+    [popunderConversation?.messages],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
@@ -5678,6 +5702,7 @@ const CustomerInfoPopunder = forwardRef<CustomerInfoPopunderHandle, {
         initialTicketId={panelSelection?.ticketId}
         customerId={customerRecordId}
         takeoverCard={takeoverCard ?? undefined}
+        liveInternalNotes={popunderLiveInternalNotes}
       />
 
       <button
@@ -15227,6 +15252,7 @@ export default function Layout({ children }: LayoutProps) {
                 onClose={closeCustomerInfoPanel}
                 showTrailingGap={false}
                 isEqualSplit
+                conversation={conversationState}
                 onUndockStart={(event) => {
                   if (typeof window === "undefined") return;
 
@@ -15571,6 +15597,7 @@ export default function Layout({ children }: LayoutProps) {
               onClose={() => setIsConversationDockedPanelOpen(false)}
               showTrailingGap={isMainCanvasVisible}
               takeoverCard={customerInfoTakeoverCard ? { ...customerInfoTakeoverCard, hideActions: guidingAssignmentId === selectedAssignment?.id } : customerInfoTakeoverCard}
+              conversation={conversationState}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -15619,6 +15646,7 @@ export default function Layout({ children }: LayoutProps) {
               onClose={closeCustomerInfoPanel}
               showTrailingGap={isMainCanvasVisible}
               takeoverCard={customerInfoTakeoverCard ? { ...customerInfoTakeoverCard, hideActions: guidingAssignmentId === selectedAssignment?.id } : customerInfoTakeoverCard}
+              conversation={conversationState}
               onUndockStart={(event) => {
                 if (typeof window === "undefined") return;
 
@@ -15757,6 +15785,7 @@ export default function Layout({ children }: LayoutProps) {
           onDock={(isCustomerInfoPanelAllowed || (isActivityRoute && isDockedConversationVisible)) ? () => { setIsCustomerInfoIconPopoverOpen(false); dockCustomerInfoPanel(); } : undefined}
           dragActivation={customerInfoDragActivation}
           onInteractStart={() => bringFloatingPanelToFront("customerInfo")}
+          conversation={conversationState}
         />
       )}
 
@@ -16297,7 +16326,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div> */}
 
-            {/* Critical alert — power outage */}
+            {/* Critical alert — winter snow storm */}
             <div className="mx-6 mb-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] dark:border-[#7F1D1D] dark:bg-[#450A0A] p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="shrink-0 h-5 w-5 rounded-full bg-[#EF4444] flex items-center justify-center">
@@ -16305,9 +16334,9 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#DC2626] dark:text-[#FCA5A5]">Critical Alert</p>
               </div>
-              <p className="text-[12px] font-semibold text-[#991B1B] dark:text-[#FCA5A5] mb-1">Power Outage — Minneapolis–Saint Paul Metro</p>
+              <p className="text-[12px] font-semibold text-[#991B1B] dark:text-[#FCA5A5] mb-1">Winter Snow Storm — Minneapolis–Saint Paul Metro</p>
               <p className="text-[12px] leading-[1.65] text-[#7F1D1D] dark:text-[#FECACA]">
-                Major power outage across the MSP metro area is affecting 84,000+ stranded passengers. Ground operations are severely limited — expect extended delays on all outbound flights. 142 Voyager departures canceled.
+                A major winter snow storm across the MSP metro area is affecting 84,000+ stranded passengers. Ground operations are severely limited — expect extended delays on all outbound flights. 142 Voyager departures canceled.
               </p>
             </div>
 
