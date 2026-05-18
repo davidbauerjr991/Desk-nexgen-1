@@ -484,6 +484,9 @@ export default function ConversationPanel({
   const [hoveredProgressStep, setHoveredProgressStep] = useState<string | null>(null);
   const [postActionSuggestion, setPostActionSuggestion] = useState<string | null>(null);
   const [postResolveVariants, setPostResolveVariants] = useState<InlineSuggestion[] | null>(null);
+  const [optionsAlert, setOptionsAlert] = useState<{ title: string; message: string; approveLabel: string } | null>(null);
+  const [seatAlert, setSeatAlert] = useState<"premium-unavailable" | "standard-offer" | null>(null);
+  const postRatingAlertFiredRef = useRef(false);
   const [postActionAnimKey, setPostActionAnimKey] = useState(0);
   const [aiNewCount, setAiNewCount] = useState(0);
   const [copilotInput, setCopilotInput] = useState("");
@@ -610,7 +613,15 @@ export default function ConversationPanel({
   };
 
   const notedTaskIdsRef = useRef<Set<string>>(new Set());
-  const optionsResolveCompletedRef = useRef(false);
+  // Infer completed state from conversation messages so state survives unmount/remount.
+  const internalNotes = conversation.messages.filter((m) => m.isInternal).map((m) => m.content.toLowerCase());
+  const optionsResolveAlreadyDone = internalNotes.some((n) =>
+    n.includes("rebooked alex sanderson") || n.includes("authorized ba") ||
+    n.includes("resolution actioned") || n.includes("full refund issued"),
+  );
+  const optionsResolveCompletedRef = useRef(optionsResolveAlreadyDone);
+  // Keep the ref in sync on subsequent renders (in case it was set during this session)
+  if (optionsResolveAlreadyDone) optionsResolveCompletedRef.current = true;
   const elenaTasksCompletedRef = useRef(false);
   const latestMessage = conversation.messages[conversation.messages.length - 1];
   const latestCustomerMessage = [...conversation.messages].reverse().find((message) => message.role === "customer") ?? null;
@@ -979,10 +990,15 @@ export default function ConversationPanel({
         const goodwillChecked = agentTasks.some((t) => t.variant === "goodwill" && checkedTaskIds.has(t.id));
         const variantData = selectedOptionTask ? resolveResponseVariantsByTaskId[selectedOptionTask.id] : null;
 
-        // Pick the right completion note based on selected option + goodwill
-        const dynamicNote = variantData
-          ? (goodwillChecked ? variantData.completionNoteWithGoodwill : variantData.completionNote) ?? TASK_COMPLETION_NOTES[taskId]
-          : TASK_COMPLETION_NOTES[taskId];
+        // Pick the right completion note based on customer + selected option + goodwill
+        const scenarioCfg = getScenarioConfig(customerId);
+        const scenarioNote = selectedOptionTask
+          ? (scenarioCfg?.optionCompletionNotes?.[selectedOptionTask.id] ?? scenarioCfg?.optionCompletionNoteFallback ?? null)
+          : (scenarioCfg?.optionCompletionNoteFallback ?? null);
+        const dynamicNote = scenarioNote
+          ?? (variantData
+            ? (goodwillChecked ? variantData.completionNoteWithGoodwill : variantData.completionNote) ?? TASK_COMPLETION_NOTES[taskId]
+            : TASK_COMPLETION_NOTES[taskId]);
 
         if (dynamicNote && onConversationChange) {
           const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -1003,7 +1019,10 @@ export default function ConversationPanel({
         }
 
         // Generate suggested response variants for the card carousel
-        if (variantData) {
+        const scenarioPostResolve = scenarioCfg?.postResolveSuggestions;
+        if (scenarioPostResolve?.length) {
+          setPostResolveVariants(scenarioPostResolve);
+        } else if (variantData) {
           const replies = goodwillChecked ? variantData.withGoodwill : variantData.withoutGoodwill;
           setPostResolveVariants(replies.map((r) => ({ summary: "Suggested response", suggestedReply: r })));
         }
@@ -1013,9 +1032,10 @@ export default function ConversationPanel({
         optionsResolveCompletedRef.current = true;
 
         // Also set post-action suggestion for the accordion panel
-        const completionReply = TASK_COMPLETION_REPLIES[taskId];
+        const completionReply = scenarioCfg?.postResolveReply ?? TASK_COMPLETION_REPLIES[taskId];
         if (completionReply) setPostActionSuggestion(completionReply);
 
+        // Clean up option tasks after the steps finish.
         setTimeout(() => {
           setAgentTasks((prev) => prev.filter((t) => !t.optionLabel && t.variant !== "goodwill"));
           setCheckedTaskIds(new Set());
@@ -1104,9 +1124,9 @@ export default function ConversationPanel({
         }
         // Auto-accept a pending assignment the moment the agent acts on a suggested next step.
         if (isPendingAcceptance) onAcceptAssignment?.();
-        // Always scroll to bottom when checking a task — the card is expanding and the
-        // agent needs to see the in-progress steps that are about to appear below it.
-        requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+        // Scroll conversation to bottom after React renders expanded content (steps preview / progress).
+        // Use a short delay so the new DOM (e.g. steps preview card) is laid out first.
+        setTimeout(() => scrollToBottom("smooth"), 100);
       }
       return next;
     });
@@ -1114,9 +1134,18 @@ export default function ConversationPanel({
 
   // "Perform Task" handler for options-style layouts — starts a combined resolve progress.
   const handleOptionsPerformTask = () => {
+    // Scenario-specific: show layover/gate alert BEFORE running task steps
+    const scenarioLayoverAlert = getScenarioConfig(customerId)?.layoverAlert;
+    if (scenarioLayoverAlert) {
+      setOptionsAlert(scenarioLayoverAlert);
+      if (isPendingAcceptance) onAcceptAssignment?.();
+      // Allow React to render the alert, then scroll conversation so the full message is visible
+      setTimeout(() => scrollToBottom("smooth"), 100);
+      return;
+    }
     setTaskProgress((p) => ({ ...p, "options-resolve": { stepIndex: 0, paused: false } }));
     if (isPendingAcceptance) onAcceptAssignment?.();
-    requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+    setTimeout(() => scrollToBottom("smooth"), 100);
   };
 
   const handlePerformAllActions = () => {
@@ -1167,6 +1196,120 @@ export default function ConversationPanel({
   const handleAiChipClick = () => {
     requestAnimationFrame(scrollAiPanelsToBottom);
   };
+
+  // Scenario-driven: after customer gives a star rating, show post-rating alert
+  const postRatingAlertCfg = getScenarioConfig(customerId)?.postRatingAlert;
+  useEffect(() => {
+    if (!postRatingAlertCfg || postRatingAlertFiredRef.current) return;
+    const lastCust = [...conversation.messages].reverse().find((m) => m.role === "customer");
+    if (lastCust?.starRating) {
+      postRatingAlertFiredRef.current = true;
+      const timer = setTimeout(() => {
+        setSeatAlert("premium-unavailable");
+      }, postRatingAlertCfg.delayMs);
+      return () => clearTimeout(timer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerId, conversation.messages]);
+
+  // Seat availability alert card — rendered inline after star rating (data-driven)
+  const seatAlertCard = (seatAlert && postRatingAlertCfg) ? (
+    <div className="overflow-hidden rounded-2xl border border-[#EF4444]/30 bg-[#FEF2F2] animate-in fade-in slide-in-from-bottom-3 duration-700">
+      <div className="px-4 py-3">
+        <div className="flex items-start gap-2.5">
+          <div className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-[#EF4444] flex items-center justify-center">
+            <span className="text-white text-[11px] font-bold">!</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            {seatAlert === "premium-unavailable" ? (
+              <>
+                <p className="text-[13px] font-semibold text-[#991B1B]">{postRatingAlertCfg.initial.title}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-[#7F1D1D]">
+                  {postRatingAlertCfg.initial.message}
+                </p>
+                <div className="mt-2.5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onConversationChange) {
+                        const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                        const conv = conversationRef.current;
+                        onConversationChange({
+                          ...conv,
+                          messages: [
+                            ...conv.messages,
+                            {
+                              id: Date.now(),
+                              role: "agent",
+                              content: `${postRatingAlertCfg.initial.approveNote} — ${dateStr}`,
+                              time: formatConversationTimestamp(new Date()),
+                              isInternal: true,
+                            },
+                          ],
+                        });
+                      }
+                      setSeatAlert(null);
+                    }}
+                    className="rounded-lg bg-[#EF4444] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#DC2626] transition-colors"
+                  >
+                    {postRatingAlertCfg.initial.approveLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSeatAlert("standard-offer");
+                      if (postRatingAlertCfg.denySuggestions?.length) {
+                        setPostResolveVariants(postRatingAlertCfg.denySuggestions);
+                      }
+                      requestAnimationFrame(() => requestAnimationFrame(scrollAiPanelsToBottom));
+                    }}
+                    className="rounded-lg border border-[#EF4444] bg-transparent px-4 py-2 text-[12px] font-semibold text-[#DC2626] hover:bg-[#FEE2E2] transition-colors"
+                  >
+                    {postRatingAlertCfg.initial.denyLabel}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] font-semibold text-[#991B1B]">{postRatingAlertCfg.fallback.title}</p>
+                <p className="mt-1 text-[12px] leading-relaxed text-[#7F1D1D]">
+                  {postRatingAlertCfg.fallback.message}
+                </p>
+                <div className="mt-2.5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onConversationChange) {
+                        const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                        const conv = conversationRef.current;
+                        onConversationChange({
+                          ...conv,
+                          messages: [
+                            ...conv.messages,
+                            {
+                              id: Date.now(),
+                              role: "agent",
+                              content: `${postRatingAlertCfg.fallback.confirmNote} — ${dateStr}`,
+                              time: formatConversationTimestamp(new Date()),
+                              isInternal: true,
+                            },
+                          ],
+                        });
+                      }
+                      setSeatAlert(null);
+                    }}
+                    className="rounded-lg bg-[#EF4444] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#DC2626] transition-colors"
+                  >
+                    {postRatingAlertCfg.fallback.confirmLabel}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const handleCopilotSubmit = () => {
     const trimmed = copilotInput.trim();
@@ -1957,9 +2100,13 @@ export default function ConversationPanel({
                   return messageEl;
                 })}
 
+                {/* Seat availability alert — Alex Sanderson, inline after 5-star rating */}
+                {seatAlertCard}
+
                 {/* Suggested Next Steps — always visible when tasks are available (hidden during review) */}
                 {/* When a handoff card exists, wait for its animation to complete before showing */}
-                {!hideInput && !isPendingAcceptance && agentTasks.length > 0 && (!hasHandoffCard || handoffAnimationDone) && (() => {
+                {/* Hidden while the seat alert is active for Alex Sanderson */}
+                {!seatAlert && !hideInput && !isPendingAcceptance && agentTasks.length > 0 && (!hasHandoffCard || handoffAnimationDone) && (() => {
                   const hasOptionsLayout = agentTasks.some((t) => t.optionLabel);
 
                   /* ── Options Layout (Marcus-style resolve flow) ── */
@@ -1967,8 +2114,11 @@ export default function ConversationPanel({
                     const optionTasks = agentTasks.filter((t) => t.optionLabel);
                     const goodwillTasks = agentTasks.filter((t) => t.variant === "goodwill");
                     const resolveProgress = taskProgress["options-resolve"];
-                    const resolveSteps = TASK_STEPS["options-resolve"] ?? [];
-                    const hasAnySelection = optionTasks.some((t) => checkedTaskIds.has(t.id));
+                    const selectedOption = optionTasks.find((t) => checkedTaskIds.has(t.id));
+                    const resolveSteps = (selectedOption && TASK_STEPS[selectedOption.id])
+                      ? TASK_STEPS[selectedOption.id]
+                      : (TASK_STEPS["options-resolve"] ?? []);
+                    const hasAnySelection = !!selectedOption;
 
                     return (
                       <div className="overflow-hidden rounded-2xl border border-black/10 bg-[#F8F8F9]">
@@ -2042,12 +2192,33 @@ export default function ConversationPanel({
                             );
                           })}
 
+                          {/* Steps preview — shown when an option is selected before task execution */}
+                          {hasAnySelection && !resolveProgress && resolveSteps.length > 0 && (
+                            <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                              <div className="px-4 py-3">
+                                <p className="text-[12px] font-semibold text-[#111827] mb-2.5">Steps that will run on Approve</p>
+                                <div className="space-y-2.5">
+                                  {resolveSteps.map((step, idx) => (
+                                    <div key={idx} className="flex items-center gap-2.5">
+                                      <div className="shrink-0 h-6 w-6 rounded-full border-2 border-[#BFDBFE] flex items-center justify-center">
+                                        <span className="text-[10px] font-semibold text-[#166CCA]">{idx + 1}</span>
+                                      </div>
+                                      <span className="text-[12px] text-[#344054]">{step}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Combined resolving progress card */}
                           {resolveProgress && (
                             <div className="rounded-xl border border-black/[0.06] bg-white overflow-hidden">
                               <div className="px-4 py-3">
                                 <p className="mb-2.5 text-[14px] font-semibold text-[#111827]">
-                                  {TASK_ACTION_TITLES["options-resolve"] ?? "Resolving..."}
+                                  {(selectedOption && TASK_ACTION_TITLES[selectedOption.id])
+                                    ? TASK_ACTION_TITLES[selectedOption.id]
+                                    : (TASK_ACTION_TITLES["options-resolve"] ?? "Resolving...")}
                                 </p>
                                 <div className="space-y-2.5">
                                   {resolveSteps.map((step, stepIdx) => {
@@ -2076,8 +2247,69 @@ export default function ConversationPanel({
                           )}
                         </div>
 
+                        {/* Layover alert — shown BEFORE task steps for Alex Sanderson */}
+                        {optionsAlert && !resolveProgress && (
+                          <div className="px-3 pb-2">
+                            <div className="rounded-xl border border-[#F59E0B] bg-[#FFFBEB] px-4 py-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                              <div className="flex items-start gap-2.5">
+                                <div className="shrink-0 mt-0.5 h-5 w-5 rounded-full bg-[#F59E0B] flex items-center justify-center">
+                                  <span className="text-white text-[11px] font-bold">!</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[13px] font-semibold text-[#92400E]">{optionsAlert.title}</p>
+                                  <p className="mt-1 text-[12px] leading-relaxed text-[#78350F]">{optionsAlert.message}</p>
+                                  <div className="mt-2.5 flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        // Add lounge approval as internal note
+                                        if (onConversationChange) {
+                                          const dateStr = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                                          const conv = conversationRef.current;
+                                          onConversationChange({
+                                            ...conv,
+                                            messages: [
+                                              ...conv.messages,
+                                              {
+                                                id: Date.now(),
+                                                role: "agent",
+                                                content: `Complimentary lounge access approved for Alex Sanderson at Amsterdam Schiphol during 3-hour layover — ${dateStr}`,
+                                                time: formatConversationTimestamp(new Date()),
+                                                isInternal: true,
+                                              },
+                                            ],
+                                          });
+                                        }
+                                        // Clear alert, then start the task steps
+                                        setOptionsAlert(null);
+                                        setTaskProgress((p) => ({ ...p, "options-resolve": { stepIndex: 0, paused: false } }));
+                                        setTimeout(() => scrollToBottom("smooth"), 100);
+                                      }}
+                                      className="rounded-lg bg-[#F59E0B] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#D97706] transition-colors"
+                                    >
+                                      {optionsAlert.approveLabel}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        // Dismiss alert without approving lounge access, proceed to task steps
+                                        setOptionsAlert(null);
+                                        setTaskProgress((p) => ({ ...p, "options-resolve": { stepIndex: 0, paused: false } }));
+                                        setTimeout(() => scrollToBottom("smooth"), 100);
+                                      }}
+                                      className="rounded-lg border border-[#F59E0B] bg-transparent px-4 py-2 text-[12px] font-semibold text-[#D97706] hover:bg-[#FEF3C7] transition-colors"
+                                    >
+                                      Dismiss
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* "Perform Task" button — visible when a resolution option is selected */}
-                        {hasAnySelection && !resolveProgress && (
+                        {hasAnySelection && !resolveProgress && !optionsAlert && (
                           <div className="px-3 pb-3 pt-1">
                             <button
                               type="button"
@@ -2492,14 +2724,21 @@ export default function ConversationPanel({
                               <p className="text-[10px] text-[#98A2B3] leading-relaxed">{aiConfidenceReason}</p>
                             ) : null}
                           </div>
-                          {/* Recommended Action — scenario-specific (e.g. Elena) */}
+                          {/* Recommended Action — scenario-specific (e.g. Elena, Alex) */}
                           {(() => { const recAction = getScenarioConfig(customerId)?.recommendedAction; return recAction ? (
                             <div className="mt-2.5 rounded-lg border border-[#BFDBFE] bg-white px-3 py-2.5">
                               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#667085] mb-1">Recommended Action</p>
                               <p className="text-[12px] leading-relaxed text-[#344054]">{recAction}</p>
+                              <button
+                                type="button"
+                                onClick={handleInlineApprove}
+                                className="mt-2.5 w-full rounded-lg bg-[#166CCA] px-3 py-2.5 text-[13px] font-semibold text-white hover:bg-[#1259A8] transition-colors"
+                              >
+                                Approve
+                              </button>
                             </div>
                           ) : null; })()}
-                          {/* Approve / Reject — hidden when scenario has its own recommended action */}
+                          {/* Approve / Reject — shown when scenario has no recommended action */}
                           {!getScenarioConfig(customerId)?.recommendedAction && (
                           <div className="mt-2 flex gap-2">
                             <button
@@ -3177,6 +3416,125 @@ export default function ConversationPanel({
                     </div>
                   </div>
                 )}
+
+                {/* Flight route map — shown for rebooking internal notes */}
+                {(() => {
+                  const noteText = selectedNote.content.toLowerCase();
+                  // Detect Option A (VY reroute via Amsterdam) or Option B (BA via Heathrow)
+                  const isVYRoute = noteText.includes("rebooked") && noteText.includes("ams") && noteText.includes("fco") && noteText.includes("vy-");
+                  const isBARoute = noteText.includes("rebooked") && noteText.includes("lhr") && noteText.includes("fco") && noteText.includes("ba-");
+                  if (!isVYRoute && !isBARoute) return null;
+
+                  return (
+                    <>
+                      <div className="rounded-xl border border-[#E4E7EC] bg-white p-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#667085] mb-3">Flight Route</p>
+                        {isBARoute ? (
+                          /* BA route: MSP → LHR → FCO */
+                          <svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-lg border border-[#E4E7EC] bg-[#F8FAFC]">
+                            {/* Grid */}
+                            <line x1="0" y1="100" x2="280" y2="100" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <line x1="93" y1="0" x2="93" y2="200" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <line x1="187" y1="0" x2="187" y2="200" stroke="#E4E7EC" strokeWidth="0.5"/>
+
+                            {/* Route arc MSP → LHR */}
+                            <path d="M50,120 Q140,40 190,80" stroke="#166CCA" strokeWidth="2" fill="none" strokeDasharray="6,3"/>
+                            {/* Route arc LHR → FCO */}
+                            <path d="M190,80 Q220,100 240,110" stroke="#166CCA" strokeWidth="2" fill="none" strokeDasharray="6,3"/>
+
+                            {/* Plane icon on first leg */}
+                            <g transform="translate(120,68) rotate(25)">
+                              <polygon points="0,-4 8,0 0,4 2,0" fill="#166CCA"/>
+                            </g>
+
+                            {/* MSP */}
+                            <circle cx="50" cy="120" r="6" fill="#166CCA" stroke="white" strokeWidth="2"/>
+                            <text x="50" y="145" textAnchor="middle" fontSize="9" fontWeight="600" fill="#166CCA" fontFamily="system-ui">MSP</text>
+                            <text x="50" y="156" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">Minneapolis</text>
+
+                            {/* LHR */}
+                            <circle cx="190" cy="80" r="6" fill="#F59E0B" stroke="white" strokeWidth="2"/>
+                            <text x="190" y="65" textAnchor="middle" fontSize="9" fontWeight="600" fill="#F59E0B" fontFamily="system-ui">LHR</text>
+                            <text x="190" y="54" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">London</text>
+
+                            {/* FCO */}
+                            <circle cx="240" cy="110" r="6" fill="#16A34A" stroke="white" strokeWidth="2"/>
+                            <text x="240" y="135" textAnchor="middle" fontSize="9" fontWeight="600" fill="#16A34A" fontFamily="system-ui">FCO</text>
+                            <text x="240" y="146" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">Rome</text>
+
+                            {/* Flight labels */}
+                            <rect x="90" y="72" width="48" height="16" rx="4" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="0.5"/>
+                            <text x="114" y="83" textAnchor="middle" fontSize="7" fontWeight="600" fill="#166CCA" fontFamily="system-ui">BA-292</text>
+                            <rect x="202" y="88" width="48" height="16" rx="4" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="0.5"/>
+                            <text x="226" y="99" textAnchor="middle" fontSize="7" fontWeight="600" fill="#166CCA" fontFamily="system-ui">BA-548</text>
+
+                            {/* Legend */}
+                            <rect x="8" y="172" width="110" height="22" rx="4" fill="white" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <circle cx="18" cy="183" r="3" fill="#F59E0B"/>
+                            <text x="25" y="186" fontSize="7" fill="#667085" fontFamily="system-ui">Connection</text>
+                            <circle cx="76" cy="183" r="3" fill="#16A34A"/>
+                            <text x="83" y="186" fontSize="7" fill="#667085" fontFamily="system-ui">Destination</text>
+                          </svg>
+                        ) : (
+                          /* VY route: MSP → AMS → FCO */
+                          <svg viewBox="0 0 280 200" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-lg border border-[#E4E7EC] bg-[#F8FAFC]">
+                            {/* Grid */}
+                            <line x1="0" y1="100" x2="280" y2="200" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <line x1="93" y1="0" x2="93" y2="200" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <line x1="187" y1="0" x2="187" y2="200" stroke="#E4E7EC" strokeWidth="0.5"/>
+
+                            {/* Route arc MSP → AMS */}
+                            <path d="M50,120 Q140,35 200,75" stroke="#166CCA" strokeWidth="2" fill="none" strokeDasharray="6,3"/>
+                            {/* Route arc AMS → FCO */}
+                            <path d="M200,75 Q230,100 245,115" stroke="#166CCA" strokeWidth="2" fill="none" strokeDasharray="6,3"/>
+
+                            {/* Plane icon on first leg */}
+                            <g transform="translate(125,63) rotate(22)">
+                              <polygon points="0,-4 8,0 0,4 2,0" fill="#166CCA"/>
+                            </g>
+
+                            {/* MSP */}
+                            <circle cx="50" cy="120" r="6" fill="#166CCA" stroke="white" strokeWidth="2"/>
+                            <text x="50" y="145" textAnchor="middle" fontSize="9" fontWeight="600" fill="#166CCA" fontFamily="system-ui">MSP</text>
+                            <text x="50" y="156" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">Minneapolis</text>
+
+                            {/* AMS */}
+                            <circle cx="200" cy="75" r="6" fill="#F59E0B" stroke="white" strokeWidth="2"/>
+                            <text x="200" y="60" textAnchor="middle" fontSize="9" fontWeight="600" fill="#F59E0B" fontFamily="system-ui">AMS</text>
+                            <text x="200" y="49" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">Amsterdam</text>
+
+                            {/* FCO */}
+                            <circle cx="245" cy="115" r="6" fill="#16A34A" stroke="white" strokeWidth="2"/>
+                            <text x="245" y="140" textAnchor="middle" fontSize="9" fontWeight="600" fill="#16A34A" fontFamily="system-ui">FCO</text>
+                            <text x="245" y="151" textAnchor="middle" fontSize="7" fill="#667085" fontFamily="system-ui">Rome</text>
+
+                            {/* Flight labels */}
+                            <rect x="93" y="67" width="52" height="16" rx="4" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="0.5"/>
+                            <text x="119" y="78" textAnchor="middle" fontSize="7" fontWeight="600" fill="#166CCA" fontFamily="system-ui">VY-6180</text>
+                            <rect x="205" y="88" width="52" height="16" rx="4" fill="#EBF4FD" stroke="#BFDBFE" strokeWidth="0.5"/>
+                            <text x="231" y="99" textAnchor="middle" fontSize="7" fontWeight="600" fill="#166CCA" fontFamily="system-ui">VY-3042</text>
+
+                            {/* Legend */}
+                            <rect x="8" y="172" width="110" height="22" rx="4" fill="white" stroke="#E4E7EC" strokeWidth="0.5"/>
+                            <circle cx="18" cy="183" r="3" fill="#F59E0B"/>
+                            <text x="25" y="186" fontSize="7" fill="#667085" fontFamily="system-ui">Connection</text>
+                            <circle cx="76" cy="183" r="3" fill="#16A34A"/>
+                            <text x="83" y="186" fontSize="7" fill="#667085" fontFamily="system-ui">Destination</text>
+                          </svg>
+                        )}
+                      </div>
+
+                      {/* Modify Booking button */}
+                      <button
+                        type="button"
+                        onClick={() => {/* no-op for prototype */}}
+                        className="w-full rounded-xl border border-[#166CCA] bg-white px-4 py-2.5 text-[13px] font-semibold text-[#166CCA] hover:bg-[#EBF4FD] active:bg-[#D6E9FA] transition-colors"
+                      >
+                        Modify Booking
+                      </button>
+                    </>
+                  );
+                })()}
 
                 {/* Ticket record if present */}
                 {selectedNote.ticket && (

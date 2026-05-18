@@ -160,6 +160,14 @@
   }
 }
 
+/* ─── Custom transition utilities (avoid ambiguous arbitrary-value warnings) */
+@layer utilities {
+  .duration-280 { transition-duration: 280ms; }
+  .duration-350 { transition-duration: 350ms; }
+  .duration-400 { transition-duration: 400ms; }
+  .ease-expo-out { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+}
+
 /* ─── Dark mode overrides for hardcoded Tailwind colors ─────────────────── */
 /* These live outside @layer so they come after Tailwind utilities in the    */
 /* cascade, winning without needing !important on every rule.               */

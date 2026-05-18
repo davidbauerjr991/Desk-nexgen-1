@@ -530,7 +530,7 @@ export default function ChatPopoverContent({
   return (
     <div
       className={cn(
-        "fixed flex flex-col overflow-hidden rounded-xl border border-black/10 dark:border-border bg-white dark:bg-[#0D1525] shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+        "fixed flex flex-col overflow-hidden rounded-xl border border-black/10 dark:border-border bg-white dark:bg-[#0D1525] shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-280 ease-expo-out will-change-[opacity,transform]",
         visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[0.97] translate-y-1",
       )}
       style={{ left: position.x, top: position.y, width: size.width, height: size.height, zIndex, maxWidth: "calc(100vw - 2rem)", maxHeight: "calc(100vh - 2rem)" }}

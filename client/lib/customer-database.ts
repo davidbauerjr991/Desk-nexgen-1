@@ -15498,7 +15498,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       supervisorName: "Sarah Jones",
     },
     seedHasTransferMessage: true,
-    takeoverDraft: "Hi Alex, this is Sarah. I've reviewed everything Emily put together for you and I'm authorizing the British Airways premium cabin upgrade right now. We're going to make sure you get to Rome on time.",
+    takeoverDraft: "Hi Alex, this is Sarah — I'm your specialist and I've got your full situation in front of me. I can see you have something really special planned in Rome and I'm not going to let a mechanical delay get in the way of that. Give me just a moment to confirm the best option for you.",
     customerSnapshot: [
       "Voyager Platinum member for 8 years — 430,000 loyalty points, 34 trips",
       "Frequent transatlantic business traveler based out of MSP",
@@ -15506,7 +15506,7 @@ export const customerDatabase: CustomerSeedRecord[] = [
       "Connection window at LHR closes in approximately 3 hours",
       "Emily escalated proactively — best re-routing requires partner premium upgrade above $500 auto-auth limit",
     ],
-    copilotFallbackResponse: "Alex Sanderson is a Voyager Platinum member with 8 years of tenure and 430,000 loyalty points. His flight VY-4450 MSP→LHR has a mechanical delay of approximately 2 hours, putting his connection VY-7821 LHR→FCO at serious risk. Emily identified a British Airways premium cabin seat as the best re-routing option, but the $680 fare difference exceeds the $500 automated authorization threshold. The connection window closes in about 3 hours. Recommend authorizing the partner upgrade immediately given Alex's loyalty status and the time sensitivity.",
+    copilotFallbackResponse: "Platinum member, 430K miles, 8-year customer. Mechanical delay on VY-4450 means Alex will miss his Rome connection. Best reroute is BA-292 + BA-548 via Heathrow — premium cabin upgrade costs $2,310, exceeding the $500 auto-auth limit. Booking window closes in ~50 min. Authorize now.",
   },
 ];
 

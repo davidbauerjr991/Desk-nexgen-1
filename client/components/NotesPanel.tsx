@@ -22,10 +22,11 @@ import {
   getStatusBadgeClasses,
 } from "@/lib/ticket-data";
 import { TicketsDataGrid } from "@/components/notes/TicketsDataGrid";
+import CustomerHistoryTimeline from "@/components/CustomerHistoryTimeline";
 
 const PRIMARY_TABS = ["Overview", "Details"] as const;
-const SWITCHABLE_TABS = ["Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "History", "Notes"] as const;
-const DEFAULT_SWITCHABLE_TAB = "Accounts";
+const SWITCHABLE_TABS = ["History", "Accounts", "Tickets", "Interactions", "Directory", "Cases", "Tasks", "Emails", "Contacts", "Notes"] as const;
+const DEFAULT_SWITCHABLE_TAB = "History";
 
 const COPILOT_REASONING_STEPS = [
   "Reviewing case history and prior customer interactions...",
@@ -1035,6 +1036,23 @@ export default function NotesPanel({
 
       {activeTab === "Tickets" && <TicketsDataGrid tickets={availableTickets} onOpenTicket={handleOpenTicket} />}
 
+      {activeTab === "History" && (
+        <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+          {(() => {
+            const rec = customerId ? getCustomerRecord(customerId) : null;
+            const historyItems = rec?.customerHistory ?? [];
+            if (historyItems.length === 0) {
+              return (
+                <div className="flex min-h-[280px] flex-1 items-center justify-center text-xs text-[#9CA3AF]">
+                  No history to display
+                </div>
+              );
+            }
+            return <CustomerHistoryTimeline historyItems={historyItems} />;
+          })()}
+        </div>
+      )}
+
       {activeTab === "Accounts" && (
         <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden p-4">
           <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
@@ -1059,7 +1077,7 @@ export default function NotesPanel({
 
       {activeTicket && <TicketRecordView ticket={activeTicket} />}
 
-      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "Accounts" && activeTab !== "Tickets" && activeTab !== "Interactions" && activeTab !== "Copilot" && !activeTicket && (
+      {activeTab !== "Notes" && activeTab !== "Overview" && activeTab !== "Details" && activeTab !== "History" && activeTab !== "Accounts" && activeTab !== "Tickets" && activeTab !== "Interactions" && activeTab !== "Copilot" && !activeTicket && (
         <div className="flex flex-1 items-center justify-center text-xs text-[#9CA3AF]">
           No {activeTab.toLowerCase()} to display
         </div>

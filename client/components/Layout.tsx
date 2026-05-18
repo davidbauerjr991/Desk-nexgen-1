@@ -906,7 +906,7 @@ function AddNewPopoverContent({
   return (
     <div
       className={cn(
-        "fixed flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+        "fixed flex min-h-[420px] min-w-[320px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-280 ease-expo-out will-change-[opacity,transform]",
         visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[0.97] translate-y-1",
       )}
       style={{
@@ -4138,7 +4138,7 @@ function DockedConversationPanel({
     >
       <div
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-400 ease-expo-out",
           "will-change-[opacity,transform]",
           isContentEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
         )}
@@ -4226,19 +4226,11 @@ function DockedConversationPanel({
                 <div className="flex items-center gap-2 shrink-0">
                   {isPendingAcceptance ? (
                     <>
-                      {conversation.guidedReviewCompleted ? (
-                        /* After customer gives 5/5, show a status dropdown chip like taken-over cases */
-                        assignmentStatus && onAssignmentStatusChange ? (
-                          <div onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-                            <ConversationStatusDropdown status={assignmentStatus} onStatusChange={onAssignmentStatusChange} />
-                          </div>
-                        ) : null
-                      ) : (
-                        <span className="flex items-center gap-1.5 rounded-md bg-[#EFF6FF] px-2.5 py-1 text-[11px] font-semibold tracking-wide text-[#1D4ED8] uppercase whitespace-nowrap border border-[#BFDBFE]">
-                          <Eye className="h-3.5 w-3.5 text-[#2563EB]" />
-                          Review In Process
-                        </span>
-                      )}
+                      {/* "Review In Process" chip — visible while agent is reviewing before takeover */}
+                      <div className="flex items-center gap-1.5 rounded-full border border-[#BFDBFE] bg-[#EBF4FD] px-3 py-1">
+                        <Eye className="h-3.5 w-3.5 text-[#166CCA]" />
+                        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#166CCA]">Review In Process</span>
+                      </div>
                       <button
                         type="button"
                         aria-label="Close review case"
@@ -5231,7 +5223,7 @@ function InlineAppSpacePanel({
     >
       <div
         className={cn(
-          "h-full min-h-0 w-full transition-[opacity,transform] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "h-full min-h-0 w-full transition-[opacity,transform] duration-350 ease-expo-out",
           isOpen && isEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
         )}
       >
@@ -5367,7 +5359,7 @@ function DockedCustomerInfoPanel({
     >
       <div
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-350 ease-expo-out will-change-[opacity,transform]",
           isContentEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
         )}
       >
@@ -6836,7 +6828,7 @@ function DockedTranscriptPanel({
     >
       <div
         className={cn(
-          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+          "flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-black/[0.16] bg-card shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-[opacity,transform,box-shadow] duration-350 ease-expo-out will-change-[opacity,transform]",
           isContentEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
         )}
       >
@@ -7152,7 +7144,7 @@ function DeskCanvasPopunder({
   return (
     <div
       className={cn(
-        "fixed flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+        "fixed flex min-h-[420px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-280 ease-expo-out will-change-[opacity,transform]",
         visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[0.97] translate-y-1",
       )}
       style={{
@@ -7387,7 +7379,7 @@ function ConversationPopunder({
   return (
     <div
       className={cn(
-        "fixed flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+        "fixed flex min-h-[420px] min-w-[360px] flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.18)] transition-[opacity,transform] duration-280 ease-expo-out will-change-[opacity,transform]",
         visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-[0.97] translate-y-1",
       )}
       style={{
@@ -10790,7 +10782,8 @@ function generateSimulatedCustomerReply(conversation: SharedConversationData, ag
 
   // ── Scenario-specific replies (from scenario database) ──
   // Elena, Sofia (partial), Marcus — all driven by scenario-database.ts
-  const customerRecordId = conversation.customerName === "Elena Vasquez" ? "elena"
+  const customerRecordId = conversation.customerName === "Alex Sanderson" ? "alex_sanderson"
+    : conversation.customerName === "Elena Vasquez" ? "elena"
     : conversation.customerName === "Marcus Webb" ? "marcus"
     : conversation.customerName === "Sofia Martinez" ? "sofia"
     : conversation.customerName === "Terry Williams" ? "terry"
@@ -14995,7 +14988,7 @@ export default function Layout({ children }: LayoutProps) {
         {isActivityRoute && visibleAssignments.length === 0 && (
           <div className={cn(
             "flex min-w-0 flex-1 flex-col items-center justify-center gap-5 rounded-lg border border-black/[0.10] bg-white",
-            "transition-[opacity,transform] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+            "transition-[opacity,transform] duration-400 ease-expo-out will-change-[opacity,transform]",
             isPageEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
           )}>
             <div className="flex flex-col items-center gap-4 text-center px-8 max-w-sm">
@@ -15026,7 +15019,7 @@ export default function Layout({ children }: LayoutProps) {
         {isCombinedInteractionPanel ? (
           <div className={cn(
             "flex min-w-0 flex-1",
-            "transition-[opacity,transform] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+            "transition-[opacity,transform] duration-400 ease-expo-out will-change-[opacity,transform]",
             isPageEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
           )}>
             <CombinedInteractionPanel
@@ -15074,7 +15067,7 @@ export default function Layout({ children }: LayoutProps) {
         ) : isAppSpaceSplitLayout ? (
           <div className={cn(
             "flex min-w-0 flex-1 items-stretch gap-4",
-            "transition-[opacity,transform] duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-[opacity,transform]",
+            "transition-[opacity,transform] duration-400 ease-expo-out will-change-[opacity,transform]",
             isPageEntered ? "opacity-100 scale-100" : "scale-[0.97] opacity-0",
           )}>
             {isInlineConversationSplitPanelVisible ? (
@@ -16278,9 +16271,8 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="px-6 pt-4 pb-3 space-y-3">
-              {/* Escalated Cases */}
+            {/* Stats — temporarily hidden, may be restored later */}
+            {/* <div className="px-6 pt-4 pb-3 space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-[#FECACA]/60 dark:border-[#7F1D1D]/60 bg-[#FEF2F2] dark:bg-[#2A0A0A] px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FEE2E2] dark:bg-[#450A0A]">
@@ -16292,8 +16284,6 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <span className="rounded-full bg-[#EF4444] px-2.5 py-0.5 text-[12px] font-semibold text-white">{queuePreviewItems.filter(i => i.statusLabel === "Escalated").length}</span>
               </div>
-
-              {/* Pending Cases */}
               <div className="flex items-center justify-between rounded-xl border border-[#E4E7EC] dark:border-[#2A3448] bg-[#F9FAFB] dark:bg-[#1C2A3A] px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2F4F7] dark:bg-[#1C2A3A]">
@@ -16305,14 +16295,28 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <span className="rounded-full bg-[#475467] px-2.5 py-0.5 text-[12px] font-semibold text-white">{staticAssignments.filter(a => a.status === "pending" && a.channel !== "email").length}</span>
               </div>
+            </div> */}
+
+            {/* Critical alert — power outage */}
+            <div className="mx-6 mb-3 rounded-xl border border-[#FECACA] bg-[#FEF2F2] dark:border-[#7F1D1D] dark:bg-[#450A0A] p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="shrink-0 h-5 w-5 rounded-full bg-[#EF4444] flex items-center justify-center">
+                  <span className="text-white text-[10px] font-bold">!</span>
+                </div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#DC2626] dark:text-[#FCA5A5]">Critical Alert</p>
+              </div>
+              <p className="text-[12px] font-semibold text-[#991B1B] dark:text-[#FCA5A5] mb-1">Power Outage — Minneapolis–Saint Paul Metro</p>
+              <p className="text-[12px] leading-[1.65] text-[#7F1D1D] dark:text-[#FECACA]">
+                Major power outage across the MSP metro area is affecting 84,000+ stranded passengers. Ground operations are severely limited — expect extended delays on all outbound flights. 142 Voyager departures canceled.
+              </p>
             </div>
 
             {/* Trend Detection carousel */}
             {(() => {
               const trendSlides = [
-                "Login failure rates are up 18% compared to yesterday. Most failures are occurring between 08:00–10:00. Consider pre-emptively routing authentication cases to your fastest agents during this window.",
-                "Average handle time for billing cases has dropped by 22 seconds this week. Your team is resolving payment disputes faster — keep reinforcing the current approach.",
-                "3 cases have been waiting over 45 minutes without agent contact. Prioritise these immediately to avoid SLA breaches and escalation risk.",
+                "Hotel availability near MSP has dropped to 2%. Partner hotels are fully booked within a 15-mile radius. Issue vouchers proactively for properties in Bloomington and Eagan before remaining rooms fill.",
+                "Negative sentiment in inbound messages has spiked to 73% (up from 22% baseline). Travelers stranded 8+ hours are showing the highest frustration. Lead with empathy and offer proactive compensation.",
+                "Baggage separation incidents up 580% since 04:00 CST. Rerouted passengers' checked luggage is not following. Initiate proactive baggage traces for all rebooked passengers.",
                 "Customer satisfaction scores for chat interactions are trending 8% higher than voice this month. Consider channel-routing lower-complexity cases to chat where possible.",
                 "Peak case volume typically hits between 11:00–13:00. Ensure full agent coverage during this window to prevent queue build-up.",
               ];

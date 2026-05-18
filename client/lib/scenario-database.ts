@@ -102,6 +102,31 @@ export type ScenarioConfig = {
   accountNumber?: string;
   /** Terry-specific: transcript lines for the sales demo call. */
   transcriptLines?: Array<{ speaker: "customer" | "agent"; text: string; elapsed: number }>;
+  /** Pre-task layover/gate alert shown before options-resolve steps start. */
+  layoverAlert?: {
+    title: string;
+    message: string;
+    approveLabel: string;
+  };
+  /** Post-rating alert shown inline after a customer star rating. */
+  postRatingAlert?: {
+    /** Delay in ms before showing the alert after the star rating appears. */
+    delayMs: number;
+    /** Initial alert phase. */
+    initial: { title: string; message: string; approveLabel: string; denyLabel: string; approveNote: string };
+    /** Fallback alert shown when the agent denies the initial alert. */
+    fallback: { title: string; message: string; confirmLabel: string; confirmNote: string };
+    /** Suggested responses shown when the agent denies the initial alert and the fallback is active. */
+    denySuggestions: Array<{ summary: string; suggestedReply: string }>;
+  };
+  /** Suggested response variants shown after the options-resolve task steps complete. */
+  postResolveSuggestions?: Array<{ summary: string; suggestedReply: string }>;
+  /** Suggested response text for the accordion panel after options-resolve completes. */
+  postResolveReply?: string;
+  /** Internal note templates for options-resolve completion, keyed by selected option task ID. */
+  optionCompletionNotes?: Record<string, string>;
+  /** Fallback internal note for options-resolve when the selected option has no specific note. */
+  optionCompletionNoteFallback?: string;
 };
 
 // ─── Scenario Configs ───────────────────────────────────────────────────────
@@ -481,7 +506,7 @@ const alex_sanderson: ScenarioConfig = {
     iconName: "MessageCircle",
   },
   completionTaskIds: ["authorize-partner-upgrade", "rebook-partner-airline", "send-confirmation"],
-  recommendedAction: "Authorize the premium cabin upgrade on British Airways (BA-292 + BA-548), rebook Alex on the partner routing MSP→LHR→FCO, and send the updated itinerary and boarding passes.",
+  recommendedAction: "Authorize the BA premium cabin upgrade ($2,310), rebook Alex on BA-292 + BA-548 MSP→LHR→FCO, and send updated itinerary and boarding passes.",
   forcedSuggestion: {
     defaultReply: `Hi Alex — I'm ${CURRENT_AGENT_FIRST_NAME}. I've been reviewing your situation and I have good news. I've authorized the premium cabin upgrade on British Airways and rebooked you: BA-292 to Heathrow departing at 11:45, connecting to BA-548 arriving in Rome at 09:20 tomorrow morning. Your updated boarding passes are on the way.`,
     variants: [
@@ -500,12 +525,26 @@ const alex_sanderson: ScenarioConfig = {
     ],
   },
   customerReplies: [
+    // Initial takeover — Sarah introduces herself before confirming the resolution
+    {
+      agentKeywords: ["specialist", "situation", "rome", "mechanical delay", "best option"],
+      agentExclude: ["ba-292", "rebooked", "authorized"],
+      customerContextExcludes: [],
+      reply: "Thank you Sarah, I really appreciate you reaching out directly.",
+    },
     // After agent confirms the reroute and upgrade
     {
       agentKeywords: ["british airways", "ba-292", "rebooked", "premium", "upgrade", "authorized"],
       agentExclude: [],
       customerContextExcludes: ["thank you"],
       reply: "That's incredible — I was honestly bracing for the worst when I heard about the delay. Thank you for getting this sorted so quickly. Rome here we come!",
+    },
+    // After agent alerts about standard seat (premium no longer available)
+    {
+      agentKeywords: ["standard", "premium", "no longer available", "economy seat", "same flight"],
+      agentExclude: [],
+      customerContextExcludes: [],
+      reply: "Yes that's fine, thanks for letting me know.",
     },
     // After agent sends confirmation / boarding passes
     {
@@ -522,6 +561,42 @@ const alex_sanderson: ScenarioConfig = {
       },
     },
   ],
+  layoverAlert: {
+    title: "Layover Update",
+    message: "The Amsterdam layover has been updated to 3 hours due to a gate change at Schiphol. Would you like to approve complimentary lounge access for Alex during the wait? No additional cost.",
+    approveLabel: "Approve Lounge Access",
+  },
+  postRatingAlert: {
+    delayMs: 2200,
+    initial: {
+      title: "Seat Availability Change",
+      message: "The premium cabin seat on BA-292 that was held for Alex is no longer available. A First Class seat is available on the same flight at no additional cost to the customer. Would you like to upgrade Alex to First Class?",
+      approveLabel: "Approve",
+      denyLabel: "Deny",
+      approveNote: "First Class upgrade approved for Alex Sanderson on BA-292 MSP→LHR — no additional cost. Premium cabin seat was no longer available.",
+    },
+    fallback: {
+      title: "Standard Seat Available",
+      message: "A standard economy seat is available on BA-292 for Alex. Same flight, same timing — just a different cabin. Would you like to confirm the standard seat?",
+      confirmLabel: "Confirm Standard Seat",
+      confirmNote: "Standard economy seat confirmed for Alex Sanderson on BA-292 MSP→LHR — premium cabin no longer available.",
+    },
+    denySuggestions: [
+      { summary: "Apologize and explain the seat change — ask if standard is acceptable.", suggestedReply: "Alex, I need to let you know about a last-minute change — the premium seat we had reserved on BA-292 is no longer available. I'm working on alternatives, but in the meantime I do have a standard economy seat confirmed on the same flight. Would that work for you, or would you prefer I keep looking for other options?" },
+      { summary: "Be upfront about the change and offer the standard seat with empathy.", suggestedReply: "Alex — quick update. Unfortunately the premium cabin seat on BA-292 was released before we could lock it in. I've secured a standard seat on the same flight so your itinerary and timing stay exactly the same. I know it's not what we discussed — are you OK with that, or would you like me to explore other options?" },
+      { summary: "Keep it brief and solution-oriented — acknowledge and offer the alternative.", suggestedReply: "Alex, small hiccup — the premium seat on BA-292 just became unavailable. I do have a confirmed standard seat on the same flight, so your Rome arrival time is still 09:20 tomorrow. Is that alright with you?" },
+    ],
+  },
+  postResolveSuggestions: [
+    { summary: "Confirm the reroute, lounge access, and reassure Alex.", suggestedReply: "Alex — you're all sorted. I've rebooked you on a stronger routing that gets you into Rome with plenty of time to spare. I've also arranged lounge access for your layover — you'll see everything in your updated itinerary. You're going to make it." },
+    { summary: "Lead with empathy, then confirm the new itinerary details.", suggestedReply: "Alex, I know this hasn't been the smoothest start to your trip, but I've got great news. You're rebooked through Heathrow on British Airways with a premium cabin upgrade — arriving in Rome at 09:20 tomorrow. I've also set up complimentary lounge access for your layover. Boarding passes are on the way." },
+    { summary: "Keep it brief and action-focused — everything is handled.", suggestedReply: "Alex — all taken care of. New routing is confirmed, lounge access is arranged for your layover, and your updated itinerary and boarding passes are hitting your inbox now. Rome is happening." },
+  ],
+  postResolveReply: "Alex — you're all sorted. I've rebooked you on a stronger routing that gets you into Rome with plenty of time to spare. I've also arranged lounge access for your layover — you'll see everything in your updated itinerary. You're going to make it.",
+  optionCompletionNotes: {
+    "rebook-flight": "Rebooked Alex Sanderson on VY-6180 MSP→AMS + VY-3042 AMS→FCO — economy, 4-hour layover at Schiphol.",
+  },
+  optionCompletionNoteFallback: "Authorized BA premium cabin upgrade ($2,310). Rebooked Alex Sanderson on BA-292 MSP→LHR + BA-548 LHR→FCO arriving 09:20+1. Updated itinerary and boarding passes sent.",
   customerReplyFallback: "Thank you — I appreciate you looking into this. Just want to make sure I get to Rome on time.",
   suggestionVariants: [
     {

@@ -376,6 +376,18 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
     suggestedActions: [],
   },
 
+  "alex sanderson": {
+    summary: "I've identified two routing options for Alex. Option A I can execute automatically. Option B requires your authorization because the premium cabin upgrade exceeds the $500 auto-approval threshold.",
+    nextSteps: [
+      "Option A — Reroute via Amsterdam: Rebook on VY-6180 MSP→AMS + VY-3042 AMS→FCO. Adds a 4-hour delay and requires an airport change at Schiphol. Economy cabin, no additional cost.",
+      "Option B — Partner premium reroute (Recommended): Authorize British Airways premium cabin upgrade ($2,310), rebook on BA-292 MSP→LHR + BA-548 LHR→FCO arriving Rome 09:20+1, and send updated itinerary and boarding passes. Requires human approval.",
+    ],
+    suggestedActions: [
+      { id: "rebook-flight", label: "Reroute via Amsterdam — VY-6180 MSP→AMS + VY-3042 AMS→FCO (4-hour delay, airport change, economy)", group: "resolution", optionLabel: "Option A" },
+      { id: "authorize-partner-upgrade", label: "Authorize BA premium cabin upgrade ($2,310), rebook MSP→LHR→FCO, send updated itinerary (requires approval)", group: "resolution", optionLabel: "Option B — Recommended" },
+    ],
+  },
+
   "elena vasquez": {
     summary: "I've identified the resolution actions for Elena's missing memory card. Each action executes instantly — no forms or tickets needed.",
     nextSteps: [
