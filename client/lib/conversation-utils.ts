@@ -167,6 +167,7 @@ export function getInlineSuggestionVariants(
     : conversation.customerName === "Marcus Webb" ? "marcus"
     : conversation.customerName === "Sofia Martinez" ? "sofia"
     : conversation.customerName === "Terry Williams" ? "terry"
+    : conversation.customerName === "Richard Takahashi" ? "richard"
     : conversation.customerName === "Jordan Davis" ? "jordan"
     : null;
 

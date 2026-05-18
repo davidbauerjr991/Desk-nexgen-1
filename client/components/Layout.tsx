@@ -251,6 +251,8 @@ let pendingTransferRecipient: string | null = null;
 
 // Prevents the Alex Sanderson (Emily) escalation from re-firing.
 let escalationAlexFired = false;
+// Prevents the Richard Takahashi escalation from re-firing after Alex's case resolves.
+let escalationRichardFired = false;
 // Prevents the Jordan Davis escalation from re-firing if Layout remounts during navigation.
 let escalationFired = false;
 // Prevents the Sofia Martinez (Jacob) escalation from re-firing after Jordan's case resolves.
@@ -263,6 +265,7 @@ let escalation4Fired = false;
 let escalation5Fired = false;
 // Resolved flags — read by the BroadcastChannel HELLO handler to report current state.
 let alexSandersonResolvedFlag = false;
+let richardResolvedFlag = false;
 let jordanResolvedFlag = false;
 let sofiaResolvedFlag = false;
 let marcusResolvedFlag = false;
@@ -10974,6 +10977,7 @@ export default function Layout({ children }: LayoutProps) {
   // The standalone auto-fire timers have been removed — scenarios only fire via
   // fireJordanEscalation / fireSofiaEscalation / fireMarcusEscalation (called on TRIGGER msg).
   const [isAlexSandersonResolved, setIsAlexSandersonResolved] = useState(false);
+  const [isRichardResolved, setIsRichardResolved] = useState(false);
   const [isJordanResolved, setIsJordanResolved] = useState(false);
   const [isSofiaResolved, setIsSofiaResolved] = useState(false);
   const [isMarcusResolved, setIsMarcusResolved] = useState(false);
@@ -10984,6 +10988,11 @@ export default function Layout({ children }: LayoutProps) {
     alexSandersonResolvedFlag = true;
     scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "alex_sanderson", status: "resolved" } satisfies AppMsg);
   }, [isAlexSandersonResolved]);
+  useEffect(() => {
+    if (!isRichardResolved) return;
+    richardResolvedFlag = true;
+    scenarioChannelRef.current?.postMessage({ type: "CASE_STATUS", case: "richard", status: "resolved" } satisfies AppMsg);
+  }, [isRichardResolved]);
   useEffect(() => {
     if (!isJordanResolved) return;
     jordanResolvedFlag = true;
@@ -11500,6 +11509,7 @@ export default function Layout({ children }: LayoutProps) {
   }, []);
 
   const alexSandersonFiredRef = useRef(false);
+  const richardFiredRef = useRef(false);
   const jordanFiredRef = useRef(false);
   const sofiaFiredRef = useRef(false);
   const marcusFiredRef = useRef(false);
@@ -11508,6 +11518,13 @@ export default function Layout({ children }: LayoutProps) {
     if (escalationAlexFired) return;
     escalationAlexFired = true;
     fireScenarioEscalation("alex_sanderson", alexSandersonFiredRef, "static-alex-sanderson");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fireRichardEscalation = useCallback(() => {
+    if (escalationRichardFired) return;
+    escalationRichardFired = true;
+    fireScenarioEscalation("richard", richardFiredRef, "static-richard");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -11564,6 +11581,7 @@ export default function Layout({ children }: LayoutProps) {
             type: "APP_READY",
             statuses: {
               alex_sanderson: escalationAlexFired ? (alexSandersonResolvedFlag ? "resolved" : "active") : "idle",
+              richard: escalationRichardFired ? (richardResolvedFlag ? "resolved" : "active") : "idle",
               jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
               sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
               marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
@@ -11578,6 +11596,7 @@ export default function Layout({ children }: LayoutProps) {
       }
       if (msg.type === "TRIGGER") {
         if (msg.case === "alex_sanderson") fireAlexSandersonEscalation();
+        if (msg.case === "richard") fireRichardEscalation();
         if (msg.case === "jordan") fireJordanEscalation();
         if (msg.case === "sofia")  fireSofiaEscalation();
         if (msg.case === "marcus") fireMarcusEscalation();
@@ -11591,7 +11610,7 @@ export default function Layout({ children }: LayoutProps) {
       ch.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fireAlexSandersonEscalation, fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation, fireElenaEscalation]);
+  }, [fireAlexSandersonEscalation, fireRichardEscalation, fireJordanEscalation, fireSofiaEscalation, fireMarcusEscalation, fireTerryEscalation, fireElenaEscalation]);
 
   // When the agent transitions to Available while the controller is already connected,
   // send APP_READY so the controller unlocks buttons and starts auto-timers.
@@ -11602,6 +11621,7 @@ export default function Layout({ children }: LayoutProps) {
       type: "APP_READY",
       statuses: {
         alex_sanderson: escalationAlexFired ? (alexSandersonResolvedFlag ? "resolved" : "active") : "idle",
+        richard: escalationRichardFired ? (richardResolvedFlag ? "resolved" : "active") : "idle",
         jordan: escalationFired ? (jordanResolvedFlag ? "resolved" : "active") : "idle",
         sofia:  escalation2Fired ? (sofiaResolvedFlag ? "resolved" : "active") : "idle",
         marcus: escalation3Fired ? (marcusResolvedFlag ? "resolved" : "active") : "idle",
@@ -12056,6 +12076,7 @@ export default function Layout({ children }: LayoutProps) {
     const staticId = staticAssignments.find((a) => a.customerRecordId === customerRecordId)?.id;
     if (staticId) pendingResolvedIds.add(staticId);
     // Also advance the scenario escalation chain for known escalated cases
+    if (customerRecordId === "richard") setIsRichardResolved(true);
     if (customerRecordId === "marcus") setIsMarcusResolved(true);
     if (customerRecordId === "jordan") setIsJordanResolved(true);
     if (customerRecordId === "sofia") setIsSofiaResolved(true);
@@ -13435,6 +13456,7 @@ export default function Layout({ children }: LayoutProps) {
     pendingResolvedIds.add(sa?.id ?? item.id);
     setEscalatedRailCount((n) => Math.max(0, n - 1));
     // Advance the escalation chain for each known customer record
+    if (item.customerRecordId === "richard") setIsRichardResolved(true);
     if (item.customerRecordId === "jordan") setIsJordanResolved(true);
     if (item.customerRecordId === "sofia") setIsSofiaResolved(true);
     if (item.customerRecordId === "marcus") setIsMarcusResolved(true);
@@ -13774,6 +13796,7 @@ export default function Layout({ children }: LayoutProps) {
             const custRecId = data.customerRecordId ?? `issue-${data.id}`;
             const staticId = staticAssignments.find((a) => a.customerRecordId === custRecId)?.id;
             if (staticId) pendingResolvedIds.add(staticId);
+            if (custRecId === "richard") setIsRichardResolved(true);
             if (custRecId === "marcus") setIsMarcusResolved(true);
             if (custRecId === "jordan") setIsJordanResolved(true);
             if (custRecId === "sofia") setIsSofiaResolved(true);
@@ -14471,6 +14494,7 @@ export default function Layout({ children }: LayoutProps) {
       clearPendingTakeoverCaseId,
       decrementEscalatedCount: () => setEscalatedRailCount((n) => Math.max(0, n - 1)),
       onAlexSandersonCaseResolved: () => setIsAlexSandersonResolved(true),
+      onRichardCaseResolved: () => setIsRichardResolved(true),
       onJordanCaseResolved: () => setIsJordanResolved(true),
       onSofiaCaseResolved: () => setIsSofiaResolved(true),
       onMarcusCaseResolved: () => setIsMarcusResolved(true),
@@ -16213,6 +16237,7 @@ export default function Layout({ children }: LayoutProps) {
             );
             pendingResolvedIds.add(sa?.id ?? escalatedToastModal.id);
             setEscalatedRailCount((n) => Math.max(0, n - 1));
+            if (escalatedToastModal.customerRecordId === "richard") setIsRichardResolved(true);
             if (escalatedToastModal.customerRecordId === "jordan") setIsJordanResolved(true);
             if (escalatedToastModal.customerRecordId === "marcus") setIsMarcusResolved(true);
             if (escalatedToastModal.customerRecordId) dismissIncomingByCustomer(escalatedToastModal.customerRecordId);

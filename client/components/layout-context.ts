@@ -177,9 +177,11 @@ export interface LayoutContextValue {
   clearPendingTakeoverCaseId: () => void;
   /** Decrement the escalated rail badge count by 1 (min 0). Call when a case is resolved without going through the active rail. */
   decrementEscalatedCount: () => void;
-  /** Signal that Alex Sanderson's (Emily's) case has been resolved — triggers the second escalation (Jordan / Aria). */
+  /** Signal that Alex Sanderson's (Emily's) case has been resolved — triggers the next escalation (Richard / Rebooking Bot). */
   onAlexSandersonCaseResolved: () => void;
-  /** Signal that Jordan's (Aria's) case has been resolved — triggers the third escalation (Sofia / Jacob). */
+  /** Signal that Richard Takahashi's case has been resolved — triggers the next escalation (Jordan / Aria). */
+  onRichardCaseResolved: () => void;
+  /** Signal that Jordan's (Aria's) case has been resolved — triggers the next escalation (Sofia / Jacob). */
   onJordanCaseResolved: () => void;
   /** Signal that Sofia's (Jacob's) case has been resolved — triggers the fourth escalation (Marcus / Emily). */
   onSofiaCaseResolved: () => void;

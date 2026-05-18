@@ -131,6 +131,29 @@ export type ScenarioConfig = {
 
 // ─── Scenario Configs ───────────────────────────────────────────────────────
 
+const richard: ScenarioConfig = {
+  escalation: {
+    id: "escalation-static-richard",
+    customerRecordId: "richard",
+    channel: "chat",
+    initials: "RT",
+    name: "Richard Takahashi",
+    customerId: "CST-18742",
+    label: "Rebooking Bot",
+    lastUpdated: "6m",
+    time: "6m",
+    preview: "Executive missing board meeting in NYC — needs earliest possible rebooking",
+    statusLabel: "Escalated",
+    priority: "Critical",
+    priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+    badgeColor: "#E32926",
+    iconName: "MessageCircle",
+  },
+  customerReplies: [],
+  customerReplyFallback: "Thank you for the update. Please keep me posted on the options.",
+  suggestionVariants: [],
+};
+
 const jordan: ScenarioConfig = {
   escalation: {
     id: "escalation-static-11",
@@ -643,6 +666,7 @@ const alex_sanderson: ScenarioConfig = {
 
 export const SCENARIO_CONFIGS: Record<string, ScenarioConfig> = {
   alex_sanderson,
+  richard,
   jordan,
   sofia,
   marcus,

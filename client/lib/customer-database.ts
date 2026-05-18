@@ -4610,6 +4610,291 @@ export const customerDatabase: CustomerSeedRecord[] = [
     ],
   },
   {
+    id: "richard",
+    initials: "RT",
+    name: "Richard Takahashi",
+    customerId: "CST-18742",
+    lastUpdated: "05/18/26 | 10:24 AM",
+    profile: {
+      department: "Business Travel",
+      tenureYears: 8,
+      totalAUM: "430,000 pts",
+      financialReadiness: 95,
+      financialAdvisor: "Sarah Jones",
+      advisorTitle: "Travel Concierge",
+      tags: ["Platinum", "Storm Disruption"],
+      fraudRiskScore: 2,
+      priorDisputeCount: 0,
+      cardBlocked: false,
+    },
+    conversationTopics: [
+      "Rebook canceled VY-3100 MSP→JFK",
+      "Ensure arrival before 09:00 EST board meeting",
+      "Apply Platinum tier rebooking benefits",
+    ],
+    contact: {
+      email: "richard.takahashi@email.com",
+      phone: "(612) 555-0247",
+      address: { street: "1100 Marquette Ave, Suite 4200", city: "Minneapolis", state: "MN", zip: "55403", country: "US" },
+    },
+    accounts: [
+      { id: "rt-loyalty", type: "Business", number: "PLT-918442", balance: "430,000 pts", availableBalance: "430,000 pts", status: "active", openedDate: "May 2018" },
+    ],
+    overview: {
+      contactNumber: "(612) 555-0247",
+      assignedAgent: "Sarah Jones",
+      pronoun: "he",
+      lastContactTime: "Today, 10:24 AM",
+      address: "1100 Marquette Ave, Suite 4200, Minneapolis, MN 55403",
+    },
+    interactionTimeline: [
+      {
+        id: "richard-booking-pull",
+        title: "Booking pulled and cancellation confirmed",
+        timestamp: "Today · 10:24 AM",
+        detail: "Rebooking Bot pulled booking VY-3100 MSP→JFK; confirmed cancellation due to winter storm.",
+        tone: "warning",
+        sortOrder: 1,
+      },
+      {
+        id: "richard-chat-open",
+        title: "Customer opened live chat",
+        timestamp: "Today · 10:24 AM",
+        detail: "Richard reported VY-3100 cancellation and requested earliest possible rebooking.",
+        tone: "default",
+        sortOrder: 2,
+      },
+      {
+        id: "richard-alt-routes",
+        title: "Alternate routes checked",
+        timestamp: "Today · 10:25 AM",
+        detail: "Bot identified VY-3102 MSP→JFK (14:30→19:45) as best available option for tomorrow's 09:00 meeting.",
+        tone: "default",
+        sortOrder: 3,
+      },
+      {
+        id: "richard-platinum-verified",
+        title: "Platinum loyalty status verified",
+        timestamp: "Today · 10:25 AM",
+        detail: "430K miles confirmed — eligible for priority rebooking and complimentary Business Class upgrade.",
+        tone: "default",
+        sortOrder: 4,
+      },
+      {
+        id: "richard-sentiment-flag",
+        title: "Frustrated sentiment detected",
+        timestamp: "Today · 10:26 AM",
+        detail: "Richard expressed urgency about a critical business commitment he cannot miss.",
+        tone: "warning",
+        sortOrder: 5,
+      },
+      {
+        id: "richard-escalation",
+        title: "Escalated to human agent",
+        timestamp: "Today · 10:26 AM",
+        detail: "High-value Platinum executive with time-critical rebooking — flagged for agent confirmation.",
+        tone: "warning",
+        sortOrder: 6,
+      },
+    ],
+    customerHistory: [
+      {
+        id: "richard-enroll",
+        dot: "purple",
+        title: "Voyager Platinum enrollment",
+        timestamp: "May 2018",
+        detail: "Richard enrolled in the Voyager loyalty program at Platinum tier through corporate travel partnership.",
+      },
+      {
+        id: "richard-frequent",
+        dot: "blue",
+        title: "Frequent business traveler profile established",
+        timestamp: "Jun 2018",
+        detail: "Flagged as high-frequency business traveler — 40+ flights per year, primarily domestic US routes.",
+      },
+      {
+        id: "richard-booking",
+        dot: "green",
+        title: "VY-3100 MSP→JFK booked",
+        timestamp: "May 12, 2026",
+        detail: "Round-trip booking MSP→JFK for board of directors meeting. Business Class seat 2A confirmed.",
+      },
+      {
+        id: "richard-cancel",
+        dot: "red",
+        title: "VY-3100 canceled — winter storm",
+        timestamp: "Today · 8:00 AM",
+        detail: "Flight VY-3100 canceled due to severe winter storm affecting MSP departures. All passengers notified via push notification.",
+      },
+      {
+        id: "richard-contact",
+        dot: "orange",
+        title: "Richard contacted support via chat",
+        timestamp: "Today · 10:24 AM",
+        detail: "Requested immediate rebooking assistance. Mentioned critical board meeting tomorrow at 09:00 EST in Manhattan.",
+      },
+    ],
+    queue: {
+      time: "6m",
+      preview: "Executive missing board meeting in NYC — needs earliest possible rebooking",
+      priority: "Critical",
+      priorityClassName: "border-[#E53935] bg-[#FDEAEA] text-[#C71D1A]",
+      badgeColor: "bg-[#E32926]",
+      icon: "messageSquare",
+      isActive: true,
+      createdAt: "2026-05-18T10:24:00",
+      updatedAt: "2026-05-18T10:26:00",
+    },
+    escalationResponses: [
+      "Richard, I've secured you a seat on VY-3102 departing MSP at 14:30, arriving JFK at 19:45 this evening. As a Platinum member, I've applied a complimentary upgrade to Business Class. You'll be in Manhattan tonight with plenty of time before your 09:00 board meeting. Your updated boarding pass is on the way now.",
+    ],
+    conversations: {
+      chat: {
+        label: "Chat",
+        timelineLabel: "Web chat · Today, 10:24 AM",
+        draft:
+          "Richard, I've confirmed availability on VY-3102 MSP→JFK departing at 14:30. With your Platinum status, I can apply a complimentary Business Class upgrade. Shall I confirm the rebooking?",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "Hi, my flight VY-3100 from MSP to JFK was canceled because of the storm and I need help getting rebooked as soon as possible.",
+            time: "10:24 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            author: "Sarah Jones",
+            content:
+              "I'm sorry about the disruption, Richard. I've been looking into your situation — pulled booking for VY-3100 MSP→JFK and confirmed cancellation due to winter storm. Let me see what options are available.",
+            time: "10:25 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "I understand you're working on it, but I have a critical business commitment I cannot miss. Can I speak with a specialist who can expedite this?",
+            time: "10:26 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 4,
+            role: "agent",
+            author: "Rebooking Bot",
+            content: "CFO at a Fortune 500 company. Flight VY-3100 MSP→JFK canceled. Board of directors meeting in Manhattan starts at 09:00 EST tomorrow — his presentation is the first agenda item. Voyager Platinum loyalty member (430K miles). Sentiment: Calm but firm — expects priority handling commensurate with loyalty status.\n\nCustomer Snapshot:\n• C-suite executive — expects priority service commensurate with business travel profile\n• Voyager Platinum loyalty member — high-value customer, priority rebooking eligible\n• Sentiment: Professional and composed — prefers efficient, solution-focused interaction",
+            time: "10:26 AM",
+            isInternal: true,
+            isHandoffCard: true,
+          },
+          {
+            id: 5,
+            role: "agent",
+            author: "Rebooking Bot",
+            content: "Awaiting Human Agent intervention — click to review AI recommendation and approve or reject the suggested response.",
+            time: "10:26 AM",
+            isInternal: true,
+            actionType: "openCustomerInfo",
+          },
+        ],
+      },
+      sms: {
+        label: "SMS",
+        timelineLabel: "SMS · Today, 10:24 AM",
+        draft:
+          "Richard, VY-3102 departs MSP at 14:30, arriving JFK 19:45. Platinum upgrade to Business Class included. Shall I confirm?",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "My flight VY-3100 to JFK was just canceled. I need to get to NYC for a board meeting tomorrow morning. Please help.",
+            time: "10:24 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            author: "Rebooking Bot",
+            content:
+              "Richard, I see your VY-3100 MSP→JFK was canceled due to the storm. I'm checking the next available flights to JFK for you now.",
+            time: "10:25 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content: "This is urgent — I'm presenting to the board at 9 AM tomorrow. I can't miss this.",
+            time: "10:26 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      whatsapp: {
+        label: "WhatsApp",
+        timelineLabel: "WhatsApp · Today, 10:24 AM",
+        draft:
+          "Hi Richard — I've found VY-3102 MSP→JFK at 14:30 with Business Class available. Your Platinum status covers the upgrade. Ready to confirm.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content: "Hi, my flight to New York was canceled. VY-3100. I have a critical meeting tomorrow and need to get there today.",
+            time: "10:24 AM",
+          },
+          {
+            id: 2,
+            role: "agent",
+            author: "Rebooking Bot",
+            content:
+              "Hi Richard! I've pulled your booking and confirmed the cancellation. Let me find the best available route to JFK for you right away.",
+            time: "10:25 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content: "Please hurry — I'm the first presenter at tomorrow's board meeting and I absolutely cannot be late.",
+            time: "10:26 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+      email: {
+        label: "Email",
+        timelineLabel: "Email thread · Today, 10:24 AM",
+        draft:
+          "Dear Richard, I've confirmed availability on VY-3102 MSP→JFK (14:30→19:45). Your Platinum loyalty status qualifies you for a complimentary Business Class upgrade. I'll send your updated itinerary once confirmed.",
+        messages: [
+          {
+            id: 1,
+            role: "customer",
+            content:
+              "Subject: Urgent — VY-3100 canceled, need rebooking\n\nMy flight VY-3100 from Minneapolis to JFK has been canceled. I have a board of directors meeting in Manhattan at 9:00 AM tomorrow — I'm the first presenter. Please rebook me on the next available flight.",
+            time: "10:24 AM",
+            sentiment: "frustrated",
+          },
+          {
+            id: 2,
+            role: "agent",
+            author: "Rebooking Bot",
+            content:
+              "Richard, thank you for reaching out. I've confirmed the cancellation of VY-3100 due to the winter storm and I'm working on rebooking options now. I'll have an update for you shortly.",
+            time: "10:25 AM",
+          },
+          {
+            id: 3,
+            role: "customer",
+            content:
+              "Thank you. Time is critical — this board meeting cannot be rescheduled. Please prioritize the earliest available flight to JFK or any NYC-area airport.",
+            time: "10:26 AM",
+            sentiment: "frustrated",
+          },
+        ],
+      },
+    },
+    customerSnapshot: [
+      "C-suite executive — expects priority service commensurate with business travel profile",
+      "Voyager Platinum loyalty member — high-value customer, priority rebooking eligible",
+      "Sentiment: Professional and composed — prefers efficient, solution-focused interaction",
+    ],
+  },
+  {
     id: "marcus",
     initials: "MW",
     name: "Marcus Webb",

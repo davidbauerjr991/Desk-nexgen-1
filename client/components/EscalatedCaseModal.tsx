@@ -241,7 +241,7 @@ export function EscalatedCaseModal({
 
   // Auto-approve on open when triggered from the toast
   useEffect(() => {
-    if (caseData.autoApprove && caseData.customerRecordId === "jordan") {
+    if (caseData.autoApprove && (caseData.customerRecordId === "jordan" || caseData.customerRecordId === "richard")) {
       triggerApprove();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -264,6 +264,7 @@ export function EscalatedCaseModal({
     "Requires escalation",
   ];
   const REGENERATED_NOTE: Record<string, string> = {
+    richard: "Understood. As an alternative, I can check for availability on partner airlines operating MSP→JFK or MSP→EWR routes this afternoon. Newark Liberty is a viable option with direct PATH/subway access to Manhattan. Would you like me to explore partner airline options?",
     jordan: "Understood. As an alternative, I can guide Jordan through manually exporting his port forwarding rules from the router admin panel (192.168.1.1 › Advanced › Backup Config) before the factory reset — this ensures his configuration is fully preserved regardless of firmware backup behaviour. Would you like me to proceed with these instructions instead?",
     sofia: "Understood. As an additional safeguard, I recommend we first have our fraud prevention team independently verify the transaction details before initiating the dispute. I can flag this case for priority review and arrange for a fraud specialist to contact Sofia directly within the next 30 minutes. Shall I proceed?",
   };

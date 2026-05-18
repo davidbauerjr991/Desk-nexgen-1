@@ -171,6 +171,12 @@ export const overviewActionsByCustomerName: Record<string, string[]> = {
     "Identified two pricing options available under the current commercial framework.",
     "Prepared a contract summary and renewal options brief for the agent.",
   ],
+  "richard takahashi": [
+    "Pulled Richard's booking for VY-3100 MSP→JFK and confirmed cancellation due to winter storm.",
+    "Checked alternate routes — identified VY-3102 MSP→JFK departing 14:30, arriving 19:45 as the best available option.",
+    "Verified Richard's Platinum loyalty status (430K miles) — eligible for priority rebooking and complimentary Business Class upgrade.",
+    "Flagged the conversation for human assist — high-value executive with time-critical board meeting requires agent confirmation before rebooking.",
+  ],
   "jordan davis": [
     "Pulled Jordan's account and identified router model: CloudMesh Pro v3 running firmware 4.0.8 — a known mismatch against the current stable release 4.1.2.",
     "Reviewed 24 hours of diagnostic telemetry — confirmed recurring connection drops consistent with the firmware version mismatch.",

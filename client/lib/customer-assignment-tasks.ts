@@ -237,6 +237,21 @@ const customerAssignmentTaskDatabase: Record<string, CustomerAssignmentEntry> = 
     ],
   },
 
+  "richard takahashi": {
+    summary: "Richard's flight VY-3100 MSP→JFK was canceled due to a winter storm. He's a Platinum-tier CFO with a board meeting in Manhattan at 09:00 EST tomorrow. The AI has identified VY-3102 as the next available flight and is requesting agent confirmation to rebook. Here are my suggested actions, or ask me for more assistance.",
+    nextSteps: [
+      "Confirm rebooking on VY-3102 MSP→JFK departing 14:30, arriving 19:45",
+      "Apply complimentary Business Class upgrade per Platinum tier benefit",
+      "Send updated boarding pass and itinerary to Richard",
+      "Set Case to Resolved once rebooking is confirmed",
+    ],
+    suggestedActions: [
+      { id: "rebook-flight", label: "Confirm Rebooking" },
+      { id: "create-ticket", label: "Create Support Ticket" },
+      { id: "set-resolved", label: "Set Case to Resolved" },
+    ],
+  },
+
   "jordan davis": {
     summary: "Jordan's CloudMesh Pro v3 router is dropping all connections due to a firmware version mismatch. The AI has paused mid-reset to get expert confirmation on port forwarding config backup behavior before proceeding. Here are my suggested actions, or ask me for more assistance.",
     nextSteps: [

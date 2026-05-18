@@ -27,13 +27,23 @@ const CASES: CaseConfig[] = [
     defaultDelay: 5,
   },
   {
+    key: "richard",
+    initials: "RT",
+    name: "Richard Takahashi",
+    customerId: "CST-18742",
+    issue: "Executive missing board meeting in NYC — needs earliest possible rebooking",
+    bot: "Rebooking Bot",
+    triggerLabel: "Fires after Alex resolves",
+    defaultDelay: 5,
+  },
+  {
     key: "jordan",
     initials: "JD",
     name: "Jordan Davis",
     customerId: "CST-11621",
     issue: "Router dropping all connections — port forwarding config at risk during factory reset",
     bot: "Aria",
-    triggerLabel: "Fires after Alex resolves",
+    triggerLabel: "Fires after Richard resolves",
     defaultDelay: 8,
   },
   {
@@ -295,6 +305,7 @@ export default function ScenarioControllerPage() {
 
   const [caseStatuses, setCaseStatuses] = useState<Record<CaseKey, CaseStatus>>({
     alex_sanderson: "idle",
+    richard: "idle",
     jordan: "idle",
     sofia: "idle",
     marcus: "idle",
@@ -309,17 +320,19 @@ export default function ScenarioControllerPage() {
 
   const [delays, setDelays] = useState<Record<CaseKey, number>>({
     alex_sanderson: CASES[0].defaultDelay,
-    jordan: CASES[1].defaultDelay,
-    sofia:  CASES[2].defaultDelay,
-    marcus: CASES[3].defaultDelay,
-    terry:  CASES[4].defaultDelay,
-    elena:  CASES[5].defaultDelay,
+    richard: CASES[1].defaultDelay,
+    jordan: CASES[2].defaultDelay,
+    sofia:  CASES[3].defaultDelay,
+    marcus: CASES[4].defaultDelay,
+    terry:  CASES[5].defaultDelay,
+    elena:  CASES[6].defaultDelay,
   });
   const delaysRef = useRef(delays);
   useEffect(() => { delaysRef.current = delays; }, [delays]);
 
   const [countdowns, setCountdowns] = useState<Record<CaseKey, number | null>>({
     alex_sanderson: null,
+    richard: null,
     jordan: null,
     sofia:  null,
     marcus: null,
@@ -377,13 +390,13 @@ export default function ScenarioControllerPage() {
 
   /** Cancel all active countdowns and reset queued cases to idle. */
   const cancelAllCountdowns = useCallback(() => {
-    (["alex_sanderson", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
+    (["alex_sanderson", "richard", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
       clearCaseInterval(key);
     });
-    setCountdowns({ alex_sanderson: null, jordan: null, sofia: null, marcus: null, terry: null, elena: null });
+    setCountdowns({ alex_sanderson: null, richard: null, jordan: null, sofia: null, marcus: null, terry: null, elena: null });
     setCaseStatuses((prev) => {
       const next = { ...prev };
-      (["alex_sanderson", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
+      (["alex_sanderson", "richard", "jordan", "sofia", "marcus", "terry", "elena"] as CaseKey[]).forEach((key) => {
         if (next[key] === "queued") next[key] = "idle";
       });
       return next;
@@ -469,17 +482,29 @@ export default function ScenarioControllerPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected]);
 
-  // Jordan: start when Alex resolves and auto is on
+  // Richard: start when Alex resolves and auto is on
+  const richardStartedRef = useRef(false);
+  useEffect(() => {
+    if (caseStatuses.alex_sanderson !== "resolved" || richardStartedRef.current) return;
+    if (caseStatuses.richard !== "idle") { richardStartedRef.current = true; return; }
+    richardStartedRef.current = true;
+    if (globalAutoRef.current) {
+      startCountdown("richard", delaysRef.current.richard);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caseStatuses.alex_sanderson]);
+
+  // Jordan: start when Richard resolves and auto is on
   const jordanStartedRef = useRef(false);
   useEffect(() => {
-    if (caseStatuses.alex_sanderson !== "resolved" || jordanStartedRef.current) return;
+    if (caseStatuses.richard !== "resolved" || jordanStartedRef.current) return;
     if (caseStatuses.jordan !== "idle") { jordanStartedRef.current = true; return; }
     jordanStartedRef.current = true;
     if (globalAutoRef.current) {
       startCountdown("jordan", delaysRef.current.jordan);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseStatuses.alex_sanderson]);
+  }, [caseStatuses.richard]);
 
   // Sofia: start when Jordan resolves and auto is on
   const sofiaStartedRef = useRef(false);
