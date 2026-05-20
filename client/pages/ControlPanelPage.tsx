@@ -2607,7 +2607,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
           : "No cases resolved yet today.";
 
         const trendText = criticalCount > 0
-          ? `You have ${criticalCount} critical case${criticalCount > 1 ? "s" : ""} that need immediate attention. ${resolvedNote} With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback. Keep an eye on handle time and aim to wrap responses within SLA windows.`
+          ? `You have ${criticalCount} pending case${criticalCount > 1 ? "s" : ""} that need immediate attention. ${resolvedNote} With ${openCount} open and ${pendingCount} pending, prioritise clearing blockers before your 09:00 callback. Keep an eye on handle time and aim to wrap responses within SLA windows.`
           : highCount > 0
           ? `You have ${highCount} high-priority case${highCount > 1 ? "s" : ""} requiring attention. ${resolvedNote} With ${openCount} open and ${pendingCount} pending, stay focused on timely responses and SLA compliance.`
           : `Your queue is looking manageable today. ${resolvedNote} With ${openCount} open and ${pendingCount} pending, keep up the momentum and aim to close pending cases before end of shift.`;
