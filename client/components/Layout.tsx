@@ -14928,7 +14928,7 @@ export default function Layout({ children }: LayoutProps) {
             >
               <span className="relative shrink-0" aria-hidden="true">
                 <img
-                  src="/agent-avatar.jpg"
+                  src={`${import.meta.env.BASE_URL}agent-avatar.jpg`}
                   alt="Agent avatar"
                   className="h-8 w-8 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.15)]"
                 />
