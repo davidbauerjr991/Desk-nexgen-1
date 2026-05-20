@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Phone,
   GalleryVertical,
+  Globe,
   LayoutGrid,
   LayoutList,
   SlidersHorizontal,
@@ -33,6 +34,7 @@ import { pendingQueueRejections, pendingResolvedIds, pendingEscalatedIds, accept
 import { getEscalationStart } from "@/lib/escalation-timers";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { GlobeView } from "@/components/GlobeView";
 import DeskDataTable from "@/components/DeskDataTable";
 import ConversationPanel from "@/components/ConversationPanel";
 import { EscalationTimer } from "@/components/EscalationTimer";
@@ -3140,7 +3142,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => setViewMode("list")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "list" ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutList className="h-3.5 w-3.5" /></button>
-                      <button type="button" onClick={() => setViewMode("card")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "card" ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><LayoutGrid className="h-3.5 w-3.5" /></button>
+                      <button type="button" onClick={() => setViewMode("card")} className={cn("flex h-7 w-7 items-center justify-center rounded-md border transition-colors", viewMode === "card" ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]" : "border-border bg-white text-[#667085] hover:bg-[#F9FAFB]")}><Globe className="h-3.5 w-3.5" /></button>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] text-[#98A2B3]">{assignedRows.length} assigned case{assignedRows.length !== 1 ? "s" : ""}</span>
@@ -3175,7 +3177,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                       <p className="text-[12px] text-[#667085] max-w-xs">Cases you take over will appear here.</p>
                     </div>
                   ) : viewMode === "card" ? (
-                    <QueueCardView rows={assignedRows} />
+                    <GlobeView rows={assignedRows} />
                   ) : (
                     (() => {
                       const customerMap = new Map<string, typeof assignedRows>();
@@ -3264,9 +3266,9 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
                         ? "border-[#166CCA]/40 bg-[#EBF4FD] text-[#166CCA]"
                         : "border-border bg-white text-[#98A2B3] hover:bg-[#F9FAFB] hover:text-[#344054]",
                     )}
-                    aria-label="Card view"
+                    aria-label="Globe view"
                   >
-                    <LayoutGrid className="h-3.5 w-3.5" />
+                    <Globe className="h-3.5 w-3.5" />
                   </button>
                   <button
                     type="button"
@@ -3492,7 +3494,7 @@ export default function ControlCenterPage({ mode }: { mode?: "inbox" | "control-
             </div>
 
             <div key={viewMode} className={cn("flex-1 min-h-0 animate-view-crossfade", viewMode === "carousel" ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
-              {viewMode === "card" && <QueueCardView rows={allRows} />}
+              {viewMode === "card" && <GlobeView rows={allRows} />}
               {viewMode === "carousel" && <QueueCarouselView rows={allRows} index={carouselIndex} onIndexChange={(i) => { setCarouselDir(i > carouselIndex ? "next" : "prev"); setCarouselIndex(i); }} />}
               {viewMode === "list" && (() => {
                 const renderRows = (rows: typeof allRows) => {
