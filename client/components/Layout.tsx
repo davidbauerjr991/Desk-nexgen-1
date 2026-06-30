@@ -1092,8 +1092,14 @@ function CaseTransferPopover({
   // Compute position synchronously from the trigger ref to avoid first-frame jitter
   const [pos] = useState(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) return { bottom: window.innerHeight - rect.top + 6, right: window.innerWidth - rect.right };
-    return { bottom: 0, right: 0 };
+    if (rect) {
+      // Anchor below the trigger (the 3-dots button) and grow downward, matching
+      // where the dropdown menu appears. Clamp so the bottom stays on screen.
+      const POPOVER_HEIGHT = 360; // header + tabs + max-h-[260px] content
+      const top = Math.min(rect.bottom + 6, window.innerHeight - POPOVER_HEIGHT - 8);
+      return { top, right: window.innerWidth - rect.right };
+    }
+    return { top: 0, right: 0 };
   });
   // Fade-up entrance animation
   const [visible, setVisible] = useState(false);
@@ -1127,7 +1133,7 @@ function CaseTransferPopover({
     <div
       ref={ref}
       className="fixed z-[999999] w-[300px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_24px_rgba(16,24,40,0.14)] overflow-hidden transition-all duration-200 ease-out"
-      style={{ bottom: pos.bottom, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
+      style={{ top: pos.top, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -1314,8 +1320,14 @@ function DispositionPopover({
   // Compute position synchronously from the trigger ref to avoid first-frame jitter
   const [pos] = useState(() => {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) return { bottom: window.innerHeight - rect.top + 6, right: window.innerWidth - rect.right };
-    return { bottom: 0, right: 0 };
+    if (rect) {
+      // Anchor below the trigger (the 3-dots button) and grow downward, matching
+      // where the dropdown menu appears. Clamp so the bottom stays on screen.
+      const POPOVER_HEIGHT = 400; // header + disposition list + notes + footer
+      const top = Math.min(rect.bottom + 6, window.innerHeight - POPOVER_HEIGHT - 8);
+      return { top, right: window.innerWidth - rect.right };
+    }
+    return { top: 0, right: 0 };
   });
   // Fade-up entrance animation
   const [visible, setVisible] = useState(false);
@@ -1336,7 +1348,7 @@ function DispositionPopover({
     <div
       ref={ref}
       className="fixed z-[9999999] w-[320px] rounded-xl border border-border bg-white dark:bg-[#0F1629] shadow-[0_8px_32px_rgba(16,24,40,0.16)] overflow-visible transition-all duration-200 ease-out"
-      style={{ bottom: pos.bottom, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
+      style={{ top: pos.top, right: pos.right, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)" }}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
